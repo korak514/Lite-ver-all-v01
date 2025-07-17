@@ -1,0 +1,149 @@
+﻿<UserControl x:Class="WPF_LoginForm.Views.DatarepView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:WPF_LoginForm.Views"
+             xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+             xmlns:systemData="clr-namespace:System.Data;assembly=System.Data"
+             xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
+             mc:Ignorable="d"
+             d:DesignHeight="500" d:DesignWidth="800"
+             d:DataContext="{d:DesignInstance Type=viewModels:DatarepViewModel, IsDesignTimeCreatable=False}">
+
+    <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:BooleanInverterConverter x:Key="BooleanInverter"/>
+        <converters:IsRowEditableConverter x:Key="IsRowEditableConverter"/>
+        <converters:IsItemInCollectionConverter x:Key="IsItemInCollectionConverter" />
+
+        <!-- MODIFIED Style for the error message TextBox -->
+        <Style x:Key="ErrorMessageTextBoxStyle" TargetType="TextBox">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="Red"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="TextWrapping" Value="NoWrap"/>
+            <!-- Keeps it on one line -->
+            <!-- REMOVED: TextTrimming="CharacterEllipsis" -->
+            <!-- This property does not exist on TextBox -->
+            <Setter Property="AcceptsReturn" Value="False"/>
+            <!-- Also ensure no newlines can be entered if it were editable -->
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Row 0: Toolbar -->
+            <RowDefinition Height="Auto"/>
+            <!-- Row 1: New Status Bar -->
+            <RowDefinition Height="*"/>
+            <!-- Row 2: DataGrid -->
+        </Grid.RowDefinitions>
+
+        <!-- Top Row: Control Bar Area (No changes here) -->
+        <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="0 0 0 2" Padding="10">
+            <ToolBarTray IsLocked="True" >
+                <ToolBar Band="1" BandIndex="1" ToolBar.OverflowMode="Never">
+                    <Label Content="Table:" VerticalAlignment="Center"/>
+                    <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable, Mode=TwoWay}" DisplayMemberPath="." MinWidth="150" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <Button Content="Add" ToolTip="Add New Row" Margin="2,0" Command="{Binding AddNewRowCommand}"/>
+                    <Button Content="Delete" ToolTip="Delete Selected Row(s)" Margin="2,0" Command="{Binding DeleteSelectedRowCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}"/>
+                    <Separator/>
+                    <Button Content="Save" ToolTip="Save Changes" Margin="2,0" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDirty}"/>
+                    <!-- Binding IsEnabled directly to the command is the standard MVVM way -->
+                    <Button Content="Undo" ToolTip="Undo Local Changes" Margin="2,0" Command="{Binding UndoChangesCommand}" IsEnabled="{Binding UndoChangesCommand.CanExecute, Mode=OneWay}"/>
+                    <Button Content="Reload" ToolTip="Reload Data from Database (Discards Local Changes)" Margin="2,0" Command="{Binding ReloadDataCommand}"/>
+                    <Button Content="Edit" ToolTip="Enable Editing for Selected Rows" Margin="2,0" Command="{Binding EditSelectedRowsCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}"/>
+                    <Button Content="Select All" ToolTip="Select All Rows" Margin="2,0" Click="SelectAllButton_Click"/>
+                    <Separator/>
+                    <Button Content="Import" ToolTip="Import Data" Margin="2,0" Command="{Binding ImportDataCommand}"/>
+                    <Button Content="Export" ToolTip="Export Data" Margin="2,0" Command="{Binding ExportDataCommand}"/>
+                    <Separator/>
+                    <Button Content="A-" ToolTip="Decrease Font Size" Margin="2,0" Command="{Binding DecreaseFontSizeCommand}"/>
+                    <Button Content="A+" ToolTip="Increase Font Size" Margin="2,0" Command="{Binding IncreaseFontSizeCommand}"/>
+                </ToolBar>
+            </ToolBarTray>
+        </Border>
+
+        <!-- NEW "Status Bar" Area -->
+        <Grid Grid.Row="1" MinHeight="25" Margin="10,5,10,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <!-- For Progress Bar -->
+                <ColumnDefinition Width="*" />
+                <!-- For Error Message -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Loading Indicator -->
+            <ProgressBar Grid.Column="0" 
+                         IsIndeterminate="True" 
+                         Width="150" Height="15" 
+                         VerticalAlignment="Center"
+                         Visibility="{Binding IsProgressBarVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+            <!-- Error Message Display -->
+            <TextBox Grid.Column="1"
+                     Text="{Binding ErrorMessage, Mode=OneWay}"
+                     Style="{StaticResource ErrorMessageTextBoxStyle}"
+                     Margin="10,0,0,0"
+                     Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+        </Grid>
+
+
+        <!-- Data Display Area (now in Grid.Row="2") -->
+        <Grid Grid.Row="2">
+            <!-- DataGrid -->
+            <DataGrid x:Name="DataDisplayGrid" 
+                      ItemsSource="{Binding DataTableView}"
+                      AutoGenerateColumns="True"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      SelectionMode="Extended"
+                      AlternationCount="2" 
+                      GridLinesVisibility="All"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      FontSize="{Binding DataGridFontSize, FallbackValue=12}"
+                      AutoGeneratingColumn="DataDisplayGrid_AutoGeneratingColumn"
+                      BeginningEdit="DataDisplayGrid_BeginningEdit"
+                      Sorting="DataDisplayGrid_Sorting">
+
+                <DataGrid.IsReadOnly>
+                    <Binding Path="EditableRows" Converter="{StaticResource IsRowEditableConverter}"/>
+                </DataGrid.IsReadOnly>
+
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                                <Setter Property="Background" Value="Gainsboro" />
+                            </Trigger>
+                            <DataTrigger Value="True">
+                                <DataTrigger.Binding>
+                                    <MultiBinding Converter="{StaticResource IsItemInCollectionConverter}">
+                                        <Binding />
+                                        <Binding Path="DataContext.EditableRows" RelativeSource="{RelativeSource AncestorType={x:Type UserControl}}" />
+                                    </MultiBinding>
+                                </DataTrigger.Binding>
+                                <Setter Property="Background" Value="{StaticResource statusEditableColor}"/>
+                                <Setter Property="ToolTip" Value="Row is currently editable"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Row.RowState}" Value="{x:Static systemData:DataRowState.Modified}">
+                                <Setter Property="Background" Value="{StaticResource statusModifiedColor}"/>
+                                <Setter Property="ToolTip" Value="Row Modified (unsaved)"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Row.RowState}" Value="{x:Static systemData:DataRowState.Added}">
+                                <Setter Property="Background" Value="{StaticResource statusAddedColor}"/>
+                                <Setter Property="ToolTip" Value="Row Added (unsaved)"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+            </DataGrid>
+        </Grid>
+    </Grid>
+</UserControl>

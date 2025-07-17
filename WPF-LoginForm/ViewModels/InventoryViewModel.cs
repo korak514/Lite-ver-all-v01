@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace WPF_LoginForm.ViewModels
 {
-    class CustomerViewModel: ViewModelBase
+    class InventoryViewModel: ViewModelBase
+
     {
     }
 }

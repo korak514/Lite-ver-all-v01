@@ -1,0 +1,141 @@
+﻿<Window x:Class="WPF_LoginForm.Views.AddRowLongWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WPF_LoginForm.Views"
+        xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
+        xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=viewModels:AddRowLongViewModel, IsDesignTimeCreatable=False}" 
+        Title="{Binding WindowTitle}"
+        WindowStartupLocation="CenterOwner"
+        SizeToContent="WidthAndHeight" 
+        MinWidth="700" MinHeight="400"
+        MaxWidth="1000" MaxHeight="750"
+        UseLayoutRounding="True">
+
+    <Window.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="TextBox" x:Key="ValueEntryTextBoxStyle">
+            <Setter Property="MinWidth" Value="100"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,5,0"/>
+        </Style>
+        <Style TargetType="Button" x:Key="RemoveLineButtonStyle">
+            <Setter Property="Content" Value=" X "/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="5,0,0,0"/>
+            <Setter Property="Padding" Value="5,2"/>
+            <Setter Property="Foreground" Value="Red"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="30"/>
+            <!-- Date Entry & Add Button -->
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="303.667"/>
+            <!-- Dynamic Entry Lines -->
+            <RowDefinition Height="Auto"/>
+            <!-- OK/Cancel Buttons -->
+        </Grid.RowDefinitions>
+
+        <!-- MODIFIED: Grouping Date and Add button -->
+        <Grid Grid.Row="0" Margin="0,0,0,20" Grid.RowSpan="4">
+            <!-- Increased bottom margin -->
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <!-- Label column -->
+                <ColumnDefinition Width="*" />
+                <!-- Controls column -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Entry Date Controls -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Left">
+                <Label Content="Entry Date:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <DatePicker SelectedDate="{Binding EntryDate, Mode=TwoWay}" 
+                            IsEnabled="{Binding IsDatePickerEnabled}"
+                            VerticalAlignment="Center" 
+                            Width="150"/>
+                <CheckBox Content="Today" 
+                          IsChecked="{Binding IsDateToday, Mode=TwoWay}" 
+                          VerticalAlignment="Center" 
+                          Margin="10,0,0,0"/>
+            </StackPanel>
+
+            <!-- "Add Entry Line" Button, also in column 1 to align -->
+            <Button Grid.Column="1" 
+                    Content="Add Data Entry Line" 
+                    Command="{Binding AddEntryLineCommand}" 
+                    HorizontalAlignment="Left" 
+                    Margin="72,78,0,-14" 
+                Padding="5"/>
+        </Grid>
+
+        <!-- Dynamic Entry Lines -->
+        <ScrollViewer Grid.Row="5" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Grid.RowSpan="2">
+            <ItemsControl ItemsSource="{Binding EntryLines}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type viewModels:AddRowLongEntryViewModel}">
+                        <Border BorderBrush="LightGray" BorderThickness="0,0,0,1" Padding="0,5,0,15" Margin="0,0,0,8">
+                            <StackPanel Orientation="Horizontal">
+                                <ComboBox ItemsSource="{Binding Part1Options}" 
+                                          SelectedItem="{Binding SelectedPart1, Mode=TwoWay}"
+                                          DisplayMemberPath="." />
+
+                                <ComboBox ItemsSource="{Binding Part2Options}" 
+                                          SelectedItem="{Binding SelectedPart2, Mode=TwoWay}"
+                                          Visibility="{Binding IsPart2Visible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                          DisplayMemberPath="." />
+
+                                <ComboBox ItemsSource="{Binding Part3Options}" 
+                                          SelectedItem="{Binding SelectedPart3, Mode=TwoWay}"
+                                          Visibility="{Binding IsPart3Visible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                          DisplayMemberPath="." />
+
+                                <ComboBox ItemsSource="{Binding Part4Options}" 
+                                          SelectedItem="{Binding SelectedPart4, Mode=TwoWay}"
+                                          Visibility="{Binding IsPart4Visible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                          DisplayMemberPath="." />
+
+                                <ComboBox ItemsSource="{Binding CoreItemOptions}" 
+                                          SelectedItem="{Binding SelectedCoreItem, Mode=TwoWay}"
+                                          Visibility="{Binding IsCoreItemVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                          DisplayMemberPath="." ToolTip="Select the specific item"/>
+
+                                <TextBox Text="{Binding EnteredValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, TargetNullValue=''}"
+                                         Visibility="{Binding IsValueEntryVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                         Style="{StaticResource ValueEntryTextBoxStyle}"
+                                         ToolTip="Enter value for the selected item"/>
+
+                                <Button Command="{Binding DataContext.RemoveEntryLineCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{StaticResource RemoveLineButtonStyle}"
+                                        ToolTip="Remove this entry line"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- OK and Cancel Buttons -->
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="_OK" Width="65" Margin="0,0,10,0" IsDefault="True" Click="OkButton_Click" Padding="5"/>
+            <Button Content="_Cancel" Width="75" IsCancel="True" Click="CancelButton_Click" Padding="5"/>
+        </StackPanel>
+    </Grid>
+</Window>

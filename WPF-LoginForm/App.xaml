@@ -1,7 +1,9 @@
 ﻿<Application x:Class="WPF_LoginForm.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
              Startup="ApplicationStart">
+            
     <!-- Ensure ApplicationStart method exists in code-behind -->
 
     <Application.Resources>
@@ -11,6 +13,8 @@
                 <ResourceDictionary Source="/Styles/UIColors.xaml"/>
                 <ResourceDictionary Source="/Styles/ButtonStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+
+            <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -3,16 +3,17 @@
     <!--Background Extra Colors-->
 
     <Color x:Key="exColor1">#060501</Color>
-    <Color x:Key="exColor3">#2F2707</Color>
+    <Color x:Key="exColor4">#2F2707</Color>
     <Color x:Key="exColor2">#16640D</Color>
+    <Color x:Key="exColor3">#21A316</Color>
 
     <!--Background Colors-->
-    <Color x:Key="primaryBackColor1">#0D1500</Color>
+    <Color x:Key="primaryBackColor1">#4D9939</Color>
 
-    <Color x:Key="primaryBackColor2">#0D2500</Color>
+    <Color x:Key="primaryBackColor2">#060543</Color>
 
-    <Color x:Key="primaryBackColor3">#085D0E</Color>
-    <Color x:Key="primaryBackColor4">#07780B</Color>
+    <Color x:Key="primaryBackColor3">#215C0E</Color>
+    <Color x:Key="primaryBackColor4">#179F15</Color>
 
     <Color x:Key="secondaryBackColor1">#12A10B</Color>
     <Color x:Key="secondaryBackColor2">#030347</Color>
@@ -22,15 +23,15 @@
     <Color x:Key="winBorderColor3">#49A956</Color>
 
     <!--Color Palette-->
-    <SolidColorBrush x:Key="color1" Color="#272C3F"/>
+    <SolidColorBrush x:Key="color1" Color="#1D348C"/>
     <!-- Dark blue-gray -->
-    <SolidColorBrush x:Key="color2" Color="#3A4057"/>
+    <SolidColorBrush x:Key="color2" Color="#2B3F8B"/>
     <!-- Slightly lighter blue-gray -->
-    <SolidColorBrush x:Key="color3" Color="#4E5570"/>
+    <SolidColorBrush x:Key="color3" Color="#29426B"/>
     <!-- Medium blue-gray -->
-    <SolidColorBrush x:Key="color4" Color="#B9BAB9"/>
+    <SolidColorBrush x:Key="color4" Color="#0C7081"/>
     <!-- Light blue-gray -->
-    <SolidColorBrush x:Key="color5" Color="#B8A47E"/>
+    <SolidColorBrush x:Key="color5" Color="#14BB14"/>
     <!-- Warm beige (transition to orange) -->
     <SolidColorBrush x:Key="color6" Color="#FFC047"/>
     <!-- Bright orange -->
@@ -41,7 +42,9 @@
     <SolidColorBrush x:Key="color10" Color="#FBA1AA"/>
     <!--Font Colors-->
     <SolidColorBrush x:Key="titleColor1" Color="#E0E1F1"/>
-    <SolidColorBrush x:Key="titleColor2" Color="#D5CFF5"/>
+
+    <SolidColorBrush x:Key="titleColor2" Color="#B2ABD4"/>
+
     <SolidColorBrush x:Key="titleColor3" Color="#BCBEE0"/>
     <SolidColorBrush x:Key="plainTextColor1" Color="#9497CD"/>
     <SolidColorBrush x:Key="plainTextColor2" Color="#7C80C2"/>
@@ -61,5 +64,39 @@
 
     <!--TextBox Colors-->
     <!--Etc-->
+    <!-- === NEW STATUS COLORS === -->
+    <SolidColorBrush x:Key="statusAddedColor" Color="#06180B" />
+    <!-- A light green color -->
+    <SolidColorBrush x:Key="statusModifiedColor" Color="#D1E597" />
+    <!-- A light yellow color -->
+    <SolidColorBrush x:Key="statusEditableColor" Color="#A1A1E5" />
+    <!-- A light blue/cyan color -->
+
+
+    <Color x:Key="PrimaryColor">#030347</Color>
+    <!-- Teal -->
+    <Color x:Key="SecondaryColor">#FF303060</Color>
+    <!-- Dark Blue -->
+    <Color x:Key="AccentColor">#FFF0B400</Color>
+    <Color x:Key="exbhColor1">#1A9B38</Color>
+    <Color x:Key="exbhColor2">#21A316</Color>
+
+
+
+
+    <LinearGradientBrush x:Key="Brush1" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="{StaticResource SecondaryColor}" Offset="0.0" />
+        <GradientStop Color="{StaticResource exbhColor1}" Offset="0.4" />
+        <GradientStop Color="{StaticResource winBorderColor1}" Offset="0.6" />
+        <GradientStop Color="{StaticResource SecondaryColor}" Offset="1" />
+
+    </LinearGradientBrush>
+
+    <!-- Example: Another gradient (e.g., Vertical) -->
+    <LinearGradientBrush x:Key="Brush2" StartPoint="0.5,0" EndPoint="0.5,1">
+        <GradientStop Color="#FF404070" Offset="0.0" />
+        <!-- Slightly lighter blue -->
+        <GradientStop Color="{StaticResource SecondaryColor}" Offset="0.8" />
+    </LinearGradientBrush>
 
 </ResourceDictionary>

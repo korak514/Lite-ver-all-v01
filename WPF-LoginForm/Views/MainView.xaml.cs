@@ -65,5 +65,10 @@ namespace WPF_LoginForm.Views
         {
             Application.Current.Shutdown();
         }
+
+        private void RadioButton_Checked(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }
