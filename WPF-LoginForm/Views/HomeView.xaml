@@ -4,9 +4,64 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:WPF_LoginForm.Views"
+             xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="600" d:DesignWidth="1000">
     <Grid>
-        <Image Source="/Images/biosun/dashboard-template.png"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Row="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <DatePicker Margin="5" SelectedDate="{Binding SelectedDate, Mode=TwoWay}"/>
+            <Button Content="Import" Margin="5" Command="{Binding ImportCommand}"/>
+            <Button Content="Export" Margin="5" Command="{Binding ExportCommand}"/>
+            <Button Content="&#xE713;" FontFamily="Segoe MDL2 Assets" Margin="5" Command="{Binding ConfigureCommand}"/>
+        </StackPanel>
+
+        <lvc:CartesianChart Grid.Row="1" Grid.Column="0" Series="{Binding BarChartSeries}" LegendLocation="Bottom">
+            <lvc:CartesianChart.AxisX>
+                <lvc:Axis Title="X-Axis" Labels="{Binding BarChartLabels}"/>
+            </lvc:CartesianChart.AxisX>
+            <lvc:CartesianChart.AxisY>
+                <lvc:Axis Title="Y-Axis"/>
+            </lvc:CartesianChart.AxisY>
+        </lvc:CartesianChart>
+
+        <lvc:CartesianChart Grid.Row="1" Grid.Column="1" Series="{Binding LineChartSeries}" LegendLocation="Bottom">
+            <lvc:CartesianChart.AxisX>
+                <lvc:Axis Title="X-Axis" Labels="{Binding LineChartLabels}"/>
+            </lvc:CartesianChart.AxisX>
+            <lvc:CartesianChart.AxisY>
+                <lvc:Axis Title="Y-Axis"/>
+            </lvc:CartesianChart.AxisY>
+        </lvc:CartesianChart>
+
+        <lvc:CartesianChart Grid.Row="1" Grid.Column="2" Series="{Binding CustomGraphSeries}" LegendLocation="Bottom">
+            <lvc:CartesianChart.AxisX>
+                <lvc:Axis Title="X-Axis" Labels="{Binding CustomGraphLabels}"/>
+            </lvc:CartesianChart.AxisX>
+            <lvc:CartesianChart.AxisY>
+                <lvc:Axis Title="Y-Axis"/>
+            </lvc:CartesianChart.AxisY>
+        </lvc:CartesianChart>
+
+        <lvc:PieChart Grid.Row="2" Grid.Column="0" Series="{Binding PieChartSeries}" LegendLocation="Right"/>
+
+        <lvc:CartesianChart Grid.Row="2" Grid.Column="1" Series="{Binding SmallChartSeries}" LegendLocation="Bottom">
+            <lvc:CartesianChart.AxisX>
+                <lvc:Axis Title="X-Axis" Labels="{Binding SmallChartLabels}"/>
+            </lvc:CartesianChart.AxisX>
+            <lvc:CartesianChart.AxisY>
+                <lvc:Axis Title="Y-Axis"/>
+            </lvc:CartesianChart.AxisY>
+        </lvc:CartesianChart>
     </Grid>
 </UserControl>
