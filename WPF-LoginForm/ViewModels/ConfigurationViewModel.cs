@@ -18,17 +18,6 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        private string _selectedTable;
-        public string SelectedTable
-        {
-            get { return _selectedTable; }
-            set
-            {
-                _selectedTable = value;
-                OnPropertyChanged(nameof(SelectedTable));
-                // Load columns for the selected table
-            }
-        }
 
         private List<string> _columns;
         public List<string> Columns

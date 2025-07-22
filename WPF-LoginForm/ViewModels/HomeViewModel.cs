@@ -27,13 +27,6 @@ namespace WPF_LoginForm.ViewModels
         public ICommand ImportCommand { get; }
         public ICommand ExportCommand { get; }
 
-        public HomeViewModel()
-        {
-            ConfigureCommand = new ViewModelCommand(p => ShowConfigurationWindow());
-            ImportCommand = new ViewModelCommand(p => ImportConfiguration());
-            ExportCommand = new ViewModelCommand(p => ExportConfiguration());
-            SelectedDate = DateTime.Now;
-        }
 
         private void ImportConfiguration()
         {
