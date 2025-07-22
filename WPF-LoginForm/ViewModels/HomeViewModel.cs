@@ -1,4 +1,9 @@
+using System;
+using System.Collections.Generic;
 using System.Windows.Input;
+using LiveCharts;
+using LiveCharts.Wpf;
+using WPF_LoginForm.Models;
 using WPF_LoginForm.Views;
 
 namespace WPF_LoginForm.ViewModels
@@ -6,104 +11,101 @@ namespace WPF_LoginForm.ViewModels
     public class HomeViewModel : ViewModelBase
     {
         public ICommand ConfigureCommand { get; }
+        public ICommand ImportCommand { get; }
+        public ICommand ExportCommand { get; }
 
-        public HomeViewModel()
+        private DateTime? _selectedDate;
+        public DateTime? SelectedDate
         {
-            ConfigureCommand = new ViewModelCommand(p => ShowConfigurationWindow());
-        }
-
-        public LiveCharts.SeriesCollection BarChartSeries { get; set; }
-        public string[] BarChartLabels { get; set; }
-        public LiveCharts.SeriesCollection LineChartSeries { get; set; }
-        public string[] LineChartLabels { get; set; }
-        public LiveCharts.SeriesCollection CustomGraphSeries { get; set; }
-        public string[] CustomGraphLabels { get; set; }
-        public LiveCharts.SeriesCollection PieChartSeries { get; set; }
-        public LiveCharts.SeriesCollection SmallChartSeries { get; set; }
-        public string[] SmallChartLabels { get; set; }
-
-        private System.DateTime? _selectedDate;
-        public System.DateTime? SelectedDate
-        {
-            get { return _selectedDate; }
+            get => _selectedDate;
             set
             {
                 _selectedDate = value;
                 OnPropertyChanged(nameof(SelectedDate));
-                // Filter chart data based on the selected date
             }
         }
 
-        public ICommand ImportCommand { get; }
-        public ICommand ExportCommand { get; }
+        public SeriesCollection BarChartSeries { get; set; }
+        public string[] BarChartLabels { get; set; }
+        public SeriesCollection LineChartSeries { get; set; }
+        public string[] LineChartLabels { get; set; }
+        public SeriesCollection CustomGraphSeries { get; set; }
+        public string[] CustomGraphLabels { get; set; }
+        public SeriesCollection PieChartSeries { get; set; }
+        public SeriesCollection SmallChartSeries { get; set; }
+        public string[] SmallChartLabels { get; set; }
 
         public HomeViewModel()
         {
             ConfigureCommand = new ViewModelCommand(p => ShowConfigurationWindow());
             ImportCommand = new ViewModelCommand(p => ImportConfiguration());
             ExportCommand = new ViewModelCommand(p => ExportConfiguration());
-            SelectedDate = System.DateTime.Now;
+            SelectedDate = DateTime.Now;
 
             // Initialize chart data
-            BarChartSeries = new LiveCharts.SeriesCollection
+            BarChartSeries = new SeriesCollection
             {
-                new LiveCharts.Wpf.ColumnSeries
+                new ColumnSeries
                 {
                     Title = "Sales",
-                    Values = new LiveCharts.ChartValues<double> { 10, 20, 30, 40, 50 }
+                    Values = new ChartValues<double> { 10, 20, 30, 40, 50 }
                 }
             };
             BarChartLabels = new[] { "Jan", "Feb", "Mar", "Apr", "May" };
 
-            LineChartSeries = new LiveCharts.SeriesCollection
+            LineChartSeries = new SeriesCollection
             {
-                new LiveCharts.Wpf.LineSeries
+                new LineSeries
                 {
                     Title = "Revenue",
-                    Values = new LiveCharts.ChartValues<double> { 100, 120, 110, 130, 150 }
+                    Values = new ChartValues<double> { 100, 120, 110, 130, 150 }
                 }
             };
             LineChartLabels = new[] { "Jan", "Feb", "Mar", "Apr", "May" };
 
-            PieChartSeries = new LiveCharts.SeriesCollection
+            PieChartSeries = new SeriesCollection
             {
-                new LiveCharts.Wpf.PieSeries
+                new PieSeries
                 {
                     Title = "Product A",
-                    Values = new LiveCharts.ChartValues<double> { 30 }
+                    Values = new ChartValues<double> { 30 }
                 },
-                new LiveCharts.Wpf.PieSeries
+                new PieSeries
                 {
                     Title = "Product B",
-                    Values = new LiveCharts.ChartValues<double> { 40 }
+                    Values = new ChartValues<double> { 40 }
                 },
-                new LiveCharts.Wpf.PieSeries
+                new PieSeries
                 {
                     Title = "Product C",
-                    Values = new LiveCharts.ChartValues<double> { 30 }
+                    Values = new ChartValues<double> { 30 }
                 }
             };
         }
 
         private void ImportConfiguration()
         {
-            var openFileDialog = new Microsoft.Win32.OpenFileDialog();
-            openFileDialog.Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*";
+            var openFileDialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*"
+            };
             if (openFileDialog.ShowDialog() == true)
             {
                 var json = System.IO.File.ReadAllText(openFileDialog.FileName);
-                var config = Newtonsoft.Json.JsonConvert.DeserializeObject<Models.DashboardConfiguration>(json);
+                var config = Newtonsoft.Json.JsonConvert.DeserializeObject<DashboardConfiguration>(json);
                 // Apply the loaded configuration to the charts
             }
         }
 
         private void ExportConfiguration()
         {
-            var saveFileDialog = new Microsoft.Win32.SaveFileDialog();
-            saveFileDialog.Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*";
+            var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*"
+            };
             if (saveFileDialog.ShowDialog() == true)
             {
-                var config = new Models.DashboardConfiguration
+                var config = new DashboardConfiguration
                 {
                     // Populate the config object with the current chart settings
                 };

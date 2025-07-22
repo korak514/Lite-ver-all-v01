@@ -17,9 +17,9 @@ namespace WPF_LoginForm.Repositories
         private readonly string _connectionString;
         private readonly ILogger _logger;
 
-        public DataRepository(ILogger logger)
+        public DataRepository(ILogger logger = null)
         {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _logger = logger ?? new FileLogger();
             _connectionString = ConfigurationManager.ConnectionStrings["TestDTConnection"]?.ConnectionString;
             if (string.IsNullOrEmpty(_connectionString))
             {
