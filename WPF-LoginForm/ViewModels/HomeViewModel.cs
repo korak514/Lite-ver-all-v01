@@ -1,19 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
 using WPF_LoginForm.Views;
 
 namespace WPF_LoginForm.ViewModels
 {
-    public class HomeViewModel:ViewModelBase
+    public class HomeViewModel : ViewModelBase
     {
         public ICommand ConfigureCommand { get; }
 
-        private DateTime? _selectedDate;
-        public DateTime? SelectedDate
+        public HomeViewModel()
+        {
+            ConfigureCommand = new ViewModelCommand(p => ShowConfigurationWindow());
+        }
+
+        public LiveCharts.SeriesCollection BarChartSeries { get; set; }
+        public string[] BarChartLabels { get; set; }
+        public LiveCharts.SeriesCollection LineChartSeries { get; set; }
+        public string[] LineChartLabels { get; set; }
+        public LiveCharts.SeriesCollection CustomGraphSeries { get; set; }
+        public string[] CustomGraphLabels { get; set; }
+        public LiveCharts.SeriesCollection PieChartSeries { get; set; }
+        public LiveCharts.SeriesCollection SmallChartSeries { get; set; }
+        public string[] SmallChartLabels { get; set; }
+
+        private System.DateTime? _selectedDate;
+        public System.DateTime? SelectedDate
         {
             get { return _selectedDate; }
             set
@@ -27,50 +37,12 @@ namespace WPF_LoginForm.ViewModels
         public ICommand ImportCommand { get; }
         public ICommand ExportCommand { get; }
 
-
-        private void ImportConfiguration()
-        {
-            var openFileDialog = new Microsoft.Win32.OpenFileDialog();
-            openFileDialog.Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*";
-            if (openFileDialog.ShowDialog() == true)
-            {
-                var json = System.IO.File.ReadAllText(openFileDialog.FileName);
-                var config = Newtonsoft.Json.JsonConvert.DeserializeObject<Models.DashboardConfiguration>(json);
-                // Apply the loaded configuration to the charts
-            }
-        }
-
-        private void ExportConfiguration()
-        {
-            var saveFileDialog = new Microsoft.Win32.SaveFileDialog();
-            saveFileDialog.Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*";
-            if (saveFileDialog.ShowDialog() == true)
-            {
-                var config = new Models.DashboardConfiguration
-                {
-                    // Populate the config object with the current chart settings
-                };
-                var json = Newtonsoft.Json.JsonConvert.SerializeObject(config, Newtonsoft.Json.Formatting.Indented);
-                System.IO.File.WriteAllText(saveFileDialog.FileName, json);
-            }
-        }
-
-        public LiveCharts.SeriesCollection BarChartSeries { get; set; }
-        public string[] BarChartLabels { get; set; }
-        public LiveCharts.SeriesCollection LineChartSeries { get; set; }
-        public string[] LineChartLabels { get; set; }
-        public LiveCharts.SeriesCollection CustomGraphSeries { get; set; }
-        public string[] CustomGraphLabels { get; set; }
-        public LiveCharts.SeriesCollection PieChartSeries { get; set; }
-        public LiveCharts.SeriesCollection SmallChartSeries { get; set; }
-        public string[] SmallChartLabels { get; set; }
-
         public HomeViewModel()
         {
             ConfigureCommand = new ViewModelCommand(p => ShowConfigurationWindow());
             ImportCommand = new ViewModelCommand(p => ImportConfiguration());
             ExportCommand = new ViewModelCommand(p => ExportConfiguration());
-            SelectedDate = DateTime.Now;
+            SelectedDate = System.DateTime.Now;
 
             // Initialize chart data
             BarChartSeries = new LiveCharts.SeriesCollection
@@ -111,6 +83,33 @@ namespace WPF_LoginForm.ViewModels
                     Values = new LiveCharts.ChartValues<double> { 30 }
                 }
             };
+        }
+
+        private void ImportConfiguration()
+        {
+            var openFileDialog = new Microsoft.Win32.OpenFileDialog();
+            openFileDialog.Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*";
+            if (openFileDialog.ShowDialog() == true)
+            {
+                var json = System.IO.File.ReadAllText(openFileDialog.FileName);
+                var config = Newtonsoft.Json.JsonConvert.DeserializeObject<Models.DashboardConfiguration>(json);
+                // Apply the loaded configuration to the charts
+            }
+        }
+
+        private void ExportConfiguration()
+        {
+            var saveFileDialog = new Microsoft.Win32.SaveFileDialog();
+            saveFileDialog.Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*";
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                var config = new Models.DashboardConfiguration
+                {
+                    // Populate the config object with the current chart settings
+                };
+                var json = Newtonsoft.Json.JsonConvert.SerializeObject(config, Newtonsoft.Json.Formatting.Indented);
+                System.IO.File.WriteAllText(saveFileDialog.FileName, json);
+            }
         }
 
         private void ShowConfigurationWindow()
