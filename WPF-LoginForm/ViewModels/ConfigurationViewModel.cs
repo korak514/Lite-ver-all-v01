@@ -81,7 +81,7 @@ namespace WPF_LoginForm.ViewModels
 
         public ConfigurationViewModel()
         {
-            _dataRepository = new Repositories.DataRepository();
+            _dataRepository = new Repositories.DataRepository(new Services.FileLogger());
             OkCommand = new ViewModelCommand(p => { /* Save configuration and close dialog */ });
             CancelCommand = new ViewModelCommand(p => { /* Close dialog */ });
 
