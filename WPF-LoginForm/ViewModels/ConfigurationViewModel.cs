@@ -100,6 +100,7 @@ namespace WPF_LoginForm.ViewModels
             Columns = dataTable.Columns.Cast<System.Data.DataColumn>().Select(c => c.ColumnName).ToList();
         }
 
+        private string _selectedTable;
         public string SelectedTable
         {
             get { return _selectedTable; }
