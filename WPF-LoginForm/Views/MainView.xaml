@@ -18,27 +18,18 @@
         WindowStyle="None">
     
     <Window.Resources>
-     
-    
-
         <DataTemplate DataType="{x:Type viewModel:HomeViewModel}">
             <local:HomeView/>
         </DataTemplate>
         <DataTemplate DataType="{x:Type viewModel:CustomerViewModel}">
             <local:CustomerView/>
         </DataTemplate>
-
         <DataTemplate DataType="{x:Type viewModel:DatarepViewModel}">
             <local:DatarepView/>
-       </DataTemplate>
+        </DataTemplate>
         <DataTemplate DataType="{x:Type viewModel:InventoryViewModel}">
             <local:InventoryView/>
         </DataTemplate>
-        
-
-
-
-
     </Window.Resources>
 
     <Window.DataContext>
