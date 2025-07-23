@@ -20,7 +20,11 @@
         </Grid.ColumnDefinitions>
 
         <StackPanel Grid.Row="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
-            <DatePicker Margin="5" SelectedDate="{Binding SelectedDate, Mode=TwoWay}"/>
+            <!--<DatePicker Margin="5" SelectedDate="{Binding SelectedDate, Mode=TwoWay}"/>-->
+            <StackPanel Orientation="Vertical" Margin="5">
+                <TextBlock Text="{Binding SelectedDateRangeText}" HorizontalAlignment="Center"/>
+                <Slider Minimum="{Binding SliderMin}" Maximum="{Binding SliderMax}" Value="{Binding SliderValue, Mode=TwoWay}" Width="200"/>
+            </StackPanel>
             <Button Content="Import" Margin="5" Command="{Binding ImportCommand}"/>
             <Button Content="Export" Margin="5" Command="{Binding ExportCommand}"/>
             <Button Content="&#xE713;" FontFamily="Segoe MDL2 Assets" Margin="5" Command="{Binding ConfigureCommand}"/>

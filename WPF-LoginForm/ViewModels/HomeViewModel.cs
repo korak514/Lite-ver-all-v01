@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Linq;
 using System.Windows.Input;
 using LiveCharts;
 using LiveCharts.Wpf;
 using WPF_LoginForm.Models;
+using WPF_LoginForm.Repositories;
+using WPF_LoginForm.Services;
 using WPF_LoginForm.Views;
 
 namespace WPF_LoginForm.ViewModels
@@ -14,14 +18,51 @@ namespace WPF_LoginForm.ViewModels
         public ICommand ImportCommand { get; }
         public ICommand ExportCommand { get; }
 
-        private DateTime? _selectedDate;
-        public DateTime? SelectedDate
+        private DateTime _startDate = new DateTime(2023, 1, 1);
+        private DateTime _endDate;
+
+        private double _sliderMin;
+        public double SliderMin
         {
-            get => _selectedDate;
+            get => _sliderMin;
             set
             {
-                _selectedDate = value;
-                OnPropertyChanged(nameof(SelectedDate));
+                _sliderMin = value;
+                OnPropertyChanged(nameof(SliderMin));
+            }
+        }
+
+        private double _sliderMax;
+        public double SliderMax
+        {
+            get => _sliderMax;
+            set
+            {
+                _sliderMax = value;
+                OnPropertyChanged(nameof(SliderMax));
+            }
+        }
+
+        private double _sliderValue;
+        public double SliderValue
+        {
+            get => _sliderValue;
+            set
+            {
+                _sliderValue = value;
+                OnPropertyChanged(nameof(SliderValue));
+                UpdateSelectedDateRangeText();
+            }
+        }
+
+        private string _selectedDateRangeText;
+        public string SelectedDateRangeText
+        {
+            get => _selectedDateRangeText;
+            set
+            {
+                _selectedDateRangeText = value;
+                OnPropertyChanged(nameof(SelectedDateRangeText));
             }
         }
 
@@ -37,10 +78,16 @@ namespace WPF_LoginForm.ViewModels
 
         public HomeViewModel()
         {
+            _dataRepository = new DataRepository(new FileLogger());
             ConfigureCommand = new ViewModelCommand(p => ShowConfigurationWindow());
             ImportCommand = new ViewModelCommand(p => ImportConfiguration());
             ExportCommand = new ViewModelCommand(p => ExportConfiguration());
-            SelectedDate = DateTime.Now;
+
+            _endDate = DateTime.Now;
+            SliderMin = 0;
+            SliderMax = (_endDate - _startDate).TotalDays;
+            SliderValue = SliderMax;
+            UpdateSelectedDateRangeText();
 
             // Initialize chart data
             BarChartSeries = new SeriesCollection
@@ -114,6 +161,50 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
+        private void UpdateSelectedDateRangeText()
+        {
+            DateTime selectedEndDate = _startDate.AddDays(_sliderValue);
+            SelectedDateRangeText = $"Jan 1, 2023 – {selectedEndDate:MMM d, yyyy}";
+            LoadData();
+        }
+
+        private readonly IDataRepository _dataRepository;
+
+        private async void LoadData()
+        {
+            if (_dashboardConfiguration == null) return;
+
+            var startDate = _startDate;
+            var endDate = _startDate.AddDays(_sliderValue);
+
+            var dataTable = await _dataRepository.GetDataAsync(_dashboardConfiguration.TableName, _dashboardConfiguration.XAxisColumn, _dashboardConfiguration.YAxisColumns, startDate, endDate);
+
+            if (dataTable == null) return;
+
+            var labels = dataTable.AsEnumerable().Select(r => r[_dashboardConfiguration.XAxisColumn].ToString()).ToArray();
+            var series = new SeriesCollection();
+
+            foreach (var columnName in _dashboardConfiguration.YAxisColumns)
+            {
+                var values = new ChartValues<double>();
+                foreach (DataRow row in dataTable.Rows)
+                {
+                    values.Add(Convert.ToDouble(row[columnName]));
+                }
+
+                series.Add(new ColumnSeries
+                {
+                    Title = columnName,
+                    Values = values
+                });
+            }
+
+            BarChartSeries = series;
+            BarChartLabels = labels;
+        }
+
+        private DashboardConfiguration _dashboardConfiguration;
+
         private void ShowConfigurationWindow()
         {
             var configView = new ConfigurationView();
@@ -121,7 +212,14 @@ namespace WPF_LoginForm.ViewModels
             configView.DataContext = configViewModel;
             if (configView.ShowDialog() == true)
             {
-                // Apply the configuration
+                _dashboardConfiguration = new DashboardConfiguration
+                {
+                    TableName = configViewModel.SelectedTable,
+                    XAxisColumn = configViewModel.SelectedXAxisColumn,
+                    YAxisColumns = configViewModel.SelectableColumns.Where(c => c.IsSelected).Select(c => c.Name).ToList(),
+                    ChartType = configViewModel.SelectedChartType
+                };
+                LoadData();
             }
         }
     }
