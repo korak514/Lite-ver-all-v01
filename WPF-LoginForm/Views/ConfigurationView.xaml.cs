@@ -1,5 +1,4 @@
 using System.Windows;
-using WPF_LoginForm.ViewModels;
 
 namespace WPF_LoginForm.Views
 {
@@ -8,17 +7,6 @@ namespace WPF_LoginForm.Views
         public ConfigurationView()
         {
             InitializeComponent();
-            Loaded += (sender, args) =>
-            {
-                if (DataContext is ConfigurationViewModel viewModel)
-                {
-                    viewModel.CloseAction = () =>
-                    {
-                        DialogResult = true;
-                        Close();
-                    };
-                }
-            };
         }
     }
 }

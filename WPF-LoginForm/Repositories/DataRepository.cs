@@ -596,46 +596,5 @@ namespace WPF_LoginForm.Repositories
             }
             return actualColumn;
         }
-
-        public async Task<DataTable> GetDataAsync(string tableName, string xAxisColumn, List<string> yAxisColumns, DateTime startDate, DateTime endDate)
-        {
-            var dataTable = new DataTable();
-            if (string.IsNullOrEmpty(tableName) || string.IsNullOrEmpty(xAxisColumn) || yAxisColumns == null || yAxisColumns.Count == 0)
-            {
-                return dataTable;
-            }
-
-            try
-            {
-                using (var connection = new SqlConnection(_connectionString))
-                {
-                    await connection.OpenAsync();
-
-                    var columns = new List<string> { xAxisColumn };
-                    columns.AddRange(yAxisColumns);
-                    var columnList = string.Join(", ", columns.Select(SanitizeObjectName));
-
-                    string query = $"SELECT {columnList} FROM {SanitizeObjectName(tableName)} WHERE {SanitizeObjectName(xAxisColumn)} BETWEEN @startDate AND @endDate";
-
-                    using (var command = new SqlCommand(query, connection))
-                    {
-                        command.Parameters.AddWithValue("@startDate", startDate);
-                        command.Parameters.AddWithValue("@endDate", endDate);
-
-                        using (var adapter = new SqlDataAdapter(command))
-                        {
-                            await Task.Run(() => adapter.Fill(dataTable));
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Failed to fetch data for table '{tableName}'.", ex);
-                throw;
-            }
-
-            return dataTable;
-        }
     }
 }

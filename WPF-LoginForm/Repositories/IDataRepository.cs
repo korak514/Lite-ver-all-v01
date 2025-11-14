@@ -45,7 +45,5 @@ namespace WPF_LoginForm.Repositories
                                             string part3Value, // Can be null if not applicable
                                             string part4Value, // Can be null if not applicable
                                             string coreItemDisplayName);
-
-        Task<DataTable> GetDataAsync(string tableName, string xAxisColumn, List<string> yAxisColumns, DateTime startDate, DateTime endDate);
     }
 }

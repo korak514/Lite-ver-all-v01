@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Windows.Input;
-using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
 using WPF_LoginForm.Services;
 
@@ -32,25 +31,25 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        private List<SelectableColumn> _selectableColumns;
-        public List<SelectableColumn> SelectableColumns
+        private string _selectedXAxis;
+        public string SelectedXAxis
         {
-            get { return _selectableColumns; }
+            get { return _selectedXAxis; }
             set
             {
-                _selectableColumns = value;
-                OnPropertyChanged(nameof(SelectableColumns));
+                _selectedXAxis = value;
+                OnPropertyChanged(nameof(SelectedXAxis));
             }
         }
 
-        private string _selectedXAxisColumn;
-        public string SelectedXAxisColumn
+        private string _selectedYAxis;
+        public string SelectedYAxis
         {
-            get { return _selectedXAxisColumn; }
+            get { return _selectedYAxis; }
             set
             {
-                _selectedXAxisColumn = value;
-                OnPropertyChanged(nameof(SelectedXAxisColumn));
+                _selectedYAxis = value;
+                OnPropertyChanged(nameof(SelectedYAxis));
             }
         }
 
@@ -90,19 +89,14 @@ namespace WPF_LoginForm.ViewModels
 
         public ICommand OkCommand { get; }
         public ICommand CancelCommand { get; }
-        public Action CloseAction { get; set; }
 
         private readonly IDataRepository _dataRepository;
 
         public ConfigurationViewModel()
         {
             _dataRepository = new DataRepository(new FileLogger());
-            OkCommand = new ViewModelCommand(p =>
-            {
-                // Here you can add any validation logic before closing
-                CloseAction?.Invoke();
-            });
-            CancelCommand = new ViewModelCommand(p => CloseAction?.Invoke());
+            OkCommand = new ViewModelCommand(p => { /* Save configuration and close dialog */ });
+            CancelCommand = new ViewModelCommand(p => { /* Close dialog */ });
 
             LoadTables();
             ChartTypes = new List<string> { "Bar", "Line", "Pie" };
@@ -118,7 +112,6 @@ namespace WPF_LoginForm.ViewModels
             if (string.IsNullOrEmpty(tableName)) return;
             var dataTable = await _dataRepository.GetTableDataAsync(tableName);
             Columns = dataTable.Columns.Cast<DataColumn>().Select(c => c.ColumnName).ToList();
-            SelectableColumns = Columns.Select(c => new SelectableColumn { Name = c }).ToList();
         }
     }
 }
