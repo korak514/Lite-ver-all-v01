@@ -1,0 +1,80 @@
+﻿<Window x:Class="WPF_LoginForm.Views.ImportTableWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WPF_LoginForm.Views"
+        xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
+        xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=viewModels:ImportTableViewModel, IsDesignTimeCreatable=False}"
+        Title="{Binding WindowTitle}"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        MinWidth="450">
+
+    <Window.Resources>
+        <!-- CORRECTED: Reference the converter from the Converters namespace -->
+        <converters:IsNullOrEmptyConverter x:Key="IsNullOrEmptyConverter"/>
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Row 0: File Path Selection -->
+        <Label Grid.Row="0" Grid.Column="0" Content="File Path:" VerticalAlignment="Center"/>
+        <TextBox Grid.Row="0" Grid.Column="1" 
+                 Text="{Binding FilePath}" 
+                 IsReadOnly="True" 
+                 VerticalContentAlignment="Center"
+                 Margin="5,5,0,5"/>
+        <Button Grid.Row="0" Grid.Column="2" 
+                Content="Browse..." 
+                Command="{Binding BrowseCommand}" 
+                Padding="8,4" 
+                Margin="5,5,0,5"/>
+
+        <!-- Row 1: Advanced Options -->
+        <Label Grid.Row="1" Grid.Column="0" Content="Rows to Ignore:" VerticalAlignment="Center" Margin="0,10,0,0"/>
+        <ComboBox Grid.Row="1" Grid.Column="1"
+                  ItemsSource="{Binding AvailableRowCounts}"
+                  SelectedItem="{Binding RowsToIgnore, Mode=TwoWay}"
+                  Margin="5,10,0,0"
+                  HorizontalAlignment="Left"
+                  Width="60"/>
+
+        <!-- Row 2: OK/Cancel Buttons -->
+        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right" 
+                    Margin="0,25,0,0">
+            <Button Content="_OK" IsDefault="True" 
+                    Width="75" Margin="0,0,10,0" 
+                    Click="OkButton_Click">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="IsEnabled" Value="False"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding FilePath, Converter={StaticResource IsNullOrEmptyConverter}}" Value="False">
+                                <Setter Property="IsEnabled" Value="True"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="_Cancel" IsCancel="True" Width="75" Click="CancelButton_Click"/>
+        </StackPanel>
+
+    </Grid>
+
+</Window>

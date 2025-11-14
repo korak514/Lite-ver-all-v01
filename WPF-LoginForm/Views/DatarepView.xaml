@@ -7,6 +7,8 @@
              xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
              xmlns:systemData="clr-namespace:System.Data;assembly=System.Data"
              xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
+             xmlns:fa="http://schemas.fontawesome.io/icons/"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              mc:Ignorable="d"
              d:DesignHeight="500" d:DesignWidth="800"
              d:DataContext="{d:DesignInstance Type=viewModels:DatarepViewModel, IsDesignTimeCreatable=False}">
@@ -16,8 +18,8 @@
         <converters:BooleanInverterConverter x:Key="BooleanInverter"/>
         <converters:IsRowEditableConverter x:Key="IsRowEditableConverter"/>
         <converters:IsItemInCollectionConverter x:Key="IsItemInCollectionConverter" />
+        <converters:IsNullOrEmptyConverter x:Key="IsNullOrEmptyConverter"/>
 
-        <!-- MODIFIED Style for the error message TextBox -->
         <Style x:Key="ErrorMessageTextBoxStyle" TargetType="TextBox">
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -26,77 +28,100 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="IsReadOnly" Value="True"/>
             <Setter Property="TextWrapping" Value="NoWrap"/>
-            <!-- Keeps it on one line -->
-            <!-- REMOVED: TextTrimming="CharacterEllipsis" -->
-            <!-- This property does not exist on TextBox -->
             <Setter Property="AcceptsReturn" Value="False"/>
-            <!-- Also ensure no newlines can be entered if it were editable -->
         </Style>
     </UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- Row 0: Toolbar -->
             <RowDefinition Height="Auto"/>
-            <!-- Row 1: New Status Bar -->
             <RowDefinition Height="*"/>
-            <!-- Row 2: DataGrid -->
         </Grid.RowDefinitions>
 
-        <!-- Top Row: Control Bar Area (No changes here) -->
         <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="0 0 0 2" Padding="10">
             <ToolBarTray IsLocked="True" >
+                <!-- Toolbar 1: Main Actions -->
                 <ToolBar Band="1" BandIndex="1" ToolBar.OverflowMode="Never">
                     <Label Content="Table:" VerticalAlignment="Center"/>
-                    <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable, Mode=TwoWay}" DisplayMemberPath="." MinWidth="150" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <Button Content="Add" ToolTip="Add New Row" Margin="2,0" Command="{Binding AddNewRowCommand}"/>
-                    <Button Content="Delete" ToolTip="Delete Selected Row(s)" Margin="2,0" Command="{Binding DeleteSelectedRowCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}"/>
-                    <Separator/>
-                    <Button Content="Save" ToolTip="Save Changes" Margin="2,0" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDirty}"/>
-                    <!-- Binding IsEnabled directly to the command is the standard MVVM way -->
-                    <Button Content="Undo" ToolTip="Undo Local Changes" Margin="2,0" Command="{Binding UndoChangesCommand}" IsEnabled="{Binding UndoChangesCommand.CanExecute, Mode=OneWay}"/>
-                    <Button Content="Reload" ToolTip="Reload Data from Database (Discards Local Changes)" Margin="2,0" Command="{Binding ReloadDataCommand}"/>
-                    <Button Content="Edit" ToolTip="Enable Editing for Selected Rows" Margin="2,0" Command="{Binding EditSelectedRowsCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}"/>
-                    <Button Content="Select All" ToolTip="Select All Rows" Margin="2,0" Click="SelectAllButton_Click"/>
-                    <Separator/>
-                    <Button Content="Import" ToolTip="Import Data" Margin="2,0" Command="{Binding ImportDataCommand}"/>
-                    <Button Content="Export" ToolTip="Export Data" Margin="2,0" Command="{Binding ExportDataCommand}"/>
-                    <Separator/>
-                    <Button Content="A-" ToolTip="Decrease Font Size" Margin="2,0" Command="{Binding DecreaseFontSizeCommand}"/>
-                    <Button Content="A+" ToolTip="Increase Font Size" Margin="2,0" Command="{Binding IncreaseFontSizeCommand}"/>
+                    <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable, Mode=TwoWay}" DisplayMemberPath="." MinWidth="150" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <Button Content="Delete Table" ToolTip="Permanently delete the selected table" Margin="0,0,10,0" Command="{Binding DeleteTableCommand}" Foreground="Red"/>
+
+                    <Button Content="Add" ToolTip="Add New Row" Margin="4,0" Command="{Binding AddNewRowCommand}"/>
+                    <Button Content="Delete" ToolTip="Delete Selected Row(s)" Margin="4,0" Command="{Binding DeleteSelectedRowCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}"/>
+                    <Separator Margin="4,0"/>
+                    <Button Content="Save" ToolTip="Save Changes" Margin="4,0" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDirty}"/>
+                    <Button Content="Undo" ToolTip="Undo Local Changes" Margin="4,0" Command="{Binding UndoChangesCommand}" IsEnabled="{Binding UndoChangesCommand.CanExecute, Mode=OneWay}"/>
+                    <Button Content="Reload" ToolTip="Reload Data from Database (Discards Local Changes)" Margin="4,0" Command="{Binding ReloadDataCommand}"/>
+                    <Button Content="Edit" ToolTip="Enable Editing for Selected Rows" Margin="4,0" Command="{Binding EditSelectedRowsCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}"/>
+                    <Button Content="Select All" ToolTip="Select All Rows" Margin="4,0,0,0" Click="SelectAllButton_Click"/>
                 </ToolBar>
+
+                <!-- Toolbar 2: Filtering and Display -->
+                <ToolBar Band="2" BandIndex="1" ToolBar.OverflowMode="Never">
+                    <Label Content="Quick Search:" VerticalAlignment="Center"/>
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" MinWidth="170" VerticalAlignment="Center"/>
+                    <ToggleButton IsChecked="{Binding IsColumnSelectorVisible, Mode=TwoWay}" ToolTip="Search Options" Margin="4,0,0,0">
+                        <fa:ImageAwesome Icon="Gear" Height="14" Foreground="DimGray"/>
+                    </ToggleButton>
+                    <ComboBox ItemsSource="{Binding SearchableColumns}" SelectedItem="{Binding SelectedSearchColumn, Mode=TwoWay}" MinWidth="140" VerticalAlignment="Center" Margin="2,0,5,0"
+                              Visibility="{Binding IsColumnSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <Button Content="Clear" ToolTip="Clear Search" Margin="4,0" Command="{Binding ClearSearchCommand}"/>
+                    <Separator Margin="4,0"/>
+
+                    <ToggleButton IsChecked="{Binding IsDateFilterPanelVisible, Mode=TwoWay}" 
+                                  ToolTip="Filter by Date" Margin="4,0,0,0"
+                                  Visibility="{Binding IsDateFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <fa:ImageAwesome Icon="Calendar" Height="14" Foreground="DimGray"/>
+                    </ToggleButton>
+
+                    <Separator Margin="4,0"/>
+                    <Button Content="Import" ToolTip="Import Data into Current Table" Margin="4,0" Command="{Binding ImportDataCommand}"/>
+                    <Button Content="Import Table" ToolTip="Import Data from a File with Options" Margin="4,0" Command="{Binding ShowAdvancedImportCommand}"/>
+                    <Button Content="Create Table..." ToolTip="Create a New Table from an Excel File" Margin="4,0" Command="{Binding ShowCreateTableCommand}"/>
+                    <Button Content="Export" ToolTip="Export Data" Margin="4,0" Command="{Binding ExportDataCommand}"/>
+                    <Separator Margin="4,0"/>
+                    <Button Content="A-" ToolTip="Decrease Font Size" Margin="4,0" Command="{Binding DecreaseFontSizeCommand}"/>
+                    <Button Content="A+" ToolTip="Increase Font Size" Margin="4,0" Command="{Binding IncreaseFontSizeCommand}"/>
+                </ToolBar>
+
+                <ToolBar Band="3" BandIndex="1" ToolBar.OverflowMode="Never" 
+                         Visibility="{Binding IsDateFilterPanelVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Label Content="Filter by Date:" VerticalAlignment="Center"/>
+                    <DatePicker SelectedDate="{Binding FilterStartDate, Mode=TwoWay}" VerticalAlignment="Center" Margin="4,0"/>
+                    <Label Content="to" VerticalAlignment="Center" Margin="5,0"/>
+                    <DatePicker SelectedDate="{Binding FilterEndDate, Mode=TwoWay}" VerticalAlignment="Center" Margin="4,0,10,0"/>
+
+                    <xctk:RangeSlider MinWidth="250" VerticalAlignment="Center"
+                                      Minimum="0" Maximum="{Binding SliderMaximum}"
+                                      LowerValue="{Binding StartMonthSliderValue, Mode=TwoWay}"
+                                      HigherValue="{Binding EndMonthSliderValue, Mode=TwoWay}"
+                                      IsSnapToTickEnabled="True"
+                                      TickFrequency="1"/>
+
+                    <Button Content="Clear Date Filter" Command="{Binding ClearDateFilterCommand}" Margin="10,0,0,0"/>
+                </ToolBar>
+
             </ToolBarTray>
         </Border>
 
-        <!-- NEW "Status Bar" Area -->
         <Grid Grid.Row="1" MinHeight="25" Margin="10,5,10,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
-                <!-- For Progress Bar -->
                 <ColumnDefinition Width="*" />
-                <!-- For Error Message -->
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Loading Indicator -->
-            <ProgressBar Grid.Column="0" 
-                         IsIndeterminate="True" 
-                         Width="150" Height="15" 
-                         VerticalAlignment="Center"
+            <ProgressBar Grid.Column="0" IsIndeterminate="True" Width="150" Height="15" VerticalAlignment="Center"
                          Visibility="{Binding IsProgressBarVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-            <!-- Error Message Display -->
-            <TextBox Grid.Column="1"
-                     Text="{Binding ErrorMessage, Mode=OneWay}"
-                     Style="{StaticResource ErrorMessageTextBoxStyle}"
-                     Margin="10,0,0,0"
+            <TextBox Grid.Column="1" Text="{Binding ErrorMessage, Mode=OneWay}" Style="{StaticResource ErrorMessageTextBoxStyle}" Margin="10,0,0,0"
                      Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+            <TextBlock Grid.Column="2" Text="{Binding FilterStatus}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="Gray"/>
         </Grid>
 
-
-        <!-- Data Display Area (now in Grid.Row="2") -->
         <Grid Grid.Row="2">
-            <!-- DataGrid -->
             <DataGrid x:Name="DataDisplayGrid" 
                       ItemsSource="{Binding DataTableView}"
                       AutoGenerateColumns="True"

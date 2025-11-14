@@ -1,12 +1,28 @@
 ﻿<UserControl x:Class="WPF_LoginForm.Views.HomeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:WPF_LoginForm.Views"
              xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
-             mc:Ignorable="d" 
+             xmlns:fa="http://schemas.fontawesome.io/icons/"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="1000">
+
+    <UserControl.Resources>
+        <!-- Custom Tooltip Style -->
+        <Style TargetType="lvc:DefaultTooltip">
+            <Setter Property="Background" Value="#A0000030"/>
+            <Setter Property="Foreground" Value="WhiteSmoke"/>
+            <Setter Property="BorderBrush" Value="#40FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </UserControl.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -19,49 +35,62 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
-            <DatePicker Margin="5" SelectedDate="{Binding SelectedDate, Mode=TwoWay}"/>
-            <Button Content="Import" Margin="5" Command="{Binding ImportCommand}"/>
-            <Button Content="Export" Margin="5" Command="{Binding ExportCommand}"/>
-            <Button Content="&#xE713;" FontFamily="Segoe MDL2 Assets" Margin="5" Command="{Binding ConfigureCommand}"/>
-        </StackPanel>
+        <Grid Grid.Row="0" Grid.ColumnSpan="3" Margin="5,5,10,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <!-- Date Controls -->
+                <ColumnDefinition Width="Auto"/>
+                <!-- Action Buttons -->
+            </Grid.ColumnDefinitions>
 
-        <lvc:CartesianChart Grid.Row="1" Grid.Column="0" Series="{Binding BarChartSeries}" LegendLocation="Bottom">
-            <lvc:CartesianChart.AxisX>
-                <lvc:Axis Title="X-Axis" Labels="{Binding BarChartLabels}"/>
-            </lvc:CartesianChart.AxisX>
-            <lvc:CartesianChart.AxisY>
-                <lvc:Axis Title="Y-Axis"/>
-            </lvc:CartesianChart.AxisY>
-        </lvc:CartesianChart>
+            <StackPanel Grid.Column="0" Orientation="Vertical">
+                <!-- Row 1: Date Pickers -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,10">
+                    <TextBlock Text="Start Date:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke"/>
+                    <DatePicker SelectedDate="{Binding StartDate, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    <TextBlock Text="End Date:" VerticalAlignment="Center" Margin="10,0,5,0" Foreground="WhiteSmoke"/>
+                    <DatePicker SelectedDate="{Binding EndDate, Mode=TwoWay}" VerticalAlignment="Center"/>
+                </StackPanel>
 
-        <lvc:CartesianChart Grid.Row="1" Grid.Column="1" Series="{Binding LineChartSeries}" LegendLocation="Bottom">
-            <lvc:CartesianChart.AxisX>
-                <lvc:Axis Title="X-Axis" Labels="{Binding LineChartLabels}"/>
-            </lvc:CartesianChart.AxisX>
-            <lvc:CartesianChart.AxisY>
-                <lvc:Axis Title="Y-Axis"/>
-            </lvc:CartesianChart.AxisY>
-        </lvc:CartesianChart>
+                <!-- MODIFIED: Row 2 now has a single RangeSlider -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                    <TextBlock Text="Month Range:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke"/>
+                    <xctk:RangeSlider MinWidth="450" VerticalAlignment="Center"
+                                      Minimum="0" Maximum="{Binding SliderMaximum}"
+                                      LowerValue="{Binding StartMonthSliderValue, Mode=TwoWay}"
+                                      HigherValue="{Binding EndMonthSliderValue, Mode=TwoWay}"
+                                      IsSnapToTickEnabled="True"
+                                      TickFrequency="1"/>
+                </StackPanel>
+            </StackPanel>
 
-        <lvc:CartesianChart Grid.Row="1" Grid.Column="2" Series="{Binding CustomGraphSeries}" LegendLocation="Bottom">
-            <lvc:CartesianChart.AxisX>
-                <lvc:Axis Title="X-Axis" Labels="{Binding CustomGraphLabels}"/>
-            </lvc:CartesianChart.AxisX>
-            <lvc:CartesianChart.AxisY>
-                <lvc:Axis Title="Y-Axis"/>
-            </lvc:CartesianChart.AxisY>
-        </lvc:CartesianChart>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <CheckBox Content="Include Data in Export" 
+                          IsChecked="{Binding IsSnapshotExport, Mode=TwoWay}"
+                          Foreground="WhiteSmoke"
+                          VerticalAlignment="Center"
+                          Margin="0,0,15,0"/>
+                <Button Content="Import" Margin="5,0,5,0" Padding="8,4" Command="{Binding ImportCommand}"/>
+                <Button Content="Export" Margin="5,0,5,0" Padding="8,4" Command="{Binding ExportCommand}"/>
+                <Button ToolTip="Recolor Charts" Margin="5,0,5,0" Padding="8,4" Command="{Binding RecolorChartsCommand}">
+                    <fa:ImageAwesome Icon="PaintBrush" Height="14" Foreground="White"/>
+                </Button>
+                <Button Content="" FontFamily="Segoe MDL2 Assets" Margin="5,0,0,0" Padding="8,4" Command="{Binding ConfigureCommand}"/>
+            </StackPanel>
+        </Grid>
 
-        <lvc:PieChart Grid.Row="2" Grid.Column="0" Series="{Binding PieChartSeries}" LegendLocation="Right"/>
+        <lvc:CartesianChart Grid.Row="1" Grid.Column="0" Series="{Binding Chart1Series}" LegendLocation="Bottom" 
+                              AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke"/>
 
-        <lvc:CartesianChart Grid.Row="2" Grid.Column="1" Series="{Binding SmallChartSeries}" LegendLocation="Bottom">
-            <lvc:CartesianChart.AxisX>
-                <lvc:Axis Title="X-Axis" Labels="{Binding SmallChartLabels}"/>
-            </lvc:CartesianChart.AxisX>
-            <lvc:CartesianChart.AxisY>
-                <lvc:Axis Title="Y-Axis"/>
-            </lvc:CartesianChart.AxisY>
-        </lvc:CartesianChart>
+        <lvc:CartesianChart Grid.Row="1" Grid.Column="1" Series="{Binding Chart2Series}" LegendLocation="Bottom"
+                              AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke"/>
+
+        <lvc:CartesianChart Grid.Row="1" Grid.Column="2" Series="{Binding Chart3Series}" LegendLocation="Bottom"
+                              AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke"/>
+
+        <lvc:PieChart Grid.Row="2" Grid.Column="0" Series="{Binding Chart4Series}" LegendLocation="Right" Foreground="WhiteSmoke"/>
+
+        <lvc:CartesianChart Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Series="{Binding Chart5Series}" LegendLocation="Bottom"
+                              AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke"/>
     </Grid>
 </UserControl>

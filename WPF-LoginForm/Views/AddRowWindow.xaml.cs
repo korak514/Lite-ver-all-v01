@@ -11,10 +11,10 @@ namespace WPF_LoginForm.Views // Ensure namespace is correct
         public AddRowWindow()
         {
             InitializeComponent();
-             Owner = Application.Current?.MainWindow; // Optional: Set owner here or in DialogService
+            // REMOVED: The problematic owner-setting logic has been deleted from here.
+            // The DialogService is now solely responsible for setting the owner.
         }
 
-        // --- ADD THESE MISSING EVENT HANDLERS ---
         private void OkButton_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = true;
@@ -29,7 +29,6 @@ namespace WPF_LoginForm.Views // Ensure namespace is correct
         {
             if (!_firstTextBoxFocused && sender is TextBox textBox)
             {
-                // Attempt to find if it's the first item
                 ItemsControl itemsControl = FindAncestor<ItemsControl>(textBox);
                 if (itemsControl != null)
                 {
@@ -40,17 +39,14 @@ namespace WPF_LoginForm.Views // Ensure namespace is correct
                         _firstTextBoxFocused = true;
                     }
                 }
-                // Fallback if ancestor search fails (less reliable)
-                else if (VisualTreeHelper.GetChildrenCount(this) > 0) // Basic check
+                else if (VisualTreeHelper.GetChildrenCount(this) > 0)
                 {
                     textBox.Focus();
                     _firstTextBoxFocused = true;
                 }
             }
         }
-        // --- END ADDED HANDLERS ---
 
-        // Helper method to find visual ancestor (keep this)
         private static T FindAncestor<T>(DependencyObject current) where T : DependencyObject
         {
             do

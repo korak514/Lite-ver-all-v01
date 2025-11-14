@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
+﻿// In WPF_LoginForm.Repositories/DataRepository.cs
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -9,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using WPF_LoginForm.Services;
+using WPF_LoginForm.ViewModels;
 
 namespace WPF_LoginForm.Repositories
 {
@@ -29,6 +31,53 @@ namespace WPF_LoginForm.Repositories
             _logger.LogInfo("DataRepository initialized.");
         }
 
+        // --- THIS METHOD IS THE KEY CHANGE ---
+        public async Task<DataTable> GetDataAsync(string tableName, List<string> columnsToSelect, string dateColumn, DateTime? startDate, DateTime? endDate)
+        {
+            var dataTable = new DataTable();
+            if (string.IsNullOrEmpty(tableName) || columnsToSelect == null || !columnsToSelect.Any())
+            {
+                return dataTable;
+            }
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    string safeColumnList = string.Join(", ", columnsToSelect.Select(SanitizeObjectName));
+
+                    var sb = new StringBuilder();
+                    sb.Append($"SELECT {safeColumnList} FROM {SanitizeObjectName(tableName)}");
+
+                    // Dynamically add WHERE clause only if dates are provided
+                    if (startDate.HasValue && endDate.HasValue && !string.IsNullOrEmpty(dateColumn))
+                    {
+                        sb.Append($" WHERE {SanitizeObjectName(dateColumn)} BETWEEN @startDate AND @endDate");
+                    }
+
+                    using (var command = new SqlCommand(sb.ToString(), connection))
+                    {
+                        if (startDate.HasValue && endDate.HasValue)
+                        {
+                            command.Parameters.AddWithValue("@startDate", startDate.Value);
+                            command.Parameters.AddWithValue("@endDate", endDate.Value);
+                        }
+
+                        using (var adapter = new SqlDataAdapter(command))
+                        {
+                            await Task.Run(() => adapter.Fill(dataTable));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to fetch data for table '{tableName}' with date range.", ex);
+            }
+            return dataTable;
+        }
+
+        #region Unchanged Methods
         public async Task<List<string>> GetTableNamesAsync()
         {
             _logger.LogInfo("Fetching table names...");
@@ -58,7 +107,6 @@ namespace WPF_LoginForm.Repositories
             return fetchedTableNames;
         }
 
-        // --- MODIFIED GetTableDataAsync to include FillSchema ---
         public async Task<DataTable> GetTableDataAsync(string tableName)
         {
             _logger.LogInfo($"Fetching data and schema for table '{tableName}'...");
@@ -73,47 +121,13 @@ namespace WPF_LoginForm.Repositories
             {
                 using (var connection = new SqlConnection(_connectionString))
                 {
-                    // Connection will be opened by SqlDataAdapter if not already open.
-                    // For FillSchema and Fill, it's often managed by the adapter.
                     string safeTableName = SanitizeObjectName(tableName);
                     string query = $"SELECT * FROM {safeTableName}";
 
                     using (var adapter = new SqlDataAdapter(query, connection))
                     {
-                        // 1. Fill Schema first
-                        _logger.LogInfo($"[GetTableDataAsync] Filling schema for table '{tableName}'...");
-                        // FillSchema configures the DataTable with columns, types, constraints, PKs, and identity info.
                         adapter.FillSchema(dataTable, SchemaType.Source);
-
-                        // 2. Then fill data
-                        _logger.LogInfo($"[GetTableDataAsync] Filling data for table '{tableName}'...");
-                        int recordCount = await Task.Run(() => adapter.Fill(dataTable));
-
-                        // Debug Log to check AutoIncrement status for "ID" or PK column
-                        DataColumn identityColumn = null;
-                        if (dataTable.Columns.Contains("ID"))
-                        {
-                            identityColumn = dataTable.Columns["ID"];
-                        }
-                        else if (dataTable.PrimaryKey.Length > 0 && dataTable.PrimaryKey[0].AutoIncrement)
-                        {
-                            identityColumn = dataTable.PrimaryKey[0];
-                        }
-
-                        if (identityColumn != null && identityColumn.AutoIncrement)
-                        {
-                            _logger.LogInfo($"[GetTableDataAsync] For table '{tableName}', Identity Column '{identityColumn.ColumnName}': AutoIncrement='{identityColumn.AutoIncrement}', Seed='{identityColumn.AutoIncrementSeed}', Step='{identityColumn.AutoIncrementStep}', ReadOnly='{identityColumn.ReadOnly}'");
-                        }
-                        else if (dataTable.Columns.Contains("ID")) // If "ID" exists but not AutoIncrement
-                        {
-                            _logger.LogWarning($"[GetTableDataAsync] For table '{tableName}', 'ID' Column FOUND but AutoIncrement IS FALSE. AutoIncrement='{dataTable.Columns["ID"].AutoIncrement}', ReadOnly='{dataTable.Columns["ID"].ReadOnly}'");
-                        }
-                        else
-                        {
-                            _logger.LogInfo($"[GetTableDataAsync] For table '{tableName}', no 'ID' column found and no auto-incrementing PK identified by default checks.");
-                        }
-
-                        _logger.LogInfo($"Fetched {recordCount} rows for table '{tableName}'.");
+                        await Task.Run(() => adapter.Fill(dataTable));
                     }
                 }
             }
@@ -125,476 +139,193 @@ namespace WPF_LoginForm.Repositories
             return dataTable;
         }
 
-        private string SanitizeObjectName(string objectName)
+        public async Task<(DateTime MinDate, DateTime MaxDate)> GetDateRangeAsync(string tableName, string dateColumnName)
         {
-            if (string.IsNullOrWhiteSpace(objectName)) throw new ArgumentException("Object name cannot be empty.");
-            if (objectName.StartsWith("[") && objectName.EndsWith("]")) return objectName;
-            return $"[{objectName.Replace("]", "]]")}]";
+            if (string.IsNullOrEmpty(tableName) || string.IsNullOrEmpty(dateColumnName))
+            {
+                return (DateTime.MinValue, DateTime.MinValue);
+            }
+            DateTime minDate = DateTime.MinValue;
+            DateTime maxDate = DateTime.MinValue;
+            string query = $"SELECT MIN({SanitizeObjectName(dateColumnName)}), MAX({SanitizeObjectName(dateColumnName)}) FROM {SanitizeObjectName(tableName)}";
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                using (var command = new SqlCommand(query, connection))
+                {
+                    await connection.OpenAsync();
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        if (await reader.ReadAsync())
+                        {
+                            if (!await reader.IsDBNullAsync(0)) minDate = reader.GetDateTime(0);
+                            if (!await reader.IsDBNullAsync(1)) maxDate = reader.GetDateTime(1);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to get date range for {tableName}.{dateColumnName}", ex);
+            }
+            return (minDate, maxDate);
         }
 
-        private string SanitizeParameterName(string columnName)
+        public async Task<bool> DeleteTableAsync(string tableName)
         {
-            string sanitized = Regex.Replace(columnName, @"[\s\(\)\-\.\/\\#]", "_");
-            if (sanitized.Length > 0 && char.IsDigit(sanitized[0])) { sanitized = "_" + sanitized; }
-            sanitized = Regex.Replace(sanitized, @"_+", "_");
-            if (sanitized.Length > 127) sanitized = sanitized.Substring(0, 127);
-            return "@" + sanitized;
-        }
-
-        public async Task<bool> SaveChangesAsync(DataTable changes, string tableName)
-        {
-            if (changes == null || changes.Rows.Count == 0)
-            {
-                _logger.LogInfo("[SaveChangesAsync] No changes submitted.");
-                return true;
-            }
-            if (string.IsNullOrEmpty(tableName))
-            {
-                _logger.LogError("[SaveChangesAsync] Error: Table name is null or empty.");
-                return false;
-            }
+            if (string.IsNullOrEmpty(tableName)) return false;
 
             string safeTableName = SanitizeObjectName(tableName);
+            string query = $"DROP TABLE {safeTableName}";
+
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                using (var command = new SqlCommand(query, connection))
+                {
+                    await connection.OpenAsync();
+                    await command.ExecuteNonQueryAsync();
+                }
+                _logger.LogInfo($"Successfully deleted table '{tableName}'.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to delete table '{tableName}'.", ex);
+                return false;
+            }
+        }
+
+        public async Task<bool> TableExistsAsync(string tableName)
+        {
+            if (string.IsNullOrEmpty(tableName)) return false;
+
+            string query = "SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @TableName";
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                using (var command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@TableName", tableName);
+                    await connection.OpenAsync();
+                    var result = await command.ExecuteScalarAsync();
+                    return result != null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error checking if table '{tableName}' exists.", ex);
+                return false;
+            }
+        }
+
+        public async Task<(bool Success, string ErrorMessage)> CreateTableAsync(string tableName, List<ColumnSchemaViewModel> schema)
+        {
+            if (string.IsNullOrEmpty(tableName) || schema == null || !schema.Any())
+            {
+                return (false, "Table name or schema cannot be empty.");
+            }
+
+            var pk = schema.FirstOrDefault(s => s.IsPrimaryKey);
+            if (pk == null)
+            {
+                return (false, "A primary key must be selected.");
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"CREATE TABLE {SanitizeObjectName(tableName)} (");
+
+            foreach (var col in schema)
+            {
+                string dataType;
+                switch (col.SelectedDataType)
+                {
+                    case "Number (int) IDENTITY(1,1)": dataType = "INT IDENTITY(1,1)"; break; // Special case for auto ID
+                    case "Number (int)": dataType = "INT"; break;
+                    case "Decimal (decimal)": dataType = "DECIMAL(18, 5)"; break;
+                    case "Date (datetime)": dataType = "DATETIME"; break;
+                    case "Text (string)":
+                    default: dataType = "NVARCHAR(MAX)"; break;
+                }
+
+                string nullability = col.IsPrimaryKey ? "NOT NULL" : "NULL";
+                sb.AppendLine($"  {SanitizeObjectName(col.DestinationColumnName)} {dataType} {nullability},");
+            }
+
+            string constraintName = SanitizeObjectName($"PK_{tableName.Replace(" ", "_")}");
+            sb.AppendLine($"  CONSTRAINT {constraintName} PRIMARY KEY CLUSTERED ({SanitizeObjectName(pk.DestinationColumnName)} ASC)");
+            sb.AppendLine(");");
+
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                using (var command = new SqlCommand(sb.ToString(), connection))
+                {
+                    await connection.OpenAsync();
+                    await command.ExecuteNonQueryAsync();
+                }
+                _logger.LogInfo($"Successfully created table '{tableName}'.");
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to create table '{tableName}'. SQL: {sb.ToString()}", ex);
+                return (false, $"Database error: {ex.Message}");
+            }
+        }
+
+        public async Task<(bool Success, string ErrorMessage)> BulkImportDataAsync(string tableName, DataTable data)
+        {
+            if (string.IsNullOrEmpty(tableName) || data == null || data.Rows.Count == 0)
+            {
+                return (true, null);
+            }
 
             using (var connection = new SqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                SqlTransaction transaction = null;
-
-                try
+                using (var transaction = connection.BeginTransaction())
                 {
-                    transaction = connection.BeginTransaction();
-                    _logger.LogInfo($"[SaveChangesAsync] Starting transaction for table '{safeTableName}'. Processing {changes.Rows.Count} changed rows.");
-
-                    foreach (DataRow row in changes.Rows)
+                    using (var bulkCopy = new SqlBulkCopy(connection, SqlBulkCopyOptions.Default, transaction))
                     {
-                        switch (row.RowState)
+                        bulkCopy.DestinationTableName = tableName;
+
+                        try
                         {
-                            case DataRowState.Added:
-                                await ExecuteInsertAsync(row, safeTableName, connection, transaction);
-                                break;
-                            case DataRowState.Modified:
-                                await ExecuteUpdateAsync(row, safeTableName, connection, transaction);
-                                break;
-                            case DataRowState.Deleted:
-                                await ExecuteDeleteAsync(row, safeTableName, connection, transaction);
-                                break;
-                        }
-                    }
+                            foreach (DataColumn col in data.Columns)
+                            {
+                                bulkCopy.ColumnMappings.Add(col.ColumnName, col.ColumnName);
+                            }
 
-                    transaction.Commit();
-                    _logger.LogInfo($"[SaveChangesAsync] Transaction committed successfully for table '{safeTableName}'.");
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"[SaveChangesAsync] Error saving changes for table '{safeTableName}'. Rolling back transaction.", ex);
-                    try
-                    {
-                        if (transaction != null && transaction.Connection != null)
+                            await bulkCopy.WriteToServerAsync(data);
+                            transaction.Commit();
+                            _logger.LogInfo($"Successfully bulk imported {data.Rows.Count} rows into '{tableName}'.");
+                            return (true, null);
+                        }
+                        catch (Exception ex)
                         {
                             transaction.Rollback();
-                            _logger.LogInfo("[SaveChangesAsync] Transaction rolled back successfully.");
-                        }
-                    }
-                    catch (Exception rollbackEx)
-                    {
-                        _logger.LogError("[SaveChangesAsync] CRITICAL: Failed to roll back transaction!", rollbackEx);
-                    }
-                    return false;
-                }
-                finally
-                {
-                    transaction?.Dispose();
-                }
-            }
-        }
-
-        private async Task ExecuteInsertAsync(DataRow row, string safeTableName, SqlConnection connection, SqlTransaction transaction)
-        {
-            StringBuilder columns = new StringBuilder();
-            StringBuilder values = new StringBuilder();
-            List<SqlParameter> parameters = new List<SqlParameter>();
-
-            foreach (DataColumn col in row.Table.Columns)
-            {
-                // Skip AutoIncrement columns (like IDENTITY ID) OR explicitly named "ID" as a fallback
-                if (col.AutoIncrement || col.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogInfo($"[ExecuteInsertAsync] Skipping column '{col.ColumnName}' (AutoIncrement={col.AutoIncrement}) for INSERT.");
-                    continue;
-                }
-
-                string paramName = SanitizeParameterName(col.ColumnName);
-                if (columns.Length > 0) { columns.Append(", "); values.Append(", "); }
-                columns.Append(SanitizeObjectName(col.ColumnName));
-                values.Append(paramName);
-                object valueToInsert = row[col] == DBNull.Value ? DBNull.Value : row[col];
-                parameters.Add(new SqlParameter(paramName, valueToInsert ?? DBNull.Value));
-            }
-
-            if (columns.Length == 0)
-            {
-                // This could happen if a table only has an ID column and another you choose to skip.
-                // For a valid INSERT, you might need "INSERT INTO Table DEFAULT VALUES"
-                // or ensure there's at least one non-identity column to insert.
-                _logger.LogWarning($"[ExecuteInsertAsync] No columns to insert for table {safeTableName} after filtering. If table requires values, this will fail.");
-                // To make it insert a row with all default values (if schema allows):
-                // string insertSqlDefault = $"INSERT INTO {safeTableName} DEFAULT VALUES";
-                // For now, let it proceed; if it's an issue, the SQL Server will error.
-                // If you uncomment the default values insert, ensure it's the correct behavior.
-                // return; // Or let it try an empty column list if that should form a valid INSERT by other means
-            }
-
-            string insertSql = $"INSERT INTO {safeTableName} ({columns}) VALUES ({values})";
-            if (columns.Length == 0) // Handle tables that might only have an identity column and others are nullable with defaults
-            {
-                insertSql = $"INSERT INTO {safeTableName} DEFAULT VALUES";
-                _logger.LogInfo($"[ExecuteInsertAsync] No specific columns to insert, using DEFAULT VALUES for table {safeTableName}.");
-            }
-            else
-            {
-                _logger.LogInfo($"[ExecuteInsertAsync] SQL: {insertSql}");
-            }
-
-            using (var command = new SqlCommand(insertSql, connection, transaction))
-            {
-                if (parameters.Any()) // Only add parameters if they exist
-                {
-                    command.Parameters.AddRange(parameters.ToArray());
-                }
-                await command.ExecuteNonQueryAsync();
-            }
-        }
-
-        private async Task ExecuteUpdateAsync(DataRow row, string safeTableName, SqlConnection connection, SqlTransaction transaction)
-        {
-            StringBuilder setClause = new StringBuilder();
-            StringBuilder whereClause = new StringBuilder();
-            List<SqlParameter> parameters = new List<SqlParameter>();
-
-            foreach (DataColumn col in row.Table.Columns)
-            {
-                if (col.AutoIncrement) continue; // Cannot update identity columns
-                if (!Equals(row[col, DataRowVersion.Current], row[col, DataRowVersion.Original]))
-                {
-                    string paramNameCurrent = SanitizeParameterName("Current_" + col.ColumnName);
-                    if (setClause.Length > 0) setClause.Append(", ");
-                    setClause.Append($"{SanitizeObjectName(col.ColumnName)} = {paramNameCurrent}");
-                    object currentValue = row[col, DataRowVersion.Current] == DBNull.Value ? DBNull.Value : row[col, DataRowVersion.Current];
-                    parameters.Add(new SqlParameter(paramNameCurrent, currentValue ?? DBNull.Value));
-                }
-            }
-
-            if (setClause.Length == 0) { _logger.LogWarning("[ExecuteUpdateAsync] Row marked Modified but no column changes detected. Skipping."); return; }
-
-            DataColumn[] primaryKeys = row.Table.PrimaryKey;
-            bool useAllColsForWhere = true;
-
-            if (primaryKeys != null && primaryKeys.Length > 0)
-            {
-                useAllColsForWhere = false;
-                foreach (DataColumn pkCol in primaryKeys)
-                {
-                    string paramNameOriginalPK = SanitizeParameterName("Original_" + pkCol.ColumnName);
-                    if (whereClause.Length > 0) whereClause.Append(" AND ");
-                    whereClause.Append($"{SanitizeObjectName(pkCol.ColumnName)} = {paramNameOriginalPK}");
-                    parameters.Add(new SqlParameter(paramNameOriginalPK, row[pkCol, DataRowVersion.Original]));
-                }
-            }
-
-            if (useAllColsForWhere)
-            {
-                whereClause.Clear();
-                foreach (DataColumn col in row.Table.Columns)
-                {
-                    string paramNameOriginal = SanitizeParameterName("Original_" + col.ColumnName);
-                    if (whereClause.Length > 0) whereClause.Append(" AND ");
-                    object originalValue = row[col, DataRowVersion.Original];
-                    if (originalValue == DBNull.Value || originalValue == null) { whereClause.Append($"{SanitizeObjectName(col.ColumnName)} IS NULL"); }
-                    else { whereClause.Append($"{SanitizeObjectName(col.ColumnName)} = {paramNameOriginal}"); parameters.Add(new SqlParameter(paramNameOriginal, originalValue)); }
-                }
-            }
-
-            string updateSql = $"UPDATE {safeTableName} SET {setClause} WHERE {whereClause}";
-            using (var command = new SqlCommand(updateSql, connection, transaction))
-            {
-                command.Parameters.AddRange(parameters.ToArray());
-                int rowsAffected = await command.ExecuteNonQueryAsync();
-                if (rowsAffected == 0) { _logger.LogWarning("[ExecuteUpdateAsync] Update affected 0 rows. Original row might have changed or been deleted."); }
-            }
-        }
-
-        private async Task ExecuteDeleteAsync(DataRow row, string safeTableName, SqlConnection connection, SqlTransaction transaction)
-        {
-            StringBuilder whereClause = new StringBuilder();
-            List<SqlParameter> parameters = new List<SqlParameter>();
-
-            DataColumn[] primaryKeys = row.Table.PrimaryKey;
-            bool useAllColsForWhere = true;
-
-            if (primaryKeys != null && primaryKeys.Length > 0)
-            {
-                useAllColsForWhere = false;
-                foreach (DataColumn pkCol in primaryKeys)
-                {
-                    string paramNameOriginalPK = SanitizeParameterName("Original_" + pkCol.ColumnName);
-                    if (whereClause.Length > 0) whereClause.Append(" AND ");
-                    whereClause.Append($"{SanitizeObjectName(pkCol.ColumnName)} = {paramNameOriginalPK}");
-                    parameters.Add(new SqlParameter(paramNameOriginalPK, row[pkCol, DataRowVersion.Original]));
-                }
-            }
-
-            if (useAllColsForWhere)
-            {
-                whereClause.Clear();
-                foreach (DataColumn col in row.Table.Columns)
-                {
-                    string paramNameOriginal = SanitizeParameterName("Original_" + col.ColumnName);
-                    if (whereClause.Length > 0) whereClause.Append(" AND ");
-                    object originalValue = row[col, DataRowVersion.Original];
-                    if (originalValue == DBNull.Value || originalValue == null) { whereClause.Append($"{SanitizeObjectName(col.ColumnName)} IS NULL"); }
-                    else { whereClause.Append($"{SanitizeObjectName(col.ColumnName)} = {paramNameOriginal}"); parameters.Add(new SqlParameter(paramNameOriginal, originalValue)); }
-                }
-            }
-
-            string deleteSql = $"DELETE FROM {safeTableName} WHERE {whereClause}";
-            using (var command = new SqlCommand(deleteSql, connection, transaction))
-            {
-                command.Parameters.AddRange(parameters.ToArray());
-                int rowsAffected = await command.ExecuteNonQueryAsync();
-                if (rowsAffected == 0) { _logger.LogWarning("[ExecuteDeleteAsync] Delete affected 0 rows. Row might have already been deleted."); }
-            }
-        }
-
-        private async Task<List<string>> GetDistinctPartValuesHelperAsync(string owningTableName,
-                                                                        string selectColumnName,
-                                                                        string part1Value, string part2Value,
-                                                                        string part3Value, string part4Value,
-                                                                        string orderByColumnNameIfDifferent)
-        {
-            var values = new List<string>();
-            if (string.IsNullOrEmpty(owningTableName))
-            {
-                _logger.LogWarning($"[GetDistinctPartValuesHelperAsync] OwningTableName is null or empty when trying to select {selectColumnName}.");
-                return values;
-            }
-            if (string.IsNullOrEmpty(selectColumnName))
-            {
-                _logger.LogWarning($"[GetDistinctPartValuesHelperAsync] selectColumnName is null or empty for OwningTable {owningTableName}.");
-                return values;
-            }
-
-            string effectiveOrderByColumn = orderByColumnNameIfDifferent ?? selectColumnName;
-            string safeSelectColumnName = SanitizeObjectName(selectColumnName);
-            string safeEffectiveOrderByColumn = SanitizeObjectName(effectiveOrderByColumn);
-
-            var sqlBuilder = new StringBuilder();
-            sqlBuilder.Append($"SELECT {safeSelectColumnName} ");
-            sqlBuilder.Append($"FROM ColumnHierarchyMap ");
-            sqlBuilder.Append($"WHERE OwningDataTableName = @OwningTableName AND IsEnabled = 1 ");
-
-            var parameters = new List<SqlParameter> { new SqlParameter("@OwningTableName", owningTableName) };
-
-            Action<string, string> AddPartCondition = (columnDbName, partVal) => {
-                string safeColumnDbName = SanitizeObjectName(columnDbName);
-                string paramName = $"@{columnDbName}FilterParam";
-                if (partVal != null)
-                {
-                    sqlBuilder.Append($"AND {safeColumnDbName} = {paramName} ");
-                    parameters.Add(new SqlParameter(paramName, partVal));
-                }
-                else
-                {
-                    sqlBuilder.Append($"AND {safeColumnDbName} IS NULL ");
-                }
-            };
-
-            if (!selectColumnName.Equals("Part1Value", StringComparison.OrdinalIgnoreCase))
-            {
-                if (string.IsNullOrEmpty(part1Value))
-                {
-                    _logger.LogWarning($"[GetDistinctPartValuesHelperAsync] Attempted to fetch {selectColumnName} without providing Part1Value for table {owningTableName}. Returning empty.");
-                    return values;
-                }
-                AddPartCondition("Part1Value", part1Value);
-            }
-
-            if (!selectColumnName.Equals("Part1Value", StringComparison.OrdinalIgnoreCase) &&
-                !selectColumnName.Equals("Part2Value", StringComparison.OrdinalIgnoreCase))
-            {
-                AddPartCondition("Part2Value", part2Value);
-            }
-
-            if (!selectColumnName.Equals("Part1Value", StringComparison.OrdinalIgnoreCase) &&
-                !selectColumnName.Equals("Part2Value", StringComparison.OrdinalIgnoreCase) &&
-                !selectColumnName.Equals("Part3Value", StringComparison.OrdinalIgnoreCase))
-            {
-                AddPartCondition("Part3Value", part3Value);
-            }
-
-            if (selectColumnName.Equals("CoreItemDisplayName", StringComparison.OrdinalIgnoreCase))
-            {
-                AddPartCondition("Part4Value", part4Value);
-            }
-
-            if (selectColumnName.StartsWith("Part", StringComparison.OrdinalIgnoreCase) && selectColumnName.EndsWith("Value", StringComparison.OrdinalIgnoreCase))
-            {
-                sqlBuilder.Append($"AND {safeSelectColumnName} IS NOT NULL ");
-            }
-
-            sqlBuilder.Append($"GROUP BY {safeSelectColumnName} ");
-            sqlBuilder.Append($"ORDER BY MIN({safeEffectiveOrderByColumn}), {safeSelectColumnName}");
-
-            _logger.LogInfo($"[GetDistinctPartValuesHelperAsync] SQL for {selectColumnName}: {sqlBuilder.ToString()}");
-
-            try
-            {
-                using (var connection = new SqlConnection(_connectionString))
-                {
-                    await connection.OpenAsync();
-                    using (var command = new SqlCommand(sqlBuilder.ToString(), connection))
-                    {
-                        command.Parameters.AddRange(parameters.ToArray());
-                        using (var reader = await command.ExecuteReaderAsync())
-                        {
-                            while (await reader.ReadAsync())
-                            {
-                                if (!reader.IsDBNull(0))
-                                {
-                                    values.Add(reader.GetString(0));
-                                }
-                            }
+                            _logger.LogError($"Failed to bulk import data into '{tableName}'.", ex);
+                            return (false, $"Bulk import error: {ex.Message}");
                         }
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error fetching distinct values for {selectColumnName} from ColumnHierarchyMap. SQL: {sqlBuilder.ToString()}", ex);
-            }
-            return values;
         }
 
-        public Task<List<string>> GetDistinctPart1ValuesAsync(string owningTableName)
-        {
-            return GetDistinctPartValuesHelperAsync(owningTableName, "Part1Value",
-                null, null, null, null, "Part1DisplayOrder");
-        }
-
-        public Task<List<string>> GetDistinctPart2ValuesAsync(string owningTableName, string part1Value)
-        {
-            if (string.IsNullOrEmpty(part1Value))
-            {
-                _logger.LogWarning("[GetDistinctPart2ValuesAsync] Part1Value is required.");
-                return Task.FromResult(new List<string>());
-            }
-            return GetDistinctPartValuesHelperAsync(owningTableName, "Part2Value",
-                part1Value, null, null, null, "Part2DisplayOrder");
-        }
-
-        public Task<List<string>> GetDistinctPart3ValuesAsync(string owningTableName, string part1Value, string part2Value)
-        {
-            if (string.IsNullOrEmpty(part1Value))
-            {
-                _logger.LogWarning("[GetDistinctPart3ValuesAsync] Part1Value is required.");
-                return Task.FromResult(new List<string>());
-            }
-            return GetDistinctPartValuesHelperAsync(owningTableName, "Part3Value",
-                part1Value, part2Value, null, null, "Part3DisplayOrder");
-        }
-
-        public Task<List<string>> GetDistinctPart4ValuesAsync(string owningTableName, string part1Value, string part2Value, string part3Value)
-        {
-            if (string.IsNullOrEmpty(part1Value))
-            {
-                _logger.LogWarning("[GetDistinctPart4ValuesAsync] Part1Value is required.");
-                return Task.FromResult(new List<string>());
-            }
-            return GetDistinctPartValuesHelperAsync(owningTableName, "Part4Value",
-                part1Value, part2Value, part3Value, null, "Part4DisplayOrder");
-        }
-
-        public Task<List<string>> GetDistinctCoreItemDisplayNamesAsync(string owningTableName, string part1Value, string part2Value, string part3Value, string part4Value)
-        {
-            if (string.IsNullOrEmpty(part1Value))
-            {
-                _logger.LogWarning("[GetDistinctCoreItemDisplayNamesAsync] Part1Value is required.");
-                return Task.FromResult(new List<string>());
-            }
-            return GetDistinctPartValuesHelperAsync(owningTableName, "CoreItemDisplayName",
-                part1Value, part2Value, part3Value, part4Value, "CoreItemDisplayOrder");
-        }
-
-        public async Task<string> GetActualColumnNameAsync(string owningTableName,
-                                                        string part1Value,
-                                                        string part2Value,
-                                                        string part3Value,
-                                                        string part4Value,
-                                                        string coreItemDisplayName)
-        {
-            if (string.IsNullOrEmpty(owningTableName) || string.IsNullOrEmpty(part1Value) || string.IsNullOrEmpty(coreItemDisplayName))
-            {
-                _logger.LogWarning("[GetActualColumnNameAsync] OwningTable, Part1Value, or CoreItemDisplayName is null/empty.");
-                return null;
-            }
-
-            var sqlBuilder = new StringBuilder("SELECT ActualDataTableColumnName FROM ColumnHierarchyMap WHERE OwningDataTableName = @OwningTableName AND Part1Value = @Part1Value AND CoreItemDisplayName = @CoreItemDisplayName AND IsEnabled = 1 ");
-            var parameters = new List<SqlParameter>
-            {
-                new SqlParameter("@OwningTableName", owningTableName),
-                new SqlParameter("@Part1Value", part1Value),
-                new SqlParameter("@CoreItemDisplayName", coreItemDisplayName)
-            };
-
-            Action<string, string> AddPartCondition = (columnDbName, partVal) => {
-                string safeColumnDbName = SanitizeObjectName(columnDbName);
-                string paramName = $"@{columnDbName}FilterParam";
-
-                if (partVal != null)
-                {
-                    sqlBuilder.Append($"AND {safeColumnDbName} = {paramName} ");
-                    parameters.Add(new SqlParameter(paramName, partVal));
-                }
-                else
-                {
-                    sqlBuilder.Append($"AND {safeColumnDbName} IS NULL ");
-                }
-            };
-
-            AddPartCondition("Part2Value", part2Value);
-            AddPartCondition("Part3Value", part3Value);
-            AddPartCondition("Part4Value", part4Value);
-
-            string actualColumn = null;
-            _logger.LogInfo($"[GetActualColumnNameAsync] SQL: {sqlBuilder.ToString()}");
-
-            try
-            {
-                using (var connection = new SqlConnection(_connectionString))
-                {
-                    await connection.OpenAsync();
-                    using (var command = new SqlCommand(sqlBuilder.ToString(), connection))
-                    {
-                        command.Parameters.AddRange(parameters.ToArray());
-                        object result = await command.ExecuteScalarAsync();
-                        if (result != null && result != DBNull.Value)
-                        {
-                            actualColumn = result.ToString();
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error fetching ActualDataTableColumnName. SQL: {sqlBuilder.ToString()}", ex);
-            }
-
-            if (actualColumn == null)
-            {
-                _logger.LogWarning($"[GetActualColumnNameAsync] No matching ActualDataTableColumnName found for P1='{part1Value}', P2='{part2Value}', P3='{part3Value}', P4='{part4Value}', Core='{coreItemDisplayName}' in table '{owningTableName}'");
-            }
-            return actualColumn;
-        }
+        private string SanitizeObjectName(string objectName) { if (string.IsNullOrWhiteSpace(objectName)) throw new ArgumentException("Object name cannot be empty."); if (objectName.StartsWith("[") && objectName.EndsWith("]")) return objectName; return $"[{objectName.Replace("]", "]]")}]"; }
+        private string SanitizeParameterName(string columnName) { var s = Regex.Replace(columnName, @"[\s\(\)\-\.\/\\#]", "_"); if (s.Length > 0 && char.IsDigit(s[0])) s = "_" + s; s = Regex.Replace(s, @"_+", "_"); if (s.Length > 127) s = s.Substring(0, 127); return "@" + s; }
+        public async Task<bool> SaveChangesAsync(DataTable changes, string tableName) { if (changes == null || changes.Rows.Count == 0) return true; if (string.IsNullOrEmpty(tableName)) return false; string safeTableName = SanitizeObjectName(tableName); using (var connection = new SqlConnection(_connectionString)) { await connection.OpenAsync(); using (var transaction = connection.BeginTransaction()) { try { foreach (DataRow row in changes.Rows) { switch (row.RowState) { case DataRowState.Added: await ExecuteInsertAsync(row, safeTableName, connection, transaction); break; case DataRowState.Modified: await ExecuteUpdateAsync(row, safeTableName, connection, transaction); break; case DataRowState.Deleted: await ExecuteDeleteAsync(row, safeTableName, connection, transaction); break; } } transaction.Commit(); return true; } catch (Exception ex) { _logger.LogError($"[SaveChangesAsync] Error for table '{safeTableName}'. Rolling back.", ex); transaction.Rollback(); return false; } } } }
+        private async Task ExecuteInsertAsync(DataRow row, string safeTableName, SqlConnection connection, SqlTransaction transaction) { var c = new StringBuilder(); var v = new StringBuilder(); var p = new List<SqlParameter>(); foreach (DataColumn col in row.Table.Columns) { if (col.AutoIncrement) continue; string pName = SanitizeParameterName(col.ColumnName); if (c.Length > 0) { c.Append(", "); v.Append(", "); } c.Append(SanitizeObjectName(col.ColumnName)); v.Append(pName); p.Add(new SqlParameter(pName, row[col] ?? DBNull.Value)); } string sql = $"INSERT INTO {safeTableName} ({c}) VALUES ({v})"; if (c.Length == 0) sql = $"INSERT INTO {safeTableName} DEFAULT VALUES"; using (var cmd = new SqlCommand(sql, connection, transaction)) { if (p.Any()) cmd.Parameters.AddRange(p.ToArray()); await cmd.ExecuteNonQueryAsync(); } }
+        private async Task ExecuteUpdateAsync(DataRow row, string safeTableName, SqlConnection connection, SqlTransaction transaction) { var sc = new StringBuilder(); var wc = new StringBuilder(); var p = new List<SqlParameter>(); foreach (DataColumn col in row.Table.Columns) { if (col.AutoIncrement) continue; if (!Equals(row[col, DataRowVersion.Current], row[col, DataRowVersion.Original])) { string pName = SanitizeParameterName("Current_" + col.ColumnName); if (sc.Length > 0) sc.Append(", "); sc.Append($"{SanitizeObjectName(col.ColumnName)} = {pName}"); p.Add(new SqlParameter(pName, row[col, DataRowVersion.Current] ?? DBNull.Value)); } } if (sc.Length == 0) return; DataColumn[] pks = row.Table.PrimaryKey; if (pks != null && pks.Length > 0) { foreach (DataColumn pkCol in pks) { string pName = SanitizeParameterName("Original_" + pkCol.ColumnName); if (wc.Length > 0) wc.Append(" AND "); wc.Append($"{SanitizeObjectName(pkCol.ColumnName)} = {pName}"); p.Add(new SqlParameter(pName, row[pkCol, DataRowVersion.Original])); } } else { foreach (DataColumn col in row.Table.Columns) { string pName = SanitizeParameterName("Original_" + col.ColumnName); if (wc.Length > 0) wc.Append(" AND "); object oVal = row[col, DataRowVersion.Original]; if (oVal == DBNull.Value || oVal == null) { wc.Append($"{SanitizeObjectName(col.ColumnName)} IS NULL"); } else { wc.Append($"{SanitizeObjectName(col.ColumnName)} = {pName}"); p.Add(new SqlParameter(pName, oVal)); } } } string sql = $"UPDATE {safeTableName} SET {sc} WHERE {wc}"; using (var cmd = new SqlCommand(sql, connection, transaction)) { cmd.Parameters.AddRange(p.ToArray()); await cmd.ExecuteNonQueryAsync(); } }
+        private async Task ExecuteDeleteAsync(DataRow row, string safeTableName, SqlConnection connection, SqlTransaction transaction) { var wc = new StringBuilder(); var p = new List<SqlParameter>(); DataColumn[] pks = row.Table.PrimaryKey; if (pks != null && pks.Length > 0) { foreach (DataColumn pkCol in pks) { string pName = SanitizeParameterName("Original_" + pkCol.ColumnName); if (wc.Length > 0) wc.Append(" AND "); wc.Append($"{SanitizeObjectName(pkCol.ColumnName)} = {pName}"); p.Add(new SqlParameter(pName, row[pkCol, DataRowVersion.Original])); } } else { foreach (DataColumn col in row.Table.Columns) { string pName = SanitizeParameterName("Original_" + col.ColumnName); if (wc.Length > 0) wc.Append(" AND "); object oVal = row[col, DataRowVersion.Original]; if (oVal == DBNull.Value || oVal == null) { wc.Append($"{SanitizeObjectName(col.ColumnName)} IS NULL"); } else { wc.Append($"{SanitizeObjectName(col.ColumnName)} = {pName}"); p.Add(new SqlParameter(pName, oVal)); } } } string sql = $"DELETE FROM {safeTableName} WHERE {wc}"; using (var cmd = new SqlCommand(sql, connection, transaction)) { cmd.Parameters.AddRange(p.ToArray()); await cmd.ExecuteNonQueryAsync(); } }
+        private async Task<List<string>> GetDistinctPartValuesHelperAsync(string owningTableName, string selectColumnName, string p1, string p2, string p3, string p4, string orderBy) { var v = new List<string>(); if (string.IsNullOrEmpty(owningTableName) || string.IsNullOrEmpty(selectColumnName)) return v; string effOrderBy = orderBy ?? selectColumnName; var sb = new StringBuilder($"SELECT {SanitizeObjectName(selectColumnName)} FROM ColumnHierarchyMap WHERE OwningDataTableName = @OwningTableName AND IsEnabled = 1 "); var p = new List<SqlParameter> { new SqlParameter("@OwningTableName", owningTableName) }; Action<string, string> addCond = (col, val) => { if (val != null) { sb.Append($"AND {SanitizeObjectName(col)} = @{col}Param "); p.Add(new SqlParameter($"@{col}Param", val)); } else { sb.Append($"AND {SanitizeObjectName(col)} IS NULL "); } }; if (!selectColumnName.Equals("Part1Value", StringComparison.OrdinalIgnoreCase)) { if (string.IsNullOrEmpty(p1)) return v; addCond("Part1Value", p1); } if (!selectColumnName.StartsWith("Part2", StringComparison.OrdinalIgnoreCase) && !selectColumnName.StartsWith("Part1", StringComparison.OrdinalIgnoreCase)) addCond("Part2Value", p2); if (!selectColumnName.StartsWith("Part3", StringComparison.OrdinalIgnoreCase) && !selectColumnName.StartsWith("Part2", StringComparison.OrdinalIgnoreCase) && !selectColumnName.StartsWith("Part1", StringComparison.OrdinalIgnoreCase)) addCond("Part3Value", p3); if (selectColumnName.Equals("CoreItemDisplayName", StringComparison.OrdinalIgnoreCase)) addCond("Part4Value", p4); if (selectColumnName.StartsWith("Part", StringComparison.OrdinalIgnoreCase)) sb.Append($"AND {SanitizeObjectName(selectColumnName)} IS NOT NULL "); sb.Append($"GROUP BY {SanitizeObjectName(selectColumnName)} ORDER BY MIN({SanitizeObjectName(effOrderBy)}), {SanitizeObjectName(selectColumnName)}"); using (var conn = new SqlConnection(_connectionString)) using (var cmd = new SqlCommand(sb.ToString(), conn)) { await conn.OpenAsync(); cmd.Parameters.AddRange(p.ToArray()); using (var r = await cmd.ExecuteReaderAsync()) { while (await r.ReadAsync()) { if (!r.IsDBNull(0)) v.Add(r.GetString(0)); } } } return v; }
+        public Task<List<string>> GetDistinctPart1ValuesAsync(string owningTableName) => GetDistinctPartValuesHelperAsync(owningTableName, "Part1Value", null, null, null, null, "Part1DisplayOrder");
+        public Task<List<string>> GetDistinctPart2ValuesAsync(string owningTableName, string part1Value) => GetDistinctPartValuesHelperAsync(owningTableName, "Part2Value", part1Value, null, null, null, "Part2DisplayOrder");
+        public Task<List<string>> GetDistinctPart3ValuesAsync(string owningTableName, string part1Value, string part2Value) => GetDistinctPartValuesHelperAsync(owningTableName, "Part3Value", part1Value, part2Value, null, null, "Part3DisplayOrder");
+        public Task<List<string>> GetDistinctPart4ValuesAsync(string owningTableName, string part1Value, string part2Value, string part3Value) => GetDistinctPartValuesHelperAsync(owningTableName, "Part4Value", part1Value, part2Value, part3Value, null, "Part4DisplayOrder");
+        public Task<List<string>> GetDistinctCoreItemDisplayNamesAsync(string owningTableName, string part1Value, string part2Value, string part3Value, string part4Value) => GetDistinctPartValuesHelperAsync(owningTableName, "CoreItemDisplayName", part1Value, part2Value, part3Value, part4Value, "CoreItemDisplayOrder");
+        public async Task<string> GetActualColumnNameAsync(string owningTableName, string p1, string p2, string p3, string p4, string core) { if (string.IsNullOrEmpty(owningTableName) || string.IsNullOrEmpty(p1) || string.IsNullOrEmpty(core)) return null; var sb = new StringBuilder("SELECT ActualDataTableColumnName FROM ColumnHierarchyMap WHERE OwningDataTableName = @OwningTableName AND Part1Value = @Part1Value AND CoreItemDisplayName = @CoreItemDisplayName AND IsEnabled = 1 "); var p = new List<SqlParameter> { new SqlParameter("@OwningTableName", owningTableName), new SqlParameter("@Part1Value", p1), new SqlParameter("@CoreItemDisplayName", core) }; Action<string, string> addCond = (col, val) => { if (val != null) { sb.Append($"AND {SanitizeObjectName(col)} = @{col}Param "); p.Add(new SqlParameter($"@{col}Param", val)); } else { sb.Append($"AND {SanitizeObjectName(col)} IS NULL "); } }; addCond("Part2Value", p2); addCond("Part3Value", p3); addCond("Part4Value", p4); using (var conn = new SqlConnection(_connectionString)) using (var cmd = new SqlCommand(sb.ToString(), conn)) { await conn.OpenAsync(); cmd.Parameters.AddRange(p.ToArray()); object res = await cmd.ExecuteScalarAsync(); return res?.ToString(); } }
+        #endregion
     }
 }

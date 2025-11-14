@@ -1,25 +1,170 @@
-<Window x:Class="WPF_LoginForm.Views.ConfigurationView"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:WPF_LoginForm.Views"
-        mc:Ignorable="d"
-        Title="Configuration" Height="450" Width="800">
-    <Grid>
-        <StackPanel Margin="10">
-            <TextBlock Text="Data Source:" FontWeight="Bold"/>
-            <ComboBox ItemsSource="{Binding Tables}" SelectedItem="{Binding SelectedTable}"/>
-            <TextBlock Text="X-Axis:" FontWeight="Bold" Margin="0,10,0,0"/>
-            <ComboBox ItemsSource="{Binding Columns}" SelectedItem="{Binding SelectedXAxis}"/>
-            <TextBlock Text="Y-Axis:" FontWeight="Bold" Margin="0,10,0,0"/>
-            <ComboBox ItemsSource="{Binding Columns}" SelectedItem="{Binding SelectedYAxis}"/>
-            <TextBlock Text="Chart Type:" FontWeight="Bold" Margin="0,10,0,0"/>
-            <ComboBox ItemsSource="{Binding ChartTypes}" SelectedItem="{Binding SelectedChartType}"/>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-                <Button Content="OK" Width="80" Margin="5" Command="{Binding OkCommand}"/>
-                <Button Content="Cancel" Width="80" Margin="5" Command="{Binding CancelCommand}"/>
-            </StackPanel>
+<UserControl x:Class="WPF_LoginForm.Views.ConfigurationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
+             xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=viewModels:ConfigurationViewModel, IsDesignTimeCreatable=False}"
+             Width="Auto" Height="Auto" Padding="5" MinWidth="450">
+
+    <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:EqualityConverter x:Key="EqualityConverter"/>
+
+        <Style TargetType="TextBlock" x:Key="HeaderTextStyle">
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Margin" Value="0,10,0,4"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Border Padding="15" Background="White" CornerRadius="4">
+        <StackPanel>
+            <TextBlock Text="Configure Dashboard" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12" Foreground="#FF0078D7"/>
+
+            <TextBlock Text="Select Chart to Configure:" Style="{StaticResource HeaderTextStyle}" Margin="0"/>
+            <ItemsControl ItemsSource="{Binding ChartConfigurations}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="5"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <RadioButton GroupName="ChartSelector" Margin="2" Style="{StaticResource {x:Type ToggleButton}}"
+                                     IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBlock Text="{Binding ChartPosition}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </RadioButton>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border BorderBrush="Gainsboro" BorderThickness="0,1,0,0" Margin="0,15,0,15" Padding="0,15,0,0"
+                    Visibility="{Binding IsConfigurationVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+
+                <StackPanel DataContext="{Binding CurrentConfiguration}">
+                    <CheckBox IsChecked="{Binding IsEnabled}" Content="Enable this chart" Margin="0,0,0,10"/>
+
+                    <StackPanel IsEnabled="{Binding IsEnabled}">
+                        <TextBlock Text="1. Select Table:" Style="{StaticResource HeaderTextStyle}"/>
+                        <ComboBox ItemsSource="{Binding DataContext.AvailableTables, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  SelectedValue="{Binding TableName}"/>
+
+                        <StackPanel Visibility="{Binding IsTableSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
+
+                            <TextBlock Text="2. Select Data Structure &amp; Options:" Style="{StaticResource HeaderTextStyle}"/>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ComboBox Grid.Row="0" Grid.Column="0" ItemsSource="{Binding AvailableDataStructures}" SelectedItem="{Binding DataStructureType}"/>
+
+                                <Label Grid.Row="0" Grid.Column="1" Content="Ignore Last Rows:" Margin="10,0,5,0" VerticalAlignment="Center"/>
+                                <ComboBox Grid.Row="0" Grid.Column="2" ItemsSource="{Binding AvailableIgnoreCounts}" SelectedItem="{Binding RowsToIgnore}" MinWidth="50"/>
+
+                                <!-- NEW CHECKBOX FOR NUMBER PARSING -->
+                                <CheckBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,10,0,0"
+                                          IsChecked="{Binding UseInvariantCultureForNumbers, Mode=TwoWay}"
+                                          Content="Use '.' for decimals and ',' for thousands (e.g. 1,234.56)"/>
+                            </Grid>
+
+                            <TextBlock Text="3. Select Chart Type:" Style="{StaticResource HeaderTextStyle}"/>
+                            <Grid>
+                                <ComboBox ItemsSource="{Binding ChartTypes}" SelectedItem="{Binding ChartType}"
+                                          IsEnabled="{Binding CanChangeChartType}"
+                                          Visibility="{Binding IsCartesianChart, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                <TextBlock Text="Pie" VerticalAlignment="Center" Margin="5,0,0,0"
+                                           Visibility="{Binding IsPieChart, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            </Grid>
+
+                            <StackPanel Visibility="{Binding IsCartesianChart, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="4. Select Date Column (X-Axis):" Style="{StaticResource HeaderTextStyle}"
+                                           Visibility="{Binding IsDailyDateStructure, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                <TextBlock Text="4. Select Category Column (X-Axis):" Style="{StaticResource HeaderTextStyle}"
+                                           Visibility="{Binding IsCategoricalStructure, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                <ComboBox ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                          SelectedItem="{Binding DateColumn}"/>
+
+                                <TextBlock Text="5. Select Value Columns (Y-Axis):" Style="{StaticResource HeaderTextStyle}"/>
+                                <ItemsControl ItemsSource="{Binding Series}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <ComboBox Grid.Column="0" ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                          SelectedItem="{Binding ColumnName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <Button Grid.Column="1" Content=" X " Foreground="Red" FontWeight="Bold" Margin="5,0,0,0"
+                                                        Command="{Binding DataContext.CurrentConfiguration.RemoveSeriesCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button Content="Add Y-Axis Column" Margin="0,5,0,0" Padding="5,2"
+                                        Command="{Binding AddSeriesCommand}"/>
+
+                                <StackPanel Visibility="{Binding IsCartesianChart, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <TextBlock Text="6. Select Bar &amp; Line Chart Aggregation:" Style="{StaticResource HeaderTextStyle}"
+                                               Visibility="{Binding IsDailyDateStructure, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    <ComboBox ItemsSource="{Binding AggregationOptions}"
+                                              SelectedItem="{Binding AggregationType}"
+                                              Visibility="{Binding IsDailyDateStructure, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Visibility="{Binding IsPieChart, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="4. Select Date Column (for Filtering):" Style="{StaticResource HeaderTextStyle}"
+                                           Visibility="{Binding IsDailyDateStructure, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                <TextBlock Text="4. Select Category Column (for Filtering):" Style="{StaticResource HeaderTextStyle}"
+                                           Visibility="{Binding IsCategoricalStructure, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                <ComboBox ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                          SelectedItem="{Binding DateColumn}"/>
+
+                                <TextBlock Text="5. Select Data Slices (Columns to Sum):" Style="{StaticResource HeaderTextStyle}"/>
+                                <ItemsControl ItemsSource="{Binding Series}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <ComboBox Grid.Column="0" ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                          SelectedItem="{Binding ColumnName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <Button Grid.Column="1" Content=" X " Foreground="Red" FontWeight="Bold" Margin="5,0,0,0"
+                                                        Command="{Binding DataContext.CurrentConfiguration.RemoveSeriesCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button Content="Add Data Slice" Margin="0,5,0,0" Padding="5,2"
+                                        Command="{Binding AddSeriesCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Button Content="Apply and Close"
+                    Command="{Binding ApplyCommand}"
+                    Margin="0,16,0,0" Padding="8,4"
+                    Background="#FF0078D7" Foreground="White"
+                    FontWeight="SemiBold" FontSize="13" Height="32"/>
         </StackPanel>
-    </Grid>
-</Window>
+    </Border>
+</UserControl>
