@@ -1,0 +1,96 @@
+﻿<UserControl x:Class="WPF_LoginForm.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+
+    <UserControl.DataContext>
+        <viewModels:SettingsViewModel/>
+    </UserControl.DataContext>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="Application Settings" 
+                   Foreground="{StaticResource titleColor2}" 
+                   FontSize="24" 
+                   FontFamily="Montserrat" 
+                   Margin="0,0,0,20"/>
+
+        <!-- Database Selection Section -->
+        <Border Grid.Row="1" 
+                CornerRadius="10" 
+                Padding="20"
+                BorderBrush="{StaticResource panelActiveColor}"
+                BorderThickness="1">
+
+            <!-- FIX: Explicitly create a Brush from the Color resource -->
+            <Border.Background>
+                <SolidColorBrush Color="{StaticResource primaryBackColor2}"/>
+            </Border.Background>
+
+            <StackPanel>
+                <TextBlock Text="Database Configuration" 
+                           Foreground="White" 
+                           FontSize="16" 
+                           FontWeight="SemiBold" 
+                           Margin="0,0,0,15"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="200"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="Database Provider:" 
+                               Foreground="{StaticResource titleColor3}" 
+                               VerticalAlignment="Center"/>
+
+                    <ComboBox Grid.Column="1" 
+                              ItemsSource="{Binding DatabaseTypes}" 
+                              SelectedItem="{Binding SelectedDatabaseType, Mode=TwoWay}"
+                              Height="30"
+                              VerticalContentAlignment="Center"
+                              Padding="5"/>
+                </Grid>
+
+                <TextBlock Text="Note: Changing this requires valid connection strings in config." 
+                           Foreground="Gray" 
+                           FontSize="10" 
+                           Margin="0,5,0,15" 
+                           FontStyle="Italic"/>
+
+                <Button Content="Save Changes" 
+                        Command="{Binding SaveCommand}"
+                        HorizontalAlignment="Left"
+                        Width="120"
+                        Height="35"
+                        Background="{StaticResource panelColor}"
+                        Foreground="White"
+                        FontWeight="Bold"
+                        Cursor="Hand"
+                        BorderThickness="0">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="5"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+
+                <TextBlock Text="{Binding StatusMessage}" 
+                           Foreground="{StaticResource color9}" 
+                           Margin="0,10,0,0" 
+                           FontSize="14"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1,32 +1,37 @@
-﻿// In WPF_LoginForm.Repositories/IDataRepository.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
+using WPF_LoginForm.Models;
 using WPF_LoginForm.ViewModels;
 
 namespace WPF_LoginForm.Repositories
 {
     public interface IDataRepository
     {
+        // Schema & Metadata
         Task<List<string>> GetTableNamesAsync();
+        Task<bool> TableExistsAsync(string tableName);
+        Task<string> GetActualColumnNameAsync(string tableName, string p1, string p2, string p3, string p4, string coreItem);
+        Task<(DateTime Min, DateTime Max)> GetDateRangeAsync(string tableName, string dateColumn);
+
+        // Data Retrieval
         Task<DataTable> GetTableDataAsync(string tableName);
-        Task<bool> SaveChangesAsync(DataTable changes, string tableName);
+        Task<DataTable> GetDataAsync(string tableName, List<string> columns, string dateColumn, DateTime? startDate, DateTime? endDate);
 
-        Task<List<string>> GetDistinctPart1ValuesAsync(string owningTableName);
-        Task<List<string>> GetDistinctPart2ValuesAsync(string owningTableName, string part1Value);
-        Task<List<string>> GetDistinctPart3ValuesAsync(string owningTableName, string part1Value, string part2Value);
-        Task<List<string>> GetDistinctPart4ValuesAsync(string owningTableName, string part1Value, string part2Value, string part3Value);
-        Task<List<string>> GetDistinctCoreItemDisplayNamesAsync(string owningTableName, string part1Value, string part2Value, string part3Value, string part4Value);
-        Task<string> GetActualColumnNameAsync(string owningTableName, string part1Value, string part2Value, string part3Value, string part4Value, string coreItemDisplayName);
+        // Distinct Values
+        Task<List<string>> GetDistinctPart1ValuesAsync(string tableName);
+        Task<List<string>> GetDistinctPart2ValuesAsync(string tableName, string p1);
+        Task<List<string>> GetDistinctPart3ValuesAsync(string tableName, string p1, string p2);
+        Task<List<string>> GetDistinctPart4ValuesAsync(string tableName, string p1, string p2, string p3);
+        Task<List<string>> GetDistinctCoreItemDisplayNamesAsync(string tableName, string p1, string p2, string p3, string p4);
 
-        // --- MODIFIED METHOD SIGNATURE ---
-        Task<DataTable> GetDataAsync(string tableName, List<string> columnsToSelect, string dateColumn, DateTime? startDate, DateTime? endDate);
+        // --- MODIFIED: Returns (Success, ErrorMessage) ---
+        Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName);
 
-        Task<(DateTime MinDate, DateTime MaxDate)> GetDateRangeAsync(string tableName, string dateColumnName);
         Task<bool> DeleteTableAsync(string tableName);
 
-        Task<bool> TableExistsAsync(string tableName);
+        // Bulk / Creation
         Task<(bool Success, string ErrorMessage)> CreateTableAsync(string tableName, List<ColumnSchemaViewModel> schema);
         Task<(bool Success, string ErrorMessage)> BulkImportDataAsync(string tableName, DataTable data);
     }

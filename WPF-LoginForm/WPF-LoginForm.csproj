@@ -86,6 +86,13 @@
     <Compile Include="CustomControls\BindablePasswordBox.xaml.cs">
       <DependentUpon>BindablePasswordBox.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ViewModels\HelpViewModel.cs" />
+    <Compile Include="Views\HelpView.xaml.cs">
+      <DependentUpon>HelpView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\SettingsView.xaml.cs">
+      <DependentUpon>SettingsView.xaml</DependentUpon>
+    </Compile>
     <PackageReference Include="ClosedXML">
       <Version>0.105.0</Version>
     </PackageReference>
@@ -124,6 +131,9 @@
     <Compile Include="Repositories\IDataRepository.cs" />
     <Compile Include="Repositories\RepositoryBase.cs" />
     <Compile Include="Repositories\UserRepository.cs" />
+    <Compile Include="Services\Database\DatabaseEnums.cs" />
+    <Compile Include="Services\Database\DatabaseLogger.cs" />
+    <Compile Include="Services\Database\DbConnectionFactory.cs" />
     <Compile Include="Services\DialogService.cs" />
     <Compile Include="Services\ExcelAnalysisService.cs" />
     <Compile Include="Services\FileLogger.cs" />
@@ -141,6 +151,7 @@
     <Compile Include="ViewModels\InventoryViewModel.cs" />
     <Compile Include="ViewModels\LoginViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
+    <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\ViewModelBase.cs" />
     <Compile Include="ViewModels\ViewModelCommand.cs" />
     <Compile Include="Views\AddRowLongWindow.xaml.cs">
@@ -187,6 +198,9 @@
     <PackageReference Include="Microsoft.Data.SqlClient">
       <Version>6.0.1</Version>
     </PackageReference>
+    <PackageReference Include="Npgsql">
+      <Version>4.1.12</Version>
+    </PackageReference>
     <Page Include="CustomControls\BindablePasswordBox.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -231,6 +245,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Views\HelpView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Views\HomeView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -248,6 +266,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\MainView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\SettingsView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

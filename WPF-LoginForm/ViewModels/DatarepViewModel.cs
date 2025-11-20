@@ -9,15 +9,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Data;
-using Microsoft.Data.SqlClient;
-using System.ComponentModel;
-using System.Diagnostics;
+using System.Threading;
+using OfficeOpenXml;
+using System.Windows;
 using System.IO;
 using System.Text;
 using System.Globalization;
-using OfficeOpenXml;
-using System.Windows;
-using System.Threading;
 
 namespace WPF_LoginForm.ViewModels
 {
@@ -40,6 +37,7 @@ namespace WPF_LoginForm.ViewModels
         private readonly List<DataRow> _rowChangeHistory = new List<DataRow>();
         private int _longRunningOperationCount = 0;
 
+        // Search & Filter fields
         private string _searchText;
         private bool _isColumnSelectorVisible;
         private string _selectedSearchColumn;
@@ -56,7 +54,6 @@ namespace WPF_LoginForm.ViewModels
         private bool _isUpdatingDates = false;
         private readonly List<string> _dateColumnAliases = new List<string> { "Tarih", "Date", "EntryDate" };
         private readonly List<Type> _numericTypes = new List<Type> { typeof(int), typeof(double), typeof(decimal), typeof(float), typeof(long), typeof(short), typeof(byte), typeof(sbyte), typeof(uint), typeof(ulong), typeof(ushort) };
-
 
         // --- Properties ---
         public ObservableCollection<string> TableNames { get => _tableNames; private set => SetProperty(ref _tableNames, value); }
@@ -131,8 +128,8 @@ namespace WPF_LoginForm.ViewModels
         private async Task ExecuteLongRunningOperation(Func<Task> operation) { Interlocked.Increment(ref _longRunningOperationCount); IsBusy = true; SetErrorMessage(null); IsProgressBarVisible = false; var progressTask = Task.Run(async () => { await Task.Delay(2000); if (IsBusy) { await Application.Current.Dispatcher.InvokeAsync(() => IsProgressBarVisible = true); } }); try { await operation(); } catch (Exception ex) { _logger.LogError("[LongOp] Exception.", ex); SetErrorMessage($"An error occurred: {ex.Message}"); } finally { if (Interlocked.Decrement(ref _longRunningOperationCount) == 0) { IsBusy = false; IsProgressBarVisible = false; } } }
         private void SubscribeToTableEvents() { if (_currentDataTable != null) { _currentDataTable.RowChanged += OnDataTableRowChanged; _currentDataTable.RowDeleted += OnDataTableRowChanged; _currentDataTable.TableNewRow += OnDataTableNewRow; } }
         private void UnsubscribeFromTableEvents() { if (_currentDataTable != null) { _currentDataTable.RowChanged -= OnDataTableRowChanged; _currentDataTable.RowDeleted -= OnDataTableRowChanged; _currentDataTable.TableNewRow -= OnDataTableNewRow; } }
-        private void OnDataTableRowChanged(object sender, DataRowChangeEventArgs e) { _logger.LogInfo($"RowChanged: Action={e.Action}, RowState={e.Row.RowState}"); if (e.Action == DataRowAction.Add || e.Action == DataRowAction.Change || e.Action == DataRowAction.Delete) { if (_rowChangeHistory.Contains(e.Row)) { _rowChangeHistory.Remove(e.Row); } _rowChangeHistory.Add(e.Row); } CheckIfDirty(); (UndoChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); }
-        private void OnDataTableNewRow(object sender, DataTableNewRowEventArgs e) { _logger.LogInfo($"TableNewRow fired."); }
+        private void OnDataTableRowChanged(object sender, DataRowChangeEventArgs e) { if (e.Action == DataRowAction.Add || e.Action == DataRowAction.Change || e.Action == DataRowAction.Delete) { if (_rowChangeHistory.Contains(e.Row)) { _rowChangeHistory.Remove(e.Row); } _rowChangeHistory.Add(e.Row); } CheckIfDirty(); (UndoChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); }
+        private void OnDataTableNewRow(object sender, DataTableNewRowEventArgs e) { }
         private void CheckIfDirty() { IsDirty = _currentDataTable?.GetChanges() != null; }
         private async void LoadInitialDataAsync() { await ExecuteLongRunningOperation(async () => { var names = await _dataRepository.GetTableNamesAsync(); await Application.Current.Dispatcher.InvokeAsync(() => { TableNames.Clear(); foreach (var n in names ?? new List<string>()) TableNames.Add(n); SelectedTable = TableNames.FirstOrDefault(); if (SelectedTable == null) SetErrorMessage("No tables found."); }); }); }
         private bool CanExecuteAddNewRow(object p) => _currentDataTable != null && !IsBusy;
@@ -145,7 +142,60 @@ namespace WPF_LoginForm.ViewModels
         private bool CanExecuteExportData(object p) => _currentDataTable != null && _currentDataTable.Rows.Count > 0 && !IsBusy;
         private bool CanExecuteImportData(object p) => _currentDataTable != null && !IsBusy;
         private void ExecuteAddNewRow(object parameter) { if (!CanExecuteAddNewRow(parameter)) return; SetErrorMessage(null); NewRowData newRowData; bool dialogResult; if (SelectedTable.StartsWith("_Long_", StringComparison.OrdinalIgnoreCase)) { var addRowLongVM = new AddRowLongViewModel(SelectedTable, _dataRepository, _logger, _dialogService); dialogResult = _dialogService.ShowAddRowLongDialog(addRowLongVM, out newRowData); } else { var columnNames = _currentDataTable.Columns.Cast<DataColumn>().Where(c => !c.AutoIncrement && !c.ReadOnly).Select(c => c.ColumnName).ToList(); if (!columnNames.Any()) { SetErrorMessage($"Table '{SelectedTable}' has no editable columns."); return; } var initialValues = new Dictionary<string, object>(); var dateColumn = _currentDataTable.Columns.OfType<DataColumn>().FirstOrDefault(c => c.DataType == typeof(DateTime) && columnNames.Contains(c.ColumnName)); if (dateColumn != null) { var maxDate = _currentDataTable.AsEnumerable().Select(r => r.Field<DateTime?>(dateColumn)).Where(d => d.HasValue).Select(d => d.Value).DefaultIfEmpty(DateTime.MinValue).Max(); initialValues[dateColumn.ColumnName] = (maxDate == DateTime.MinValue) ? DateTime.Today : maxDate.AddDays(1); } dialogResult = _dialogService.ShowAddRowDialog(columnNames, SelectedTable, initialValues, out newRowData); } if (dialogResult && newRowData != null) { try { DataRow newActualDataRow = _currentDataTable.NewRow(); foreach (var kvp in newRowData.Values) { if (_currentDataTable.Columns.Contains(kvp.Key)) { var col = _currentDataTable.Columns[kvp.Key]; if (col.ReadOnly || col.AutoIncrement) continue; try { if (kvp.Value == null || string.IsNullOrWhiteSpace(kvp.Value.ToString())) { if (col.AllowDBNull) newActualDataRow[kvp.Key] = DBNull.Value; else throw new InvalidOperationException($"Column '{col.ColumnName}' cannot be null."); } else newActualDataRow[kvp.Key] = Convert.ChangeType(kvp.Value, col.DataType, CultureInfo.CurrentCulture); } catch (Exception ex) { SetErrorMessage($"Error setting column '{kvp.Key}': {ex.Message}"); return; } } } _currentDataTable.Rows.Add(newActualDataRow); } catch (Exception ex) { SetErrorMessage($"Error finalizing new row: {ex.Message}"); } } }
-        private async void ExecuteSaveChanges(object p) { if (!CanExecuteSaveChanges(p)) return; var changes = _currentDataTable?.GetChanges(); if (changes == null || changes.Rows.Count == 0) { IsDirty = false; return; } if (!_dialogService.ShowConfirmationDialog("Confirm Save", $"Save {changes.Rows.Count} change(s) to '{SelectedTable}'?")) return; bool success = false; await ExecuteLongRunningOperation(async () => { success = await _dataRepository.SaveChangesAsync(changes, SelectedTable); if (!success && string.IsNullOrEmpty(ErrorMessage)) SetErrorMessage("Failed to save changes."); }); if (success) { _currentDataTable.AcceptChanges(); _rowChangeHistory.Clear(); } CheckIfDirty(); (UndoChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); }
+
+        private async void ExecuteSaveChanges(object p)
+        {
+            if (!CanExecuteSaveChanges(p)) return;
+            var changes = _currentDataTable?.GetChanges();
+            if (changes == null || changes.Rows.Count == 0) { IsDirty = false; return; }
+            if (!_dialogService.ShowConfirmationDialog("Confirm Save", $"Save {changes.Rows.Count} change(s) to '{SelectedTable}'?")) return;
+
+            var logActions = new List<string>();
+            string currentUser = Thread.CurrentPrincipal?.Identity?.Name ?? "Unknown";
+
+            foreach (DataRow row in changes.Rows)
+            {
+                string action = "";
+                string recordId = "Unknown";
+                try
+                {
+                    if (row.RowState == DataRowState.Added) { action = "Created"; recordId = row.Table.Columns.Contains("ID") ? row["ID"].ToString() : "NewRecord"; }
+                    else if (row.RowState == DataRowState.Modified) { action = "Updated"; recordId = row.Table.Columns.Contains("ID") ? row["ID"].ToString() : "Unknown"; }
+                    else if (row.RowState == DataRowState.Deleted) { action = "Deleted"; recordId = row.Table.Columns.Contains("ID") ? row["ID", DataRowVersion.Original].ToString() : "Unknown"; }
+                    if (!string.IsNullOrEmpty(action)) logActions.Add($"Table {SelectedTable} {action} by user {currentUser}. Target Record ID: {recordId}.");
+                }
+                catch { }
+            }
+
+            bool success = false;
+            string errorMsg = null;
+
+            // --- CRITICAL FIX: Ensure UI updates happen on Dispatcher ---
+            await ExecuteLongRunningOperation(async () =>
+            {
+                var result = await _dataRepository.SaveChangesAsync(changes, SelectedTable);
+                success = result.Success;
+                errorMsg = result.ErrorMessage;
+
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    if (!success)
+                    {
+                        SetErrorMessage(errorMsg);
+                    }
+                });
+            });
+
+            if (success)
+            {
+                _currentDataTable.AcceptChanges();
+                _rowChangeHistory.Clear();
+                foreach (var logMsg in logActions) _logger.LogInfo(logMsg);
+            }
+            CheckIfDirty();
+            (UndoChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+        }
+
         private void ExecuteUndoChanges(object p) { if (!CanExecuteUndoChanges(p)) return; var last = _rowChangeHistory.LastOrDefault(); if (last != null) { last.RejectChanges(); _rowChangeHistory.Remove(last); } CheckIfDirty(); (SaveChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); }
         private void ExecuteEditSelectedRows(object p) { if (!CanExecuteEditSelectedRows(p)) return; EditableRows.Clear(); foreach (var i in (IList)p) if (i is DataRowView drv) EditableRows.Add(drv); OnPropertyChanged(nameof(EditableRows)); }
         private void ExecuteReloadData(object p) { if (!CanExecuteReloadData(p)) return; if (IsDirty && !_dialogService.ShowConfirmationDialog("Discard Changes?", "You have unsaved changes. Reload and discard them?")) return; LoadDataForSelectedTableAsync(); }
