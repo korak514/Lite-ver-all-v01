@@ -65,7 +65,7 @@
     <!--TextBox Colors-->
     <!--Etc-->
     <!-- === NEW STATUS COLORS === -->
-    <SolidColorBrush x:Key="statusAddedColor" Color="#06180B" />
+    <SolidColorBrush x:Key="statusAddedColor" Color="#522B5E" />
     <!-- A light green color -->
     <SolidColorBrush x:Key="statusModifiedColor" Color="#D1E597" />
     <!-- A light yellow color -->

@@ -1,43 +1,50 @@
 ﻿using System;
 using System.Data;
-using System.Data.SqlClient; // .NET 4.8 SQL Client
+using System.Data.SqlClient;
 using Npgsql;
+using WPF_LoginForm.Properties; // Access to Settings
 
 namespace WPF_LoginForm.Services.Database
 {
     public static class DbConnectionFactory
     {
-        public static DatabaseType CurrentDatabaseType { get; set; } = DatabaseType.SqlServer;
+        // Helper to get/set the Enum based on the string in Settings
+        public static DatabaseType CurrentDatabaseType
+        {
+            get
+            {
+                string stored = Settings.Default.DbProvider;
+                if (Enum.TryParse(stored, out DatabaseType result))
+                    return result;
+                return DatabaseType.SqlServer; // Default
+            }
+            set
+            {
+                Settings.Default.DbProvider = value.ToString();
+                Settings.Default.Save();
+            }
+        }
 
-        // --- CONNECTION STRING 1: AUTH & LOGS ---
-        // Contains: [User], [Logs] tables
-        private static readonly string _sqlAuthConnectionString = "Server=(local); Database=LoginDb; Integrated Security=true";
-
-        // --- CONNECTION STRING 2: BUSINESS DATA ---
-        // Contains: [TestDT], [Customers], [Inventory] tables
-        // TODO: Change 'MainDataDb' to the actual name of your data database!
-        private static readonly string _sqlDataConnectionString = "Server=(local); Database=MainDataDb; Integrated Security=true";
-
-        // Postgres String (Single DB for now, unless you want to split this too)
-        private static readonly string _postgreSqlConnectionString = "Host=localhost; Username=postgres; Password=yourpassword; Database=LoginDb";
-
-        /// <summary>
-        /// Creates a connection based on the Provider (SQL/Postgres) and the Target (Auth/Data).
-        /// </summary>
         public static IDbConnection GetConnection(ConnectionTarget target)
         {
+            string connString;
+
             switch (CurrentDatabaseType)
             {
                 case DatabaseType.PostgreSql:
-                    // Currently using one DB for Postgres, but logic can be split here too if needed
-                    return new NpgsqlConnection(_postgreSqlConnectionString);
+                    // Read from Settings based on target
+                    connString = (target == ConnectionTarget.Auth)
+                        ? Settings.Default.PostgresAuthConnString
+                        : Settings.Default.PostgresDataConnString;
+
+                    return new NpgsqlConnection(connString);
 
                 case DatabaseType.SqlServer:
                 default:
-                    // Select the correct string based on the target
-                    string connString = (target == ConnectionTarget.Auth)
-                        ? _sqlAuthConnectionString
-                        : _sqlDataConnectionString;
+                    // Read from Settings based on target
+                    connString = (target == ConnectionTarget.Auth)
+                        ? Settings.Default.SqlAuthConnString
+                        : Settings.Default.SqlDataConnString;
 
                     return new SqlConnection(connString);
             }

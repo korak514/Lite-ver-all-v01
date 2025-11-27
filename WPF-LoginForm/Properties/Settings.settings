@@ -1,7 +1,24 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="uri:settings" CurrentProfile="(Default)">
-  <Profiles>
-    <Profile Name="(Default)" />
-  </Profiles>
-  <Settings />
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="WPF_LoginForm.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="DbProvider" Type="System.String" Scope="User">
+      <Value Profile="(Default)">SqlServer</Value>
+    </Setting>
+    <Setting Name="SqlAuthConnString" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Server=(local); Database=LoginDb; Integrated Security=true</Value>
+    </Setting>
+    <Setting Name="SqlDataConnString" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Server=(local); Database=MainDataDb; Integrated Security=true</Value>
+    </Setting>
+    <Setting Name="PostgresDataConnString" Type="System.String" Scope="User">
+      <Value Profile="(Default)">	Host=localhost; Username=postgres; Password=password; Database=MainDataDb</Value>
+    </Setting>
+    <Setting Name="PostgresAuthConnString" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Host=localhost; Username=postgres; Password=password; Database=LoginDb</Value>
+    </Setting>
+    <Setting Name="AppLanguage" Type="System.String" Scope="User">
+      <Value Profile="(Default)">en-US</Value>
+    </Setting>
+  </Settings>
 </SettingsFile>

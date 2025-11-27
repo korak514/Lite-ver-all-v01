@@ -61,11 +61,32 @@
                 <ToolBar Band="2" BandIndex="1" ToolBar.OverflowMode="Never">
                     <Label Content="Quick Search:" VerticalAlignment="Center"/>
                     <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" MinWidth="170" VerticalAlignment="Center"/>
+
+                    <!-- Gear Icon -->
                     <ToggleButton IsChecked="{Binding IsColumnSelectorVisible, Mode=TwoWay}" ToolTip="Search Options" Margin="4,0,0,0">
                         <fa:ImageAwesome Icon="Gear" Height="14" Foreground="DimGray"/>
                     </ToggleButton>
+
+                    <!-- Column Selector -->
                     <ComboBox ItemsSource="{Binding SearchableColumns}" SelectedItem="{Binding SelectedSearchColumn, Mode=TwoWay}" MinWidth="140" VerticalAlignment="Center" Margin="2,0,5,0"
                               Visibility="{Binding IsColumnSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                    <!-- NEW: ID Management Controls -->
+                    <StackPanel Orientation="Horizontal" Visibility="{Binding IsColumnSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Button Content="Add ID Column" 
+                                Command="{Binding AddIdColumnCommand}" 
+                                Margin="5,0" Background="#FFF0F0F0" BorderBrush="Gray"/>
+
+                        <!-- NEW Checkboxes -->
+                        <CheckBox Content="Hide ID" 
+                                  IsChecked="{Binding IsIdHidden, Mode=TwoWay}" 
+                                  VerticalAlignment="Center" Margin="5,0"/>
+
+                        <CheckBox Content="Edit ID" 
+                                  IsChecked="{Binding IsIdEditable, Mode=TwoWay}" 
+                                  VerticalAlignment="Center" Margin="5,0"/>
+                    </StackPanel>
+
                     <Button Content="Clear" ToolTip="Clear Search" Margin="4,0" Command="{Binding ClearSearchCommand}"/>
                     <Separator Margin="4,0"/>
 

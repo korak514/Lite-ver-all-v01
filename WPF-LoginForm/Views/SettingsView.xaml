@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="650" d:DesignWidth="900">
 
     <UserControl.DataContext>
         <viewModels:SettingsViewModel/>
@@ -14,9 +14,9 @@
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
+            <!-- Title -->
             <RowDefinition Height="*"/>
+            <!-- Scrollable Content -->
         </Grid.RowDefinitions>
 
         <!-- Header -->
@@ -26,71 +26,89 @@
                    FontFamily="Montserrat" 
                    Margin="0,0,0,20"/>
 
-        <!-- Database Selection Section -->
-        <Border Grid.Row="1" 
-                CornerRadius="10" 
-                Padding="20"
-                BorderBrush="{StaticResource panelActiveColor}"
-                BorderThickness="1">
-
-            <!-- FIX: Explicitly create a Brush from the Color resource -->
-            <Border.Background>
-                <SolidColorBrush Color="{StaticResource primaryBackColor2}"/>
-            </Border.Background>
-
+        <!-- Scrollable Configuration Area -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
             <StackPanel>
-                <TextBlock Text="Database Configuration" 
-                           Foreground="White" 
-                           FontSize="16" 
-                           FontWeight="SemiBold" 
-                           Margin="0,0,0,15"/>
 
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="150"/>
-                        <ColumnDefinition Width="200"/>
-                    </Grid.ColumnDefinitions>
+                <!-- 1. Active Provider Selection -->
+                <Border CornerRadius="10" Padding="20" Margin="0,0,0,20"
+                        BorderBrush="{StaticResource panelActiveColor}" BorderThickness="1">
+                    <Border.Background>
+                        <SolidColorBrush Color="{StaticResource primaryBackColor2}"/>
+                    </Border.Background>
+                    <StackPanel>
+                        <TextBlock Text="Active Database Provider" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                        <TextBlock Text="Select which database system the application currently uses:" Foreground="{StaticResource titleColor3}" FontSize="12" Margin="0,0,0,10"/>
 
-                    <TextBlock Text="Database Provider:" 
-                               Foreground="{StaticResource titleColor3}" 
-                               VerticalAlignment="Center"/>
+                        <ComboBox ItemsSource="{Binding DatabaseTypes}" 
+                                  SelectedItem="{Binding SelectedDatabaseType, Mode=TwoWay}"
+                                  HorizontalAlignment="Left" Width="200" Height="30" VerticalContentAlignment="Center" Padding="5"/>
+                    </StackPanel>
+                </Border>
 
-                    <ComboBox Grid.Column="1" 
-                              ItemsSource="{Binding DatabaseTypes}" 
-                              SelectedItem="{Binding SelectedDatabaseType, Mode=TwoWay}"
-                              Height="30"
-                              VerticalContentAlignment="Center"
-                              Padding="5"/>
-                </Grid>
+                <!-- 2. SQL Server Settings -->
+                <Border CornerRadius="10" Padding="20" Margin="0,0,0,20"
+                        BorderBrush="{StaticResource panelActiveColor}" BorderThickness="1">
+                    <Border.Background>
+                        <SolidColorBrush Color="{StaticResource primaryBackColor2}"/>
+                    </Border.Background>
+                    <StackPanel>
+                        <TextBlock Text="SQL Server Configuration" Foreground="{StaticResource color6}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,15"/>
 
-                <TextBlock Text="Note: Changing this requires valid connection strings in config." 
-                           Foreground="Gray" 
-                           FontSize="10" 
-                           Margin="0,5,0,15" 
-                           FontStyle="Italic"/>
+                        <TextBlock Text="Auth Connection (LoginDb):" Foreground="{StaticResource titleColor3}" Margin="0,0,0,5"/>
+                        <TextBox Text="{Binding SqlAuthString, UpdateSourceTrigger=PropertyChanged}" Padding="5" Height="30"/>
 
-                <Button Content="Save Changes" 
-                        Command="{Binding SaveCommand}"
-                        HorizontalAlignment="Left"
-                        Width="120"
-                        Height="35"
-                        Background="{StaticResource panelColor}"
-                        Foreground="White"
-                        FontWeight="Bold"
-                        Cursor="Hand"
-                        BorderThickness="0">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="5"/>
-                        </Style>
-                    </Button.Resources>
-                </Button>
+                        <TextBlock Text="Data Connection (Business Data):" Foreground="{StaticResource titleColor3}" Margin="0,10,0,5"/>
+                        <TextBox Text="{Binding SqlDataString, UpdateSourceTrigger=PropertyChanged}" Padding="5" Height="30"/>
+                    </StackPanel>
+                </Border>
 
-                <TextBlock Text="{Binding StatusMessage}" 
-                           Foreground="{StaticResource color9}" 
-                           Margin="0,10,0,0" 
-                           FontSize="14"/>
+                <!-- 3. PostgreSQL Settings -->
+                <Border CornerRadius="10" Padding="20" Margin="0,0,0,20"
+                        BorderBrush="{StaticResource panelActiveColor}" BorderThickness="1">
+                    <Border.Background>
+                        <SolidColorBrush Color="{StaticResource primaryBackColor2}"/>
+                    </Border.Background>
+                    <StackPanel>
+                        <TextBlock Text="PostgreSQL Configuration" Foreground="{StaticResource color8}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,15"/>
+
+                        <TextBlock Text="Auth Connection (LoginDb):" Foreground="{StaticResource titleColor3}" Margin="0,0,0,5"/>
+                        <TextBox Text="{Binding PostgresAuthString, UpdateSourceTrigger=PropertyChanged}" Padding="5" Height="30"/>
+
+                        <TextBlock Text="Data Connection (Business Data):" Foreground="{StaticResource titleColor3}" Margin="0,10,0,5"/>
+                        <TextBox Text="{Binding PostgresDataString, UpdateSourceTrigger=PropertyChanged}" Padding="5" Height="30"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Action Buttons -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                    <Button Content="Save All Changes" 
+                            Command="{Binding SaveCommand}"
+                            Width="150" Height="40"
+                            Background="{StaticResource panelColor}" Foreground="White" FontWeight="Bold"
+                            Cursor="Hand" Margin="0,0,15,0">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="5"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+
+                    <Button Content="Test Active Connection" 
+                            Command="{Binding TestConnectionCommand}"
+                            Width="180" Height="40"
+                            Background="#444444" Foreground="White"
+                            Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="5"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
+
+                <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource color9}" FontSize="14" TextWrapping="Wrap"/>
             </StackPanel>
-        </Border>
+        </ScrollViewer>
     </Grid>
 </UserControl>

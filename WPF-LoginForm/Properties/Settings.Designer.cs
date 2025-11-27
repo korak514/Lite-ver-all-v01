@@ -8,21 +8,90 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-
-namespace WPF_LoginForm.Properties
-{
+namespace WPF_LoginForm.Properties {
+    
+    
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "11.0.0.0")]
-    internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase
-    {
-
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.13.0.0")]
+    internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
+        
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
-
-        public static Settings Default
-        {
-            get
-            {
+        
+        public static Settings Default {
+            get {
                 return defaultInstance;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("SqlServer")]
+        public string DbProvider {
+            get {
+                return ((string)(this["DbProvider"]));
+            }
+            set {
+                this["DbProvider"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Server=(local); Database=LoginDb; Integrated Security=true")]
+        public string SqlAuthConnString {
+            get {
+                return ((string)(this["SqlAuthConnString"]));
+            }
+            set {
+                this["SqlAuthConnString"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Server=(local); Database=MainDataDb; Integrated Security=true")]
+        public string SqlDataConnString {
+            get {
+                return ((string)(this["SqlDataConnString"]));
+            }
+            set {
+                this["SqlDataConnString"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("\tHost=localhost; Username=postgres; Password=password; Database=MainDataDb")]
+        public string PostgresDataConnString {
+            get {
+                return ((string)(this["PostgresDataConnString"]));
+            }
+            set {
+                this["PostgresDataConnString"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Host=localhost; Username=postgres; Password=password; Database=LoginDb")]
+        public string PostgresAuthConnString {
+            get {
+                return ((string)(this["PostgresAuthConnString"]));
+            }
+            set {
+                this["PostgresAuthConnString"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("en-US")]
+        public string AppLanguage {
+            get {
+                return ((string)(this["AppLanguage"]));
+            }
+            set {
+                this["AppLanguage"] = value;
             }
         }
     }

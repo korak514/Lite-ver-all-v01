@@ -1,6 +1,4 @@
-﻿// In WPF_LoginForm.Views.DatarepView.xaml.cs
-
-using System;
+﻿using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -9,6 +7,7 @@ using System.Data;
 using WPF_LoginForm.ViewModels;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using WPF_LoginForm.Converters;
 
 namespace WPF_LoginForm.Views
 {
@@ -22,7 +21,6 @@ namespace WPF_LoginForm.Views
         private void DataDisplayGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
             string columnName = e.PropertyName;
-
             e.Column.SortMemberPath = columnName;
 
             DataColumn dataColumn = null;
@@ -31,31 +29,49 @@ namespace WPF_LoginForm.Views
                 dataColumn = vm.DataTableView.Table.Columns[columnName];
             }
 
-
-            if (e.Column is DataGridTextColumn textColumn)
+            // --- LOGIC FOR ID COLUMN ---
+            if (columnName.Equals("ID", StringComparison.OrdinalIgnoreCase))
             {
-                BindingMode bindingMode = BindingMode.TwoWay; // Default to TwoWay
+                // 1. Move ID to the far Left (Visual Fix)
+                e.Column.DisplayIndex = 0;
 
-                // --- MODIFICATION FOR READ-ONLY/IDENTITY COLUMNS ---
-                if (dataColumn != null && (dataColumn.AutoIncrement || dataColumn.ReadOnly || columnName.Equals("ID", StringComparison.OrdinalIgnoreCase)))
+                // 2. Bind Visibility to 'IsIdVisible'
+                Binding visBinding = new Binding("IsIdVisible")
                 {
-                    bindingMode = BindingMode.OneWay; // Change to OneWay for read-only columns
-                    textColumn.IsReadOnly = true;     // Also explicitly make the DataGrid column read-only
-                    // Optional: Style read-only columns differently (e.g., lighter background)
-                    // textColumn.CellStyle = FindResource("ReadOnlyCellStyle") as Style; 
+                    Source = this.DataContext,
+                    Converter = new WPF_LoginForm.Converters.BooleanToVisibilityConverter()
+                };
+                BindingOperations.SetBinding(e.Column, DataGridColumn.VisibilityProperty, visBinding);
+
+                // 3. Bind IsReadOnly to 'IsIdEditable'
+                Binding readOnlyBinding = new Binding("IsIdEditable")
+                {
+                    Source = this.DataContext,
+                    Converter = new BooleanInverterConverter()
+                };
+                BindingOperations.SetBinding(e.Column, DataGridColumn.IsReadOnlyProperty, readOnlyBinding);
+            }
+            else if (e.Column is DataGridTextColumn textColumn)
+            {
+                // Default behavior for other columns
+                BindingMode bindingMode = BindingMode.TwoWay;
+
+                if (dataColumn != null && (dataColumn.AutoIncrement || dataColumn.ReadOnly))
+                {
+                    bindingMode = BindingMode.OneWay;
+                    textColumn.IsReadOnly = true;
                 }
-                // --- END OF MODIFICATION ---
 
                 Binding newBinding = new Binding()
                 {
                     Path = new PropertyPath($"[{columnName}]"),
-                    Mode = bindingMode, // Use determined binding mode
+                    Mode = bindingMode,
                     UpdateSourceTrigger = UpdateSourceTrigger.LostFocus
                 };
                 textColumn.Binding = newBinding;
             }
 
-            if (e.PropertyType == typeof(DateTime)) // This uses e.PropertyType from the event args
+            if (e.PropertyType == typeof(DateTime))
             {
                 if (e.Column is DataGridTextColumn dateTextColumn)
                 {
@@ -63,9 +79,6 @@ namespace WPF_LoginForm.Views
                     {
                         dateBinding.StringFormat = "d";
                     }
-                    // For DateTime columns, also consider making them read-only in the grid if editing is done via DatePicker
-                    // or if they are not meant to be directly text-edited.
-                    // textColumn.IsReadOnly = true; // If you want dates to be non-editable directly in the cell
                 }
             }
         }
@@ -90,7 +103,6 @@ namespace WPF_LoginForm.Views
         {
             if (this.DataContext is DatarepViewModel viewModel)
             {
-                // Explicitly check if the column itself is marked as read-only in the DataGrid
                 if (e.Column.IsReadOnly)
                 {
                     e.Cancel = true;

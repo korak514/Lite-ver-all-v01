@@ -72,25 +72,31 @@ namespace WPF_LoginForm.Repositories
                     using (var cmd = conn.CreateCommand())
                     {
                         cmd.CommandText = $"SELECT * FROM {Quote(tableName)}";
-                        FillDataTable(cmd, dt);
-                        dt.TableName = tableName;
 
-                        // Identify Primary Key for the DataTable if possible
-                        // This helps the CommandBuilder later, though often it needs the DB schema
-                        try
+                        if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql)
                         {
-                            var schema = cmd.ExecuteReader(CommandBehavior.KeyInfo | CommandBehavior.SchemaOnly).GetSchemaTable();
-                            // We don't manually set PK on DataTable here as it can be complex, 
-                            // relying on CommandBuilder's internal logic is usually standard.
+                            using (var adapter = new NpgsqlDataAdapter((NpgsqlCommand)cmd))
+                            {
+                                adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey;
+                                adapter.Fill(dt);
+                            }
                         }
-                        catch { /* Ignore schema retrieval errors */ }
+                        else
+                        {
+                            using (var adapter = new SqlDataAdapter((SqlCommand)cmd))
+                            {
+                                adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey;
+                                adapter.Fill(dt);
+                            }
+                        }
+                        dt.TableName = tableName;
                     }
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error fetching data for {tableName}", ex);
-                throw;
+                return new DataTable(tableName);
             }
             return dt;
         }
@@ -155,102 +161,162 @@ namespace WPF_LoginForm.Repositories
             return (min, max);
         }
 
-        public async Task<List<string>> GetDistinctPart1ValuesAsync(string tableName) => await GetDistinctValuesAsync(tableName, "Part1");
-        public async Task<List<string>> GetDistinctPart2ValuesAsync(string tableName, string p1) => await GetDistinctValuesAsync(tableName, "Part2", "Part1", p1);
-        public async Task<List<string>> GetDistinctPart3ValuesAsync(string tableName, string p1, string p2) => await GetDistinctValuesAsync(tableName, "Part3", new Dictionary<string, string> { { "Part1", p1 }, { "Part2", p2 } });
-        public async Task<List<string>> GetDistinctPart4ValuesAsync(string tableName, string p1, string p2, string p3) => await GetDistinctValuesAsync(tableName, "Part4", new Dictionary<string, string> { { "Part1", p1 }, { "Part2", p2 }, { "Part3", p3 } });
-        public async Task<List<string>> GetDistinctCoreItemDisplayNamesAsync(string tableName, string p1, string p2, string p3, string p4) => await GetDistinctValuesAsync(tableName, "CoreItem", new Dictionary<string, string> { { "Part1", p1 }, { "Part2", p2 }, { "Part3", p3 }, { "Part4", p4 } });
-        public async Task<string> GetActualColumnNameAsync(string tableName, string p1, string p2, string p3, string p4, string coreItem) { await Task.CompletedTask; return coreItem; }
+        // --- FIX: CORRECTED MAPPINGS FOR COLUMN HIERARCHY MAP ---
 
-        private async Task<List<string>> GetDistinctValuesAsync(string tableName, string targetCol, string filterCol = null, string filterVal = null)
+        // Map: Part1 -> "Part1Value"
+        public async Task<List<string>> GetDistinctPart1ValuesAsync(string tableName)
         {
-            var filters = new Dictionary<string, string>();
-            if (filterCol != null) filters.Add(filterCol, filterVal);
-            return await GetDistinctValuesAsync(tableName, targetCol, filters);
+            return await GetMapValuesAsync("Part1Value", tableName, null);
         }
 
-        private async Task<List<string>> GetDistinctValuesAsync(string tableName, string targetCol, Dictionary<string, string> filters)
+        // Map: Part2 -> "Part2Value"
+        public async Task<List<string>> GetDistinctPart2ValuesAsync(string tableName, string p1)
+        {
+            return await GetMapValuesAsync("Part2Value", tableName, new Dictionary<string, string> { { "Part1Value", p1 } });
+        }
+
+        // Map: Part3 -> "Part3Value"
+        public async Task<List<string>> GetDistinctPart3ValuesAsync(string tableName, string p1, string p2)
+        {
+            return await GetMapValuesAsync("Part3Value", tableName, new Dictionary<string, string> { { "Part1Value", p1 }, { "Part2Value", p2 } });
+        }
+
+        // Map: Part4 -> "Part4Value"
+        public async Task<List<string>> GetDistinctPart4ValuesAsync(string tableName, string p1, string p2, string p3)
+        {
+            return await GetMapValuesAsync("Part4Value", tableName, new Dictionary<string, string> { { "Part1Value", p1 }, { "Part2Value", p2 }, { "Part3Value", p3 } });
+        }
+
+        // Map: CoreItem -> "CoreItemDisplayName"
+        public async Task<List<string>> GetDistinctCoreItemDisplayNamesAsync(string tableName, string p1, string p2, string p3, string p4)
+        {
+            return await GetMapValuesAsync("CoreItemDisplayName", tableName, new Dictionary<string, string>
+            {
+                { "Part1Value", p1 },
+                { "Part2Value", p2 },
+                { "Part3Value", p3 },
+                { "Part4Value", p4 }
+            });
+        }
+
+        public async Task<string> GetActualColumnNameAsync(string tableName, string p1, string p2, string p3, string p4, string coreItem)
+        {
+            try
+            {
+                using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
+                {
+                    conn.Open();
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        // Map: "ActualDataTableColumnName" is the target
+                        // Map: "OwningDataTableName" is the table filter
+                        StringBuilder sb = new StringBuilder();
+                        sb.Append($"SELECT {Quote("ActualDataTableColumnName")} FROM {Quote("ColumnHierarchyMap")} WHERE {Quote("OwningDataTableName")} = @t");
+                        AddParameter(cmd, "@t", tableName);
+
+                        if (!string.IsNullOrEmpty(p1)) { sb.Append($" AND {Quote("Part1Value")} = @p1"); AddParameter(cmd, "@p1", p1); }
+                        if (!string.IsNullOrEmpty(p2)) { sb.Append($" AND {Quote("Part2Value")} = @p2"); AddParameter(cmd, "@p2", p2); }
+                        if (!string.IsNullOrEmpty(p3)) { sb.Append($" AND {Quote("Part3Value")} = @p3"); AddParameter(cmd, "@p3", p3); }
+                        if (!string.IsNullOrEmpty(p4)) { sb.Append($" AND {Quote("Part4Value")} = @p4"); AddParameter(cmd, "@p4", p4); }
+
+                        if (!string.IsNullOrEmpty(coreItem)) { sb.Append($" AND {Quote("CoreItemDisplayName")} = @core"); AddParameter(cmd, "@core", coreItem); }
+
+                        // FIX: Assuming 'IsActive' column exists. If not, remove this block.
+                        // Based on your data ending in 'True', it likely exists.
+                        // Using parameter to be safe for bit/boolean types.
+                        // sb.Append($" AND {Quote("IsActive")} = @active");
+                        // AddParameter(cmd, "@active", 1); // 1 for SQL Bit, will likely convert for Postgres Boolean
+
+                        cmd.CommandText = sb.ToString();
+                        var result = await Task.Run(() => cmd.ExecuteScalar());
+                        return result?.ToString();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error resolving target column for {tableName}", ex);
+                return null;
+            }
+        }
+
+        private async Task<List<string>> GetMapValuesAsync(string targetCol, string tableName, Dictionary<string, string> filters)
         {
             var list = new List<string>();
             try
             {
-                if (!await ColumnExists(tableName, targetCol)) return list;
                 using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
                 {
                     conn.Open();
                     using (var cmd = conn.CreateCommand())
                     {
                         StringBuilder sb = new StringBuilder();
-                        sb.Append($"SELECT DISTINCT {Quote(targetCol)} FROM {Quote(tableName)} WHERE 1=1");
+
+                        // Map: "OwningDataTableName"
+                        sb.Append($"SELECT DISTINCT {Quote(targetCol)} FROM {Quote("ColumnHierarchyMap")} WHERE {Quote("OwningDataTableName")} = @t");
+                        AddParameter(cmd, "@t", tableName);
+
+                        // IsActive Check (Optional - uncomment if column exists and you want filtering)
+                        // sb.Append($" AND {Quote("IsActive")} = 1");
+
                         if (filters != null)
                         {
                             foreach (var kvp in filters)
                             {
-                                if (!string.IsNullOrEmpty(kvp.Value))
+                                if (string.IsNullOrEmpty(kvp.Value))
+                                {
+                                    sb.Append($" AND ({Quote(kvp.Key)} IS NULL OR {Quote(kvp.Key)} = '')");
+                                }
+                                else
                                 {
                                     sb.Append($" AND {Quote(kvp.Key)} = @{kvp.Key}");
                                     AddParameter(cmd, $"@{kvp.Key}", kvp.Value);
                                 }
                             }
                         }
+
+                        sb.Append($" AND {Quote(targetCol)} IS NOT NULL AND {Quote(targetCol)} != ''");
                         sb.Append($" ORDER BY {Quote(targetCol)}");
+
                         cmd.CommandText = sb.ToString();
+
                         using (var reader = cmd.ExecuteReader())
                         {
-                            while (reader.Read()) if (reader[0] != DBNull.Value) list.Add(reader[0].ToString());
+                            while (reader.Read())
+                            {
+                                list.Add(reader[0].ToString());
+                            }
                         }
                     }
                 }
             }
-            catch (Exception ex) { _logger.LogError($"Error distinct {targetCol}", ex); }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error fetching map values for {targetCol}", ex);
+            }
             return list;
         }
 
-        private async Task<bool> ColumnExists(string tableName, string columnName)
-        {
-            try
-            {
-                using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
-                {
-                    conn.Open();
-                    using (var cmd = conn.CreateCommand())
-                    {
-                        cmd.CommandText = $"SELECT * FROM {Quote(tableName)} WHERE 1=0";
-                        using (var reader = cmd.ExecuteReader(CommandBehavior.SchemaOnly))
-                        {
-                            var table = reader.GetSchemaTable();
-                            foreach (DataRow row in table.Rows) if (row["ColumnName"].ToString().Equals(columnName, StringComparison.OrdinalIgnoreCase)) return true;
-                        }
-                    }
-                }
-            }
-            catch { return false; }
-            return false;
-        }
+        // --- END OF MODIFIED MAP LOGIC ---
 
-        // --- SAVE CHANGES (Fixes Crash) ---
         public async Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName)
         {
             try
             {
+                if (changes.PrimaryKey == null || changes.PrimaryKey.Length == 0)
+                {
+                    return (false, $"The table '{tableName}' does not have a Primary Key (ID). You cannot edit or save data without a Primary Key.");
+                }
+
                 if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer)
                 {
                     using (var conn = new SqlConnection(DbConnectionFactory.GetConnection(ConnectionTarget.Data).ConnectionString))
                     {
                         var adapter = new SqlDataAdapter($"SELECT * FROM {Quote(tableName)} WHERE 1=0", conn);
                         var builder = new SqlCommandBuilder(adapter);
-
-                        // Explicitly checks if the builder can determine key info
-                        // This prevents the generic 'crash' and returns a clean error
-                        try
-                        {
-                            adapter.Update(changes);
-                        }
-                        catch (InvalidOperationException invEx) when (invEx.Message.Contains("Dynamic SQL generation"))
-                        {
-                            return (false, $"Table '{tableName}' has no Primary Key defined. Editing is not supported.");
-                        }
-
+                        builder.QuotePrefix = "[";
+                        builder.QuoteSuffix = "]";
+                        adapter.Update(changes);
                         return (true, null);
                     }
                 }
@@ -262,16 +328,7 @@ namespace WPF_LoginForm.Repositories
                         var builder = new NpgsqlCommandBuilder(adapter);
                         builder.QuotePrefix = "\"";
                         builder.QuoteSuffix = "\"";
-
-                        try
-                        {
-                            adapter.Update(changes);
-                        }
-                        catch (InvalidOperationException invEx) when (invEx.Message.Contains("Dynamic SQL generation"))
-                        {
-                            return (false, $"Table '{tableName}' has no Primary Key defined. Editing is not supported.");
-                        }
-
+                        adapter.Update(changes);
                         return (true, null);
                     }
                 }
@@ -376,6 +433,42 @@ namespace WPF_LoginForm.Repositories
                 }
             }
             catch (Exception ex) { return (false, ex.Message); }
+        }
+
+        public async Task<(bool Success, string ErrorMessage)> AddPrimaryKeyAsync(string tableName)
+        {
+            try
+            {
+                using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
+                {
+                    conn.Open();
+                    using (var cmd1 = conn.CreateCommand())
+                    {
+                        if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql)
+                            cmd1.CommandText = $"ALTER TABLE \"{tableName}\" ADD COLUMN \"ID\" SERIAL";
+                        else
+                            cmd1.CommandText = $"ALTER TABLE [{tableName}] ADD [ID] INT IDENTITY(1,1) NOT NULL";
+
+                        await Task.Run(() => cmd1.ExecuteNonQuery());
+                    }
+
+                    using (var cmd2 = conn.CreateCommand())
+                    {
+                        if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql)
+                            cmd2.CommandText = $"ALTER TABLE \"{tableName}\" ADD CONSTRAINT \"PK_{tableName}\" PRIMARY KEY (\"ID\")";
+                        else
+                            cmd2.CommandText = $"ALTER TABLE [{tableName}] ADD CONSTRAINT [PK_{tableName}] PRIMARY KEY ([ID])";
+
+                        await Task.Run(() => cmd2.ExecuteNonQuery());
+                    }
+                }
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error adding ID to {tableName}", ex);
+                return (false, ex.Message);
+            }
         }
 
         private void FillDataTable(IDbCommand cmd, DataTable dt)

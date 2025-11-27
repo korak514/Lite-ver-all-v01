@@ -26,10 +26,12 @@ namespace WPF_LoginForm.Repositories
         Task<List<string>> GetDistinctPart4ValuesAsync(string tableName, string p1, string p2, string p3);
         Task<List<string>> GetDistinctCoreItemDisplayNamesAsync(string tableName, string p1, string p2, string p3, string p4);
 
-        // --- MODIFIED: Returns (Success, ErrorMessage) ---
+        // Write Operations
         Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName);
-
         Task<bool> DeleteTableAsync(string tableName);
+
+        // --- NEW METHOD ---
+        Task<(bool Success, string ErrorMessage)> AddPrimaryKeyAsync(string tableName);
 
         // Bulk / Creation
         Task<(bool Success, string ErrorMessage)> CreateTableAsync(string tableName, List<ColumnSchemaViewModel> schema);
