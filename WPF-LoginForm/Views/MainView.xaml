@@ -7,6 +7,7 @@
         xmlns:viewModel="clr-namespace:WPF_LoginForm.ViewModels"
         xmlns:fa="http://schemas.fontawesome.io/icons/"
         xmlns:sharp="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
+        xmlns:p="clr-namespace:WPF_LoginForm.Properties"
         mc:Ignorable="d"
         Title="MainWindowView" Height="700" Width="1300"
         WindowStartupLocation="CenterScreen"
@@ -30,11 +31,9 @@
         <DataTemplate DataType="{x:Type viewModel:InventoryViewModel}">
             <local:InventoryView/>
         </DataTemplate>
-        <!-- ADDED: Template for Settings -->
         <DataTemplate DataType="{x:Type viewModel:SettingsViewModel}">
             <local:SettingsView/>
         </DataTemplate>
-        <!-- ADDED: Template for Help (View will be created in next step) -->
         <DataTemplate DataType="{x:Type viewModel:HelpViewModel}">
             <local:HelpView/>
         </DataTemplate>
@@ -76,47 +75,54 @@
                         <Image Source="/Images/biosun/logo2.png" Height="44" Width="224"/>
                     </StackPanel>
 
+                    <!-- TRANSLATED BUTTONS -->
+
                     <RadioButton Style="{StaticResource menuButton}" Tag="{StaticResource color1}" IsChecked="True" Command="{Binding ShowHomeViewCommand}">
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="Home" Style="{StaticResource menuButtonIcon}"/>
-                            <TextBlock Text="Dashboard" Style="{StaticResource menuButtonText}"/>
+                            <!-- Uses Resource: Dashboard -->
+                            <TextBlock Text="{x:Static p:Resources.Dashboard}" Style="{StaticResource menuButtonText}"/>
                         </StackPanel>
                     </RadioButton>
 
                     <RadioButton Style="{StaticResource menuButton}" Tag="{StaticResource color2}" Command="{Binding ShowCustomerViewCommand}">
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="Users" Style="{StaticResource menuButtonIcon}"/>
-                            <TextBlock Text="Customers" Style="{StaticResource menuButtonText}"/>
+                            <!-- Uses Resource: Customers -->
+                            <TextBlock Text="{x:Static p:Resources.Customers}" Style="{StaticResource menuButtonText}"/>
                         </StackPanel>
                     </RadioButton>
 
                     <RadioButton Style="{StaticResource menuButton}" Tag="{StaticResource color3}" Command="{Binding ShowInventoryViewCommand}">
                         <StackPanel Orientation="Horizontal">
-                            <fa:ImageAwesome Icon="Book" Style="{StaticResource menuButtonIcon}"/>
-                            <TextBlock Text="Inventory" Style="{StaticResource menuButtonText}"/>
+                            <!-- Icon changed to List/File for Logs -->
+                            <fa:ImageAwesome Icon="ListAlt" Style="{StaticResource menuButtonIcon}"/>
+                            <!-- Uses Resource: Logs (formerly Inventory) -->
+                            <TextBlock Text="{x:Static p:Resources.Logs}" Style="{StaticResource menuButtonText}"/>
                         </StackPanel>
                     </RadioButton>
 
                     <RadioButton Style="{StaticResource menuButton}" Tag="{StaticResource color4}" Command="{Binding ShowReportsViewCommand}">
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="BarChart" Style="{StaticResource menuButtonIcon}"/>
-                            <TextBlock Text="Reports" Style="{StaticResource menuButtonText}"/>
+                            <!-- Uses Resource: Reports -->
+                            <TextBlock Text="{x:Static p:Resources.Reports}" Style="{StaticResource menuButtonText}"/>
                         </StackPanel>
                     </RadioButton>
 
-                    <!-- ADDED: Settings Button -->
                     <RadioButton Style="{StaticResource menuButton}" Tag="{StaticResource color6}" Command="{Binding ShowSettingsViewCommand}">
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="Cog" Style="{StaticResource menuButtonIcon}"/>
-                            <TextBlock Text="Settings" Style="{StaticResource menuButtonText}"/>
+                            <!-- Uses Resource: Settings -->
+                            <TextBlock Text="{x:Static p:Resources.Settings}" Style="{StaticResource menuButtonText}"/>
                         </StackPanel>
                     </RadioButton>
 
-                    <!-- ADDED: Help Button -->
                     <RadioButton Style="{StaticResource menuButton}" Tag="{StaticResource color6}" Command="{Binding ShowHelpViewCommand}">
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="QuestionCircle" Style="{StaticResource menuButtonIcon}"/>
-                            <TextBlock Text="Help" Style="{StaticResource menuButtonText}"/>
+                            <!-- Uses Resource: Help -->
+                            <TextBlock Text="{x:Static p:Resources.Help}" Style="{StaticResource menuButtonText}"/>
                         </StackPanel>
                     </RadioButton>
                 </StackPanel>
@@ -138,7 +144,6 @@
                         <RowDefinition Height="30*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Control Bar -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" >
                         <Button x:Name="btnMainMinimize" Margin="0,12,10,0" BorderThickness="0" Foreground="White" FontSize="16" FontFamily="Montserrat" Cursor="Hand" Click="btnMainMinimize_Click" Width="18" Height="18" Style="{StaticResource controlButton}">
                             <TextBlock Text="-" FontSize="16"/>
@@ -155,13 +160,11 @@
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Caption -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                             <sharp:IconImage Icon="{Binding Icon}" Height="20" Width="20" Foreground="{StaticResource titleColor2}" Margin="35,0,10,0"/>
                             <TextBlock Text="{Binding Caption}" Foreground="{StaticResource titleColor2}" FontSize="16" FontFamily="Montserrat" FontWeight="Medium" VerticalAlignment="Center"/>
                         </StackPanel>
 
-                        <!-- User Info -->
                         <StackPanel Orientation="Horizontal" FlowDirection="RightToLeft" VerticalAlignment="Center" Grid.Column="1" Margin="10,0,35,0" >
                             <StackPanel Orientation="Horizontal">
                                 <fa:ImageAwesome Icon="User" Style="{StaticResource DashIcon}"/>
@@ -170,7 +173,6 @@
                         </StackPanel>
                     </Grid>
 
-                    <!-- Child View Content -->
                     <ContentControl Content="{Binding CurrentChildView}" Grid.Row="2" Margin="25"/>
                 </Grid>
             </Border>

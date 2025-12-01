@@ -65,7 +65,6 @@ namespace WPF_LoginForm.ViewModels
         // Constructor
         public MainViewModel()
         {
-            // Use Global Logger from App.xaml, or fallback if null
             _logger = App.GlobalLogger ?? new FileLogger("Fallback_Log");
 
             _dialogService = new DialogService();
@@ -116,15 +115,16 @@ namespace WPF_LoginForm.ViewModels
             _logger.LogInfo("Navigated to Customers View.");
         }
 
+        // --- UPDATED: Pass Dependencies to InventoryViewModel ---
         private void ExecuteShowInventoryViewCommand(object obj)
         {
             if (_inventoryViewModel == null)
-                _inventoryViewModel = new InventoryViewModel();
+                _inventoryViewModel = new InventoryViewModel(_dataRepository, _dialogService);
 
             CurrentChildView = _inventoryViewModel;
-            Caption = "Inventory";
-            Icon = IconChar.Book;
-            _logger.LogInfo("Navigated to Inventory View.");
+            Caption = "System Logs"; // Updated Caption
+            Icon = IconChar.ListAlt;   // Updated Icon
+            _logger.LogInfo("Navigated to System Logs View.");
         }
 
         private void ExecuteShowReportsViewCommand(object obj)

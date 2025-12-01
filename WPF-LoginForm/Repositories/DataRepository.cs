@@ -29,6 +29,63 @@ namespace WPF_LoginForm.Repositories
             return $"[{identifier}]";
         }
 
+        // --- NEW: LOGS IMPLEMENTATION ---
+        public async Task<DataTable> GetSystemLogsAsync()
+        {
+            var dt = new DataTable();
+            try
+            {
+                // Logs are in the AUTH database (LoginDb), not the Data DB
+                using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
+                {
+                    conn.Open();
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        // Order by Date Descending (Newest first)
+                        // Limit to last 1000 rows to prevent UI lag
+                        if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql)
+                            cmd.CommandText = "SELECT * FROM \"Logs\" ORDER BY \"LogDate\" DESC LIMIT 1000";
+                        else
+                            cmd.CommandText = "SELECT TOP 1000 * FROM [Logs] ORDER BY [LogDate] DESC";
+
+                        FillDataTable(cmd, dt);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // If we can't read logs, just return empty. Don't log this to DB or we create an infinite loop!
+                System.Diagnostics.Debug.WriteLine($"Error reading logs: {ex.Message}");
+            }
+            return dt;
+        }
+
+        public async Task<bool> ClearSystemLogsAsync()
+        {
+            try
+            {
+                using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
+                {
+                    conn.Open();
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql)
+                            cmd.CommandText = "TRUNCATE TABLE \"Logs\"";
+                        else
+                            cmd.CommandText = "TRUNCATE TABLE [Logs]";
+
+                        await Task.Run(() => cmd.ExecuteNonQuery());
+                        return true;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+        // --------------------------------
+
         public async Task<List<string>> GetTableNamesAsync()
         {
             var list = new List<string>();
@@ -72,7 +129,6 @@ namespace WPF_LoginForm.Repositories
                     using (var cmd = conn.CreateCommand())
                     {
                         cmd.CommandText = $"SELECT * FROM {Quote(tableName)}";
-
                         if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql)
                         {
                             using (var adapter = new NpgsqlDataAdapter((NpgsqlCommand)cmd))
@@ -161,43 +217,11 @@ namespace WPF_LoginForm.Repositories
             return (min, max);
         }
 
-        // --- FIX: CORRECTED MAPPINGS FOR COLUMN HIERARCHY MAP ---
-
-        // Map: Part1 -> "Part1Value"
-        public async Task<List<string>> GetDistinctPart1ValuesAsync(string tableName)
-        {
-            return await GetMapValuesAsync("Part1Value", tableName, null);
-        }
-
-        // Map: Part2 -> "Part2Value"
-        public async Task<List<string>> GetDistinctPart2ValuesAsync(string tableName, string p1)
-        {
-            return await GetMapValuesAsync("Part2Value", tableName, new Dictionary<string, string> { { "Part1Value", p1 } });
-        }
-
-        // Map: Part3 -> "Part3Value"
-        public async Task<List<string>> GetDistinctPart3ValuesAsync(string tableName, string p1, string p2)
-        {
-            return await GetMapValuesAsync("Part3Value", tableName, new Dictionary<string, string> { { "Part1Value", p1 }, { "Part2Value", p2 } });
-        }
-
-        // Map: Part4 -> "Part4Value"
-        public async Task<List<string>> GetDistinctPart4ValuesAsync(string tableName, string p1, string p2, string p3)
-        {
-            return await GetMapValuesAsync("Part4Value", tableName, new Dictionary<string, string> { { "Part1Value", p1 }, { "Part2Value", p2 }, { "Part3Value", p3 } });
-        }
-
-        // Map: CoreItem -> "CoreItemDisplayName"
-        public async Task<List<string>> GetDistinctCoreItemDisplayNamesAsync(string tableName, string p1, string p2, string p3, string p4)
-        {
-            return await GetMapValuesAsync("CoreItemDisplayName", tableName, new Dictionary<string, string>
-            {
-                { "Part1Value", p1 },
-                { "Part2Value", p2 },
-                { "Part3Value", p3 },
-                { "Part4Value", p4 }
-            });
-        }
+        public async Task<List<string>> GetDistinctPart1ValuesAsync(string tableName) => await GetMapValuesAsync("Part1Value", tableName, null);
+        public async Task<List<string>> GetDistinctPart2ValuesAsync(string tableName, string p1) => await GetMapValuesAsync("Part2Value", tableName, new Dictionary<string, string> { { "Part1Value", p1 } });
+        public async Task<List<string>> GetDistinctPart3ValuesAsync(string tableName, string p1, string p2) => await GetMapValuesAsync("Part3Value", tableName, new Dictionary<string, string> { { "Part1Value", p1 }, { "Part2Value", p2 } });
+        public async Task<List<string>> GetDistinctPart4ValuesAsync(string tableName, string p1, string p2, string p3) => await GetMapValuesAsync("Part4Value", tableName, new Dictionary<string, string> { { "Part1Value", p1 }, { "Part2Value", p2 }, { "Part3Value", p3 } });
+        public async Task<List<string>> GetDistinctCoreItemDisplayNamesAsync(string tableName, string p1, string p2, string p3, string p4) => await GetMapValuesAsync("CoreItemDisplayName", tableName, new Dictionary<string, string> { { "Part1Value", p1 }, { "Part2Value", p2 }, { "Part3Value", p3 } });
 
         public async Task<string> GetActualColumnNameAsync(string tableName, string p1, string p2, string p3, string p4, string coreItem)
         {
@@ -208,8 +232,6 @@ namespace WPF_LoginForm.Repositories
                     conn.Open();
                     using (var cmd = conn.CreateCommand())
                     {
-                        // Map: "ActualDataTableColumnName" is the target
-                        // Map: "OwningDataTableName" is the table filter
                         StringBuilder sb = new StringBuilder();
                         sb.Append($"SELECT {Quote("ActualDataTableColumnName")} FROM {Quote("ColumnHierarchyMap")} WHERE {Quote("OwningDataTableName")} = @t");
                         AddParameter(cmd, "@t", tableName);
@@ -217,15 +239,8 @@ namespace WPF_LoginForm.Repositories
                         if (!string.IsNullOrEmpty(p1)) { sb.Append($" AND {Quote("Part1Value")} = @p1"); AddParameter(cmd, "@p1", p1); }
                         if (!string.IsNullOrEmpty(p2)) { sb.Append($" AND {Quote("Part2Value")} = @p2"); AddParameter(cmd, "@p2", p2); }
                         if (!string.IsNullOrEmpty(p3)) { sb.Append($" AND {Quote("Part3Value")} = @p3"); AddParameter(cmd, "@p3", p3); }
-                        if (!string.IsNullOrEmpty(p4)) { sb.Append($" AND {Quote("Part4Value")} = @p4"); AddParameter(cmd, "@p4", p4); }
 
                         if (!string.IsNullOrEmpty(coreItem)) { sb.Append($" AND {Quote("CoreItemDisplayName")} = @core"); AddParameter(cmd, "@core", coreItem); }
-
-                        // FIX: Assuming 'IsActive' column exists. If not, remove this block.
-                        // Based on your data ending in 'True', it likely exists.
-                        // Using parameter to be safe for bit/boolean types.
-                        // sb.Append($" AND {Quote("IsActive")} = @active");
-                        // AddParameter(cmd, "@active", 1); // 1 for SQL Bit, will likely convert for Postgres Boolean
 
                         cmd.CommandText = sb.ToString();
                         var result = await Task.Run(() => cmd.ExecuteScalar());
@@ -251,13 +266,8 @@ namespace WPF_LoginForm.Repositories
                     using (var cmd = conn.CreateCommand())
                     {
                         StringBuilder sb = new StringBuilder();
-
-                        // Map: "OwningDataTableName"
                         sb.Append($"SELECT DISTINCT {Quote(targetCol)} FROM {Quote("ColumnHierarchyMap")} WHERE {Quote("OwningDataTableName")} = @t");
                         AddParameter(cmd, "@t", tableName);
-
-                        // IsActive Check (Optional - uncomment if column exists and you want filtering)
-                        // sb.Append($" AND {Quote("IsActive")} = 1");
 
                         if (filters != null)
                         {
@@ -296,8 +306,6 @@ namespace WPF_LoginForm.Repositories
             }
             return list;
         }
-
-        // --- END OF MODIFIED MAP LOGIC ---
 
         public async Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName)
         {

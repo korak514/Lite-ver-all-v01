@@ -19,6 +19,10 @@ namespace WPF_LoginForm.Repositories
         Task<DataTable> GetTableDataAsync(string tableName);
         Task<DataTable> GetDataAsync(string tableName, List<string> columns, string dateColumn, DateTime? startDate, DateTime? endDate);
 
+        // --- NEW: LOGS RETRIEVAL ---
+        Task<DataTable> GetSystemLogsAsync();
+        Task<bool> ClearSystemLogsAsync();
+
         // Distinct Values
         Task<List<string>> GetDistinctPart1ValuesAsync(string tableName);
         Task<List<string>> GetDistinctPart2ValuesAsync(string tableName, string p1);
@@ -29,8 +33,6 @@ namespace WPF_LoginForm.Repositories
         // Write Operations
         Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName);
         Task<bool> DeleteTableAsync(string tableName);
-
-        // --- NEW METHOD ---
         Task<(bool Success, string ErrorMessage)> AddPrimaryKeyAsync(string tableName);
 
         // Bulk / Creation

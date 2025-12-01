@@ -4,9 +4,145 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:WPF_LoginForm.Views"
+             xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
+             xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+             xmlns:fa="http://schemas.fontawesome.io/icons/"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-    <Image Source="/Images/biosun/dashboard-template.png"/>
+             d:DesignHeight="500" d:DesignWidth="800"
+             d:DataContext="{d:DesignInstance Type=viewModels:InventoryViewModel, IsDesignTimeCreatable=False}">
+
+    <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Header/Toolbar -->
+            <RowDefinition Height="Auto"/>
+            <!-- Progress Bar -->
+            <RowDefinition Height="*"/>
+            <!-- DataGrid -->
+        </Grid.RowDefinitions>
+
+        <!-- Header & Actions -->
+        <Grid Grid.Row="0" Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Vertical">
+                <TextBlock Text="System Logs" 
+                           Foreground="{StaticResource titleColor2}" 
+                           FontSize="24" 
+                           FontFamily="Montserrat" 
+                           FontWeight="SemiBold"/>
+
+                <TextBlock Text="{Binding StatusMessage}" 
+                           Foreground="{StaticResource titleColor3}" 
+                           FontSize="12" 
+                           Margin="2,5,0,0"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Command="{Binding RefreshLogsCommand}" 
+                        Content="Refresh"
+                        Height="30" Width="90"
+                        Margin="0,0,10,0"
+                        Background="{StaticResource panelColor}"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Cursor="Hand"
+                        FontWeight="Bold">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="5"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+
+                <Button Command="{Binding ClearLogsCommand}" 
+                        Content="Clear Logs"
+                        Height="30" Width="90"
+                        Background="#FFD14545"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Cursor="Hand"
+                        FontWeight="Bold">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="5"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Progress Bar -->
+        <ProgressBar Grid.Row="1" 
+                     IsIndeterminate="True" 
+                     Height="4" 
+                     Margin="0,0,0,10"
+                     Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+        <!-- Logs DataGrid -->
+        <Border Grid.Row="2" 
+                CornerRadius="10" 
+                Padding="10"
+                BorderBrush="{StaticResource panelActiveColor}"
+                BorderThickness="1">
+
+            <!-- FIX: Assign Color to Brush -->
+            <Border.Background>
+                <SolidColorBrush Color="{StaticResource primaryBackColor2}"/>
+            </Border.Background>
+
+            <DataGrid ItemsSource="{Binding LogsTable}"
+                      AutoGenerateColumns="True"
+                      IsReadOnly="True"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      CanUserResizeRows="False"
+                      HeadersVisibility="Column"
+                      GridLinesVisibility="Horizontal"
+                      Background="Transparent"
+                      RowBackground="Transparent"
+                      Foreground="{StaticResource plainTextColor3}"
+                      BorderThickness="0">
+
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Foreground" Value="{StaticResource titleColor3}"/>
+                        <Setter Property="Padding" Value="10,5,10,5"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        <Setter Property="BorderBrush" Value="{StaticResource panelActiveColor}"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+
+                <DataGrid.CellStyle>
+                    <Style TargetType="DataGridCell">
+                        <Setter Property="Padding" Value="10,5"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="DataGridCell">
+                                    <Border Padding="{TemplateBinding Padding}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                                        <ContentPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="{StaticResource panelActiveColor}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.CellStyle>
+            </DataGrid>
+        </Border>
     </Grid>
 </UserControl>
