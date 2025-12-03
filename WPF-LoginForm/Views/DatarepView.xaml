@@ -9,123 +9,121 @@
              xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
              xmlns:fa="http://schemas.fontawesome.io/icons/"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:p="clr-namespace:WPF_LoginForm.Properties"
              mc:Ignorable="d"
              d:DesignHeight="500" d:DesignWidth="800"
              d:DataContext="{d:DesignInstance Type=viewModels:DatarepViewModel, IsDesignTimeCreatable=False}">
 
     <UserControl.Resources>
-        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        <converters:BooleanInverterConverter x:Key="BooleanInverter"/>
-        <converters:IsRowEditableConverter x:Key="IsRowEditableConverter"/>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:BooleanInverterConverter x:Key="BooleanInverter" />
+        <converters:IsRowEditableConverter x:Key="IsRowEditableConverter" />
         <converters:IsItemInCollectionConverter x:Key="IsItemInCollectionConverter" />
-        <converters:IsNullOrEmptyConverter x:Key="IsNullOrEmptyConverter"/>
+        <converters:IsNullOrEmptyConverter x:Key="IsNullOrEmptyConverter" />
 
         <Style x:Key="ErrorMessageTextBoxStyle" TargetType="TextBox">
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="Red"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="IsReadOnly" Value="True"/>
-            <Setter Property="TextWrapping" Value="NoWrap"/>
-            <Setter Property="AcceptsReturn" Value="False"/>
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="Red" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="AcceptsReturn" Value="False" />
         </Style>
     </UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="0 0 0 2" Padding="10">
-            <ToolBarTray IsLocked="True" >
+            <ToolBarTray IsLocked="True">
                 <!-- Toolbar 1: Main Actions -->
                 <ToolBar Band="1" BandIndex="1" ToolBar.OverflowMode="Never">
-                    <Label Content="Table:" VerticalAlignment="Center"/>
-                    <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable, Mode=TwoWay}" DisplayMemberPath="." MinWidth="150" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <Button Content="Delete Table" ToolTip="Permanently delete the selected table" Margin="0,0,10,0" Command="{Binding DeleteTableCommand}" Foreground="Red"/>
+                    <Label Content="{x:Static p:Resources.Table}" VerticalAlignment="Center" />
+                    <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable, Mode=TwoWay}" DisplayMemberPath="." MinWidth="150" VerticalAlignment="Center" Margin="0,0,5,0" />
+                    <Button Content="{x:Static p:Resources.Delete}" ToolTip="Permanently delete table" Margin="0,0,10,0" Command="{Binding DeleteTableCommand}" Foreground="Red" />
 
-                    <Button Content="Add" ToolTip="Add New Row" Margin="4,0" Command="{Binding AddNewRowCommand}"/>
-                    <Button Content="Delete" ToolTip="Delete Selected Row(s)" Margin="4,0" Command="{Binding DeleteSelectedRowCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}"/>
-                    <Separator Margin="4,0"/>
-                    <Button Content="Save" ToolTip="Save Changes" Margin="4,0" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDirty}"/>
-                    <Button Content="Undo" ToolTip="Undo Local Changes" Margin="4,0" Command="{Binding UndoChangesCommand}" IsEnabled="{Binding UndoChangesCommand.CanExecute, Mode=OneWay}"/>
-                    <Button Content="Reload" ToolTip="Reload Data from Database (Discards Local Changes)" Margin="4,0" Command="{Binding ReloadDataCommand}"/>
-                    <Button Content="Edit" ToolTip="Enable Editing for Selected Rows" Margin="4,0" Command="{Binding EditSelectedRowsCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}"/>
-                    <Button Content="Select All" ToolTip="Select All Rows" Margin="4,0,0,0" Click="SelectAllButton_Click"/>
+                    <Button Content="{x:Static p:Resources.Add}" ToolTip="Add New Row" Margin="4,0" Command="{Binding AddNewRowCommand}" />
+                    <Button Content="{x:Static p:Resources.Delete}" ToolTip="Delete Selected Row(s)" Margin="4,0" Command="{Binding DeleteSelectedRowCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" />
+                    <Separator Margin="4,0" />
+                    <Button Content="{x:Static p:Resources.Save}" ToolTip="Save Changes" Margin="4,0" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDirty}" />
+                    <Button Content="{x:Static p:Resources.Undo}" ToolTip="Undo Local Changes" Margin="4,0" Command="{Binding UndoChangesCommand}" IsEnabled="{Binding UndoChangesCommand.CanExecute, Mode=OneWay}" />
+                    <Button Content="{x:Static p:Resources.Reload}" ToolTip="Reload Data" Margin="4,0" Command="{Binding ReloadDataCommand}" />
+                    <Button Content="{x:Static p:Resources.Edit}" ToolTip="Enable Editing" Margin="4,0" Command="{Binding EditSelectedRowsCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" />
+                    <Button Content="Select All" ToolTip="Select All Rows" Margin="4,0,0,0" Click="SelectAllButton_Click" />
                 </ToolBar>
 
                 <!-- Toolbar 2: Filtering and Display -->
                 <ToolBar Band="2" BandIndex="1" ToolBar.OverflowMode="Never">
-                    <Label Content="Quick Search:" VerticalAlignment="Center"/>
-                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" MinWidth="170" VerticalAlignment="Center"/>
+                    <Label Content="Quick Search:" VerticalAlignment="Center" />
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" MinWidth="170" VerticalAlignment="Center" />
 
-                    <!-- Gear Icon -->
-                    <ToggleButton IsChecked="{Binding IsColumnSelectorVisible, Mode=TwoWay}" ToolTip="Search Options" Margin="4,0,0,0">
-                        <fa:ImageAwesome Icon="Gear" Height="14" Foreground="DimGray"/>
+                    <ToggleButton IsChecked="{Binding IsColumnSelectorVisible, Mode=TwoWay}" ToolTip="Options" Margin="4,0,0,0">
+                        <fa:ImageAwesome Icon="Gear" Height="14" Foreground="DimGray" />
                     </ToggleButton>
 
-                    <!-- Column Selector -->
                     <ComboBox ItemsSource="{Binding SearchableColumns}" SelectedItem="{Binding SelectedSearchColumn, Mode=TwoWay}" MinWidth="140" VerticalAlignment="Center" Margin="2,0,5,0"
-                              Visibility="{Binding IsColumnSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                              Visibility="{Binding IsColumnSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                    <!-- NEW: ID Management Controls -->
+                    <!-- ID Controls (Visible when gear clicked) -->
                     <StackPanel Orientation="Horizontal" Visibility="{Binding IsColumnSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Button Content="Add ID Column" 
-                                Command="{Binding AddIdColumnCommand}" 
-                                Margin="5,0" Background="#FFF0F0F0" BorderBrush="Gray"/>
+                        <Button Content="{x:Static p:Resources.AddId}"
+                                Command="{Binding AddIdColumnCommand}"
+                                Margin="5,0" Background="#FFF0F0F0" BorderBrush="Gray" />
 
-                        <!-- NEW Checkboxes -->
-                        <CheckBox Content="Hide ID" 
-                                  IsChecked="{Binding IsIdHidden, Mode=TwoWay}" 
-                                  VerticalAlignment="Center" Margin="5,0"/>
+                        <CheckBox Content="{x:Static p:Resources.HideId}"
+                                  IsChecked="{Binding IsIdHidden, Mode=TwoWay}"
+                                  VerticalAlignment="Center" Margin="5,0" />
 
-                        <CheckBox Content="Edit ID" 
-                                  IsChecked="{Binding IsIdEditable, Mode=TwoWay}" 
-                                  VerticalAlignment="Center" Margin="5,0"/>
+                        <CheckBox Content="{x:Static p:Resources.EditId}"
+                                  IsChecked="{Binding IsIdEditable, Mode=TwoWay}"
+                                  VerticalAlignment="Center" Margin="5,0" />
                     </StackPanel>
 
-                    <Button Content="Clear" ToolTip="Clear Search" Margin="4,0" Command="{Binding ClearSearchCommand}"/>
-                    <Separator Margin="4,0"/>
+                    <Button Content="{x:Static p:Resources.Clear}" ToolTip="Clear Search" Margin="4,0" Command="{Binding ClearSearchCommand}" />
+                    <Separator Margin="4,0" />
 
-                    <ToggleButton IsChecked="{Binding IsDateFilterPanelVisible, Mode=TwoWay}" 
+                    <ToggleButton IsChecked="{Binding IsDateFilterPanelVisible, Mode=TwoWay}"
                                   ToolTip="Filter by Date" Margin="4,0,0,0"
                                   Visibility="{Binding IsDateFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <fa:ImageAwesome Icon="Calendar" Height="14" Foreground="DimGray"/>
+                        <fa:ImageAwesome Icon="Calendar" Height="14" Foreground="DimGray" />
                     </ToggleButton>
 
-                    <Separator Margin="4,0"/>
-                    <Button Content="Import" ToolTip="Import Data into Current Table" Margin="4,0" Command="{Binding ImportDataCommand}"/>
-                    <Button Content="Import Table" ToolTip="Import Data from a File with Options" Margin="4,0" Command="{Binding ShowAdvancedImportCommand}"/>
-                    <Button Content="Create Table..." ToolTip="Create a New Table from an Excel File" Margin="4,0" Command="{Binding ShowCreateTableCommand}"/>
-                    <Button Content="Export" ToolTip="Export Data" Margin="4,0" Command="{Binding ExportDataCommand}"/>
-                    <Separator Margin="4,0"/>
-                    <Button Content="A-" ToolTip="Decrease Font Size" Margin="4,0" Command="{Binding DecreaseFontSizeCommand}"/>
-                    <Button Content="A+" ToolTip="Increase Font Size" Margin="4,0" Command="{Binding IncreaseFontSizeCommand}"/>
+                    <Separator Margin="4,0" />
+                    <Button Content="{x:Static p:Resources.Import}" ToolTip="Import Data" Margin="4,0" Command="{Binding ImportDataCommand}" />
+                    <Button Content="Import Table" ToolTip="Advanced Import" Margin="4,0" Command="{Binding ShowAdvancedImportCommand}" />
+                    <Button Content="Create Table..." ToolTip="Create New Table" Margin="4,0" Command="{Binding ShowCreateTableCommand}" />
+                    <Button Content="{x:Static p:Resources.Export}" ToolTip="Export Data" Margin="4,0" Command="{Binding ExportDataCommand}" />
+                    <Separator Margin="4,0" />
+                    <Button Content="A-" Margin="4,0" Command="{Binding DecreaseFontSizeCommand}" />
+                    <Button Content="A+" Margin="4,0" Command="{Binding IncreaseFontSizeCommand}" />
                 </ToolBar>
 
-                <ToolBar Band="3" BandIndex="1" ToolBar.OverflowMode="Never" 
+                <ToolBar Band="3" BandIndex="1" ToolBar.OverflowMode="Never"
                          Visibility="{Binding IsDateFilterPanelVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Label Content="Filter by Date:" VerticalAlignment="Center"/>
-                    <DatePicker SelectedDate="{Binding FilterStartDate, Mode=TwoWay}" VerticalAlignment="Center" Margin="4,0"/>
-                    <Label Content="to" VerticalAlignment="Center" Margin="5,0"/>
-                    <DatePicker SelectedDate="{Binding FilterEndDate, Mode=TwoWay}" VerticalAlignment="Center" Margin="4,0,10,0"/>
+                    <Label Content="Filter by Date:" VerticalAlignment="Center" />
+                    <DatePicker SelectedDate="{Binding FilterStartDate, Mode=TwoWay}" VerticalAlignment="Center" Margin="4,0" />
+                    <Label Content="to" VerticalAlignment="Center" Margin="5,0" />
+                    <DatePicker SelectedDate="{Binding FilterEndDate, Mode=TwoWay}" VerticalAlignment="Center" Margin="4,0,10,0" />
 
                     <xctk:RangeSlider MinWidth="250" VerticalAlignment="Center"
                                       Minimum="0" Maximum="{Binding SliderMaximum}"
                                       LowerValue="{Binding StartMonthSliderValue, Mode=TwoWay}"
                                       HigherValue="{Binding EndMonthSliderValue, Mode=TwoWay}"
                                       IsSnapToTickEnabled="True"
-                                      TickFrequency="1"/>
+                                      TickFrequency="1" />
 
-                    <Button Content="Clear Date Filter" Command="{Binding ClearDateFilterCommand}" Margin="10,0,0,0"/>
+                    <Button Content="{x:Static p:Resources.Clear}" Command="{Binding ClearDateFilterCommand}" Margin="10,0,0,0" />
                 </ToolBar>
-
             </ToolBarTray>
         </Border>
 
+        <!-- Progress & Errors -->
         <Grid Grid.Row="1" MinHeight="25" Margin="10,5,10,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
@@ -134,22 +132,23 @@
             </Grid.ColumnDefinitions>
 
             <ProgressBar Grid.Column="0" IsIndeterminate="True" Width="150" Height="15" VerticalAlignment="Center"
-                         Visibility="{Binding IsProgressBarVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                         Visibility="{Binding IsProgressBarVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
             <TextBox Grid.Column="1" Text="{Binding ErrorMessage, Mode=OneWay}" Style="{StaticResource ErrorMessageTextBoxStyle}" Margin="10,0,0,0"
-                     Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                     Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-            <TextBlock Grid.Column="2" Text="{Binding FilterStatus}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="Gray"/>
+            <TextBlock Grid.Column="2" Text="{Binding FilterStatus}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="Gray" />
         </Grid>
 
+        <!-- Data Grid -->
         <Grid Grid.Row="2">
-            <DataGrid x:Name="DataDisplayGrid" 
+            <DataGrid x:Name="DataDisplayGrid"
                       ItemsSource="{Binding DataTableView}"
                       AutoGenerateColumns="True"
                       CanUserAddRows="False"
                       CanUserDeleteRows="False"
                       SelectionMode="Extended"
-                      AlternationCount="2" 
+                      AlternationCount="2"
                       GridLinesVisibility="All"
                       HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Auto"
@@ -159,7 +158,7 @@
                       Sorting="DataDisplayGrid_Sorting">
 
                 <DataGrid.IsReadOnly>
-                    <Binding Path="EditableRows" Converter="{StaticResource IsRowEditableConverter}"/>
+                    <Binding Path="EditableRows" Converter="{StaticResource IsRowEditableConverter}" />
                 </DataGrid.IsReadOnly>
 
                 <DataGrid.RowStyle>
@@ -175,16 +174,13 @@
                                         <Binding Path="DataContext.EditableRows" RelativeSource="{RelativeSource AncestorType={x:Type UserControl}}" />
                                     </MultiBinding>
                                 </DataTrigger.Binding>
-                                <Setter Property="Background" Value="{StaticResource statusEditableColor}"/>
-                                <Setter Property="ToolTip" Value="Row is currently editable"/>
+                                <Setter Property="Background" Value="{StaticResource statusEditableColor}" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Row.RowState}" Value="{x:Static systemData:DataRowState.Modified}">
-                                <Setter Property="Background" Value="{StaticResource statusModifiedColor}"/>
-                                <Setter Property="ToolTip" Value="Row Modified (unsaved)"/>
+                                <Setter Property="Background" Value="{StaticResource statusModifiedColor}" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Row.RowState}" Value="{x:Static systemData:DataRowState.Added}">
-                                <Setter Property="Background" Value="{StaticResource statusAddedColor}"/>
-                                <Setter Property="ToolTip" Value="Row Added (unsaved)"/>
+                                <Setter Property="Background" Value="{StaticResource statusAddedColor}" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>

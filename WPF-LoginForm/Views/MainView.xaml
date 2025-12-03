@@ -8,6 +8,7 @@
         xmlns:fa="http://schemas.fontawesome.io/icons/"
         xmlns:sharp="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
         xmlns:p="clr-namespace:WPF_LoginForm.Properties"
+        xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
         mc:Ignorable="d"
         Title="MainWindowView" Height="700" Width="1300"
         WindowStartupLocation="CenterScreen"
@@ -19,161 +20,159 @@
         WindowStyle="None">
 
     <Window.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
         <DataTemplate DataType="{x:Type viewModel:HomeViewModel}">
-            <local:HomeView/>
+            <local:HomeView />
         </DataTemplate>
         <DataTemplate DataType="{x:Type viewModel:CustomerViewModel}">
-            <local:CustomerView/>
+            <local:CustomerView />
         </DataTemplate>
         <DataTemplate DataType="{x:Type viewModel:DatarepViewModel}">
-            <local:DatarepView/>
+            <local:DatarepView />
         </DataTemplate>
         <DataTemplate DataType="{x:Type viewModel:InventoryViewModel}">
-            <local:InventoryView/>
+            <local:InventoryView />
         </DataTemplate>
         <DataTemplate DataType="{x:Type viewModel:SettingsViewModel}">
-            <local:SettingsView/>
+            <local:SettingsView />
         </DataTemplate>
         <DataTemplate DataType="{x:Type viewModel:HelpViewModel}">
-            <local:HelpView/>
+            <local:HelpView />
         </DataTemplate>
     </Window.Resources>
 
     <Window.DataContext>
-        <viewModel:MainViewModel/>
+        <viewModel:MainViewModel />
     </Window.DataContext>
 
     <Border CornerRadius="10" BorderThickness="1" Margin="0">
         <Border.BorderBrush>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="{StaticResource winBorderColor1}" Offset="0"/>
-                <GradientStop Color="{StaticResource winBorderColor2}" Offset="0.5"/>
-                <GradientStop Color="{StaticResource winBorderColor3}" Offset="1"/>
+                <GradientStop Color="{StaticResource winBorderColor1}" Offset="0" />
+                <GradientStop Color="{StaticResource winBorderColor2}" Offset="0.5" />
+                <GradientStop Color="{StaticResource winBorderColor3}" Offset="1" />
             </LinearGradientBrush>
         </Border.BorderBrush>
 
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="250"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto" />
+                <!-- Changed from 250 to Auto to collapse cleanly -->
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
             <!-- Navigation Menu -->
-            <Border CornerRadius="10,0,0,10" Grid.Column="0" Margin="0" BorderBrush="{StaticResource Brush1}" BorderThickness="3,4,10,4">
+            <!-- BINDING ADDED HERE: Visibility -->
+            <Border CornerRadius="10,0,0,10" Grid.Column="0" Margin="0" BorderBrush="{StaticResource Brush1}" BorderThickness="3,4,10,4"
+                    Visibility="{Binding IsNavigationVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Width="250">
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="{StaticResource exColor1}" Offset="0"/>
-                        <GradientStop Color="{StaticResource primaryBackColor2}" Offset="0.2"/>
-                        <GradientStop Color="{StaticResource primaryBackColor2}" Offset="0.3"/>
-                        <GradientStop Color="{StaticResource primaryBackColor1}" Offset="0.75"/>
-                        <GradientStop Color="{StaticResource primaryBackColor2}" Offset="-1"/>
+                        <GradientStop Color="{StaticResource exColor1}" Offset="0" />
+                        <GradientStop Color="{StaticResource primaryBackColor2}" Offset="0.2" />
+                        <GradientStop Color="{StaticResource primaryBackColor2}" Offset="0.3" />
+                        <GradientStop Color="{StaticResource primaryBackColor1}" Offset="0.75" />
+                        <GradientStop Color="{StaticResource primaryBackColor2}" Offset="-1" />
                     </LinearGradientBrush>
                 </Border.Background>
 
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Height="35" Margin="15,25,0,40">
-                        <Image Source="/Images/biosun/logo2.png" Height="44" Width="224"/>
+                        <Image Source="/Images/biosun/logo2.png" Height="44" Width="224" />
                     </StackPanel>
-
-                    <!-- TRANSLATED BUTTONS -->
 
                     <RadioButton Style="{StaticResource menuButton}" Tag="{StaticResource color1}" IsChecked="True" Command="{Binding ShowHomeViewCommand}">
                         <StackPanel Orientation="Horizontal">
-                            <fa:ImageAwesome Icon="Home" Style="{StaticResource menuButtonIcon}"/>
-                            <!-- Uses Resource: Dashboard -->
-                            <TextBlock Text="{x:Static p:Resources.Dashboard}" Style="{StaticResource menuButtonText}"/>
+                            <fa:ImageAwesome Icon="Home" Style="{StaticResource menuButtonIcon}" />
+                            <TextBlock Text="{x:Static p:Resources.Dashboard}" Style="{StaticResource menuButtonText}" />
                         </StackPanel>
                     </RadioButton>
 
                     <RadioButton Style="{StaticResource menuButton}" Tag="{StaticResource color2}" Command="{Binding ShowCustomerViewCommand}">
                         <StackPanel Orientation="Horizontal">
-                            <fa:ImageAwesome Icon="Users" Style="{StaticResource menuButtonIcon}"/>
-                            <!-- Uses Resource: Customers -->
-                            <TextBlock Text="{x:Static p:Resources.Customers}" Style="{StaticResource menuButtonText}"/>
+                            <fa:ImageAwesome Icon="Users" Style="{StaticResource menuButtonIcon}" />
+                            <TextBlock Text="{x:Static p:Resources.Customers}" Style="{StaticResource menuButtonText}" />
                         </StackPanel>
                     </RadioButton>
 
                     <RadioButton Style="{StaticResource menuButton}" Tag="{StaticResource color3}" Command="{Binding ShowInventoryViewCommand}">
                         <StackPanel Orientation="Horizontal">
-                            <!-- Icon changed to List/File for Logs -->
-                            <fa:ImageAwesome Icon="ListAlt" Style="{StaticResource menuButtonIcon}"/>
-                            <!-- Uses Resource: Logs (formerly Inventory) -->
-                            <TextBlock Text="{x:Static p:Resources.Logs}" Style="{StaticResource menuButtonText}"/>
+                            <fa:ImageAwesome Icon="ListAlt" Style="{StaticResource menuButtonIcon}" />
+                            <TextBlock Text="{x:Static p:Resources.Logs}" Style="{StaticResource menuButtonText}" />
                         </StackPanel>
                     </RadioButton>
 
                     <RadioButton Style="{StaticResource menuButton}" Tag="{StaticResource color4}" Command="{Binding ShowReportsViewCommand}">
                         <StackPanel Orientation="Horizontal">
-                            <fa:ImageAwesome Icon="BarChart" Style="{StaticResource menuButtonIcon}"/>
-                            <!-- Uses Resource: Reports -->
-                            <TextBlock Text="{x:Static p:Resources.Reports}" Style="{StaticResource menuButtonText}"/>
+                            <fa:ImageAwesome Icon="BarChart" Style="{StaticResource menuButtonIcon}" />
+                            <TextBlock Text="{x:Static p:Resources.Reports}" Style="{StaticResource menuButtonText}" />
                         </StackPanel>
                     </RadioButton>
 
                     <RadioButton Style="{StaticResource menuButton}" Tag="{StaticResource color6}" Command="{Binding ShowSettingsViewCommand}">
                         <StackPanel Orientation="Horizontal">
-                            <fa:ImageAwesome Icon="Cog" Style="{StaticResource menuButtonIcon}"/>
-                            <!-- Uses Resource: Settings -->
-                            <TextBlock Text="{x:Static p:Resources.Settings}" Style="{StaticResource menuButtonText}"/>
+                            <fa:ImageAwesome Icon="Cog" Style="{StaticResource menuButtonIcon}" />
+                            <TextBlock Text="{x:Static p:Resources.Settings}" Style="{StaticResource menuButtonText}" />
                         </StackPanel>
                     </RadioButton>
 
                     <RadioButton Style="{StaticResource menuButton}" Tag="{StaticResource color6}" Command="{Binding ShowHelpViewCommand}">
                         <StackPanel Orientation="Horizontal">
-                            <fa:ImageAwesome Icon="QuestionCircle" Style="{StaticResource menuButtonIcon}"/>
-                            <!-- Uses Resource: Help -->
-                            <TextBlock Text="{x:Static p:Resources.Help}" Style="{StaticResource menuButtonText}"/>
+                            <fa:ImageAwesome Icon="QuestionCircle" Style="{StaticResource menuButtonIcon}" />
+                            <TextBlock Text="{x:Static p:Resources.Help}" Style="{StaticResource menuButtonText}" />
                         </StackPanel>
                     </RadioButton>
                 </StackPanel>
             </Border>
 
             <!-- Main Section -->
+            <!-- If Nav is hidden, this fills the screen because Col 0 is Auto -->
             <Border CornerRadius="0,10,10,0" Grid.Column="1" Margin="0">
                 <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0.1,0.34" >
-                        <GradientStop Color="{StaticResource secondaryBackColor2}" Offset="0"/>
-                        <GradientStop Color="{StaticResource secondaryBackColor2}" Offset="1"/>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0.1,0.34">
+                        <GradientStop Color="{StaticResource secondaryBackColor2}" Offset="0" />
+                        <GradientStop Color="{StaticResource secondaryBackColor2}" Offset="1" />
                     </LinearGradientBrush>
                 </Border.Background>
 
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="2*"/>
-                        <RowDefinition Height="3*"/>
-                        <RowDefinition Height="30*"/>
+                        <RowDefinition Height="2*" />
+                        <RowDefinition Height="3*" />
+                        <RowDefinition Height="30*" />
                     </Grid.RowDefinitions>
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" >
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
                         <Button x:Name="btnMainMinimize" Margin="0,12,10,0" BorderThickness="0" Foreground="White" FontSize="16" FontFamily="Montserrat" Cursor="Hand" Click="btnMainMinimize_Click" Width="18" Height="18" Style="{StaticResource controlButton}">
-                            <TextBlock Text="-" FontSize="16"/>
+                            <TextBlock Text="-" FontSize="16" />
                         </Button>
                         <Button x:Name="btnMaximize" Margin="0,10,10,0" BorderThickness="0" FontSize="15" FontFamily="Montserrat" Cursor="Hand" Click="btnMaximize_Click" Width="18" Height="18" Style="{StaticResource controlButton}">
-                            <fa:ImageAwesome Icon="SquareOutline" Height="15" Width="15" Foreground="White"/>
+                            <fa:ImageAwesome Icon="SquareOutline" Height="15" Width="15" Foreground="White" />
                         </Button>
-                        <Button x:Name="btnMainClose" Margin="0,10,10,0" BorderThickness="0" Content="X" Foreground="White" FontSize="12" FontFamily="Montserrat" Cursor="Hand" Click="btnMainClose_Click" Width="18" Height="18" Style="{StaticResource controlButton}"/>
+                        <Button x:Name="btnMainClose" Margin="0,10,10,0" BorderThickness="0" Content="X" Foreground="White" FontSize="12" FontFamily="Montserrat" Cursor="Hand" Click="btnMainClose_Click" Width="18" Height="18" Style="{StaticResource controlButton}" />
                     </StackPanel>
 
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition/>
-                            <ColumnDefinition/>
+                            <ColumnDefinition />
+                            <ColumnDefinition />
                         </Grid.ColumnDefinitions>
 
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <sharp:IconImage Icon="{Binding Icon}" Height="20" Width="20" Foreground="{StaticResource titleColor2}" Margin="35,0,10,0"/>
-                            <TextBlock Text="{Binding Caption}" Foreground="{StaticResource titleColor2}" FontSize="16" FontFamily="Montserrat" FontWeight="Medium" VerticalAlignment="Center"/>
+                            <sharp:IconImage Icon="{Binding Icon}" Height="20" Width="20" Foreground="{StaticResource titleColor2}" Margin="35,0,10,0" />
+                            <TextBlock Text="{Binding Caption}" Foreground="{StaticResource titleColor2}" FontSize="16" FontFamily="Montserrat" FontWeight="Medium" VerticalAlignment="Center" />
                         </StackPanel>
 
-                        <StackPanel Orientation="Horizontal" FlowDirection="RightToLeft" VerticalAlignment="Center" Grid.Column="1" Margin="10,0,35,0" >
+                        <StackPanel Orientation="Horizontal" FlowDirection="RightToLeft" VerticalAlignment="Center" Grid.Column="1" Margin="10,0,35,0">
                             <StackPanel Orientation="Horizontal">
-                                <fa:ImageAwesome Icon="User" Style="{StaticResource DashIcon}"/>
+                                <fa:ImageAwesome Icon="User" Style="{StaticResource DashIcon}" />
                             </StackPanel>
-                            <TextBlock Text="{Binding CurrentUserAccount.DisplayName}" Foreground="{StaticResource titleColor3}" FontFamily="Montserrat" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding CurrentUserAccount.DisplayName}" Foreground="{StaticResource titleColor3}" FontFamily="Montserrat" FontSize="12" VerticalAlignment="Center" />
                         </StackPanel>
                     </Grid>
 
-                    <ContentControl Content="{Binding CurrentChildView}" Grid.Row="2" Margin="25"/>
+                    <ContentControl Content="{Binding CurrentChildView}" Grid.Row="2" Margin="25" />
                 </Grid>
             </Border>
         </Grid>

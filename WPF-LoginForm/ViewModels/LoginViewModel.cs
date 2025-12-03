@@ -6,7 +6,7 @@ using System.Threading;
 using System.Windows.Input;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
-using WPF_LoginForm.Services; // Required for ILogger and FileLogger
+using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
 
 namespace WPF_LoginForm.ViewModels
@@ -15,12 +15,16 @@ namespace WPF_LoginForm.ViewModels
     {
         //Fields
         private string _username;
+
         private SecureString _password;
         private string _errorMessage;
         private bool _isViewVisible = true;
 
+        // --- NEW PROPERTY FOR REPORT MODE ---
+        private bool _isReportModeOnly;
+
         private IUserRepository userRepository;
-        private readonly ILogger _logger; // Added Logger
+        private readonly ILogger _logger;
 
         //Properties
         public string Username
@@ -47,8 +51,15 @@ namespace WPF_LoginForm.ViewModels
             set { _isViewVisible = value; OnPropertyChanged(nameof(IsViewVisible)); }
         }
 
+        public bool IsReportModeOnly
+        {
+            get { return _isReportModeOnly; }
+            set { _isReportModeOnly = value; OnPropertyChanged(nameof(IsReportModeOnly)); }
+        }
+
         //-> Commands
         public ICommand LoginCommand { get; }
+
         public ICommand RecoverPasswordCommand { get; }
         public ICommand ShowPasswordCommand { get; }
         public ICommand RememberPasswordCommand { get; }
@@ -56,9 +67,7 @@ namespace WPF_LoginForm.ViewModels
         //Constructor
         public LoginViewModel()
         {
-            // Use Global Logger or fallback
             _logger = App.GlobalLogger ?? new FileLogger("Login_Log");
-
             userRepository = new UserRepository();
             LoginCommand = new ViewModelCommand(ExecuteLoginCommand, CanExecuteLoginCommand);
             RecoverPasswordCommand = new ViewModelCommand(p => ExecuteRecoverPassCommand("", ""));
@@ -77,14 +86,12 @@ namespace WPF_LoginForm.ViewModels
             {
                 Thread.CurrentPrincipal = new GenericPrincipal(new GenericIdentity(Username), null);
                 IsViewVisible = false;
-
-                // --- LOGGING RULE #1: User Authentication ---
-                _logger.LogInfo($"User '{Username}' successfully logged in.");
+                _logger.LogInfo($"User '{Username}' logged in. Report Mode: {IsReportModeOnly}");
             }
             else
             {
                 ErrorMessage = "* Invalid username or password";
-                _logger.LogWarning($"Failed login attempt for user: '{Username}'");
+                _logger.LogWarning($"Failed login attempt: '{Username}'");
             }
         }
 

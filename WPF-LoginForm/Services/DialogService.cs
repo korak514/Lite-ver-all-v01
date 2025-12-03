@@ -1,5 +1,4 @@
-﻿
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Windows;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.ViewModels;
@@ -8,19 +7,24 @@ using System;
 using System.Diagnostics;
 using Microsoft.Win32;
 using System.Linq;
+using System.Data; // Added
 
 namespace WPF_LoginForm.Services
 {
     public class DialogService : IDialogService
     {
+        // --- MODIFIED ---
         public bool ShowAddRowDialog(IEnumerable<string> columnNames, string tableName,
                                      Dictionary<string, object> initialValues,
+                                     DataTable sourceTable,
+                                     bool hideId,
                                      out NewRowData newRowData)
         {
             newRowData = null;
             try
             {
-                var viewModel = new AddRowViewModel(columnNames, tableName, initialValues);
+                // Pass sourceTable and hideId to the ViewModel
+                var viewModel = new AddRowViewModel(columnNames, tableName, initialValues, sourceTable, hideId);
                 var dialogWindow = new AddRowWindow { DataContext = viewModel };
 
                 Window ownerWindow = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
@@ -72,7 +76,7 @@ namespace WPF_LoginForm.Services
                     newRowData = viewModel.GetEnteredData(out List<string> validationErrors);
                     if (validationErrors != null && validationErrors.Any())
                     {
-                        Debug.WriteLine($"Validation errors from AddRowLongDialog: {string.Join(", ", validationErrors)}");
+                        Debug.WriteLine($"Validation errors: {string.Join(", ", validationErrors)}");
                         return false;
                     }
                     return true;
@@ -92,16 +96,8 @@ namespace WPF_LoginForm.Services
             try
             {
                 var configWindow = new ConfigurationWindow { DataContext = viewModel };
-
                 Window ownerWindow = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
-                if (ownerWindow != null && ownerWindow != configWindow)
-                {
-                    configWindow.Owner = ownerWindow;
-                }
-                else
-                {
-                    configWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-                }
+                if (ownerWindow != null) configWindow.Owner = ownerWindow;
 
                 viewModel.CloseAction = () => configWindow.Close();
                 configWindow.ShowDialog();
@@ -109,7 +105,6 @@ namespace WPF_LoginForm.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error showing Configuration dialog: {ex.ToString()}");
                 MessageBox.Show($"Error opening Configuration dialog:\n{ex.Message}", "Dialog Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
@@ -121,70 +116,40 @@ namespace WPF_LoginForm.Services
             try
             {
                 var dialogWindow = new ImportTableWindow { DataContext = viewModel };
-
                 Window ownerWindow = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
-                if (ownerWindow != null && ownerWindow != dialogWindow)
-                {
-                    dialogWindow.Owner = ownerWindow;
-                }
-                else
-                {
-                    dialogWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-                }
+                if (ownerWindow != null) dialogWindow.Owner = ownerWindow;
 
                 if (dialogWindow.ShowDialog() == true)
                 {
-                    settings = new ImportSettings
-                    {
-                        FilePath = viewModel.FilePath,
-                        RowsToIgnore = viewModel.RowsToIgnore
-                    };
+                    settings = new ImportSettings { FilePath = viewModel.FilePath, RowsToIgnore = viewModel.RowsToIgnore };
                     return true;
                 }
                 return false;
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error showing Import Table dialog: {ex.ToString()}");
-                MessageBox.Show($"Error opening Import Table dialog:\n{ex.Message}", "Dialog Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
+            catch (Exception) { return false; }
         }
 
-        // --- NEW METHOD IMPLEMENTATION ---
         public void ShowCreateTableDialog(CreateTableViewModel viewModel)
         {
             try
             {
                 var dialogWindow = new CreateTableWindow { DataContext = viewModel };
-
                 Window ownerWindow = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
-                if (ownerWindow != null && ownerWindow != dialogWindow)
-                {
-                    dialogWindow.Owner = ownerWindow;
-                }
-                else
-                {
-                    dialogWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-                }
-
+                if (ownerWindow != null) dialogWindow.Owner = ownerWindow;
                 dialogWindow.ShowDialog();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error showing Create Table dialog: {ex.ToString()}");
-                MessageBox.Show($"Error opening Create Table dialog:\n{ex.Message}", "Dialog Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error opening Create Table dialog:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         public bool ShowConfirmationDialog(string title, string message)
         {
             Window owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
-
             MessageBoxResult result = owner != null
                 ? MessageBox.Show(owner, message, title, MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No)
                 : MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
-
             return result == MessageBoxResult.Yes;
         }
 
@@ -199,14 +164,8 @@ namespace WPF_LoginForm.Services
                 Filter = filter,
                 AddExtension = true
             };
-
             bool? result = saveFileDialog.ShowDialog();
-
-            if (result == true)
-            {
-                selectedFilePath = saveFileDialog.FileName;
-                return true;
-            }
+            if (result == true) { selectedFilePath = saveFileDialog.FileName; return true; }
             return false;
         }
 
@@ -220,14 +179,8 @@ namespace WPF_LoginForm.Services
                 CheckFileExists = true,
                 CheckPathExists = true
             };
-
             bool? result = openFileDialog.ShowDialog();
-
-            if (result == true)
-            {
-                selectedFilePath = openFileDialog.FileName;
-                return true;
-            }
+            if (result == true) { selectedFilePath = openFileDialog.FileName; return true; }
             return false;
         }
     }

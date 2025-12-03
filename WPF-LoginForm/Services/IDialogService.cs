@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Data; // Added for DataTable
 using WPF_LoginForm.Models;
 using WPF_LoginForm.ViewModels;
 
@@ -6,8 +7,11 @@ namespace WPF_LoginForm.Services
 {
     public interface IDialogService
     {
+        // --- MODIFIED: Added sourceTable and hideId ---
         bool ShowAddRowDialog(IEnumerable<string> columnNames, string tableName,
                               Dictionary<string, object> initialValues,
+                              DataTable sourceTable,
+                              bool hideId,
                               out NewRowData newRowData);
 
         bool ShowAddRowLongDialog(AddRowLongViewModel viewModel, out NewRowData newRowData);
@@ -16,7 +20,6 @@ namespace WPF_LoginForm.Services
 
         bool ShowImportTableDialog(ImportTableViewModel viewModel, out ImportSettings settings);
 
-        // --- NEW METHOD SIGNATURE ---
         void ShowCreateTableDialog(CreateTableViewModel viewModel);
 
         bool ShowConfirmationDialog(string title, string message);
