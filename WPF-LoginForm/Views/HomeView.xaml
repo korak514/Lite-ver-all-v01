@@ -4,93 +4,161 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:WPF_LoginForm.Views"
+             xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
              xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
              xmlns:fa="http://schemas.fontawesome.io/icons/"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
              mc:Ignorable="d"
-             d:DesignHeight="600" d:DesignWidth="1000">
+             d:DesignHeight="600" d:DesignWidth="1000"
+             d:DataContext="{d:DesignInstance Type=viewModels:HomeViewModel, IsDesignTimeCreatable=False}">
 
     <UserControl.Resources>
-        <!-- Custom Tooltip Style -->
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
         <Style TargetType="lvc:DefaultTooltip">
-            <Setter Property="Background" Value="#A0000030"/>
-            <Setter Property="Foreground" Value="WhiteSmoke"/>
-            <Setter Property="BorderBrush" Value="#40FFFFFF"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Background" Value="#A0000030" />
+            <Setter Property="Foreground" Value="WhiteSmoke" />
+            <Setter Property="BorderBrush" Value="#40FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style x:Key="GearToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="WhiteSmoke" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="#FFC047" />
+                </Trigger>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Foreground" Value="#FFC047" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
     </UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
+        <!-- Top Control Bar -->
         <Grid Grid.Row="0" Grid.ColumnSpan="3" Margin="5,5,10,5">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <!-- Date Controls -->
-                <ColumnDefinition Width="Auto"/>
-                <!-- Action Buttons -->
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Column="0" Orientation="Vertical">
-                <!-- Row 1: Date Pickers -->
+            <!-- Filter Controls -->
+            <StackPanel Grid.Column="0" Orientation="Vertical"
+                        Visibility="{Binding IsDateFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+
+                <!-- Row 1: Date Pickers & Config Gear -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,10">
-                    <TextBlock Text="Start Date:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke"/>
-                    <DatePicker SelectedDate="{Binding StartDate, Mode=TwoWay}" VerticalAlignment="Center"/>
-                    <TextBlock Text="End Date:" VerticalAlignment="Center" Margin="10,0,5,0" Foreground="WhiteSmoke"/>
-                    <DatePicker SelectedDate="{Binding EndDate, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsFilterByDate}">
+                        <TextBlock Text="Start:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke" />
+                        <DatePicker SelectedDate="{Binding StartDate, Mode=TwoWay}" VerticalAlignment="Center" Width="100" />
+                        <TextBlock Text="End:" VerticalAlignment="Center" Margin="10,0,5,0" Foreground="WhiteSmoke" />
+                        <DatePicker SelectedDate="{Binding EndDate, Mode=TwoWay}" VerticalAlignment="Center" Width="100" />
+                    </StackPanel>
+
+                    <ToggleButton x:Name="FilterConfigToggle" Margin="15,0,0,0" ToolTip="Filter Settings" Style="{StaticResource GearToggleStyle}">
+                        <fa:ImageAwesome Icon="Gear" Height="16" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                    </ToggleButton>
+
+                    <Popup IsOpen="{Binding IsChecked, ElementName=FilterConfigToggle}" StaysOpen="False" PlacementTarget="{Binding ElementName=FilterConfigToggle}" Placement="Bottom">
+                        <Border Background="#030347" BorderBrush="#49A956" BorderThickness="1" CornerRadius="4" Padding="10">
+                            <StackPanel MinWidth="220">
+                                <TextBlock Text="Filter Mode" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
+                                <CheckBox Content="Filter by Date" IsChecked="{Binding IsFilterByDate, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" />
+                                <CheckBox Content="Ignore Rows with No Date" IsChecked="{Binding IgnoreNonDateData, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" />
+                                <Separator Background="#49A956" Margin="0,5,0,5" />
+                                <TextBlock Text="Virtual Date (ID to Date)" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
+                                <CheckBox Content="Use Initial Date for Drill-Down" IsChecked="{Binding UseIdToDateConversion, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
+                                <StackPanel Orientation="Horizontal" IsEnabled="{Binding UseIdToDateConversion}">
+                                    <TextBlock Text="Initial Date:" Foreground="WhiteSmoke" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11" />
+                                    <DatePicker SelectedDate="{Binding InitialDateForConversion, Mode=TwoWay}" Width="100" />
+                                </StackPanel>
+                                <Separator Background="#49A956" Margin="0,10,0,5" />
+                                <TextBlock Text="Slider Tick Step" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
+                                <ComboBox ItemsSource="{Binding TickOptions}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding SliderTickFrequency, Mode=TwoWay}" Height="26" Margin="0,0,0,5" />
+                                <TextBlock Text="* Uncheck 'Filter by Date' to filter by ID Percentage." Foreground="Gray" FontSize="9" FontStyle="Italic" TextWrapping="Wrap" Margin="0,5,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </Popup>
                 </StackPanel>
 
-                <!-- MODIFIED: Row 2 now has a single RangeSlider -->
+                <!-- Row 2: Range Slider -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                    <TextBlock Text="Month Range:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke"/>
+                    <TextBlock Text="Range:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke" />
                     <xctk:RangeSlider MinWidth="450" VerticalAlignment="Center"
                                       Minimum="0" Maximum="{Binding SliderMaximum}"
                                       LowerValue="{Binding StartMonthSliderValue, Mode=TwoWay}"
                                       HigherValue="{Binding EndMonthSliderValue, Mode=TwoWay}"
                                       IsSnapToTickEnabled="True"
-                                      TickFrequency="1"/>
+                                      TickFrequency="{Binding SliderTickFrequency}"
+                                      AutoToolTipPlacement="TopLeft"
+                                      AutoToolTipPrecision="0" />
                 </StackPanel>
             </StackPanel>
 
+            <!-- Action Buttons -->
             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                <CheckBox Content="Include Data in Export" 
-                          IsChecked="{Binding IsSnapshotExport, Mode=TwoWay}"
-                          Foreground="WhiteSmoke"
-                          VerticalAlignment="Center"
-                          Margin="0,0,15,0"/>
-                <Button Content="Import" Margin="5,0,5,0" Padding="8,4" Command="{Binding ImportCommand}"/>
-                <Button Content="Export" Margin="5,0,5,0" Padding="8,4" Command="{Binding ExportCommand}"/>
+                <CheckBox Content="Include Data in Export" IsChecked="{Binding IsSnapshotExport, Mode=TwoWay}" Foreground="WhiteSmoke" VerticalAlignment="Center" Margin="0,0,15,0" />
+                <Button Content="Import" Margin="5,0,5,0" Padding="8,4" Command="{Binding ImportCommand}" />
+                <Button Content="Export" Margin="5,0,5,0" Padding="8,4" Command="{Binding ExportCommand}" />
                 <Button ToolTip="Recolor Charts" Margin="5,0,5,0" Padding="8,4" Command="{Binding RecolorChartsCommand}">
-                    <fa:ImageAwesome Icon="PaintBrush" Height="14" Foreground="White"/>
+                    <fa:ImageAwesome Icon="PaintBrush" Height="14" Foreground="White" />
                 </Button>
-                <Button Content="" FontFamily="Segoe MDL2 Assets" Margin="5,0,0,0" Padding="8,4" Command="{Binding ConfigureCommand}"/>
+                <Button Content="" FontFamily="Segoe MDL2 Assets" Margin="5,0,0,0" Padding="8,4" Command="{Binding ConfigureCommand}" />
             </StackPanel>
         </Grid>
 
-        <lvc:CartesianChart Grid.Row="1" Grid.Column="0" Series="{Binding Chart1Series}" LegendLocation="Bottom" 
-                              AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke"/>
+        <!-- Charts (Re-added DataClickCommand) -->
+        <lvc:CartesianChart Grid.Row="1" Grid.Column="0"
+                            Series="{Binding Chart1Series}"
+                            DataClickCommand="{Binding ChartClickCommand}"
+                            LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" />
 
-        <lvc:CartesianChart Grid.Row="1" Grid.Column="1" Series="{Binding Chart2Series}" LegendLocation="Bottom"
-                              AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke"/>
+        <lvc:CartesianChart Grid.Row="1" Grid.Column="1"
+                            Series="{Binding Chart2Series}"
+                            DataClickCommand="{Binding ChartClickCommand}"
+                            LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" />
 
-        <lvc:CartesianChart Grid.Row="1" Grid.Column="2" Series="{Binding Chart3Series}" LegendLocation="Bottom"
-                              AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke"/>
+        <lvc:CartesianChart Grid.Row="1" Grid.Column="2"
+                            Series="{Binding Chart3Series}"
+                            DataClickCommand="{Binding ChartClickCommand}"
+                            LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" />
 
-        <lvc:PieChart Grid.Row="2" Grid.Column="0" Series="{Binding Chart4Series}" LegendLocation="Right" Foreground="WhiteSmoke"/>
+        <lvc:PieChart Grid.Row="2" Grid.Column="0"
+                      Series="{Binding Chart4Series}"
+                      DataClickCommand="{Binding ChartClickCommand}"
+                      LegendLocation="Right" Foreground="WhiteSmoke" />
 
-        <lvc:CartesianChart Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Series="{Binding Chart5Series}" LegendLocation="Bottom"
-                              AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke"/>
+        <lvc:CartesianChart Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
+                            Series="{Binding Chart5Series}"
+                            DataClickCommand="{Binding ChartClickCommand}"
+                            LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" />
     </Grid>
 </UserControl>

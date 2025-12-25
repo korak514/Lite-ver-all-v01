@@ -5,8 +5,45 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
              xmlns:p="clr-namespace:WPF_LoginForm.Properties"
+             xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+             xmlns:customcontrols="clr-namespace:WPF_LoginForm.CustomControls"
+             xmlns:fa="http://schemas.fontawesome.io/icons/"
              mc:Ignorable="d"
-             d:DesignHeight="650" d:DesignWidth="900">
+             d:DesignHeight="800" d:DesignWidth="900">
+
+    <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:BooleanInverterConverter x:Key="BooleanInverter" />
+
+        <!-- Tab Style -->
+        <Style TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border Name="Border" BorderThickness="0,0,0,2" BorderBrush="Transparent" Margin="0,0,15,0" Padding="10,5">
+                            <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="10,2" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource titleColor2}" />
+                                <Setter Property="Foreground" Value="{StaticResource titleColor2}" />
+                                <Setter Property="FontWeight" Value="Bold" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="False">
+                                <Setter Property="Foreground" Value="Gray" />
+                            </Trigger>
+                            <!-- Hide Tab if Visibility is Collapsed -->
+                            <Trigger Property="Visibility" Value="Collapsed">
+                                <Setter Property="Width" Value="0" />
+                                <Setter Property="Height" Value="0" />
+                                <Setter Property="Margin" Value="0" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
 
     <UserControl.DataContext>
         <viewModels:SettingsViewModel />
@@ -18,118 +55,216 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header: Application Settings -->
-        <TextBlock Grid.Row="0" Text="{x:Static p:Resources.AppSettings}"
-                   Foreground="{StaticResource titleColor2}"
-                   FontSize="24"
-                   FontFamily="Montserrat"
-                   Margin="0,0,0,20" />
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
-            <StackPanel>
+            <TextBlock Text="{x:Static p:Resources.AppSettings}" Foreground="{StaticResource titleColor2}" FontSize="24" FontFamily="Montserrat" VerticalAlignment="Center" />
 
-                <!-- 1. General Settings (Language) -->
-                <Border CornerRadius="10" Padding="20" Margin="0,0,0,20"
-                        BorderBrush="{StaticResource panelActiveColor}" BorderThickness="1">
-                    <Border.Background>
-                        <SolidColorBrush Color="{StaticResource primaryBackColor2}" />
-                    </Border.Background>
+            <Button Grid.Column="1" Content="&lt; Back to Log In"
+                    Command="{Binding DataContext.ReturnToLoginCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                    Visibility="{Binding DataContext.IsOfflineMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Background="#D14545" Style="{StaticResource StandardButtonStyle}" Width="120" FontSize="12" />
+        </Grid>
+
+        <!-- Tab Content -->
+        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="0">
+
+            <!-- TAB 1: CONFIGURATION -->
+            <TabItem Header="Configuration">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,10,10,0">
                     <StackPanel>
-                        <!-- Text: General Settings -->
-                        <TextBlock Text="{x:Static p:Resources.GeneralSettings}" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                        <!-- 1. General Settings (Language) -->
+                        <Border CornerRadius="10" Padding="20" Margin="0,0,0,20" BorderBrush="{StaticResource panelActiveColor}" BorderThickness="1">
+                            <Border.Background>
+                                <SolidColorBrush Color="{StaticResource primaryBackColor2}" />
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="{x:Static p:Resources.GeneralSettings}" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{x:Static p:Resources.Language}" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <ComboBox ItemsSource="{Binding Languages}" DisplayMemberPath="Key" SelectedValuePath="Value" SelectedValue="{Binding SelectedLanguage, Mode=TwoWay}" Width="150" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
 
-                        <!-- Text: Application Language -->
-                        <TextBlock Text="{x:Static p:Resources.Language}" Foreground="{StaticResource titleColor3}" FontSize="12" Margin="0,0,0,5" />
-                        <ComboBox ItemsSource="{Binding Languages}"
-                                  DisplayMemberPath="Key"
-                                  SelectedValuePath="Value"
-                                  SelectedValue="{Binding SelectedLanguage, Mode=TwoWay}"
-                                  HorizontalAlignment="Left" Width="200" Height="30" VerticalContentAlignment="Center" Padding="5" />
-                        <TextBlock Text="* Restart required to apply changes." Foreground="Gray" FontSize="10" Margin="0,5,0,0" FontStyle="Italic" />
+                        <!-- 2. Database Configuration -->
+                        <!-- NEW: IsEnabled bound to IsDbConfigEditable.
+                             If logged in as Standard User, this whole block is disabled.
+                             If Offline or Admin, it is enabled. -->
+                        <Border CornerRadius="10" Padding="20" Margin="0,0,0,20" BorderBrush="{StaticResource panelActiveColor}" BorderThickness="1"
+                                IsEnabled="{Binding IsDbConfigEditable}">
+                            <Border.Background>
+                                <SolidColorBrush Color="{StaticResource primaryBackColor2}" />
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="Database Connection Configuration" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,15" />
+                                <TextBlock Text="{x:Static p:Resources.DbProvider}" Foreground="{StaticResource titleColor3}" Margin="0,0,0,5" />
+                                <ComboBox ItemsSource="{Binding DatabaseTypes}" SelectedItem="{Binding SelectedDatabaseType, Mode=TwoWay}" HorizontalAlignment="Left" Width="200" Margin="0,0,0,15" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*" />
+                                        <ColumnDefinition Width="1*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Server Address / Host IP:" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
+                                    <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding DbHost, UpdateSourceTrigger=PropertyChanged}" Height="28" Margin="0,0,10,10" Padding="2" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Port (Optional):" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
+                                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DbPort, UpdateSourceTrigger=PropertyChanged}" Height="28" Margin="0,0,0,10" Padding="2" />
+                                    <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="0,5,0,5">
+                                        <CheckBox Content="Use Windows Authentication (Integrated Security)" IsChecked="{Binding UseWindowsAuth, Mode=TwoWay}" Visibility="{Binding IsWindowsAuthVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="White" Margin="0,0,0,10" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Database Username:" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
+                                    <TextBox Grid.Row="4" Grid.Column="0" Text="{Binding DbUser, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsCredentialsEnabled}" Height="28" Margin="0,0,10,10" Padding="2" />
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Database Password:" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
+                                    <customcontrols:BindablePasswordBox Grid.Row="4" Grid.Column="1" Password="{Binding DbPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsCredentialsEnabled}" Height="28" Margin="0,0,0,10" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 3. Automation -->
+                        <Border CornerRadius="10" Padding="20" Margin="0,0,0,20" BorderBrush="{StaticResource panelActiveColor}" BorderThickness="1">
+                            <Border.Background>
+                                <SolidColorBrush Color="{StaticResource primaryBackColor2}" />
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="Automation &amp; Dashboard" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,15" />
+                                <CheckBox Content="Enable Automatic Dashboard Configuration Import" IsChecked="{Binding AutoImportEnabled, Mode=TwoWay}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                <StackPanel Margin="20,0,0,15" IsEnabled="{Binding IsImportConfigEnabled}">
+                                    <RadioButton GroupName="ImportMode" Content="File is located beside application executable" IsChecked="{Binding ImportIsRelative, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
+                                    <StackPanel Orientation="Horizontal" Margin="20,0,0,10" Visibility="{Binding IsRelativeInputVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock Text="File Name:" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <TextBox Text="{Binding ImportFileName, UpdateSourceTrigger=PropertyChanged}" Width="250" Height="26" Padding="2" />
+                                    </StackPanel>
+                                    <RadioButton GroupName="ImportMode" Content="File is located at a specific path" IsChecked="{Binding ImportIsAbsolute, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
+                                    <Grid Margin="20,0,0,0" Visibility="{Binding IsAbsoluteInputVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Full Path:" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <TextBox Grid.Column="1" Text="{Binding ImportAbsolutePath, UpdateSourceTrigger=PropertyChanged}" Height="26" Padding="2" />
+                                        <Button Grid.Column="2" Content="..." Command="{Binding BrowseImportFileCommand}" Width="30" Height="26" Margin="5,0,0,0" />
+                                    </Grid>
+                                </StackPanel>
+                                <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,15" />
+                                <CheckBox Content="Show Date Filter on Dashboard" IsChecked="{Binding ShowDashboardDateFilter, Mode=TwoWay}" Foreground="White" Margin="0,0,0,10" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Date Slider Tick Size (Step):" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <TextBox Text="{Binding DashboardDateTickSize, UpdateSourceTrigger=PropertyChanged}" Width="50" Height="26" Padding="2" HorizontalContentAlignment="Center" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,15" VerticalAlignment="Center">
+                            <Button Content="{x:Static p:Resources.SaveSettings}" Command="{Binding SaveCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource BooleanInverter}}" Width="150" Margin="0,0,15,0" Style="{StaticResource StandardButtonStyle}" />
+                            <Button Content="{x:Static p:Resources.TestConnection}" Command="{Binding TestConnectionCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource BooleanInverter}}" Width="180" Background="#444444" Style="{StaticResource StandardButtonStyle}" />
+                            <ProgressBar IsIndeterminate="True" Width="120" Height="4" Margin="15,0,0,0" VerticalAlignment="Center" Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding StatusMessage}" Foreground="White" FontWeight="Bold" FontSize="14" TextWrapping="Wrap" Margin="0,0,0,5" />
                     </StackPanel>
-                </Border>
+                </ScrollViewer>
+            </TabItem>
 
-                <!-- 2. Active Provider Selection -->
-                <Border CornerRadius="10" Padding="20" Margin="0,0,0,20"
-                        BorderBrush="{StaticResource panelActiveColor}" BorderThickness="1">
-                    <Border.Background>
-                        <SolidColorBrush Color="{StaticResource primaryBackColor2}" />
-                    </Border.Background>
-                    <StackPanel>
-                        <!-- Text: Database Provider -->
-                        <TextBlock Text="{x:Static p:Resources.DbProvider}" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+            <!-- TAB 2: USER MANAGEMENT -->
+            <!-- NEW: Visibility Bound to CanManageUsers (Admin Only) -->
+            <TabItem Header="User Management" Visibility="{Binding CanManageUsers, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                        <ComboBox ItemsSource="{Binding DatabaseTypes}"
-                                  SelectedItem="{Binding SelectedDatabaseType, Mode=TwoWay}"
-                                  HorizontalAlignment="Left" Width="200" Height="30" VerticalContentAlignment="Center" Padding="5" />
-                    </StackPanel>
-                </Border>
+                    <Button Content="Refresh List" Command="{Binding LoadUsersCommand}" HorizontalAlignment="Right" Width="100" Margin="0,0,5,10" Style="{StaticResource StandardButtonStyle}" />
 
-                <!-- 3. SQL Server Settings -->
-                <Border CornerRadius="10" Padding="20" Margin="0,0,0,20"
-                        BorderBrush="{StaticResource panelActiveColor}" BorderThickness="1">
-                    <Border.Background>
-                        <SolidColorBrush Color="{StaticResource primaryBackColor2}" />
-                    </Border.Background>
-                    <StackPanel>
-                        <TextBlock Text="SQL Server Configuration" Foreground="{StaticResource color6}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,15" />
-
-                        <TextBlock Text="Auth Connection (LoginDb):" Foreground="{StaticResource titleColor3}" Margin="0,0,0,5" />
-                        <TextBox Text="{Binding SqlAuthString, UpdateSourceTrigger=PropertyChanged}" Padding="5" Height="30" />
-
-                        <TextBlock Text="Data Connection (Business Data):" Foreground="{StaticResource titleColor3}" Margin="0,10,0,5" />
-                        <TextBox Text="{Binding SqlDataString, UpdateSourceTrigger=PropertyChanged}" Padding="5" Height="30" />
-                    </StackPanel>
-                </Border>
-
-                <!-- 4. PostgreSQL Settings -->
-                <Border CornerRadius="10" Padding="20" Margin="0,0,0,20"
-                        BorderBrush="{StaticResource panelActiveColor}" BorderThickness="1">
-                    <Border.Background>
-                        <SolidColorBrush Color="{StaticResource primaryBackColor2}" />
-                    </Border.Background>
-                    <StackPanel>
-                        <TextBlock Text="PostgreSQL Configuration" Foreground="{StaticResource color8}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,15" />
-
-                        <TextBlock Text="Auth Connection (LoginDb):" Foreground="{StaticResource titleColor3}" Margin="0,0,0,5" />
-                        <TextBox Text="{Binding PostgresAuthString, UpdateSourceTrigger=PropertyChanged}" Padding="5" Height="30" />
-
-                        <TextBlock Text="Data Connection (Business Data):" Foreground="{StaticResource titleColor3}" Margin="0,10,0,5" />
-                        <TextBox Text="{Binding PostgresDataString, UpdateSourceTrigger=PropertyChanged}" Padding="5" Height="30" />
-                    </StackPanel>
-                </Border>
-
-                <!-- Action Buttons -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                    <!-- Text: Save All Changes -->
-                    <Button Content="{x:Static p:Resources.SaveSettings}"
-                            Command="{Binding SaveCommand}"
-                            Width="150" Height="40"
-                            Background="{StaticResource panelColor}" Foreground="White" FontWeight="Bold"
-                            Cursor="Hand" Margin="0,0,15,0">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="5" />
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding Users}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                              Background="Transparent" BorderThickness="1" BorderBrush="{StaticResource panelActiveColor}" HeadersVisibility="Column">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="#202020" />
+                                <Setter Property="Foreground" Value="#BCBEE0" />
+                                <Setter Property="Padding" Value="10,5" />
                             </Style>
-                        </Button.Resources>
-                    </Button>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50" />
+                            <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="120" />
+                            <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="80" FontWeight="Bold" />
+                            <DataGridTextColumn Header="First Name" Binding="{Binding Name}" Width="*" />
+                            <DataGridTextColumn Header="Last Name" Binding="{Binding LastName}" Width="*" />
+                            <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="150" />
+                            <DataGridTemplateColumn Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="Delete" Command="{Binding DataContext.DeleteUserCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}" Background="#D14545" Foreground="White" Padding="5,2" BorderThickness="0" Cursor="Hand" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
 
-                    <!-- Text: Test Connection -->
-                    <Button Content="{x:Static p:Resources.TestConnection}"
-                            Command="{Binding TestConnectionCommand}"
-                            Width="180" Height="40"
-                            Background="#444444" Foreground="White"
-                            Cursor="Hand">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="5" />
-                            </Style>
-                        </Button.Resources>
-                    </Button>
-                </StackPanel>
+                    <!-- Add User Form -->
+                    <Border Grid.Row="2" CornerRadius="5" Background="#10FFFFFF" Padding="15" Margin="0,15,0,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
 
-                <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource color9}" FontSize="14" TextWrapping="Wrap" />
-            </StackPanel>
-        </ScrollViewer>
+                            <TextBlock Grid.Row="0" Grid.ColumnSpan="4" Text="Add New User" Foreground="White" FontWeight="Bold" Margin="0,0,0,10" />
+
+                            <!-- Row 1 Input -->
+                            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Username *" Foreground="Gray" FontSize="10" />
+                                <TextBox Text="{Binding NewUserUsername, UpdateSourceTrigger=PropertyChanged}" Height="25" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,10,0">
+                                <TextBlock Text="Password *" Foreground="Gray" FontSize="10" />
+                                <customcontrols:BindablePasswordBox Password="{Binding NewUserPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="25" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,10,0">
+                                <TextBlock Text="Role" Foreground="Gray" FontSize="10" />
+                                <ComboBox ItemsSource="{Binding AvailableRoles}" SelectedItem="{Binding NewUserRole, Mode=TwoWay}" Height="25" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="3">
+                                <TextBlock Text="Email" Foreground="Gray" FontSize="10" />
+                                <TextBox Text="{Binding NewUserEmail, UpdateSourceTrigger=PropertyChanged}" Height="25" />
+                            </StackPanel>
+
+                            <!-- Row 2 Input -->
+                            <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,10,10,0">
+                                <TextBlock Text="First Name" Foreground="Gray" FontSize="10" />
+                                <TextBox Text="{Binding NewUserName, UpdateSourceTrigger=PropertyChanged}" Height="25" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,10,10,0">
+                                <TextBlock Text="Last Name" Foreground="Gray" FontSize="10" />
+                                <TextBox Text="{Binding NewUserLastName, UpdateSourceTrigger=PropertyChanged}" Height="25" />
+                            </StackPanel>
+
+                            <Button Grid.Row="2" Grid.Column="3" Content="Add User" Command="{Binding AddUserCommand}" Margin="0,23,0,0" Height="25" Style="{StaticResource StandardButtonStyle}" />
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </Grid>
 </UserControl>

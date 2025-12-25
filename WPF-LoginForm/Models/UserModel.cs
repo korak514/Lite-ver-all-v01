@@ -8,5 +8,8 @@
         public string Name { get; set; }
         public string LastName { get; set; }
         public string Email { get; set; }
+
+        // NEW: Role Property (Admin, User, etc.)
+        public string Role { get; set; } = "User"; // Default
     }
 }

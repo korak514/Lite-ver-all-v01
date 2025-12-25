@@ -58,12 +58,10 @@
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
-                <!-- Changed from 250 to Auto to collapse cleanly -->
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
             <!-- Navigation Menu -->
-            <!-- BINDING ADDED HERE: Visibility -->
             <Border CornerRadius="10,0,0,10" Grid.Column="0" Margin="0" BorderBrush="{StaticResource Brush1}" BorderThickness="3,4,10,4"
                     Visibility="{Binding IsNavigationVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                     Width="250">
@@ -110,6 +108,7 @@
                         </StackPanel>
                     </RadioButton>
 
+                    <!-- MODIFIED: Removed Visibility Binding (Visible for everyone) -->
                     <RadioButton Style="{StaticResource menuButton}" Tag="{StaticResource color6}" Command="{Binding ShowSettingsViewCommand}">
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="Cog" Style="{StaticResource menuButtonIcon}" />
@@ -127,7 +126,6 @@
             </Border>
 
             <!-- Main Section -->
-            <!-- If Nav is hidden, this fills the screen because Col 0 is Auto -->
             <Border CornerRadius="0,10,10,0" Grid.Column="1" Margin="0">
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="0.1,0.34">
@@ -144,13 +142,19 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
-                        <Button x:Name="btnMainMinimize" Margin="0,12,10,0" BorderThickness="0" Foreground="White" FontSize="16" FontFamily="Montserrat" Cursor="Hand" Click="btnMainMinimize_Click" Width="18" Height="18" Style="{StaticResource controlButton}">
-                            <TextBlock Text="-" FontSize="16" />
+                        <Button x:Name="btnMainMinimize" Margin="0,12,10,0"
+                                Style="{StaticResource WindowControlButtonStyle}" Content="-"
+                                Click="btnMainMinimize_Click" />
+
+                        <Button x:Name="btnMaximize" Margin="0,10,10,0"
+                                Style="{StaticResource WindowControlButtonStyle}"
+                                Click="btnMaximize_Click">
+                            <fa:ImageAwesome Icon="SquareOutline" Height="12" Width="12" Foreground="White" />
                         </Button>
-                        <Button x:Name="btnMaximize" Margin="0,10,10,0" BorderThickness="0" FontSize="15" FontFamily="Montserrat" Cursor="Hand" Click="btnMaximize_Click" Width="18" Height="18" Style="{StaticResource controlButton}">
-                            <fa:ImageAwesome Icon="SquareOutline" Height="15" Width="15" Foreground="White" />
-                        </Button>
-                        <Button x:Name="btnMainClose" Margin="0,10,10,0" BorderThickness="0" Content="X" Foreground="White" FontSize="12" FontFamily="Montserrat" Cursor="Hand" Click="btnMainClose_Click" Width="18" Height="18" Style="{StaticResource controlButton}" />
+
+                        <Button x:Name="btnMainClose" Margin="0,10,10,0"
+                                Style="{StaticResource WindowCloseButtonStyle}" Content="X"
+                                Click="btnMainClose_Click" />
                     </StackPanel>
 
                     <Grid Grid.Row="1">

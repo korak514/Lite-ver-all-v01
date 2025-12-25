@@ -12,13 +12,31 @@
       <Value Profile="(Default)">Server=(local); Database=MainDataDb; Integrated Security=true</Value>
     </Setting>
     <Setting Name="PostgresDataConnString" Type="System.String" Scope="User">
-      <Value Profile="(Default)">	Host=localhost; Username=postgres; Password=password; Database=MainDataDb</Value>
+      <Value Profile="(Default)">Host=localhost; Username=postgres; Password=password; Database=MainDataDb</Value>
     </Setting>
     <Setting Name="PostgresAuthConnString" Type="System.String" Scope="User">
       <Value Profile="(Default)">Host=localhost; Username=postgres; Password=password; Database=LoginDb</Value>
     </Setting>
     <Setting Name="AppLanguage" Type="System.String" Scope="User">
       <Value Profile="(Default)">en-US</Value>
+    </Setting>
+    <Setting Name="AutoImportEnabled" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="ImportIsRelative" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="ImportFileName" Type="System.String" Scope="User">
+      <Value Profile="(Default)">dashboard_config.json</Value>
+    </Setting>
+    <Setting Name="ImportAbsolutePath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="ShowDashboardDateFilter" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="DashboardDateTickSize" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">1</Value>
     </Setting>
   </Settings>
 </SettingsFile>

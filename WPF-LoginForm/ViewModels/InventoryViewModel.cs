@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Threading; // Required for Principal
 using System.Threading.Tasks;
 using System.Windows.Input;
 using WPF_LoginForm.Repositories;
@@ -33,19 +34,21 @@ namespace WPF_LoginForm.ViewModels
             set => SetProperty(ref _statusMessage, value);
         }
 
+        // --- NEW: Security Property ---
+        public bool IsAdmin => Thread.CurrentPrincipal.IsInRole("Admin");
+
         public ICommand RefreshLogsCommand { get; }
         public ICommand ClearLogsCommand { get; }
 
-        // Constructor now requires Dependencies
         public InventoryViewModel(IDataRepository dataRepository, IDialogService dialogService)
         {
             _dataRepository = dataRepository;
             _dialogService = dialogService;
 
             RefreshLogsCommand = new ViewModelCommand(ExecuteRefreshLogs);
-            ClearLogsCommand = new ViewModelCommand(ExecuteClearLogs);
+            // UPDATED: Check IsAdmin for CanExecute
+            ClearLogsCommand = new ViewModelCommand(ExecuteClearLogs, (o) => IsAdmin);
 
-            // Load logs automatically on creation
             ExecuteRefreshLogs(null);
         }
 
@@ -71,6 +74,13 @@ namespace WPF_LoginForm.ViewModels
 
         private async void ExecuteClearLogs(object obj)
         {
+            // Extra security check
+            if (!IsAdmin)
+            {
+                StatusMessage = "Access Denied: Only Admins can clear logs.";
+                return;
+            }
+
             bool confirm = _dialogService.ShowConfirmationDialog("Clear System Logs",
                 "Are you sure you want to delete ALL system logs? This cannot be undone.");
 

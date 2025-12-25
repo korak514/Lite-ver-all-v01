@@ -4,7 +4,7 @@ using System.Windows;
 using WPF_LoginForm.Properties;
 using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
-using WPF_LoginForm.ViewModels; // Need this for casting
+using WPF_LoginForm.ViewModels;
 using WPF_LoginForm.Views;
 
 namespace WPF_LoginForm
@@ -24,11 +24,19 @@ namespace WPF_LoginForm
             Thread.CurrentThread.CurrentUICulture = culture;
             FrameworkElement.LanguageProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(System.Windows.Markup.XmlLanguage.GetLanguage(culture.IetfLanguageTag)));
 
-            // 2. Initialize DB & Logger
+            // 2. Initialize Logger
             var dbType = DbConnectionFactory.CurrentDatabaseType;
             var fileLogger = new FileLogger("AppLog");
             GlobalLogger = new DatabaseLogger(fileLogger);
-            GlobalLogger.LogInfo($"App Starting... Lang: {languageCode}");
+            GlobalLogger.LogInfo($"App Starting... Lang: {languageCode} | Provider: {dbType}");
+
+            // --- RE-ENABLED: Database Bootstrapper ---
+            // This checks if the DB exists. If not, it asks to create it.
+            // We ignore the return value (true/false).
+            // If it succeeds -> Good.
+            // If it fails/cancels -> We still show LoginView so you can go to Settings.
+            DatabaseBootstrapper.Run();
+            // -----------------------------------------
 
             // 3. Show Login
             var loginView = new LoginView();
@@ -38,16 +46,21 @@ namespace WPF_LoginForm
             {
                 if (loginView.IsVisible == false && loginView.IsLoaded)
                 {
-                    // === PHASE 3: TRANSFER REPORT MODE STATE ===
+                    // Logic to switch to MainView or SettingsView based on ViewModel state
                     var loginVM = loginView.DataContext as LoginViewModel;
-                    bool reportMode = loginVM?.IsReportModeOnly ?? false;
-
                     var mainView = new MainView();
 
-                    // Initialize MainViewModel with the mode
                     if (mainView.DataContext is MainViewModel mainVM)
                     {
-                        mainVM.Initialize(reportMode);
+                        if (loginVM != null && loginVM.IsSettingsModeOnly)
+                        {
+                            mainVM.Initialize(AppMode.SettingsOnly);
+                        }
+                        else
+                        {
+                            bool isReport = loginVM?.IsReportModeOnly ?? false;
+                            mainVM.Initialize(isReport ? AppMode.ReportOnly : AppMode.Normal);
+                        }
                     }
 
                     mainView.Show();

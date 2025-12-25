@@ -58,6 +58,9 @@ namespace WPF_LoginForm.Services
 
                 int totalColumns = worksheet.Dimension.End.Column;
 
+                // --- MODIFIED: HashSet to track duplicate headers ---
+                var usedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
                 for (int col = 1; col <= totalColumns; col++)
                 {
                     string header = worksheet.Cells[headerRow, col].Text.Trim();
@@ -66,9 +69,20 @@ namespace WPF_LoginForm.Services
                         header = $"Column{col}";
                     }
 
+                    // --- NEW: Duplicate Header Handling ---
+                    string originalHeader = header;
+                    int duplicateCount = 1;
+                    while (usedHeaders.Contains(header))
+                    {
+                        header = $"{originalHeader}_{duplicateCount}";
+                        duplicateCount++;
+                    }
+                    usedHeaders.Add(header);
+                    // --------------------------------------
+
                     schemaList.Add(new ColumnSchemaViewModel
                     {
-                        SourceColumnName = header,
+                        SourceColumnName = header, // Use the unique header name here
                         DestinationColumnName = SanitizeSqlName(header)
                     });
                 }

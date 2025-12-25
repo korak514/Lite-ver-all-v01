@@ -1,8 +1,7 @@
-﻿// In WPF_LoginForm.ViewModels/CreateTableViewModel.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Data; // Keep this for general Data types
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -22,6 +21,7 @@ namespace WPF_LoginForm.ViewModels
         private readonly ExcelAnalysisService _excelAnalysisService;
 
         private string _filePath;
+
         public string FilePath
         {
             get => _filePath;
@@ -52,16 +52,11 @@ namespace WPF_LoginForm.ViewModels
         public int HeaderRowNumber { get => _headerRowNumber; set => SetProperty(ref _headerRowNumber, value); }
 
         private bool _autoAddIdColumn;
+
         public bool AutoAddIdColumn
         {
             get => _autoAddIdColumn;
-            set
-            {
-                if (SetProperty(ref _autoAddIdColumn, value))
-                {
-                    HandleAutoIdColumn();
-                }
-            }
+            set { if (SetProperty(ref _autoAddIdColumn, value)) HandleAutoIdColumn(); }
         }
 
         private bool _isFileSelected;
@@ -132,14 +127,8 @@ namespace WPF_LoginForm.ViewModels
             try
             {
                 var schemaResults = await _excelAnalysisService.AnalyzeFileAsync(FilePath, SelectedWorksheetName, HeaderRowNumber);
-
-                foreach (var item in schemaResults)
-                {
-                    ProposedSchema.Add(item);
-                }
-
+                foreach (var item in schemaResults) ProposedSchema.Add(item);
                 HandleAutoIdColumn();
-
                 IsSchemaReady = ProposedSchema.Count > 0;
             }
             catch (Exception ex)
@@ -172,10 +161,7 @@ namespace WPF_LoginForm.ViewModels
             }
             else
             {
-                if (existingIdCol != null)
-                {
-                    ProposedSchema.Remove(existingIdCol);
-                }
+                if (existingIdCol != null) ProposedSchema.Remove(existingIdCol);
             }
         }
 
@@ -185,13 +171,15 @@ namespace WPF_LoginForm.ViewModels
             if (await _dataRepository.TableExistsAsync(ProposedTableName)) { MessageBox.Show($"A table named '{ProposedTableName}' already exists.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
             if (ProposedSchema.Count(s => s.IsPrimaryKey) != 1) { MessageBox.Show("You must select exactly one primary key.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
 
+            // 1. Create the Table Structure in DB
             var creationResult = await _dataRepository.CreateTableAsync(ProposedTableName, ProposedSchema.ToList());
             if (!creationResult.Success) { MessageBox.Show($"Failed to create table.\n\n{creationResult.ErrorMessage}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error); return; }
 
-            // --- FIX: Use fully qualified name ---
+            // 2. Prepare Data with Strong Types
             System.Data.DataTable dataToImport = await LoadExcelToDataTableAsync();
             if (dataToImport == null) return;
 
+            // 3. Bulk Import
             var importResult = await _dataRepository.BulkImportDataAsync(ProposedTableName, dataToImport);
             if (!importResult.Success) { MessageBox.Show($"Table created, but data import failed.\n\n{importResult.ErrorMessage}", "Import Error", MessageBoxButton.OK, MessageBoxImage.Error); return; }
 
@@ -199,10 +187,9 @@ namespace WPF_LoginForm.ViewModels
             CloseAction?.Invoke();
         }
 
-        // --- FIX: Use fully qualified name ---
+        // --- UPDATED: Strong Typing for Binary Import ---
         private async Task<System.Data.DataTable> LoadExcelToDataTableAsync()
         {
-            // --- FIX: Use fully qualified name ---
             var dt = new System.Data.DataTable();
             try
             {
@@ -216,14 +203,19 @@ namespace WPF_LoginForm.ViewModels
 
                     var schemaToImport = ProposedSchema.Where(s => s.SourceColumnName != "ID (Auto-Generated)").ToList();
 
+                    // Step A: Create Strongly Typed Columns based on Selection
                     foreach (var colSchema in schemaToImport)
                     {
-                        dt.Columns.Add(colSchema.DestinationColumnName);
+                        Type colType = GetClrType(colSchema.SelectedDataType);
+                        dt.Columns.Add(colSchema.DestinationColumnName, colType);
                     }
 
-                    worksheet.Workbook.Calculate();
+                    // worksheet.Workbook.Calculate(); // Optional: Slow but necessary if you have formulas
 
-                    for (int rowNum = HeaderRowNumber + 1; rowNum <= worksheet.Dimension.End.Row; rowNum++)
+                    int emptyRowCount = 0;
+                    int maxRow = worksheet.Dimension.End.Row;
+
+                    for (int rowNum = HeaderRowNumber + 1; rowNum <= maxRow; rowNum++)
                     {
                         var rowData = new object[schemaToImport.Count];
                         bool hasValues = false;
@@ -237,27 +229,81 @@ namespace WPF_LoginForm.ViewModels
                             if (excelCol != null)
                             {
                                 var cellValue = worksheet.Cells[rowNum, excelCol.Start.Column].Value;
-                                rowData[i] = cellValue ?? DBNull.Value;
-                                if (cellValue != null) hasValues = true;
+
+                                if (cellValue != null && !string.IsNullOrWhiteSpace(cellValue.ToString()))
+                                {
+                                    // Step B: Convert Data safely to the target type
+                                    try
+                                    {
+                                        Type targetType = dt.Columns[i].DataType;
+
+                                        // Specific handling for Excel Dates which might come as doubles
+                                        if (targetType == typeof(DateTime) && cellValue is double dVal)
+                                        {
+                                            rowData[i] = DateTime.FromOADate(dVal);
+                                        }
+                                        // Specific handling for Decimals
+                                        else if (targetType == typeof(decimal))
+                                        {
+                                            rowData[i] = Convert.ToDecimal(cellValue);
+                                        }
+                                        else
+                                        {
+                                            // General conversion
+                                            rowData[i] = Convert.ChangeType(cellValue, targetType);
+                                        }
+                                        hasValues = true;
+                                    }
+                                    catch
+                                    {
+                                        // If conversion fails (e.g. text in a number column), null it to avoid crash
+                                        rowData[i] = DBNull.Value;
+                                        _logger.LogWarning($"Data Conversion Failed in Row {rowNum}, Col '{colSchema.DestinationColumnName}'. Value: '{cellValue}'");
+                                    }
+                                }
+                                else
+                                {
+                                    rowData[i] = DBNull.Value;
+                                }
                             }
                         }
 
                         if (hasValues)
                         {
                             dt.Rows.Add(rowData);
+                            emptyRowCount = 0;
+                        }
+                        else
+                        {
+                            emptyRowCount++;
+                            if (emptyRowCount >= 5) break;
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"[LoadExcelToDataTableAsync] Error reading Excel file for import.", ex);
+                _logger.LogError($"[LoadExcelToDataTableAsync] Error reading Excel file.", ex);
                 MessageBox.Show($"Error reading Excel file: {ex.Message}", "File Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
             return dt;
         }
 
-        private string SanitizeSqlName(string rawName) { if (string.IsNullOrWhiteSpace(rawName)) return "New_Table"; string sanitized = System.Text.RegularExpressions.Regex.Replace(rawName, @"[^\w]", "_"); if (char.IsDigit(sanitized[0])) { sanitized = "_" + sanitized; } return sanitized; }
+        // --- HELPER: Map UI Selection to C# Type ---
+        private Type GetClrType(string uiType)
+        {
+            if (string.IsNullOrEmpty(uiType)) return typeof(string);
+            uiType = uiType.ToLowerInvariant();
+
+            if (uiType.Contains("int") || uiType.Contains("number")) return typeof(int);
+            if (uiType.Contains("decimal")) return typeof(decimal);
+            if (uiType.Contains("date") || uiType.Contains("time")) return typeof(DateTime);
+
+            return typeof(string);
+        }
+
+        private string SanitizeSqlName(string rawName)
+        { if (string.IsNullOrWhiteSpace(rawName)) return "New_Table"; string sanitized = System.Text.RegularExpressions.Regex.Replace(rawName, @"[^\w]", "_"); if (char.IsDigit(sanitized[0])) { sanitized = "_" + sanitized; } return sanitized; }
     }
 }

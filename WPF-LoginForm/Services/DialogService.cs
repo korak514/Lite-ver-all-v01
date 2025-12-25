@@ -7,13 +7,12 @@ using System;
 using System.Diagnostics;
 using Microsoft.Win32;
 using System.Linq;
-using System.Data; // Added
+using System.Data;
 
 namespace WPF_LoginForm.Services
 {
     public class DialogService : IDialogService
     {
-        // --- MODIFIED ---
         public bool ShowAddRowDialog(IEnumerable<string> columnNames, string tableName,
                                      Dictionary<string, object> initialValues,
                                      DataTable sourceTable,
@@ -23,7 +22,6 @@ namespace WPF_LoginForm.Services
             newRowData = null;
             try
             {
-                // Pass sourceTable and hideId to the ViewModel
                 var viewModel = new AddRowViewModel(columnNames, tableName, initialValues, sourceTable, hideId);
                 var dialogWindow = new AddRowWindow { DataContext = viewModel };
 
@@ -143,6 +141,24 @@ namespace WPF_LoginForm.Services
                 MessageBox.Show($"Error opening Create Table dialog:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        // --- NEW: Implementation ---
+        public void ShowHierarchyImportDialog(HierarchyImportViewModel viewModel)
+        {
+            try
+            {
+                var dialogWindow = new HierarchyImportWindow { DataContext = viewModel };
+                Window ownerWindow = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
+                if (ownerWindow != null) dialogWindow.Owner = ownerWindow;
+                dialogWindow.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening Import Hierarchy dialog:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // ---------------------------
 
         public bool ShowConfirmationDialog(string title, string message)
         {

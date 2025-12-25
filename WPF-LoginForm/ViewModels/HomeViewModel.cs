@@ -17,6 +17,7 @@ using WPF_LoginForm.Services;
 using System.IO;
 using Newtonsoft.Json.Linq;
 using System.Threading.Tasks;
+using WPF_LoginForm.Properties;
 
 namespace WPF_LoginForm.ViewModels
 {
@@ -24,22 +25,110 @@ namespace WPF_LoginForm.ViewModels
     {
         private readonly IDataRepository _dataRepository;
         private readonly IDialogService _dialogService;
+        private readonly ILogger _logger;
+        private readonly DashboardStorageService _storageService;
+        private readonly Random _random = new Random();
+
         private List<DashboardConfiguration> _dashboardConfigurations;
         private bool _isUpdatingDates = false;
         private DateTime _minSliderDate;
         private DateTime _maxSliderDate;
         private bool _isActive = false;
 
+        // --- Event: Request MainViewModel to switch tabs ---
+        // Args: TableName, StartDate, EndDate
+        public event Action<string, DateTime, DateTime> DrillDownRequested;
+
         public ICommand ConfigureCommand { get; }
         public ICommand ImportCommand { get; }
         public ICommand ExportCommand { get; }
         public ICommand RecolorChartsCommand { get; }
+        public ICommand ToggleFilterModeCommand { get; }
+        public ICommand ChartClickCommand { get; }
 
         public bool IsSnapshotExport { get; set; } = true;
+
+        // --- Filter Mode Properties ---
+        private bool _isFilterByDate = true;
+
+        public bool IsFilterByDate
+        {
+            get => _isFilterByDate;
+            set
+            {
+                if (SetProperty(ref _isFilterByDate, value))
+                {
+                    InitializeSliders();
+                    LoadAllChartsData();
+                    AutoSave();
+                }
+            }
+        }
+
+        private bool _ignoreNonDateData = true;
+
+        public bool IgnoreNonDateData
+        {
+            get => _ignoreNonDateData;
+            set
+            {
+                if (SetProperty(ref _ignoreNonDateData, value))
+                {
+                    LoadAllChartsData();
+                    AutoSave();
+                }
+            }
+        }
+
+        // --- Virtual ID-to-Date Properties ---
+        private bool _useIdToDateConversion = false;
+
+        public bool UseIdToDateConversion
+        {
+            get => _useIdToDateConversion;
+            set { if (SetProperty(ref _useIdToDateConversion, value)) AutoSave(); }
+        }
+
+        private DateTime _initialDateForConversion = DateTime.Today.AddYears(-1);
+
+        public DateTime InitialDateForConversion
+        {
+            get => _initialDateForConversion;
+            set { if (SetProperty(ref _initialDateForConversion, value)) AutoSave(); }
+        }
+
+        // --- Settings Bindings ---
+        public bool IsDateFilterVisible => Settings.Default.ShowDashboardDateFilter;
+
+        public int SliderTickFrequency
+        {
+            get => Settings.Default.DashboardDateTickSize;
+            set
+            {
+                if (Settings.Default.DashboardDateTickSize != value)
+                {
+                    Settings.Default.DashboardDateTickSize = value;
+                    Settings.Default.Save();
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public class TickOption
+        { public string Label { get; set; } public int Value { get; set; } }
+
+        public List<TickOption> TickOptions { get; } = new List<TickOption>
+        {
+            new TickOption { Label = "1 Month", Value = 1 },
+            new TickOption { Label = "3 Months", Value = 3 },
+            new TickOption { Label = "6 Months", Value = 6 },
+            new TickOption { Label = "1 Year", Value = 12 }
+        };
 
         private bool _isDateFilterEnabled;
         public bool IsDateFilterEnabled { get => _isDateFilterEnabled; private set => SetProperty(ref _isDateFilterEnabled, value); }
 
+        // --- Date Range Properties ---
         private DateTime _startDate;
 
         public DateTime StartDate
@@ -50,10 +139,11 @@ namespace WPF_LoginForm.ViewModels
                 if (_startDate == value) return;
                 _startDate = value;
                 OnPropertyChanged();
-                if (!_isUpdatingDates && _isActive)
+                if (!_isUpdatingDates && _isActive && IsFilterByDate)
                 {
                     LoadAllChartsData();
                     UpdateSlidersFromDates();
+                    AutoSave();
                 }
             }
         }
@@ -68,15 +158,18 @@ namespace WPF_LoginForm.ViewModels
                 if (_endDate == value) return;
                 _endDate = value;
                 OnPropertyChanged();
-                if (!_isUpdatingDates && _isActive)
+                if (!_isUpdatingDates && _isActive && IsFilterByDate)
                 {
                     LoadAllChartsData();
                     UpdateSlidersFromDates();
+                    AutoSave();
                 }
             }
         }
 
+        // --- Slider Properties ---
         private double _sliderMaximum;
+
         public double SliderMaximum { get => _sliderMaximum; set => SetProperty(ref _sliderMaximum, value); }
 
         private double _startMonthSliderValue;
@@ -88,7 +181,8 @@ namespace WPF_LoginForm.ViewModels
             {
                 if (SetProperty(ref _startMonthSliderValue, value) && !_isUpdatingDates && _isActive)
                 {
-                    UpdateDatesFromSliders();
+                    if (IsFilterByDate) UpdateDatesFromSliders();
+                    else { UpdateTooltips(); LoadAllChartsData(); }
                 }
             }
         }
@@ -102,7 +196,8 @@ namespace WPF_LoginForm.ViewModels
             {
                 if (SetProperty(ref _endMonthSliderValue, value) && !_isUpdatingDates && _isActive)
                 {
-                    UpdateDatesFromSliders();
+                    if (IsFilterByDate) UpdateDatesFromSliders();
+                    else { UpdateTooltips(); LoadAllChartsData(); }
                 }
             }
         }
@@ -113,7 +208,7 @@ namespace WPF_LoginForm.ViewModels
         private string _endSliderTooltip;
         public string EndSliderTooltip { get => _endSliderTooltip; set => SetProperty(ref _endSliderTooltip, value); }
 
-        // Initialize collections in constructor
+        // --- Chart Collections ---
         public SeriesCollection Chart1Series { get; } = new SeriesCollection();
 
         public SeriesCollection Chart2Series { get; } = new SeriesCollection();
@@ -132,16 +227,22 @@ namespace WPF_LoginForm.ViewModels
 
         public Func<double, string> DateFormatter { get; }
 
-        public HomeViewModel(IDataRepository dataRepository, IDialogService dialogService)
+        // --- Constructor ---
+        public HomeViewModel(IDataRepository dataRepository, IDialogService dialogService, ILogger logger)
         {
             _dataRepository = dataRepository ?? throw new ArgumentNullException(nameof(dataRepository));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _logger = logger;
+            _storageService = new DashboardStorageService();
+
             _dashboardConfigurations = new List<DashboardConfiguration>();
 
             ConfigureCommand = new ViewModelCommand(p => ShowConfigurationWindow());
             ImportCommand = new ViewModelCommand(p => ImportConfiguration());
             ExportCommand = new ViewModelCommand(p => ExportConfiguration());
             RecolorChartsCommand = new ViewModelCommand(p => LoadAllChartsData());
+            ToggleFilterModeCommand = new ViewModelCommand(p => IsFilterByDate = !IsFilterByDate);
+            ChartClickCommand = new ViewModelCommand(ExecuteChartClick);
 
             _startDate = DateTime.Now.AddMonths(-1);
             _endDate = DateTime.Now;
@@ -152,35 +253,203 @@ namespace WPF_LoginForm.ViewModels
                 return new DateTime((long)value).ToString("d");
             };
 
-            // Initialize with empty axes to prevent NRE
+            InitializeEmptyAxes();
+            TryLoadAutoSave();
+        }
+
+        // --- Drill Down Logic (Fixed for C# 7.3) ---
+        private void ExecuteChartClick(object parameter)
+        {
+            if (parameter is ChartPoint point && point.SeriesView is Series series)
+            {
+                // 1. Identify Chart Position
+                int chartPosition = 0;
+                if (Chart1Series.Contains(series)) chartPosition = 1;
+                else if (Chart2Series.Contains(series)) chartPosition = 2;
+                else if (Chart3Series.Contains(series)) chartPosition = 3;
+                else if (Chart4Series.Contains(series)) chartPosition = 4;
+                else if (Chart5Series.Contains(series)) chartPosition = 5;
+
+                if (chartPosition == 0) return;
+
+                var config = _dashboardConfigurations.FirstOrDefault(c => c.ChartPosition == chartPosition);
+                if (config == null || string.IsNullOrEmpty(config.TableName)) return;
+
+                DateTime reqStart = DateTime.MinValue;
+                DateTime reqEnd = DateTime.MinValue;
+                bool dateFound = false;
+
+                // 2. NEW LOGIC: Calculate date based on click position and slider reference
+
+                // Case A: Daily Date (Ticks or Index)
+                if (config.DataStructureType == "Daily Date")
+                {
+                    try
+                    {
+                        // Get the base date from slider (first slider date)
+                        DateTime baseDate = _minSliderDate;
+                        double xValue = point.X;
+
+                        if (IsFilterByDate)
+                        {
+                            // If user is filtering by date, we assume charts align with the slider range logic
+
+                            if (config.AggregationType != "Daily")
+                            {
+                                // xValue is an index (0, 1, 2...).
+                                // CAUTION: If Aggregation is Monthly, X=0 usually means the FIRST month available in data,
+                                // but LiveCharts might re-index based on the visible zoom.
+                                // We assume X=0 corresponds to the start of the visible data or the absolute start.
+                                // Given the complexity, we assume X=Index relative to the data source.
+
+                                int monthOffset = (int)xValue;
+                                // Fallback: If we can't map exact index, just use slider bounds.
+                                // But let's try to map it.
+                                reqStart = baseDate.AddMonths(monthOffset);
+                            }
+                            else
+                            {
+                                // Daily: X is Ticks
+                                if (xValue > 1000000)
+                                    reqStart = new DateTime((long)xValue);
+                            }
+
+                            // Snap to Full Month
+                            reqStart = new DateTime(reqStart.Year, reqStart.Month, 1);
+                            reqEnd = new DateTime(reqStart.Year, reqStart.Month, DateTime.DaysInMonth(reqStart.Year, reqStart.Month));
+                            dateFound = true;
+                        }
+                        else if (UseIdToDateConversion)
+                        {
+                            // ID Mode
+                            double days = xValue;
+                            reqStart = InitialDateForConversion.AddDays(days);
+                            reqEnd = reqStart.AddDays(1);
+                            dateFound = true;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogWarning($"Error calculating date from click: {ex.Message}");
+                    }
+                }
+
+                // Case B: Monthly Date (Categorical)
+                // C# 7.3 Fix: Removed pattern matching "point.X is int"
+                if (!dateFound && config.DataStructureType == "Monthly Date")
+                {
+                    try
+                    {
+                        int positionIndex = (int)point.X; // Explicit cast
+
+                        // Manual Switch (C# 7.3 compatible)
+                        AxesCollection xAxisCollection = null;
+                        switch (chartPosition)
+                        {
+                            case 1: xAxisCollection = Chart1X; break;
+                            case 2: xAxisCollection = Chart2X; break;
+                            case 3: xAxisCollection = Chart3X; break;
+                            case 5: xAxisCollection = Chart5X; break;
+                        }
+
+                        if (xAxisCollection != null && xAxisCollection.Count > 0 &&
+                            xAxisCollection[0].Labels != null && positionIndex < xAxisCollection[0].Labels.Count)
+                        {
+                            string monthLabel = xAxisCollection[0].Labels[positionIndex];
+                            if (DateTime.TryParseExact(monthLabel, "MMM yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
+                            {
+                                reqStart = new DateTime(parsedDate.Year, parsedDate.Month, 1);
+                                reqEnd = new DateTime(parsedDate.Year, parsedDate.Month, DateTime.DaysInMonth(parsedDate.Year, parsedDate.Month));
+                                dateFound = true;
+                            }
+                        }
+                    }
+                    catch { }
+                }
+
+                // 3. Fallback to Global Range
+                if (!dateFound)
+                {
+                    reqStart = this.StartDate;
+                    reqEnd = this.EndDate;
+                    dateFound = true;
+                }
+
+                // 4. Fire Event
+                if (dateFound && reqStart.Year > 1900)
+                {
+                    DrillDownRequested?.Invoke(config.TableName, reqStart, reqEnd);
+                }
+            }
+        }
+
+        // --- Initialization & Loading ---
+        private void InitializeEmptyAxes()
+        {
+            var hiddenAxis = new Axis { ShowLabels = false, Separator = new Separator { IsEnabled = false }, Foreground = Brushes.Transparent, Visibility = Visibility.Collapsed };
+            Chart1X.Add(hiddenAxis); Chart1Y.Add(hiddenAxis);
+            Chart2X.Add(hiddenAxis); Chart2Y.Add(hiddenAxis);
+            Chart3X.Add(hiddenAxis); Chart3Y.Add(hiddenAxis);
+            Chart5X.Add(hiddenAxis); Chart5Y.Add(hiddenAxis);
+        }
+
+        private void ClearAndReinitializeAxes()
+        {
+            Chart1X.Clear(); Chart1Y.Clear(); Chart2X.Clear(); Chart2Y.Clear();
+            Chart3X.Clear(); Chart3Y.Clear(); Chart5X.Clear(); Chart5Y.Clear();
             InitializeEmptyAxes();
         }
 
-        private void InitializeEmptyAxes()
+        private void TryLoadAutoSave()
         {
-            // Create a minimal, hidden axis for empty charts
-            var hiddenAxis = new Axis
+            try
             {
-                ShowLabels = false,
-                Separator = new Separator { IsEnabled = false },
-                Foreground = Brushes.Transparent,
-                Visibility = Visibility.Collapsed
-            };
+                DashboardSnapshot snapshot = null;
+                if (Settings.Default.AutoImportEnabled)
+                {
+                    string importPath = Settings.Default.ImportIsRelative
+                        ? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Settings.Default.ImportFileName ?? "dashboard_config.json")
+                        : Settings.Default.ImportAbsolutePath;
+                    if (!string.IsNullOrEmpty(importPath) && File.Exists(importPath)) snapshot = _storageService.LoadSnapshot(importPath);
+                }
+                if (snapshot == null) snapshot = _storageService.LoadSnapshot();
+                if (snapshot != null && snapshot.Configurations != null)
+                {
+                    _dashboardConfigurations = snapshot.Configurations;
+                    if (snapshot.StartDate != DateTime.MinValue) _startDate = snapshot.StartDate;
+                    if (snapshot.EndDate != DateTime.MinValue) _endDate = snapshot.EndDate;
 
-            // Add to all axis collections
-            Chart1X.Add(hiddenAxis);
-            Chart1Y.Add(hiddenAxis);
-            Chart2X.Add(hiddenAxis);
-            Chart2Y.Add(hiddenAxis);
-            Chart3X.Add(hiddenAxis);
-            Chart3Y.Add(hiddenAxis);
-            Chart5X.Add(hiddenAxis);
-            Chart5Y.Add(hiddenAxis);
+                    IsFilterByDate = snapshot.IsFilterByDate;
+                    IgnoreNonDateData = snapshot.IgnoreNonDateData;
+                    UseIdToDateConversion = snapshot.UseIdToDateConversion;
+                    if (snapshot.InitialDateForConversion != DateTime.MinValue) InitialDateForConversion = snapshot.InitialDateForConversion;
+                }
+            }
+            catch (Exception ex) { _logger.LogWarning($"Failed to load dashboard: {ex.Message}"); }
+        }
+
+        private void AutoSave()
+        {
+            if (_dashboardConfigurations == null || !_dashboardConfigurations.Any()) return;
+            var snapshot = new DashboardSnapshot
+            {
+                StartDate = this.StartDate,
+                EndDate = this.EndDate,
+                Configurations = _dashboardConfigurations,
+                SeriesData = new List<ChartSeriesSnapshot>(),
+                IsFilterByDate = this.IsFilterByDate,
+                IgnoreNonDateData = this.IgnoreNonDateData,
+                UseIdToDateConversion = this.UseIdToDateConversion,
+                InitialDateForConversion = this.InitialDateForConversion
+            };
+            _storageService.SaveSnapshot(snapshot);
         }
 
         public async void Activate()
         {
             _isActive = true;
+            OnPropertyChanged(nameof(IsDateFilterVisible));
+            OnPropertyChanged(nameof(SliderTickFrequency));
             UpdateDateFilterState();
             await FindGlobalDateRangeAsync();
             InitializeSliders();
@@ -190,7 +459,7 @@ namespace WPF_LoginForm.ViewModels
         public void Deactivate()
         {
             _isActive = false;
-            // Don't clear collections - just mark as inactive
+            AutoSave();
         }
 
         private void UpdateDateFilterState()
@@ -214,31 +483,55 @@ namespace WPF_LoginForm.ViewModels
 
             foreach (var config in enabledConfigs)
             {
-                var (min, max) = await _dataRepository.GetDateRangeAsync(config.TableName, config.DateColumn);
-                if (min != DateTime.MinValue && min < overallMin) overallMin = min;
-                if (max != DateTime.MinValue && max > overallMax) overallMax = max;
+                try
+                {
+                    var (min, max) = await _dataRepository.GetDateRangeAsync(config.TableName, config.DateColumn);
+                    if (min != DateTime.MinValue && min < overallMin) overallMin = min;
+                    if (max != DateTime.MinValue && max > overallMax) overallMax = max;
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning($"Failed to get date range for table '{config.TableName}': {ex.Message}");
+                }
             }
 
-            _minSliderDate = (overallMin == DateTime.MaxValue) ? DateTime.Now.AddYears(-1) : overallMin;
-            _maxSliderDate = (overallMax == DateTime.MinValue) ? DateTime.Now : overallMax;
+            // Fallback
+            if (overallMin == DateTime.MaxValue) overallMin = DateTime.Now.AddYears(-1);
+            if (overallMax == DateTime.MinValue) overallMax = DateTime.Now;
+
+            // Round Max Date to End of Month
+            _minSliderDate = overallMin;
+            _maxSliderDate = new DateTime(overallMax.Year, overallMax.Month, DateTime.DaysInMonth(overallMax.Year, overallMax.Month));
         }
 
         private void InitializeSliders()
         {
-            if (_minSliderDate == default || _maxSliderDate == default) return;
+            if (IsFilterByDate)
+            {
+                if (_minSliderDate == default || _maxSliderDate == default) return;
 
-            _startDate = _minSliderDate;
-            _endDate = _maxSliderDate;
-            OnPropertyChanged(nameof(StartDate));
-            OnPropertyChanged(nameof(EndDate));
+                if (_startDate < _minSliderDate) _startDate = _minSliderDate;
+                if (_endDate > _maxSliderDate) _endDate = _maxSliderDate;
+                if (_endDate < _startDate) _endDate = _startDate.AddMonths(1);
 
-            SliderMaximum = ((_maxSliderDate.Year - _minSliderDate.Year) * 12) + _maxSliderDate.Month - _minSliderDate.Month;
-            UpdateSlidersFromDates();
+                OnPropertyChanged(nameof(StartDate));
+                OnPropertyChanged(nameof(EndDate));
+
+                SliderMaximum = ((_maxSliderDate.Year - _minSliderDate.Year) * 12) + _maxSliderDate.Month - _minSliderDate.Month;
+                UpdateSlidersFromDates();
+            }
+            else
+            {
+                SliderMaximum = 100;
+                StartMonthSliderValue = 0;
+                EndMonthSliderValue = 100;
+                UpdateTooltips();
+            }
         }
 
         private void UpdateSlidersFromDates()
         {
-            if (_isUpdatingDates || _minSliderDate == default) return;
+            if (_isUpdatingDates || _minSliderDate == default || !IsFilterByDate) return;
 
             _isUpdatingDates = true;
             StartMonthSliderValue = ((StartDate.Year - _minSliderDate.Year) * 12) + StartDate.Month - _minSliderDate.Month;
@@ -249,7 +542,7 @@ namespace WPF_LoginForm.ViewModels
 
         private void UpdateDatesFromSliders()
         {
-            if (_isUpdatingDates || _minSliderDate == default) return;
+            if (_isUpdatingDates || _minSliderDate == default || !IsFilterByDate) return;
 
             if (StartMonthSliderValue > EndMonthSliderValue)
             {
@@ -270,79 +563,62 @@ namespace WPF_LoginForm.ViewModels
             UpdateTooltips();
             _isUpdatingDates = false;
             LoadAllChartsData();
+            AutoSave();
         }
 
         private void UpdateTooltips()
         {
-            if (_minSliderDate == default) return;
-
-            var sliderStartDate = _minSliderDate.AddMonths((int)_startMonthSliderValue);
-            StartSliderTooltip = sliderStartDate.ToString("MMMM yyyy");
-            var sliderEndDate = _minSliderDate.AddMonths((int)_endMonthSliderValue);
-            EndSliderTooltip = sliderEndDate.ToString("MMMM yyyy");
+            if (IsFilterByDate)
+            {
+                if (_minSliderDate == default) return;
+                var sliderStartDate = _minSliderDate.AddMonths((int)_startMonthSliderValue);
+                StartSliderTooltip = sliderStartDate.ToString("MMMM yyyy");
+                var sliderEndDate = _minSliderDate.AddMonths((int)_endMonthSliderValue);
+                EndSliderTooltip = sliderEndDate.ToString("MMMM yyyy");
+            }
+            else
+            {
+                StartSliderTooltip = $"Data: {StartMonthSliderValue:F0}%";
+                EndSliderTooltip = $"Data: {EndMonthSliderValue:F0}%";
+            }
         }
 
         private async void LoadAllChartsData(Dictionary<(int, string), string> colorMap = null)
         {
             if (_dashboardConfigurations == null || !_isActive) return;
 
-            // Clear all series
-            Chart1Series.Clear();
-            Chart2Series.Clear();
-            Chart3Series.Clear();
-            Chart4Series.Clear();
-            Chart5Series.Clear();
-
-            // Clear axes and reinitialize empty ones
+            Chart1Series.Clear(); Chart2Series.Clear(); Chart3Series.Clear(); Chart4Series.Clear(); Chart5Series.Clear();
             ClearAndReinitializeAxes();
 
-            var validConfigs = _dashboardConfigurations.Where(c => c.IsEnabled && !string.IsNullOrEmpty(c.TableName) && !string.IsNullOrEmpty(c.DateColumn) && c.Series.Any(s => !string.IsNullOrEmpty(s.ColumnName)));
+            var validConfigs = _dashboardConfigurations.Where(c => c.IsEnabled && !string.IsNullOrEmpty(c.TableName) && c.Series.Any(s => !string.IsNullOrEmpty(s.ColumnName)));
 
             foreach (var config in validConfigs)
             {
-                await ProcessChartConfiguration(config, colorMap);
+                try
+                {
+                    await ProcessChartConfiguration(config, colorMap);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning($"Failed to load chart {config.ChartPosition} (Table: {config.TableName}). Error: {ex.Message}");
+                }
             }
-        }
-
-        private void ClearAndReinitializeAxes()
-        {
-            // Clear all axes
-            Chart1X.Clear();
-            Chart1Y.Clear();
-            Chart2X.Clear();
-            Chart2Y.Clear();
-            Chart3X.Clear();
-            Chart3Y.Clear();
-            Chart5X.Clear();
-            Chart5Y.Clear();
-
-            // Reinitialize with empty hidden axes
-            var hiddenAxis = new Axis
-            {
-                ShowLabels = false,
-                Separator = new Separator { IsEnabled = false },
-                Foreground = Brushes.Transparent,
-                Visibility = Visibility.Collapsed
-            };
-
-            Chart1X.Add(hiddenAxis);
-            Chart1Y.Add(hiddenAxis);
-            Chart2X.Add(hiddenAxis);
-            Chart2Y.Add(hiddenAxis);
-            Chart3X.Add(hiddenAxis);
-            Chart3Y.Add(hiddenAxis);
-            Chart5X.Add(hiddenAxis);
-            Chart5Y.Add(hiddenAxis);
         }
 
         private async Task ProcessChartConfiguration(DashboardConfiguration config, Dictionary<(int, string), string> colorMap)
         {
             var columnsToFetch = config.Series.Select(s => s.ColumnName).ToList();
-            columnsToFetch.Add(config.DateColumn);
+            if (!string.IsNullOrEmpty(config.DateColumn)) columnsToFetch.Add(config.DateColumn);
             columnsToFetch = columnsToFetch.Distinct().ToList();
 
-            DateTime? startDate = (config.DataStructureType == "Daily Date") ? this.StartDate : (DateTime?)null;
-            DateTime? endDate = (config.DataStructureType == "Daily Date") ? this.EndDate : (DateTime?)null;
+            DateTime? startDate = null;
+            DateTime? endDate = null;
+
+            if (IsFilterByDate && config.DataStructureType == "Daily Date")
+            {
+                startDate = this.StartDate;
+                endDate = this.EndDate;
+            }
 
             DataTable dataTable = await _dataRepository.GetDataAsync(config.TableName, columnsToFetch, config.DateColumn, startDate, endDate);
 
@@ -359,6 +635,45 @@ namespace WPF_LoginForm.ViewModels
                 for (int i = 0; i < rowsToRemove; i++)
                 {
                     dataTable.Rows.RemoveAt(dataTable.Rows.Count - 1);
+                }
+            }
+
+            if (IgnoreNonDateData && !string.IsNullOrEmpty(config.DateColumn) && dataTable.Columns.Contains(config.DateColumn))
+            {
+                for (int i = dataTable.Rows.Count - 1; i >= 0; i--)
+                {
+                    if (dataTable.Rows[i][config.DateColumn] == DBNull.Value)
+                    {
+                        dataTable.Rows.RemoveAt(i);
+                    }
+                }
+            }
+
+            double ratioStart = StartMonthSliderValue / SliderMaximum;
+            double ratioEnd = EndMonthSliderValue / SliderMaximum;
+            bool isDateBasedChart = config.DataStructureType == "Daily Date" && !string.IsNullOrEmpty(config.DateColumn);
+
+            if (!isDateBasedChart || !IsFilterByDate)
+            {
+                int totalRows = dataTable.Rows.Count;
+                if (totalRows > 0)
+                {
+                    int startIndex = (int)(totalRows * ratioStart);
+                    int endIndex = (int)(totalRows * ratioEnd);
+
+                    if (startIndex < 0) startIndex = 0;
+                    if (endIndex >= totalRows) endIndex = totalRows - 1;
+                    if (startIndex > endIndex) startIndex = endIndex;
+
+                    var rowsToKeep = new List<DataRow>();
+                    for (int i = startIndex; i <= endIndex; i++)
+                    {
+                        rowsToKeep.Add(dataTable.Rows[i]);
+                    }
+
+                    DataTable filteredTable = dataTable.Clone();
+                    foreach (var row in rowsToKeep) filteredTable.ImportRow(row);
+                    dataTable = filteredTable;
                 }
             }
 
@@ -407,7 +722,6 @@ namespace WPF_LoginForm.ViewModels
                 }
             }
 
-            // Assign to Properties
             switch (config.ChartPosition)
             {
                 case 1: Chart1Series.AddRange(newSeries); Chart1X.Clear(); if (newXAxis != null) Chart1X.AddRange(newXAxis); Chart1Y.Clear(); if (newYAxis != null) Chart1Y.AddRange(newYAxis); break;
@@ -503,31 +817,146 @@ namespace WPF_LoginForm.ViewModels
             });
         }
 
-        private readonly Random _random = new Random();
+        private DateTime GetStartOfWeek(DateTime dt, DayOfWeek startOfWeek) => dt.AddDays(-1 * ((7 + (dt.DayOfWeek - startOfWeek)) % 7)).Date;
 
         private Brush GetNewBrush() => new SolidColorBrush(Color.FromRgb((byte)_random.Next(100, 256), (byte)_random.Next(100, 256), (byte)_random.Next(100, 256)));
 
-        private DateTime GetStartOfWeek(DateTime dt, DayOfWeek startOfWeek) => dt.AddDays(-1 * ((7 + (dt.DayOfWeek - startOfWeek)) % 7)).Date;
-
-        private void ImportConfiguration()
-        { var openFileDialog = new OpenFileDialog { Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*", Title = "Import Dashboard" }; if (openFileDialog.ShowDialog() == true) { try { string json = File.ReadAllText(openFileDialog.FileName); var snapshot = JsonConvert.DeserializeObject<DashboardSnapshot>(json); if (snapshot.SeriesData != null && snapshot.SeriesData.Any(s => s.DataPoints != null && s.DataPoints.Any())) { LoadDashboardFromSnapshot(snapshot); } else { _dashboardConfigurations = snapshot.Configurations; Activate(); } } catch (Exception ex) { MessageBox.Show($"Error loading dashboard file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error); } } }
-
-        private void ExportConfiguration()
-        { if (_dashboardConfigurations == null || !_dashboardConfigurations.Any()) { MessageBox.Show("No configuration to export", "Information", MessageBoxButton.OK, MessageBoxImage.Information); return; } var snapshot = new DashboardSnapshot { StartDate = this.StartDate, EndDate = this.EndDate, Configurations = _dashboardConfigurations }; Action<SeriesCollection, int> captureSeries = (seriesCollection, position) => { foreach (var series in seriesCollection.Cast<Series>()) { var seriesSnapshot = new ChartSeriesSnapshot { ChartPosition = position, SeriesTitle = series.Title, DataPoints = IsSnapshotExport ? series.Values.Cast<object>().ToList() : new List<object>() }; if (series is LineSeries lineSeries) seriesSnapshot.HexColor = BrushToHex(lineSeries.Stroke); else if (series is ColumnSeries columnSeries) seriesSnapshot.HexColor = BrushToHex(columnSeries.Fill); else if (series is PieSeries pieSeries) seriesSnapshot.HexColor = BrushToHex(pieSeries.Fill); snapshot.SeriesData.Add(seriesSnapshot); } }; captureSeries(Chart1Series, 1); captureSeries(Chart2Series, 2); captureSeries(Chart3Series, 3); captureSeries(Chart4Series, 4); captureSeries(Chart5Series, 5); var saveFileDialog = new SaveFileDialog { Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*", DefaultExt = ".json", Title = "Export Dashboard" }; if (saveFileDialog.ShowDialog() == true) { try { string json = JsonConvert.SerializeObject(snapshot, Formatting.Indented); File.WriteAllText(saveFileDialog.FileName, json); } catch (Exception ex) { MessageBox.Show($"Error saving dashboard file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error); } } }
-
-        private void LoadDashboardFromSnapshot(DashboardSnapshot snapshot)
-        { if (snapshot == null) return; _dashboardConfigurations = snapshot.Configurations; Activate(); ClearAndReinitializeAxes(); foreach (var seriesSnapshot in snapshot.SeriesData) { var config = _dashboardConfigurations.FirstOrDefault(c => c.ChartPosition == seriesSnapshot.ChartPosition); if (config == null) continue; Series newSeries = null; var seriesColor = HexToBrush(seriesSnapshot.HexColor); try { if (config.ChartType == "Line" && config.DataStructureType == "Daily Date") { var values = new ChartValues<DateTimePoint>(); values.AddRange(seriesSnapshot.DataPoints.Cast<JObject>().Select(jo => jo.ToObject<DateTimePoint>())); newSeries = new LineSeries { Title = seriesSnapshot.SeriesTitle, Values = values, PointGeometry = DefaultGeometries.None, Stroke = seriesColor }; } else { var values = new ChartValues<double>(); values.AddRange(seriesSnapshot.DataPoints.Select(p => Convert.ToDouble(p))); if (config.ChartType == "Line") { newSeries = new LineSeries { Title = seriesSnapshot.SeriesTitle, Values = values, PointGeometry = DefaultGeometries.None, Stroke = seriesColor }; } else if (config.ChartType == "Bar") { newSeries = new ColumnSeries { Title = seriesSnapshot.SeriesTitle, Values = values, Fill = seriesColor }; } else if (config.ChartType == "Pie") { newSeries = new PieSeries { Title = seriesSnapshot.SeriesTitle, Values = values, DataLabels = true, LabelPoint = chartPoint => string.Format("{0:P0}", chartPoint.Participation), Fill = seriesColor }; } } } catch (Exception ex) { MessageBox.Show($"Could not load data for series '{seriesSnapshot.SeriesTitle}': {ex.Message}", "Import Warning", MessageBoxButton.OK, MessageBoxImage.Warning); continue; } if (newSeries == null) continue; switch (seriesSnapshot.ChartPosition) { case 1: Chart1Series.Add(newSeries); break; case 2: Chart2Series.Add(newSeries); break; case 3: Chart3Series.Add(newSeries); break; case 4: Chart4Series.Add(newSeries); break; case 5: Chart5Series.Add(newSeries); break; } } RebuildAxesFromConfigs(); }
-
-        private void RebuildAxesFromConfigs()
-        { var axisColor = Brushes.WhiteSmoke; var configs = _dashboardConfigurations; Action<int, AxesCollection, AxesCollection> setupAxes = (pos, xAxis, yAxis) => { var config = configs.FirstOrDefault(c => c.ChartPosition == pos && c.IsEnabled); if (config == null || config.ChartType == "Pie") return; yAxis.Clear(); xAxis.Clear(); yAxis.Add(new Axis { Title = "Values", MinValue = 0, Foreground = axisColor }); if (config.DataStructureType == "Daily Date") { var seriesCollection = (SeriesCollection)this.GetType().GetProperty($"Chart{pos}Series").GetValue(this); if (seriesCollection.Any() && seriesCollection[0].Values.Count > 0 && seriesCollection[0].Values[0] is DateTimePoint) { xAxis.Add(new Axis { LabelFormatter = DateFormatter, Separator = new Separator { IsEnabled = false }, Foreground = axisColor }); } else { xAxis.Add(new Axis { Separator = new Separator { IsEnabled = false }, Foreground = axisColor }); } } else { xAxis.Add(new Axis { Separator = new Separator { IsEnabled = false }, Foreground = axisColor }); } }; setupAxes(1, Chart1X, Chart1Y); setupAxes(2, Chart2X, Chart2Y); setupAxes(3, Chart3X, Chart3Y); setupAxes(5, Chart5X, Chart5Y); }
-
         private string BrushToHex(Brush brush)
-        { if (brush is SolidColorBrush scb) { return scb.Color.ToString(); } return "#808080"; }
+        {
+            if (brush is SolidColorBrush scb) { return scb.Color.ToString(); }
+            return "#808080";
+        }
 
         private Brush HexToBrush(string hexColor)
-        { if (string.IsNullOrEmpty(hexColor)) return new SolidColorBrush(Colors.Gray); try { return (Brush)new BrushConverter().ConvertFrom(hexColor); } catch { return new SolidColorBrush(Colors.Gray); } }
+        {
+            if (string.IsNullOrEmpty(hexColor)) return new SolidColorBrush(Colors.Gray);
+            try { return (Brush)new BrushConverter().ConvertFrom(hexColor); }
+            catch { return new SolidColorBrush(Colors.Gray); }
+        }
+
+        private void RebuildAxesFromConfigs()
+        {
+            var axisColor = Brushes.WhiteSmoke;
+            var configs = _dashboardConfigurations;
+            Action<int, AxesCollection, AxesCollection> setupAxes = (pos, xAxis, yAxis) =>
+            {
+                var config = configs.FirstOrDefault(c => c.ChartPosition == pos && c.IsEnabled);
+                if (config == null || config.ChartType == "Pie") return;
+                yAxis.Clear(); xAxis.Clear();
+                yAxis.Add(new Axis { Title = "Values", MinValue = 0, Foreground = axisColor });
+                if (config.DataStructureType == "Daily Date")
+                {
+                    var seriesCollection = (SeriesCollection)this.GetType().GetProperty($"Chart{pos}Series").GetValue(this);
+                    if (seriesCollection.Any() && seriesCollection[0].Values.Count > 0 && seriesCollection[0].Values[0] is DateTimePoint)
+                    {
+                        xAxis.Add(new Axis { LabelFormatter = DateFormatter, Separator = new Separator { IsEnabled = false }, Foreground = axisColor });
+                    }
+                    else { xAxis.Add(new Axis { Separator = new Separator { IsEnabled = false }, Foreground = axisColor }); }
+                }
+                else { xAxis.Add(new Axis { Separator = new Separator { IsEnabled = false }, Foreground = axisColor }); }
+            };
+            setupAxes(1, Chart1X, Chart1Y);
+            setupAxes(2, Chart2X, Chart2Y);
+            setupAxes(3, Chart3X, Chart3Y);
+            setupAxes(5, Chart5X, Chart5Y);
+        }
 
         private async void ShowConfigurationWindow()
-        { var configViewModel = new ConfigurationViewModel(_dataRepository); await configViewModel.InitializeAsync(); configViewModel.LoadConfigurations(_dashboardConfigurations); if (_dialogService.ShowConfigurationDialog(configViewModel)) { _dashboardConfigurations = configViewModel.GetFinalConfigurations(); Activate(); } }
+        {
+            var configViewModel = new ConfigurationViewModel(_dataRepository);
+            await configViewModel.InitializeAsync();
+            configViewModel.LoadConfigurations(_dashboardConfigurations);
+            if (_dialogService.ShowConfigurationDialog(configViewModel))
+            {
+                _dashboardConfigurations = configViewModel.GetFinalConfigurations();
+                Activate();
+                AutoSave();
+            }
+        }
+
+        private void ImportConfiguration()
+        {
+            var openFileDialog = new OpenFileDialog { Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*", Title = "Import Dashboard" };
+            if (openFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    string json = File.ReadAllText(openFileDialog.FileName);
+                    var snapshot = JsonConvert.DeserializeObject<DashboardSnapshot>(json);
+                    if (snapshot.SeriesData != null && snapshot.SeriesData.Any()) LoadDashboardFromSnapshot(snapshot);
+                    else { _dashboardConfigurations = snapshot.Configurations; Activate(); AutoSave(); }
+                }
+                catch (Exception ex) { MessageBox.Show($"Error loading: {ex.Message}"); }
+            }
+        }
+
+        private void ExportConfiguration()
+        {
+            if (_dashboardConfigurations == null || !_dashboardConfigurations.Any()) return;
+            var snapshot = new DashboardSnapshot { StartDate = this.StartDate, EndDate = this.EndDate, Configurations = _dashboardConfigurations };
+            // Capture logic
+            Action<SeriesCollection, int> captureSeries = (seriesCollection, position) =>
+            {
+                foreach (var series in seriesCollection.Cast<Series>())
+                {
+                    var seriesSnapshot = new ChartSeriesSnapshot { ChartPosition = position, SeriesTitle = series.Title, DataPoints = IsSnapshotExport ? series.Values.Cast<object>().ToList() : new List<object>() };
+                    if (series is LineSeries lineSeries) seriesSnapshot.HexColor = BrushToHex(lineSeries.Stroke);
+                    else if (series is ColumnSeries columnSeries) seriesSnapshot.HexColor = BrushToHex(columnSeries.Fill);
+                    else if (series is PieSeries pieSeries) seriesSnapshot.HexColor = BrushToHex(pieSeries.Fill);
+                    snapshot.SeriesData.Add(seriesSnapshot);
+                }
+            };
+            captureSeries(Chart1Series, 1); captureSeries(Chart2Series, 2); captureSeries(Chart3Series, 3); captureSeries(Chart4Series, 4); captureSeries(Chart5Series, 5);
+
+            var saveFileDialog = new SaveFileDialog { Filter = "JSON Files (*.json)|*.json", DefaultExt = ".json" };
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                try { string json = JsonConvert.SerializeObject(snapshot, Formatting.Indented); File.WriteAllText(saveFileDialog.FileName, json); }
+                catch (Exception ex) { MessageBox.Show($"Error saving: {ex.Message}"); }
+            }
+        }
+
+        private void LoadDashboardFromSnapshot(DashboardSnapshot snapshot)
+        {
+            if (snapshot == null) return;
+            _dashboardConfigurations = snapshot.Configurations;
+            Activate();
+            ClearAndReinitializeAxes();
+            foreach (var seriesSnapshot in snapshot.SeriesData)
+            {
+                var config = _dashboardConfigurations.FirstOrDefault(c => c.ChartPosition == seriesSnapshot.ChartPosition);
+                if (config == null) continue;
+                Series newSeries = null;
+                var seriesColor = HexToBrush(seriesSnapshot.HexColor);
+                try
+                {
+                    if (config.ChartType == "Line" && config.DataStructureType == "Daily Date")
+                    {
+                        var values = new ChartValues<DateTimePoint>();
+                        values.AddRange(seriesSnapshot.DataPoints.Cast<JObject>().Select(jo => jo.ToObject<DateTimePoint>()));
+                        newSeries = new LineSeries { Title = seriesSnapshot.SeriesTitle, Values = values, PointGeometry = DefaultGeometries.None, Stroke = seriesColor };
+                    }
+                    else
+                    {
+                        var values = new ChartValues<double>();
+                        values.AddRange(seriesSnapshot.DataPoints.Select(p => Convert.ToDouble(p)));
+                        if (config.ChartType == "Line") newSeries = new LineSeries { Title = seriesSnapshot.SeriesTitle, Values = values, PointGeometry = DefaultGeometries.None, Stroke = seriesColor };
+                        else if (config.ChartType == "Bar") newSeries = new ColumnSeries { Title = seriesSnapshot.SeriesTitle, Values = values, Fill = seriesColor };
+                        else if (config.ChartType == "Pie") newSeries = new PieSeries { Title = seriesSnapshot.SeriesTitle, Values = values, DataLabels = true, LabelPoint = chartPoint => string.Format("{0:P0}", chartPoint.Participation), Fill = seriesColor };
+                    }
+                }
+                catch { continue; }
+                if (newSeries == null) continue;
+                switch (seriesSnapshot.ChartPosition)
+                {
+                    case 1: Chart1Series.Add(newSeries); break;
+                    case 2: Chart2Series.Add(newSeries); break;
+                    case 3: Chart3Series.Add(newSeries); break;
+                    case 4: Chart4Series.Add(newSeries); break;
+                    case 5: Chart5Series.Add(newSeries); break;
+                }
+            }
+            RebuildAxesFromConfigs();
+        }
     }
 }

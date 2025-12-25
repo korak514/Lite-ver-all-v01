@@ -106,9 +106,15 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.tr.resx</DependentUpon>
     </Compile>
+    <Compile Include="Services\DashboardStorageService.cs" />
+    <Compile Include="Services\Database\DatabaseBootstrapper.cs" />
     <Compile Include="ViewModels\HelpViewModel.cs" />
+    <Compile Include="ViewModels\HierarchyImportViewModel.cs" />
     <Compile Include="Views\HelpView.xaml.cs">
       <DependentUpon>HelpView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\HierarchyImportWindow.xaml.cs">
+      <DependentUpon>HierarchyImportWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\SettingsView.xaml.cs">
       <DependentUpon>SettingsView.xaml</DependentUpon>
@@ -261,6 +267,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\HelpView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\HierarchyImportWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -2,142 +2,154 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:fa="http://schemas.fontawesome.io/icons/"
                     xmlns:sharp="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp">
-    <!-- Correct FontAwesome namespace -->
 
-    <!-- Menu button -->
+    <!-- Menu Button (Sidebar) -->
     <Style x:Key="menuButton" TargetType="RadioButton">
-        <!-- Normal button style -->
-        <Setter Property="Height" Value="50"/>
-        <Setter Property="Margin" Value="-5,0,0,5"/>
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource plainTextColor3}"/>
-        <!-- Ensure this resource exists -->
-        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="Height" Value="50" />
+        <Setter Property="Margin" Value="-5,0,0,5" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource color5}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <Border Background="{TemplateBinding Background}"
                             BorderThickness="4,0,0,0"
                             BorderBrush="{TemplateBinding BorderBrush}">
-                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" />
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
         <Style.Triggers>
-            <!-- Button Style on hover -->
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Margin" Value="0,0,0,5"/>
-                <Setter Property="Background" Value="{StaticResource panelOverColor}"/>
-                <!-- Ensure this resource exists -->
-                <Setter Property="Foreground" Value="{StaticResource titleColor3}"/>
-                <!-- Ensure this resource exists -->
-                <Setter Property="BorderBrush" Value="{Binding Path=Tag, RelativeSource={RelativeSource Self}}"/>
+                <Setter Property="Background" Value="{StaticResource panelOverColor}" />
+                <Setter Property="Foreground" Value="{StaticResource titleColor3}" />
+                <Setter Property="BorderBrush" Value="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" />
             </Trigger>
-            <!-- Activated button style -->
             <Trigger Property="IsChecked" Value="True">
-                <Setter Property="Margin" Value="0,0,0,5"/>
-                <Setter Property="Background" Value="{StaticResource panelActiveColor}"/>
-                <!-- Ensure this resource exists -->
-                <Setter Property="Foreground" Value="{Binding Path=Tag, RelativeSource={RelativeSource Self}}"/>
-                <Setter Property="BorderBrush" Value="{Binding Path=Tag, RelativeSource={RelativeSource Self}}"/>
+                <Setter Property="Background" Value="{StaticResource panelActiveColor}" />
+                <Setter Property="Foreground" Value="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" />
+                <Setter Property="BorderBrush" Value="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" />
             </Trigger>
         </Style.Triggers>
     </Style>
 
-    <!--Control bar button-->
+    <!-- Standard Action Button -->
+    <Style x:Key="StandardButtonStyle" TargetType="Button">
+        <Setter Property="Height" Value="40" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="{StaticResource panelColor}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource HoverLightBlueBrush}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{StaticResource PressedBlueBrush}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.5" />
+                <Setter Property="Cursor" Value="No" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Window Control Button (Minimize/Close Base) -->
+    <Style x:Key="WindowControlButtonStyle" TargetType="Button">
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="20" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="10">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource ButtonHoverBrush}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{StaticResource ButtonPressedBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Window Close Button -->
+    <Style x:Key="WindowCloseButtonStyle" TargetType="Button" BasedOn="{StaticResource WindowControlButtonStyle}">
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource DangerBrush}" />
+                <Setter Property="Foreground" Value="White" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{StaticResource DangerHoverBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Generic Control Bar Button -->
     <Style x:Key="controlButton" TargetType="Button">
-        <Setter Property="Width" Value="35"/>
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource plainTextColor3}"/>
+        <Setter Property="Width" Value="35" />
+        <Setter Property="Height" Value="25" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource plainTextColor3}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}"
-                            CornerRadius="4">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
         <Style.Triggers>
-            <!--Button Style on hover-->
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{StaticResource panelActiveColor}"/>
-                <Setter Property="Foreground" Value="{Binding Path=Tag, RelativeSource={RelativeSource Self}}"/>
+                <Setter Property="Background" Value="{StaticResource panelActiveColor}" />
+                <Setter Property="Foreground" Value="White" />
             </Trigger>
         </Style.Triggers>
     </Style>
 
-    <!-- Menu button icon -->
+    <!-- Icons -->
     <Style x:Key="menuButtonIcon" TargetType="fa:ImageAwesome">
-        <!-- Correct TargetType -->
-        <Setter Property="Foreground" Value="{Binding Path=Tag, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
-        <Setter Property="Width" Value="22"/>
-        <Setter Property="Height" Value="22"/>
-        <Setter Property="Margin" Value="35,0,20,0"/>
+        <Setter Property="Foreground" Value="{Binding Path=Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+        <Setter Property="Width" Value="22" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Margin" Value="35,0,20,0" />
     </Style>
 
-    <!-- Dash button icon -->
-    <Style x:Key="DashIcon" TargetType="fa:ImageAwesome">
-        <!-- Correct TargetType -->
-        <Setter Property="Foreground" Value="{StaticResource titleColor2}"/>
-        <Setter Property="Width" Value="22"/>
-        <Setter Property="Height" Value="22"/>
-        <Setter Property="Margin" Value="35,0,20,0"/>
-    </Style>
-
-    <!--Icon button-->
-    <Style x:Key="iconButton" TargetType="Button">
-        <!--Normal button style-->
-        <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="Width" Value="25"/>
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource plainTextColor1}"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-        <Style.Triggers>
-            <!--Button Style on hover-->
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Foreground" Value="{Binding Path=Tag, RelativeSource={RelativeSource Self}}"/>
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-
-    <!--Menu button icon-->
-    <Style x:Key="iconButtonIcon" TargetType="sharp:IconImage">
-        <Setter Property="Foreground" Value="{Binding Path=Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-        <Setter Property="Width" Value="16"/>
-        <Setter Property="Height" Value="16"/>
-    </Style>
-
-    <!-- Menu button text -->
     <Style x:Key="menuButtonText" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="{Binding Path=Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
-        <Setter Property="FontFamily" Value="Montserrat"/>
-        <Setter Property="FontWeight" Value="Medium"/>
-        <Setter Property="FontSize" Value="15.5"/>
-        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{Binding Path=Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+        <Setter Property="FontFamily" Value="Montserrat" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="FontSize" Value="15.5" />
+        <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
-    <!-- Menu button text -->
-    <Style x:Key="DashText" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="{StaticResource titleColor2}"/>
-        <Setter Property="FontFamily" Value="Montserrat"/>
-        <Setter Property="FontWeight" Value="Medium"/>
-        <Setter Property="FontSize" Value="15.5"/>
-        <Setter Property="VerticalAlignment" Value="Center"/>
+    <Style x:Key="DashIcon" TargetType="fa:ImageAwesome">
+        <Setter Property="Foreground" Value="{StaticResource titleColor2}" />
+        <Setter Property="Width" Value="22" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Margin" Value="35,0,20,0" />
     </Style>
-
-
-    <!-- new paste -->
-
-
 </ResourceDictionary>

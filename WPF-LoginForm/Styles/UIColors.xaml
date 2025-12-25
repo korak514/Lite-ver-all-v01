@@ -1,7 +1,6 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!--Background Extra Colors-->
-
     <Color x:Key="exColor1">#060501</Color>
     <Color x:Key="exColor4">#2F2707</Color>
     <Color x:Key="exColor2">#16640D</Color>
@@ -9,94 +8,73 @@
 
     <!--Background Colors-->
     <Color x:Key="primaryBackColor1">#4D9939</Color>
-
     <Color x:Key="primaryBackColor2">#060543</Color>
-
     <Color x:Key="primaryBackColor3">#215C0E</Color>
     <Color x:Key="primaryBackColor4">#179F15</Color>
 
     <Color x:Key="secondaryBackColor1">#12A10B</Color>
     <Color x:Key="secondaryBackColor2">#030347</Color>
+
     <!--Window Border Colors-->
     <Color x:Key="winBorderColor1">#2C610C</Color>
     <Color x:Key="winBorderColor2">#33730D</Color>
     <Color x:Key="winBorderColor3">#49A956</Color>
 
     <!--Color Palette-->
-    <SolidColorBrush x:Key="color1" Color="#1D348C"/>
-    <!-- Dark blue-gray -->
-    <SolidColorBrush x:Key="color2" Color="#2B3F8B"/>
-    <!-- Slightly lighter blue-gray -->
-    <SolidColorBrush x:Key="color3" Color="#29426B"/>
-    <!-- Medium blue-gray -->
-    <SolidColorBrush x:Key="color4" Color="#0C7081"/>
-    <!-- Light blue-gray -->
-    <SolidColorBrush x:Key="color5" Color="#14BB14"/>
-    <!-- Warm beige (transition to orange) -->
-    <SolidColorBrush x:Key="color6" Color="#FFC047"/>
-    <!-- Bright orange -->
+    <SolidColorBrush x:Key="color1" Color="#1D348C" />
+    <SolidColorBrush x:Key="color2" Color="#2B3F8B" />
+    <SolidColorBrush x:Key="color3" Color="#29426B" />
+    <SolidColorBrush x:Key="color4" Color="#0C7081" />
+    <SolidColorBrush x:Key="color5" Color="#14BB14" />
+    <SolidColorBrush x:Key="color6" Color="#FFC047" />
+    <SolidColorBrush x:Key="color7" Color="#EF6C96" />
+    <SolidColorBrush x:Key="color8" Color="#78A3FC" />
+    <SolidColorBrush x:Key="color9" Color="#07F3C0" />
+    <SolidColorBrush x:Key="color10" Color="#FBA1AA" />
 
-    <SolidColorBrush x:Key="color7" Color="#EF6C96"/>
-    <SolidColorBrush x:Key="color8" Color="#78A3FC"/>
-    <SolidColorBrush x:Key="color9" Color="#07F3C0"/>
-    <SolidColorBrush x:Key="color10" Color="#FBA1AA"/>
     <!--Font Colors-->
-    <SolidColorBrush x:Key="titleColor1" Color="#E0E1F1"/>
+    <SolidColorBrush x:Key="titleColor1" Color="#E0E1F1" />
+    <SolidColorBrush x:Key="titleColor2" Color="#B2ABD4" />
+    <SolidColorBrush x:Key="titleColor3" Color="#BCBEE0" />
+    <SolidColorBrush x:Key="plainTextColor1" Color="#9497CD" />
+    <SolidColorBrush x:Key="plainTextColor2" Color="#7C80C2" />
+    <SolidColorBrush x:Key="plainTextColor3" Color="#65B48B" />
 
-    <SolidColorBrush x:Key="titleColor2" Color="#B2ABD4"/>
-
-    <SolidColorBrush x:Key="titleColor3" Color="#BCBEE0"/>
-    <SolidColorBrush x:Key="plainTextColor1" Color="#9497CD"/>
-    <SolidColorBrush x:Key="plainTextColor2" Color="#7C80C2"/>
-    <SolidColorBrush x:Key="plainTextColor3" Color="#65B48B"/>
     <!--Panel Colors-->
-    <SolidColorBrush x:Key="panelColor" Color="#18CE26"/>
-    <SolidColorBrush x:Key="panelOverColor" Color="#0B9F30"/>
-    <SolidColorBrush x:Key="panelActiveColor" Color="#0B9F72"/>
-    <!--Button Colors-->
+    <SolidColorBrush x:Key="panelColor" Color="#18CE26" />
+    <SolidColorBrush x:Key="panelOverColor" Color="#0B9F30" />
+    <SolidColorBrush x:Key="panelActiveColor" Color="#0B9F72" />
 
-    <!-- Text color -->
+    <!-- === NEW: Action Button Hover Colors (REQUIRED) === -->
+    <SolidColorBrush x:Key="HoverLightBlueBrush" Color="#5E85C9" />
+    <SolidColorBrush x:Key="PressedBlueBrush" Color="#3A5F9E" />
 
-    <!-- Border color -->
+    <!-- === NEW: Window Control Hover Colors (REQUIRED) === -->
+    <SolidColorBrush x:Key="ButtonHoverBrush" Color="#20FFFFFF" />
+    <SolidColorBrush x:Key="ButtonPressedBrush" Color="#40FFFFFF" />
+    <SolidColorBrush x:Key="DangerBrush" Color="#D14575" />
+    <SolidColorBrush x:Key="DangerHoverBrush" Color="#D14F59" />
 
-    <!-- Button border color-->
-
-
-    <!--TextBox Colors-->
-    <!--Etc-->
-    <!-- === NEW STATUS COLORS === -->
-    <SolidColorBrush x:Key="statusAddedColor" Color="#68C1A1" />
-    <!-- A light green color -->
+    <!-- Status Colors -->
+    <SolidColorBrush x:Key="statusAddedColor" Color="#4F977D" />
     <SolidColorBrush x:Key="statusModifiedColor" Color="#9CCF46" />
-    <!-- A light yellow color -->
     <SolidColorBrush x:Key="statusEditableColor" Color="#AEAEE9" />
-    <!-- A light blue/cyan color -->
-
 
     <Color x:Key="PrimaryColor">#030347</Color>
-    <!-- Teal -->
     <Color x:Key="SecondaryColor">#FF303060</Color>
-    <!-- Dark Blue -->
     <Color x:Key="AccentColor">#FFF0B400</Color>
     <Color x:Key="exbhColor1">#1A9B38</Color>
     <Color x:Key="exbhColor2">#21A316</Color>
-
-
-
 
     <LinearGradientBrush x:Key="Brush1" StartPoint="0,0" EndPoint="1,1">
         <GradientStop Color="{StaticResource SecondaryColor}" Offset="0.0" />
         <GradientStop Color="{StaticResource exbhColor1}" Offset="0.4" />
         <GradientStop Color="{StaticResource winBorderColor1}" Offset="0.6" />
         <GradientStop Color="{StaticResource SecondaryColor}" Offset="1" />
-
     </LinearGradientBrush>
 
-    <!-- Example: Another gradient (e.g., Vertical) -->
     <LinearGradientBrush x:Key="Brush2" StartPoint="0.5,0" EndPoint="0.5,1">
         <GradientStop Color="#FF404070" Offset="0.0" />
-        <!-- Slightly lighter blue -->
         <GradientStop Color="{StaticResource SecondaryColor}" Offset="0.8" />
     </LinearGradientBrush>
-
 </ResourceDictionary>

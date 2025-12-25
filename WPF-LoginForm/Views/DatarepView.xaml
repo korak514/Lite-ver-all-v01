@@ -42,11 +42,16 @@
 
         <Border Grid.Row="0" BorderBrush="LightGray" BorderThickness="0 0 0 2" Padding="10">
             <ToolBarTray IsLocked="True">
+
                 <!-- Toolbar 1: Main Actions -->
                 <ToolBar Band="1" BandIndex="1" ToolBar.OverflowMode="Never">
                     <Label Content="{x:Static p:Resources.Table}" VerticalAlignment="Center" />
                     <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable, Mode=TwoWay}" DisplayMemberPath="." MinWidth="150" VerticalAlignment="Center" Margin="0,0,5,0" />
-                    <Button Content="{x:Static p:Resources.Delete}" ToolTip="Permanently delete table" Margin="0,0,10,0" Command="{Binding DeleteTableCommand}" Foreground="Red" />
+
+                    <Button Content="{x:Static p:Resources.Delete}" ToolTip="Permanently delete table" Margin="0,0,10,0" Command="{Binding DeleteTableCommand}" Foreground="Red"
+                            Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                    <!-- Create Table Removed from Here -->
 
                     <Button Content="{x:Static p:Resources.Add}" ToolTip="Add New Row" Margin="4,0" Command="{Binding AddNewRowCommand}" />
                     <Button Content="{x:Static p:Resources.Delete}" ToolTip="Delete Selected Row(s)" Margin="4,0" Command="{Binding DeleteSelectedRowCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" />
@@ -55,12 +60,12 @@
                     <Button Content="{x:Static p:Resources.Undo}" ToolTip="Undo Local Changes" Margin="4,0" Command="{Binding UndoChangesCommand}" IsEnabled="{Binding UndoChangesCommand.CanExecute, Mode=OneWay}" />
                     <Button Content="{x:Static p:Resources.Reload}" ToolTip="Reload Data" Margin="4,0" Command="{Binding ReloadDataCommand}" />
                     <Button Content="{x:Static p:Resources.Edit}" ToolTip="Enable Editing" Margin="4,0" Command="{Binding EditSelectedRowsCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" />
-                    <Button Content="Select All" ToolTip="Select All Rows" Margin="4,0,0,0" Click="SelectAllButton_Click" />
+                    <Button Content="{x:Static p:Resources.SelectAll}" ToolTip="Select All Rows" Margin="4,0,0,0" Click="SelectAllButton_Click" />
                 </ToolBar>
 
                 <!-- Toolbar 2: Filtering and Display -->
                 <ToolBar Band="2" BandIndex="1" ToolBar.OverflowMode="Never">
-                    <Label Content="Quick Search:" VerticalAlignment="Center" />
+                    <Label Content="{x:Static p:Resources.QuickSearch}" VerticalAlignment="Center" />
                     <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" MinWidth="170" VerticalAlignment="Center" />
 
                     <ToggleButton IsChecked="{Binding IsColumnSelectorVisible, Mode=TwoWay}" ToolTip="Options" Margin="4,0,0,0">
@@ -70,19 +75,14 @@
                     <ComboBox ItemsSource="{Binding SearchableColumns}" SelectedItem="{Binding SelectedSearchColumn, Mode=TwoWay}" MinWidth="140" VerticalAlignment="Center" Margin="2,0,5,0"
                               Visibility="{Binding IsColumnSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                    <!-- ID Controls (Visible when gear clicked) -->
                     <StackPanel Orientation="Horizontal" Visibility="{Binding IsColumnSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Button Content="{x:Static p:Resources.AddId}"
-                                Command="{Binding AddIdColumnCommand}"
-                                Margin="5,0" Background="#FFF0F0F0" BorderBrush="Gray" />
+                        <Button Content="{x:Static p:Resources.AddId}" Command="{Binding AddIdColumnCommand}" Margin="5,0" Background="#FFF0F0F0" BorderBrush="Gray" />
+                        <CheckBox Content="{x:Static p:Resources.HideId}" IsChecked="{Binding IsIdHidden, Mode=TwoWay}" VerticalAlignment="Center" Margin="5,0" />
+                        <CheckBox Content="{x:Static p:Resources.EditId}" IsChecked="{Binding IsIdEditable, Mode=TwoWay}" VerticalAlignment="Center" Margin="5,0" />
 
-                        <CheckBox Content="{x:Static p:Resources.HideId}"
-                                  IsChecked="{Binding IsIdHidden, Mode=TwoWay}"
-                                  VerticalAlignment="Center" Margin="5,0" />
-
-                        <CheckBox Content="{x:Static p:Resources.EditId}"
-                                  IsChecked="{Binding IsIdEditable, Mode=TwoWay}"
-                                  VerticalAlignment="Center" Margin="5,0" />
+                        <!-- Toggle for Advanced Imports -->
+                        <CheckBox Content="Show Adv. Import" IsChecked="{Binding IsAdvancedImportVisible, Mode=TwoWay}" VerticalAlignment="Center" Margin="10,0,5,0"
+                                  ToolTip="Show Import Table/Map buttons" />
                     </StackPanel>
 
                     <Button Content="{x:Static p:Resources.Clear}" ToolTip="Clear Search" Margin="4,0" Command="{Binding ClearSearchCommand}" />
@@ -96,8 +96,24 @@
 
                     <Separator Margin="4,0" />
                     <Button Content="{x:Static p:Resources.Import}" ToolTip="Import Data" Margin="4,0" Command="{Binding ImportDataCommand}" />
-                    <Button Content="Import Table" ToolTip="Advanced Import" Margin="4,0" Command="{Binding ShowAdvancedImportCommand}" />
+
+                    <!-- Advanced Buttons (Hidden by Default) -->
+                    <Button Content="Import Table" ToolTip="Advanced Import" Margin="4,0"
+                            Command="{Binding ShowAdvancedImportCommand}"
+                            Visibility="{Binding IsAdvancedImportVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                    <Button ToolTip="Import Data Entry Logic" Margin="4,0"
+                            Command="{Binding ShowHierarchyImportCommand}"
+                            Visibility="{Binding IsAdvancedImportVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <fa:ImageAwesome Icon="Sitemap" Height="14" Foreground="DimGray" Margin="0,0,5,0" />
+                            <TextBlock Text="Import Map" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- REVERTED: Create Table is back here -->
                     <Button Content="Create Table..." ToolTip="Create New Table" Margin="4,0" Command="{Binding ShowCreateTableCommand}" />
+
                     <Button Content="{x:Static p:Resources.Export}" ToolTip="Export Data" Margin="4,0" Command="{Binding ExportDataCommand}" />
                     <Separator Margin="4,0" />
                     <Button Content="A-" Margin="4,0" Command="{Binding DecreaseFontSizeCommand}" />
@@ -153,6 +169,11 @@
                       HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Auto"
                       FontSize="{Binding DataGridFontSize, FallbackValue=12}"
+                      EnableRowVirtualization="True"
+                      EnableColumnVirtualization="True"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      ScrollViewer.CanContentScroll="True"
                       AutoGeneratingColumn="DataDisplayGrid_AutoGeneratingColumn"
                       BeginningEdit="DataDisplayGrid_BeginningEdit"
                       Sorting="DataDisplayGrid_Sorting">

@@ -1,26 +1,21 @@
-﻿// In WPF_LoginForm.Models/ChartSeriesSnapshot.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace WPF_LoginForm.Models
 {
-    /// <summary>
-    /// Represents a snapshot of a single data series from a chart,
-    /// including its data points and visual styling for import/export.
-    /// </summary>
-    public class ChartSeriesSnapshot
+    public class DashboardSnapshot
     {
-        // The position of the chart this series belongs to (e.g., 1 through 5)
-        public int ChartPosition { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
 
-        // The title of the series (e.g., "Sales", "Inventory")
-        public string SeriesTitle { get; set; }
+        // Advanced Filters
+        public bool IsFilterByDate { get; set; } = true;
 
-        // The color of the series, stored as a hex string (e.g., "#FF0078D7")
-        public string HexColor { get; set; }
+        public bool IgnoreNonDateData { get; set; } = true;
+        public bool UseIdToDateConversion { get; set; } = false;
+        public DateTime InitialDateForConversion { get; set; } = DateTime.Today;
 
-        // The actual data points for the series. Stored as a list of objects
-        // to accommodate different data types (like DateTimePoint, double, etc.).
-        public List<object> DataPoints { get; set; } = new List<object>();
+        public List<DashboardConfiguration> Configurations { get; set; } = new List<DashboardConfiguration>();
+        public List<ChartSeriesSnapshot> SeriesData { get; set; } = new List<ChartSeriesSnapshot>();
     }
 }

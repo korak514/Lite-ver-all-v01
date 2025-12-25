@@ -58,8 +58,8 @@
                 <Grid Grid.Row="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
-                        <ColumnDefinition Width="25" />
-                        <ColumnDefinition Width="25" />
+                        <ColumnDefinition Width="30" />
+                        <ColumnDefinition Width="30" />
                         <ColumnDefinition Width="5" />
                     </Grid.ColumnDefinitions>
 
@@ -67,49 +67,18 @@
                                Foreground="DarkGray" FontSize="10" FontFamily="Montserrat"
                                Grid.Column="0" VerticalAlignment="Center" Margin="10,0,0,0" />
 
-                    <Button x:Name="btnMinimize" BorderThickness="0" Content="-"
-                            Foreground="White" FontSize="16" FontFamily="Montserrat" Cursor="Hand"
-                            Grid.Column="1" Click="btnMinimize_Click">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Background" Value="#524141" />
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#278BEF" />
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border Width="18" Height="18" CornerRadius="9" Background="{TemplateBinding Background}">
-                                    <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
-                                </Border>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
+                    <!-- UPDATED: Using Standard Styles -->
+                    <Button x:Name="btnMinimize"
+                            Content="-"
+                            Style="{StaticResource WindowControlButtonStyle}"
+                            Grid.Column="1"
+                            Click="btnMinimize_Click" />
 
-                    <Button x:Name="btnClose" BorderThickness="0" Content="X"
-                            Foreground="White" FontSize="12" FontFamily="Montserrat" Cursor="Hand"
-                            Grid.Column="2" Click="btnClose_Click">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Background" Value="#88563E" />
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#C62DAE" />
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border Width="18" Height="18" CornerRadius="9" Background="{TemplateBinding Background}">
-                                    <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
-                                </Border>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
+                    <Button x:Name="btnClose"
+                            Content="X"
+                            Style="{StaticResource WindowCloseButtonStyle}"
+                            Grid.Column="2"
+                            Click="btnClose_Click" />
                 </Grid>
 
                 <StackPanel Width="220" Grid.Row="1" Orientation="Vertical" Margin="0,35,0,0">
@@ -169,6 +138,25 @@
                         <TextBlock Text="Reset" Foreground="White" FontSize="12" FontWeight="Medium" FontFamily="Montserrat" Cursor="Hand" Margin="8,0,0,0" />
                     </StackPanel>
                 </StackPanel>
+
+                <!-- Offline Settings Button -->
+                <Button Grid.Row="1"
+                        Content="--&gt; Settings"
+                        Command="{Binding OpenSettingsCommand}"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Bottom"
+                        Margin="15,0,0,15"
+                        Background="Transparent"
+                        Foreground="Gray"
+                        FontSize="12"
+                        Cursor="Hand"
+                        BorderThickness="0">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
             </Grid>
         </Border>
     </Border>

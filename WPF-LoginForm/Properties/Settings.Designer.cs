@@ -8,112 +8,162 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace WPF_LoginForm.Properties
-{
-
-
+namespace WPF_LoginForm.Properties {
+    
+    
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.0.0.0")]
-    internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase
-    {
-
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.13.0.0")]
+    public sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
+        
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
-
-        public static Settings Default
-        {
-            get
-            {
+        
+        public static Settings Default {
+            get {
                 return defaultInstance;
             }
         }
-
+        
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("SqlServer")]
-        public string DbProvider
-        {
-            get
-            {
+        public string DbProvider {
+            get {
                 return ((string)(this["DbProvider"]));
             }
-            set
-            {
+            set {
                 this["DbProvider"] = value;
             }
         }
-
+        
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("Server=(local); Database=LoginDb; Integrated Security=true")]
-        public string SqlAuthConnString
-        {
-            get
-            {
+        public string SqlAuthConnString {
+            get {
                 return ((string)(this["SqlAuthConnString"]));
             }
-            set
-            {
+            set {
                 this["SqlAuthConnString"] = value;
             }
         }
-
+        
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("Server=(local); Database=MainDataDb; Integrated Security=true")]
-        public string SqlDataConnString
-        {
-            get
-            {
+        public string SqlDataConnString {
+            get {
                 return ((string)(this["SqlDataConnString"]));
             }
-            set
-            {
+            set {
                 this["SqlDataConnString"] = value;
             }
         }
-
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Host=localhost; Username=postgres; Password=password; Database=LoginDb")]
-        public string PostgresAuthConnString
-        {
-            get
-            {
-                return ((string)(this["PostgresAuthConnString"]));
-            }
-            set
-            {
-                this["PostgresAuthConnString"] = value;
-            }
-        }
-
+        
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("Host=localhost; Username=postgres; Password=password; Database=MainDataDb")]
-        public string PostgresDataConnString
-        {
-            get
-            {
+        public string PostgresDataConnString {
+            get {
                 return ((string)(this["PostgresDataConnString"]));
             }
-            set
-            {
+            set {
                 this["PostgresDataConnString"] = value;
             }
         }
-
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Host=localhost; Username=postgres; Password=password; Database=LoginDb")]
+        public string PostgresAuthConnString {
+            get {
+                return ((string)(this["PostgresAuthConnString"]));
+            }
+            set {
+                this["PostgresAuthConnString"] = value;
+            }
+        }
+        
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("en-US")]
-        public string AppLanguage
-        {
-            get
-            {
+        public string AppLanguage {
+            get {
                 return ((string)(this["AppLanguage"]));
             }
-            set
-            {
+            set {
                 this["AppLanguage"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AutoImportEnabled {
+            get {
+                return ((bool)(this["AutoImportEnabled"]));
+            }
+            set {
+                this["AutoImportEnabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ImportIsRelative {
+            get {
+                return ((bool)(this["ImportIsRelative"]));
+            }
+            set {
+                this["ImportIsRelative"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("dashboard_config.json")]
+        public string ImportFileName {
+            get {
+                return ((string)(this["ImportFileName"]));
+            }
+            set {
+                this["ImportFileName"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string ImportAbsolutePath {
+            get {
+                return ((string)(this["ImportAbsolutePath"]));
+            }
+            set {
+                this["ImportAbsolutePath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ShowDashboardDateFilter {
+            get {
+                return ((bool)(this["ShowDashboardDateFilter"]));
+            }
+            set {
+                this["ShowDashboardDateFilter"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public int DashboardDateTickSize {
+            get {
+                return ((int)(this["DashboardDateTickSize"]));
+            }
+            set {
+                this["DashboardDateTickSize"] = value;
             }
         }
     }

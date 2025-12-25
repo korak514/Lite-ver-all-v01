@@ -187,6 +187,15 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Filter by Date:.
+        /// </summary>
+        public static string FilterbyDate {
+            get {
+                return ResourceManager.GetString("FilterbyDate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Forgot Password?.
         /// </summary>
         public static string ForgotPassword {
@@ -304,6 +313,15 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Quick Search:.
+        /// </summary>
+        public static string QuickSearch {
+            get {
+                return ResourceManager.GetString("QuickSearch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Reload.
         /// </summary>
         public static string Reload {
@@ -345,6 +363,15 @@ namespace WPF_LoginForm.Properties {
         public static string SaveSettings {
             get {
                 return ResourceManager.GetString("SaveSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select All.
+        /// </summary>
+        public static string SelectAll {
+            get {
+                return ResourceManager.GetString("SelectAll", resourceCulture);
             }
         }
         

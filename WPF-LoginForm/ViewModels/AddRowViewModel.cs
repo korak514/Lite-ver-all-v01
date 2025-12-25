@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Data; // Required for DataTable
+using System.Data;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using WPF_LoginForm.Models;
@@ -19,7 +19,7 @@ namespace WPF_LoginForm.ViewModels
             set { _windowTitle = value; OnPropertyChanged(); }
         }
 
-        // --- NEW: Date Logic ---
+        // --- Date Logic ---
         private bool _isDateToday = true;
 
         public bool IsDateToday
@@ -50,14 +50,13 @@ namespace WPF_LoginForm.ViewModels
         public ObservableCollection<ColumnEntry> ColumnEntries { get; private set; }
 
         private readonly string _idColumnName = "ID";
-        private readonly bool _autoCalculateId;
         private readonly DataTable _sourceTable;
 
         // Designer Constructor
         public AddRowViewModel()
         {
             WindowTitle = "Add New Row (Design)";
-            InitializeColumnEntries(new List<string> { "Col1", "Col2" }, null, false);
+            InitializeColumnEntries(new List<string> { "Col1", "Col2" }, null);
         }
 
         // Runtime Constructor
@@ -65,37 +64,33 @@ namespace WPF_LoginForm.ViewModels
         {
             WindowTitle = $"Add New Row to '{tableName}'";
             _sourceTable = sourceTable;
-            _autoCalculateId = hideId;
 
-            // Filter out ID column if we are hiding/auto-calculating it
-            var filteredColumns = hideId
-                ? columnNames.Where(c => !c.Equals(_idColumnName, StringComparison.OrdinalIgnoreCase))
-                : columnNames;
+            // --- CHANGED: Do NOT filter out ID. ---
+            // If the repository passed "ID" in columnNames, it means it's not AutoIncrement in the DB,
+            // so we must allow the user to see/edit it (with a calculated default).
+            var columnsToDisplay = columnNames.ToList();
 
-            // Check for Date Column to bind to the DatePicker
-            var dateCol = columnNames.FirstOrDefault(c =>
+            // Check for Date Column to bind to the DatePicker (Move out of generic list)
+            var dateCol = columnsToDisplay.FirstOrDefault(c =>
                 c.Equals("EntryDate", StringComparison.OrdinalIgnoreCase) ||
                 c.Equals("Date", StringComparison.OrdinalIgnoreCase) ||
                 c.Equals("Tarih", StringComparison.OrdinalIgnoreCase));
 
-            // If we found a date column, remove it from the list (so it doesn't show as a text box)
-            // We will add it back manually when saving.
             string dateColName = null;
             if (dateCol != null)
             {
                 dateColName = dateCol;
-                filteredColumns = filteredColumns.Where(c => c != dateColName);
+                columnsToDisplay.Remove(dateCol);
             }
 
-            InitializeColumnEntries(filteredColumns, initialValues, hideId);
+            InitializeColumnEntries(columnsToDisplay, initialValues);
 
-            // Store the name of the date column for later retrieval
             _dateTargetColumn = dateColName;
         }
 
         private string _dateTargetColumn;
 
-        private void InitializeColumnEntries(IEnumerable<string> columnNames, Dictionary<string, object> initialValues, bool hideId)
+        private void InitializeColumnEntries(IEnumerable<string> columnNames, Dictionary<string, object> initialValues)
         {
             ColumnEntries = new ObservableCollection<ColumnEntry>();
             if (columnNames == null) return;
@@ -103,57 +98,70 @@ namespace WPF_LoginForm.ViewModels
             foreach (var name in columnNames)
             {
                 var entry = new ColumnEntry(name);
+
+                // 1. Check if specific initial value provided
                 if (initialValues != null && initialValues.TryGetValue(name, out object initialValue))
                 {
                     entry.Value = initialValue;
                 }
+                // 2. NEW: If it's the ID column, calculate Max + 1 default
+                else if (name.Equals(_idColumnName, StringComparison.OrdinalIgnoreCase) && _sourceTable != null)
+                {
+                    entry.Value = CalculateNextId();
+                }
+
                 ColumnEntries.Add(entry);
             }
         }
 
+        private object CalculateNextId()
+        {
+            try
+            {
+                if (_sourceTable.Columns.Contains(_idColumnName))
+                {
+                    // Find max ID safely
+                    var ids = _sourceTable.AsEnumerable()
+                        .Select(r => r[_idColumnName])
+                        .Where(val => val != null && val != DBNull.Value)
+                        .Select(val =>
+                        {
+                            // Try to convert to int, ignore failures
+                            if (int.TryParse(val.ToString(), out int id)) return id;
+                            return 0;
+                        })
+                        .ToList();
+
+                    if (ids.Any())
+                    {
+                        return ids.Max() + 1;
+                    }
+                }
+            }
+            catch
+            {
+                // Fallback if calculation fails (e.g. GUIDs or strange types)
+            }
+            return 1; // Default if table empty
+        }
+
         public NewRowData GetEnteredData()
         {
-            var newRow = new NewRowData();
+            var newRowData = new NewRowData();
 
             // 1. Add Manual Entries
             foreach (var entry in ColumnEntries)
             {
-                newRow.Values[entry.ColumnName] = entry.Value;
+                newRowData.Values[entry.ColumnName] = entry.Value;
             }
 
             // 2. Add Date (if applicable)
             if (!string.IsNullOrEmpty(_dateTargetColumn))
             {
-                newRow.Values[_dateTargetColumn] = EntryDate;
+                newRowData.Values[_dateTargetColumn] = EntryDate;
             }
 
-            // 3. Auto Calculate ID (Max + 1)
-            if (_autoCalculateId && _sourceTable != null)
-            {
-                try
-                {
-                    // Find Max ID in the source table
-                    // We assume the column is named "ID" and is Integer
-                    int maxId = 0;
-                    if (_sourceTable.Columns.Contains(_idColumnName))
-                    {
-                        var ids = _sourceTable.AsEnumerable()
-                            .Select(r => r[_idColumnName])
-                            .Where(v => v != null && v != DBNull.Value)
-                            .Select(v => Convert.ToInt32(v))
-                            .ToList();
-
-                        if (ids.Any()) maxId = ids.Max();
-                    }
-                    newRow.Values[_idColumnName] = maxId + 1;
-                }
-                catch
-                {
-                    // If calculation fails (e.g. ID is not int), ignore or handle error
-                }
-            }
-
-            return newRow;
+            return newRowData;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

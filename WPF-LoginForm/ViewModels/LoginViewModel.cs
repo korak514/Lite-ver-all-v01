@@ -20,8 +20,10 @@ namespace WPF_LoginForm.ViewModels
         private string _errorMessage;
         private bool _isViewVisible = true;
 
-        // --- NEW PROPERTY FOR REPORT MODE ---
+        // Mode Flags
         private bool _isReportModeOnly;
+
+        private bool _isSettingsModeOnly;
 
         private IUserRepository userRepository;
         private readonly ILogger _logger;
@@ -57,20 +59,29 @@ namespace WPF_LoginForm.ViewModels
             set { _isReportModeOnly = value; OnPropertyChanged(nameof(IsReportModeOnly)); }
         }
 
+        public bool IsSettingsModeOnly
+        {
+            get { return _isSettingsModeOnly; }
+            set { _isSettingsModeOnly = value; OnPropertyChanged(nameof(IsSettingsModeOnly)); }
+        }
+
         //-> Commands
         public ICommand LoginCommand { get; }
 
         public ICommand RecoverPasswordCommand { get; }
         public ICommand ShowPasswordCommand { get; }
         public ICommand RememberPasswordCommand { get; }
+        public ICommand OpenSettingsCommand { get; }
 
         //Constructor
         public LoginViewModel()
         {
             _logger = App.GlobalLogger ?? new FileLogger("Login_Log");
             userRepository = new UserRepository();
+
             LoginCommand = new ViewModelCommand(ExecuteLoginCommand, CanExecuteLoginCommand);
             RecoverPasswordCommand = new ViewModelCommand(p => ExecuteRecoverPassCommand("", ""));
+            OpenSettingsCommand = new ViewModelCommand(ExecuteOpenSettings);
         }
 
         private bool CanExecuteLoginCommand(object obj)
@@ -81,18 +92,35 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteLoginCommand(object obj)
         {
+            IsSettingsModeOnly = false;
+
             var isValidUser = userRepository.AuthenticateUser(new NetworkCredential(Username, Password));
             if (isValidUser)
             {
-                Thread.CurrentPrincipal = new GenericPrincipal(new GenericIdentity(Username), null);
-                IsViewVisible = false;
-                _logger.LogInfo($"User '{Username}' logged in. Report Mode: {IsReportModeOnly}");
+                // --- NEW: Fetch Role and Set Principal ---
+                var user = userRepository.GetByUsername(Username);
+                string role = user?.Role ?? "User"; // Default to User if null
+
+                var identity = new GenericIdentity(Username);
+                var principal = new GenericPrincipal(identity, new string[] { role });
+                Thread.CurrentPrincipal = principal;
+                // -----------------------------------------
+
+                IsViewVisible = false; // Closes Login Window
+                _logger.LogInfo($"User '{Username}' logged in with Role '{role}'. Report Mode: {IsReportModeOnly}");
             }
             else
             {
                 ErrorMessage = "* Invalid username or password";
                 _logger.LogWarning($"Failed login attempt: '{Username}'");
             }
+        }
+
+        private void ExecuteOpenSettings(object obj)
+        {
+            IsSettingsModeOnly = true;
+            IsViewVisible = false;
+            _logger.LogInfo("User bypassed login to access Offline Settings.");
         }
 
         private void ExecuteRecoverPassCommand(string username, string email)

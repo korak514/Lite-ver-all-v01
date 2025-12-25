@@ -1,4 +1,3 @@
-// In WPF_LoginForm.ViewModels/ConfigurationViewModel.cs
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -119,7 +118,13 @@ namespace WPF_LoginForm.ViewModels
                 try
                 {
                     DataTable dataTable = await _dataRepository.GetTableDataAsync(tableName);
-                    AvailableColumns = dataTable.Columns.Cast<DataColumn>().Select(c => c.ColumnName).ToList();
+
+                    // --- MODIFIED: Filter out 'ID' column so users don't try to graph it ---
+                    AvailableColumns = dataTable.Columns
+                        .Cast<DataColumn>()
+                        .Select(c => c.ColumnName)
+                        .Where(name => !name.Equals("ID", StringComparison.OrdinalIgnoreCase))
+                        .ToList();
                 }
                 catch (Exception ex)
                 {
@@ -176,11 +181,15 @@ namespace WPF_LoginForm.ViewModels
         private bool _isSelected;
         public bool IsSelected { get => _isSelected; set => SetProperty(ref _isSelected, value); }
         public int ChartPosition => _model.ChartPosition;
-        public bool IsEnabled { get => _model.IsEnabled; set { if (_model.IsEnabled != value) { _model.IsEnabled = value; OnPropertyChanged(); } } }
-        public string TableName { get => _model.TableName; set { if (_model.TableName != value) { _model.TableName = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsTableSelected)); } } }
-        public string DateColumn { get => _model.DateColumn; set { if (_model.DateColumn != value) { _model.DateColumn = value; OnPropertyChanged(); } } }
+        public bool IsEnabled
+        { get => _model.IsEnabled; set { if (_model.IsEnabled != value) { _model.IsEnabled = value; OnPropertyChanged(); } } }
+        public string TableName
+        { get => _model.TableName; set { if (_model.TableName != value) { _model.TableName = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsTableSelected)); } } }
+        public string DateColumn
+        { get => _model.DateColumn; set { if (_model.DateColumn != value) { _model.DateColumn = value; OnPropertyChanged(); } } }
         public ObservableCollection<SeriesConfiguration> Series { get; }
-        public string AggregationType { get => _model.AggregationType; set { if (_model.AggregationType != value) { _model.AggregationType = value; OnPropertyChanged(); } } }
+        public string AggregationType
+        { get => _model.AggregationType; set { if (_model.AggregationType != value) { _model.AggregationType = value; OnPropertyChanged(); } } }
 
         public string DataStructureType
         {
@@ -210,7 +219,6 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        // --- NEW PROPERTY FOR BINDING ---
         public bool UseInvariantCultureForNumbers
         {
             get => _model.UseInvariantCultureForNumbers;

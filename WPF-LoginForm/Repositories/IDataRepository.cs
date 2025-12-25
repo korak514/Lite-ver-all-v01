@@ -11,32 +11,57 @@ namespace WPF_LoginForm.Repositories
     {
         // Schema & Metadata
         Task<List<string>> GetTableNamesAsync();
+
         Task<bool> TableExistsAsync(string tableName);
+
         Task<string> GetActualColumnNameAsync(string tableName, string p1, string p2, string p3, string p4, string coreItem);
+
         Task<(DateTime Min, DateTime Max)> GetDateRangeAsync(string tableName, string dateColumn);
 
         // Data Retrieval
         Task<DataTable> GetTableDataAsync(string tableName);
+
         Task<DataTable> GetDataAsync(string tableName, List<string> columns, string dateColumn, DateTime? startDate, DateTime? endDate);
 
-        // --- NEW: LOGS RETRIEVAL ---
+        // System Logs
         Task<DataTable> GetSystemLogsAsync();
+
         Task<bool> ClearSystemLogsAsync();
 
-        // Distinct Values
+        // Distinct Values (Hierarchy)
         Task<List<string>> GetDistinctPart1ValuesAsync(string tableName);
+
         Task<List<string>> GetDistinctPart2ValuesAsync(string tableName, string p1);
+
         Task<List<string>> GetDistinctPart3ValuesAsync(string tableName, string p1, string p2);
+
         Task<List<string>> GetDistinctPart4ValuesAsync(string tableName, string p1, string p2, string p3);
+
         Task<List<string>> GetDistinctCoreItemDisplayNamesAsync(string tableName, string p1, string p2, string p3, string p4);
+
+        // --- NEW: Hierarchy Map Management (Phase 28) ---
+        /// <summary>
+        /// Deletes all hierarchy mappings for a specific table.
+        /// </summary>
+        Task<bool> ClearHierarchyMapForTableAsync(string tableName);
+
+        /// <summary>
+        /// Imports a DataTable directly into the ColumnHierarchyMap table.
+        /// </summary>
+        Task<(bool Success, string ErrorMessage)> ImportHierarchyMapAsync(DataTable mapData);
+
+        // ------------------------------------------------
 
         // Write Operations
         Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName);
+
         Task<bool> DeleteTableAsync(string tableName);
+
         Task<(bool Success, string ErrorMessage)> AddPrimaryKeyAsync(string tableName);
 
         // Bulk / Creation
         Task<(bool Success, string ErrorMessage)> CreateTableAsync(string tableName, List<ColumnSchemaViewModel> schema);
+
         Task<(bool Success, string ErrorMessage)> BulkImportDataAsync(string tableName, DataTable data);
     }
 }
