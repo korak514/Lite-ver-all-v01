@@ -29,7 +29,95 @@ namespace WPF_LoginForm.Repositories
             return IsPostgres ? $"\"{identifier}\"" : $"[{identifier}]";
         }
 
-        // --- 1. LOGS ---
+        // --- 1. DATA RETRIEVAL (Optimized) ---
+        public async Task<DataTable> GetTableDataAsync(string tableName, int limit = 0)
+        {
+            var dt = new DataTable();
+            try
+            {
+                using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
+                {
+                    conn.Open();
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        string query;
+                        // Try to find a column to sort by (ID or EntryDate) for "Recent" data
+                        string orderBy = "ORDER BY 1 DESC"; // Default fallback
+
+                        // NOTE: In a real scenario, you might check schema for specific columns.
+                        // For now, we assume ID exists or we rely on default sort.
+                        // Ideally: ORDER BY [ID] DESC if ID exists.
+
+                        if (IsPostgres)
+                        {
+                            query = $"SELECT * FROM {Quote(tableName)}";
+                            // Check for ID column presence implicitly or just try sorting
+                            // Simple approach: SELECT * FROM table ORDER BY "ID" DESC LIMIT N
+                            // We will use a safe generic approach:
+                            if (limit > 0) query += $" LIMIT {limit}";
+                        }
+                        else
+                        {
+                            // SQL Server: SELECT TOP N * FROM table
+                            if (limit > 0)
+                                query = $"SELECT TOP {limit} * FROM {Quote(tableName)}";
+                            else
+                                query = $"SELECT * FROM {Quote(tableName)}";
+                        }
+
+                        cmd.CommandText = query;
+                        FillDataTable(cmd, dt);
+                        dt.TableName = tableName;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error fetching data for {tableName}", ex);
+                // Return empty table with name so UI doesn't crash
+                var emptyDt = new DataTable(tableName);
+                return emptyDt;
+            }
+            return dt;
+        }
+
+        public async Task<DataTable> GetDataAsync(string tableName, List<string> columns, string dateColumn, DateTime? startDate, DateTime? endDate)
+        {
+            var dt = new DataTable();
+            try
+            {
+                // Safety: Ensure columns are unique and quoted
+                var distinctCols = columns.Distinct().ToList();
+                var safeColumns = distinctCols.Select(c => Quote(c));
+                string colString = string.Join(", ", safeColumns);
+
+                string query = $"SELECT {colString} FROM {Quote(tableName)} WHERE 1=1";
+
+                if (startDate.HasValue && endDate.HasValue && !string.IsNullOrEmpty(dateColumn))
+                {
+                    query += $" AND {Quote(dateColumn)} >= @start AND {Quote(dateColumn)} <= @end ORDER BY {Quote(dateColumn)}";
+                }
+
+                using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
+                {
+                    conn.Open();
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = query;
+                        if (startDate.HasValue && endDate.HasValue)
+                        {
+                            AddParameter(cmd, "@start", startDate.Value);
+                            AddParameter(cmd, "@end", endDate.Value);
+                        }
+                        FillDataTable(cmd, dt);
+                    }
+                }
+            }
+            catch (Exception ex) { _logger.LogError($"Error filtered data {tableName}", ex); }
+            return dt;
+        }
+
+        // --- 2. LOGS ---
         public async Task<DataTable> GetSystemLogsAsync()
         {
             var dt = new DataTable();
@@ -40,11 +128,12 @@ namespace WPF_LoginForm.Repositories
                     conn.Open();
                     using (var cmd = conn.CreateCommand())
                     {
-                        if (IsPostgres)
-                            cmd.CommandText = "SELECT \"LogDate\", \"LogLevel\", \"Username\", \"Message\" FROM \"Logs\" ORDER BY \"LogDate\" DESC LIMIT 500";
-                        else
-                            cmd.CommandText = "SELECT TOP 500 [LogDate], [LogLevel], [Username], [Message] FROM [Logs] ORDER BY [LogDate] DESC";
+                        int limit = Properties.Settings.Default.DefaultRowLimit; // Access Global Variable
 
+                        if (IsPostgres)
+                            cmd.CommandText = $"SELECT \"LogDate\", \"LogLevel\", \"Username\", \"Message\" FROM \"Logs\" ORDER BY \"LogDate\" DESC LIMIT {limit}";
+                        else
+                            cmd.CommandText = $"SELECT TOP {limit} [LogDate], [LogLevel], [Username], [Message] FROM [Logs] ORDER BY [LogDate] DESC";
                         FillDataTable(cmd, dt);
                     }
                 }
@@ -75,7 +164,7 @@ namespace WPF_LoginForm.Repositories
             catch { return false; }
         }
 
-        // --- 2. SCHEMA & METADATA ---
+        // --- 3. SCHEMA & METADATA ---
         public async Task<List<string>> GetTableNamesAsync()
         {
             var list = new List<string>();
@@ -166,65 +255,7 @@ namespace WPF_LoginForm.Repositories
             return (min, max);
         }
 
-        // --- 3. DATA RETRIEVAL ---
-        public async Task<DataTable> GetTableDataAsync(string tableName)
-        {
-            var dt = new DataTable();
-            try
-            {
-                using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
-                {
-                    conn.Open();
-                    using (var cmd = conn.CreateCommand())
-                    {
-                        cmd.CommandText = $"SELECT * FROM {Quote(tableName)}";
-                        FillDataTable(cmd, dt);
-                        dt.TableName = tableName;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error fetching data for {tableName}", ex);
-                return new DataTable(tableName);
-            }
-            return dt;
-        }
-
-        public async Task<DataTable> GetDataAsync(string tableName, List<string> columns, string dateColumn, DateTime? startDate, DateTime? endDate)
-        {
-            var dt = new DataTable();
-            try
-            {
-                var safeColumns = columns.Select(c => Quote(c));
-                string colString = string.Join(", ", safeColumns);
-                string query = $"SELECT {colString} FROM {Quote(tableName)} WHERE 1=1";
-
-                if (startDate.HasValue && endDate.HasValue && !string.IsNullOrEmpty(dateColumn))
-                {
-                    query += $" AND {Quote(dateColumn)} >= @start AND {Quote(dateColumn)} <= @end ORDER BY {Quote(dateColumn)}";
-                }
-
-                using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
-                {
-                    conn.Open();
-                    using (var cmd = conn.CreateCommand())
-                    {
-                        cmd.CommandText = query;
-                        if (startDate.HasValue && endDate.HasValue)
-                        {
-                            AddParameter(cmd, "@start", startDate.Value);
-                            AddParameter(cmd, "@end", endDate.Value);
-                        }
-                        FillDataTable(cmd, dt);
-                    }
-                }
-            }
-            catch (Exception ex) { _logger.LogError($"Error filtered data {tableName}", ex); }
-            return dt;
-        }
-
-        // --- 4. DISTINCT VALUES ---
+        // --- 4. DISTINCT VALUES & MAP ---
         public async Task<List<string>> GetDistinctPart1ValuesAsync(string tableName) => await GetMapValuesAsync("Part1Value", tableName, null);
 
         public async Task<List<string>> GetDistinctPart2ValuesAsync(string tableName, string p1) => await GetMapValuesAsync("Part2Value", tableName, new Dictionary<string, string> { { "Part1Value", p1 } });
@@ -253,41 +284,20 @@ namespace WPF_LoginForm.Repositories
                         {
                             foreach (var kvp in filters)
                             {
-                                if (string.IsNullOrEmpty(kvp.Value))
-                                {
-                                    sb.Append($" AND ({Quote(kvp.Key)} IS NULL OR {Quote(kvp.Key)} = '')");
-                                }
-                                else
-                                {
-                                    sb.Append($" AND {Quote(kvp.Key)} = @{kvp.Key}");
-                                    AddParameter(cmd, $"@{kvp.Key}", kvp.Value);
-                                }
+                                if (string.IsNullOrEmpty(kvp.Value)) sb.Append($" AND ({Quote(kvp.Key)} IS NULL OR {Quote(kvp.Key)} = '')");
+                                else { sb.Append($" AND {Quote(kvp.Key)} = @{kvp.Key}"); AddParameter(cmd, $"@{kvp.Key}", kvp.Value); }
                             }
                         }
-
-                        sb.Append($" AND {Quote(targetCol)} IS NOT NULL AND {Quote(targetCol)} != ''");
-                        sb.Append($" ORDER BY {Quote(targetCol)}");
-
+                        sb.Append($" AND {Quote(targetCol)} IS NOT NULL AND {Quote(targetCol)} != '' ORDER BY {Quote(targetCol)}");
                         cmd.CommandText = sb.ToString();
-
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                list.Add(reader[0].ToString());
-                            }
-                        }
+                        using (var reader = cmd.ExecuteReader()) { while (reader.Read()) list.Add(reader[0].ToString()); }
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error fetching map values for {targetCol}", ex);
-            }
+            catch (Exception ex) { _logger.LogError($"Error fetching map values for {targetCol}", ex); }
             return list;
         }
 
-        // --- NEW: Hierarchy Map Management ---
         public async Task<bool> ClearHierarchyMapForTableAsync(string tableName)
         {
             try
@@ -304,30 +314,17 @@ namespace WPF_LoginForm.Repositories
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error clearing hierarchy map for {tableName}", ex);
-                return false;
-            }
+            catch (Exception ex) { _logger.LogError($"Error clearing hierarchy map for {tableName}", ex); return false; }
         }
 
-        public async Task<(bool Success, string ErrorMessage)> ImportHierarchyMapAsync(DataTable mapData)
-        {
-            // Reuse bulk import logic but targeting the map table
-            return await BulkImportDataAsync("ColumnHierarchyMap", mapData);
-        }
-
-        // ---------------------------------------
+        public async Task<(bool Success, string ErrorMessage)> ImportHierarchyMapAsync(DataTable mapData) => await BulkImportDataAsync("ColumnHierarchyMap", mapData);
 
         // --- 5. WRITE OPERATIONS ---
         public async Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName)
         {
             try
             {
-                if (changes.PrimaryKey == null || changes.PrimaryKey.Length == 0)
-                {
-                    return (false, $"The table '{tableName}' does not have a Primary Key (ID).");
-                }
+                if (changes.PrimaryKey == null || changes.PrimaryKey.Length == 0) return (false, $"The table '{tableName}' does not have a Primary Key (ID).");
 
                 if (!IsPostgres)
                 {
@@ -335,8 +332,7 @@ namespace WPF_LoginForm.Repositories
                     {
                         var adapter = new SqlDataAdapter($"SELECT * FROM {Quote(tableName)} WHERE 1=0", conn);
                         var builder = new SqlCommandBuilder(adapter);
-                        builder.QuotePrefix = "[";
-                        builder.QuoteSuffix = "]";
+                        builder.QuotePrefix = "["; builder.QuoteSuffix = "]";
                         adapter.Update(changes);
                         return (true, null);
                     }
@@ -347,8 +343,7 @@ namespace WPF_LoginForm.Repositories
                     {
                         var adapter = new NpgsqlDataAdapter($"SELECT * FROM {Quote(tableName)} WHERE 1=0", conn);
                         var builder = new NpgsqlCommandBuilder(adapter);
-                        builder.QuotePrefix = "\"";
-                        builder.QuoteSuffix = "\"";
+                        builder.QuotePrefix = "\""; builder.QuoteSuffix = "\"";
                         adapter.Update(changes);
                         return (true, null);
                     }
@@ -368,12 +363,7 @@ namespace WPF_LoginForm.Repositories
                 using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
                 {
                     conn.Open();
-                    using (var cmd = conn.CreateCommand())
-                    {
-                        cmd.CommandText = $"DROP TABLE {Quote(tableName)}";
-                        await Task.Run(() => cmd.ExecuteNonQuery());
-                        return true;
-                    }
+                    using (var cmd = conn.CreateCommand()) { cmd.CommandText = $"DROP TABLE {Quote(tableName)}"; await Task.Run(() => cmd.ExecuteNonQuery()); return true; }
                 }
             }
             catch (Exception ex) { _logger.LogError($"Error deleting {tableName}", ex); return false; }
@@ -398,11 +388,7 @@ namespace WPF_LoginForm.Repositories
                 using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
                 {
                     conn.Open();
-                    using (var cmd = conn.CreateCommand())
-                    {
-                        cmd.CommandText = sb.ToString();
-                        cmd.ExecuteNonQuery();
-                    }
+                    using (var cmd = conn.CreateCommand()) { cmd.CommandText = sb.ToString(); cmd.ExecuteNonQuery(); }
                 }
                 return (true, null);
             }
@@ -459,21 +445,14 @@ namespace WPF_LoginForm.Repositories
                     conn.Open();
                     using (var cmd1 = conn.CreateCommand())
                     {
-                        if (IsPostgres)
-                            cmd1.CommandText = $"ALTER TABLE \"{tableName}\" ADD COLUMN \"ID\" SERIAL";
-                        else
-                            cmd1.CommandText = $"ALTER TABLE [{tableName}] ADD [ID] INT IDENTITY(1,1) NOT NULL";
-
+                        if (IsPostgres) cmd1.CommandText = $"ALTER TABLE \"{tableName}\" ADD COLUMN \"ID\" SERIAL";
+                        else cmd1.CommandText = $"ALTER TABLE [{tableName}] ADD [ID] INT IDENTITY(1,1) NOT NULL";
                         await Task.Run(() => cmd1.ExecuteNonQuery());
                     }
-
                     using (var cmd2 = conn.CreateCommand())
                     {
-                        if (IsPostgres)
-                            cmd2.CommandText = $"ALTER TABLE \"{tableName}\" ADD CONSTRAINT \"PK_{tableName}\" PRIMARY KEY (\"ID\")";
-                        else
-                            cmd2.CommandText = $"ALTER TABLE [{tableName}] ADD CONSTRAINT [PK_{tableName}] PRIMARY KEY ([ID])";
-
+                        if (IsPostgres) cmd2.CommandText = $"ALTER TABLE \"{tableName}\" ADD CONSTRAINT \"PK_{tableName}\" PRIMARY KEY (\"ID\")";
+                        else cmd2.CommandText = $"ALTER TABLE [{tableName}] ADD CONSTRAINT [PK_{tableName}] PRIMARY KEY ([ID])";
                         await Task.Run(() => cmd2.ExecuteNonQuery());
                     }
                 }
@@ -488,10 +467,8 @@ namespace WPF_LoginForm.Repositories
 
         private void FillDataTable(IDbCommand cmd, DataTable dt)
         {
-            if (IsPostgres)
-                using (var adapter = new NpgsqlDataAdapter((NpgsqlCommand)cmd)) { adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey; adapter.Fill(dt); }
-            else
-                using (var adapter = new SqlDataAdapter((SqlCommand)cmd)) { adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey; adapter.Fill(dt); }
+            if (IsPostgres) using (var adapter = new NpgsqlDataAdapter((NpgsqlCommand)cmd)) { adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey; adapter.Fill(dt); }
+            else using (var adapter = new SqlDataAdapter((SqlCommand)cmd)) { adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey; adapter.Fill(dt); }
         }
 
         private void AddParameter(IDbCommand command, string name, object value)

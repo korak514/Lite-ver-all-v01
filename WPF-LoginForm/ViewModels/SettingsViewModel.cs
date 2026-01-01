@@ -5,13 +5,14 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Security;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using Npgsql;
 using WPF_LoginForm.Properties;
-using WPF_LoginForm.Services;
+using WPF_LoginForm.Services; // Required for UserSessionService
 using WPF_LoginForm.Services.Database;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
@@ -21,41 +22,32 @@ namespace WPF_LoginForm.ViewModels
 {
     public class SettingsViewModel : ViewModelBase
     {
-        // ... (Previous fields for DB, Language etc. remain the same) ...
         private DatabaseType _selectedDatabaseType;
-
         private string _statusMessage;
         private bool _isBusy;
         private string _selectedLanguage;
-
         private string _dbHost;
         private string _dbPort;
         private string _dbUser;
         private SecureString _dbPassword;
         private bool _useWindowsAuth;
-
+        private int _connectionTimeout = 15;
+        private bool _trustServerCertificate = true;
         private string _authDbName = "LoginDb";
         private string _dataDbName = "MainDataDb";
         private string _sqlAuthString;
         private string _sqlDataString;
         private string _postgresAuthString;
         private string _postgresDataString;
-
-        // --- Auto Import Fields ---
         private bool _autoImportEnabled;
-
         private bool _importIsRelative;
-        private string _importFileName; // Default File Name (e.g. "dashboard.json")
-        private string _importAbsolutePath; // Folder Path (e.g. "C:\MyDashboards")
-
-        // Dashboard Config Fields
+        private string _importFileName;
+        private string _importAbsolutePath;
         private bool _showDashboardDateFilter;
-
         private int _dashboardDateTickSize;
+        private int _defaultRowLimit;
 
-        // User Management Fields
         private ObservableCollection<UserModel> _users;
-
         private string _newUserUsername;
         private string _newUserName;
         private string _newUserLastName;
@@ -64,81 +56,58 @@ namespace WPF_LoginForm.ViewModels
         private string _newUserRole;
         private readonly IUserRepository _userRepository;
 
-        // --- Properties ---
         public IEnumerable<DatabaseType> DatabaseTypes => Enum.GetValues(typeof(DatabaseType)).Cast<DatabaseType>();
-
         public Dictionary<string, string> Languages { get; } = new Dictionary<string, string> { { "English", "en-US" }, { "Türkçe", "tr-TR" } };
 
         public DatabaseType SelectedDatabaseType
-        {
-            get => _selectedDatabaseType;
-            set { if (SetProperty(ref _selectedDatabaseType, value)) LoadFromCurrentProvider(); }
-        }
-
+        { get => _selectedDatabaseType; set { if (SetProperty(ref _selectedDatabaseType, value)) LoadFromCurrentProvider(); } }
         public string SelectedLanguage { get => _selectedLanguage; set => SetProperty(ref _selectedLanguage, value); }
         public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
-        public bool IsBusy { get => _isBusy; set => SetProperty(ref _isBusy, value); }
+
+        public bool IsBusy
+        {
+            get => _isBusy;
+            set
+            {
+                if (SetProperty(ref _isBusy, value))
+                {
+                    OnPropertyChanged(nameof(IsDbConfigEditable));
+                    OnPropertyChanged(nameof(CanManageUsers));
+                    (SaveCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+                    (TestConnectionCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+                }
+            }
+        }
 
         public string DbHost { get => _dbHost; set => SetProperty(ref _dbHost, value); }
         public string DbPort { get => _dbPort; set => SetProperty(ref _dbPort, value); }
         public string DbUser { get => _dbUser; set => SetProperty(ref _dbUser, value); }
         public SecureString DbPassword { get => _dbPassword; set => SetProperty(ref _dbPassword, value); }
-
         public bool UseWindowsAuth
-        {
-            get => _useWindowsAuth;
-            set { SetProperty(ref _useWindowsAuth, value); OnPropertyChanged(nameof(IsCredentialsEnabled)); }
-        }
-
+        { get => _useWindowsAuth; set { SetProperty(ref _useWindowsAuth, value); OnPropertyChanged(nameof(IsCredentialsEnabled)); } }
+        public int ConnectionTimeout { get => _connectionTimeout; set => SetProperty(ref _connectionTimeout, value); }
+        public bool TrustServerCertificate { get => _trustServerCertificate; set => SetProperty(ref _trustServerCertificate, value); }
         public bool IsCredentialsEnabled => !UseWindowsAuth;
         public bool IsWindowsAuthVisible => SelectedDatabaseType == DatabaseType.SqlServer;
+        public bool IsDbConfigEditable => !IsBusy;
 
-        // --- Auto Import Properties ---
         public bool AutoImportEnabled
         { get => _autoImportEnabled; set { SetProperty(ref _autoImportEnabled, value); OnPropertyChanged(nameof(IsImportConfigEnabled)); } }
-
         public bool IsImportConfigEnabled => AutoImportEnabled;
-
         public bool ImportIsRelative
-        {
-            get => _importIsRelative;
-            set
-            {
-                SetProperty(ref _importIsRelative, value);
-                OnPropertyChanged(nameof(IsRelativeInputVisible));
-                OnPropertyChanged(nameof(IsAbsoluteInputVisible));
-            }
-        }
-
+        { get => _importIsRelative; set { SetProperty(ref _importIsRelative, value); OnPropertyChanged(nameof(IsRelativeInputVisible)); OnPropertyChanged(nameof(IsAbsoluteInputVisible)); } }
         public bool ImportIsAbsolute
         { get => !ImportIsRelative; set { ImportIsRelative = !value; } }
-
         public bool IsRelativeInputVisible => ImportIsRelative;
         public bool IsAbsoluteInputVisible => !ImportIsRelative;
-
-        public string ImportFileName
-        {
-            get => _importFileName;
-            set => SetProperty(ref _importFileName, value);
-        }
-
-        public string ImportAbsolutePath
-        {
-            get => _importAbsolutePath;
-            set => SetProperty(ref _importAbsolutePath, value);
-        }
-
-        // Dashboard Config Properties
+        public string ImportFileName { get => _importFileName; set => SetProperty(ref _importFileName, value); }
+        public string ImportAbsolutePath { get => _importAbsolutePath; set => SetProperty(ref _importAbsolutePath, value); }
         public bool ShowDashboardDateFilter { get => _showDashboardDateFilter; set => SetProperty(ref _showDashboardDateFilter, value); }
-
         public int DashboardDateTickSize { get => _dashboardDateTickSize; set => SetProperty(ref _dashboardDateTickSize, value); }
+        public int DefaultRowLimit { get => _defaultRowLimit; set => SetProperty(ref _defaultRowLimit, value); }
 
-        // User Management Properties
         public ObservableCollection<UserModel> Users { get => _users; set => SetProperty(ref _users, value); }
-
-        // ... (User fields unchanged)
         public string NewUserUsername { get => _newUserUsername; set => SetProperty(ref _newUserUsername, value); }
-
         public string NewUserName { get => _newUserName; set => SetProperty(ref _newUserName, value); }
         public string NewUserLastName { get => _newUserLastName; set => SetProperty(ref _newUserLastName, value); }
         public string NewUserEmail { get => _newUserEmail; set => SetProperty(ref _newUserEmail, value); }
@@ -146,7 +115,15 @@ namespace WPF_LoginForm.ViewModels
         public string NewUserRole { get => _newUserRole; set => SetProperty(ref _newUserRole, value); }
         public List<string> AvailableRoles { get; } = new List<string> { "User", "Admin" };
 
-        public bool CanManageUsers => System.Threading.Thread.CurrentPrincipal.IsInRole("Admin") || IsBusy; // Allow view in offline mode effectively via IsBusy check logic or just Role
+        // --- NEW: Using UserSessionService ---
+        public bool CanManageUsers
+        {
+            get
+            {
+                // Check Global Session
+                return UserSessionService.IsAdmin || IsBusy;
+            }
+        }
 
         public ICommand SaveCommand { get; }
         public ICommand TestConnectionCommand { get; }
@@ -171,14 +148,15 @@ namespace WPF_LoginForm.ViewModels
 
             AutoImportEnabled = Settings.Default.AutoImportEnabled;
             ImportIsRelative = Settings.Default.ImportIsRelative;
-            ImportFileName = Settings.Default.ImportFileName; // Now treated as just the filename
-            ImportAbsolutePath = Settings.Default.ImportAbsolutePath; // Now treated as the folder path
+            ImportFileName = Settings.Default.ImportFileName;
+            ImportAbsolutePath = Settings.Default.ImportAbsolutePath;
             ShowDashboardDateFilter = Settings.Default.ShowDashboardDateFilter;
             DashboardDateTickSize = Settings.Default.DashboardDateTickSize;
             if (DashboardDateTickSize < 1) DashboardDateTickSize = 1;
+            DefaultRowLimit = Settings.Default.DefaultRowLimit;
+            if (DefaultRowLimit < 1) DefaultRowLimit = 500;
 
             NewUserRole = "User";
-
             LoadFromCurrentProvider();
 
             SaveCommand = new ViewModelCommand(ExecuteSaveCommand, (o) => !IsBusy);
@@ -191,22 +169,9 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteBrowseImportFile(object obj)
         {
-            // Since we want a folder, but WPF doesn't have a native FolderBrowser without external deps or Forms,
-            // we use OpenFileDialog to select a file, then get its directory.
-            var dialog = new Microsoft.Win32.OpenFileDialog();
-            dialog.Title = "Select any file inside the desired folder";
-            dialog.Filter = "All files|*.*";
-            dialog.CheckFileExists = true;
-
-            if (dialog.ShowDialog() == true)
-            {
-                ImportAbsolutePath = Path.GetDirectoryName(dialog.FileName);
-                // Optionally set the filename too if it matches typical convention
-                // ImportFileName = Path.GetFileName(dialog.FileName);
-            }
+            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Select file in target folder", Filter = "All files|*.*", CheckFileExists = true };
+            if (dialog.ShowDialog() == true) ImportAbsolutePath = Path.GetDirectoryName(dialog.FileName);
         }
-
-        // ... (ExecuteSaveCommand, LoadFromCurrentProvider, RebuildConnectionStrings, User Commands unchanged - omitted for brevity) ...
 
         private void ExecuteSaveCommand(object obj)
         {
@@ -219,22 +184,20 @@ namespace WPF_LoginForm.ViewModels
                 Settings.Default.PostgresAuthConnString = _postgresAuthString;
                 Settings.Default.PostgresDataConnString = _postgresDataString;
                 Settings.Default.AppLanguage = SelectedLanguage;
-
                 Settings.Default.AutoImportEnabled = AutoImportEnabled;
                 Settings.Default.ImportIsRelative = ImportIsRelative;
                 Settings.Default.ImportFileName = ImportFileName;
-                Settings.Default.ImportAbsolutePath = ImportAbsolutePath; // Saves the Folder Path
-
+                Settings.Default.ImportAbsolutePath = ImportAbsolutePath;
                 Settings.Default.ShowDashboardDateFilter = ShowDashboardDateFilter;
                 Settings.Default.DashboardDateTickSize = DashboardDateTickSize;
+                if (DefaultRowLimit < 1) DefaultRowLimit = 1;
+                Settings.Default.DefaultRowLimit = DefaultRowLimit;
                 Settings.Default.Save();
                 StatusMessage = "Settings saved successfully.";
-                MessageBox.Show("Settings have been saved.\n\nPLEASE RESTART THE APPLICATION to apply changes.", "Restart Required", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Settings saved. Please RESTART the app.", "Restart Required", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex) { StatusMessage = $"Error saving: {ex.Message}"; }
         }
-
-        // ... (ExecuteLoadUsers, ExecuteAddUser, ExecuteDeleteUser, ExecuteTestConnection unchanged) ...
 
         private void LoadFromCurrentProvider()
         {
@@ -244,18 +207,26 @@ namespace WPF_LoginForm.ViewModels
                 if (SelectedDatabaseType == DatabaseType.SqlServer)
                 {
                     var builder = new SqlConnectionStringBuilder(raw);
-                    DbHost = builder.DataSource; DbUser = builder.UserID;
-                    var tempPass = builder.Password; if (!string.IsNullOrEmpty(tempPass)) DbPassword = new NetworkCredential("", tempPass).SecurePassword;
-                    UseWindowsAuth = builder.IntegratedSecurity; DbPort = "";
+                    DbHost = builder.DataSource;
+                    if (DbHost.Contains(",")) { var parts = DbHost.Split(','); DbHost = parts[0]; if (parts.Length > 1) DbPort = parts[1]; } else DbPort = "";
+                    DbUser = builder.UserID;
+                    if (!string.IsNullOrEmpty(builder.Password)) DbPassword = new NetworkCredential("", builder.Password).SecurePassword;
+                    UseWindowsAuth = builder.IntegratedSecurity;
+                    ConnectionTimeout = builder.ConnectTimeout;
+                    TrustServerCertificate = builder.TrustServerCertificate;
                 }
                 else
                 {
                     var builder = new NpgsqlConnectionStringBuilder(raw);
                     DbHost = builder.Host; DbPort = builder.Port.ToString(); DbUser = builder.Username;
-                    var tempPass = builder.Password; if (!string.IsNullOrEmpty(tempPass)) DbPassword = new NetworkCredential("", tempPass).SecurePassword;
+                    if (!string.IsNullOrEmpty(builder.Password)) DbPassword = new NetworkCredential("", builder.Password).SecurePassword;
                     UseWindowsAuth = false;
+                    ConnectionTimeout = builder.Timeout;
+                    TrustServerCertificate = builder.TrustServerCertificate;
                 }
                 OnPropertyChanged(nameof(IsWindowsAuthVisible));
+                OnPropertyChanged(nameof(ConnectionTimeout));
+                OnPropertyChanged(nameof(TrustServerCertificate));
             }
             catch { DbHost = "localhost"; DbUser = "admin"; }
         }
@@ -267,7 +238,9 @@ namespace WPF_LoginForm.ViewModels
             {
                 var builder = new SqlConnectionStringBuilder();
                 builder.DataSource = DbHost + (string.IsNullOrEmpty(DbPort) ? "" : "," + DbPort);
-                builder.IntegratedSecurity = UseWindowsAuth; builder.TrustServerCertificate = true;
+                builder.IntegratedSecurity = UseWindowsAuth;
+                builder.TrustServerCertificate = TrustServerCertificate;
+                builder.ConnectTimeout = ConnectionTimeout;
                 builder.PersistSecurityInfo = true;
                 if (!UseWindowsAuth) { builder.UserID = DbUser; builder.Password = password; }
                 builder.InitialCatalog = _authDbName; _sqlAuthString = builder.ConnectionString;
@@ -278,6 +251,8 @@ namespace WPF_LoginForm.ViewModels
                 var builder = new NpgsqlConnectionStringBuilder();
                 builder.Host = DbHost; if (int.TryParse(DbPort, out int port)) builder.Port = port;
                 builder.Username = DbUser; builder.Password = password;
+                builder.TrustServerCertificate = TrustServerCertificate;
+                builder.Timeout = ConnectionTimeout;
                 builder.PersistSecurityInfo = true;
                 builder.Database = _authDbName; _postgresAuthString = builder.ConnectionString;
                 builder.Database = _dataDbName; _postgresDataString = builder.ConnectionString;
@@ -288,7 +263,7 @@ namespace WPF_LoginForm.ViewModels
         {
             IsBusy = true; StatusMessage = "Loading users...";
             try { var usersList = await Task.Run(() => _userRepository.GetByAll()); Users.Clear(); foreach (var user in usersList) Users.Add(user); StatusMessage = $"Loaded {Users.Count} users."; }
-            catch (Exception ex) { StatusMessage = $"Error loading users: {ex.Message}"; }
+            catch (Exception ex) { StatusMessage = $"Error: {ex.Message}"; }
             finally { IsBusy = false; }
         }
 
@@ -296,49 +271,48 @@ namespace WPF_LoginForm.ViewModels
         {
             if (string.IsNullOrWhiteSpace(NewUserUsername) || NewUserPassword == null || NewUserPassword.Length < 3)
             {
-                MessageBox.Show("Username and Password (min 3 chars) are required.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Username and Password (min 3 chars) required.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-
             IsBusy = true;
             try
             {
-                var newUser = new UserModel
-                {
-                    Username = NewUserUsername,
-                    Name = NewUserName ?? "",
-                    LastName = NewUserLastName ?? "",
-                    Email = NewUserEmail ?? "",
-                    Role = NewUserRole ?? "User",
-                    Password = new NetworkCredential("", NewUserPassword).Password
-                };
-
+                var newUser = new UserModel { Username = NewUserUsername, Name = NewUserName ?? "", LastName = NewUserLastName ?? "", Email = NewUserEmail ?? "", Role = NewUserRole ?? "User", Password = new NetworkCredential("", NewUserPassword).Password };
                 await Task.Run(() => _userRepository.Add(newUser));
-
-                NewUserUsername = ""; NewUserName = ""; NewUserLastName = ""; NewUserEmail = ""; NewUserPassword = null;
-                NewUserRole = "User";
-                OnPropertyChanged(nameof(NewUserPassword));
-
-                StatusMessage = "User added successfully.";
-                ExecuteLoadUsers(null);
+                NewUserUsername = ""; NewUserName = ""; NewUserLastName = ""; NewUserEmail = ""; NewUserPassword = null; NewUserRole = "User"; OnPropertyChanged(nameof(NewUserPassword));
+                StatusMessage = "User added."; ExecuteLoadUsers(null);
             }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Error adding user: {ex.Message}";
-                MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            catch (Exception ex) { StatusMessage = $"Error: {ex.Message}"; MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error); }
             finally { IsBusy = false; }
         }
 
         private async void ExecuteDeleteUser(object obj)
         {
-            if (obj is UserModel user) { if (user.Username.Equals("admin", StringComparison.OrdinalIgnoreCase)) { MessageBox.Show("Cannot delete the default 'admin' user.", "Restricted", MessageBoxButton.OK, MessageBoxImage.Stop); return; } if (MessageBox.Show($"Are you sure you want to delete user '{user.Username}'?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes) { IsBusy = true; try { if (int.TryParse(user.Id, out int id)) { await Task.Run(() => _userRepository.Remove(id)); StatusMessage = $"User '{user.Username}' deleted."; ExecuteLoadUsers(null); } } catch (Exception ex) { StatusMessage = $"Error deleting user: {ex.Message}"; } finally { IsBusy = false; } } }
+            if (obj is UserModel user)
+            {
+                if (user.Username.Equals("admin", StringComparison.OrdinalIgnoreCase)) { MessageBox.Show("Cannot delete 'admin'.", "Stop", MessageBoxButton.OK, MessageBoxImage.Stop); return; }
+                if (MessageBox.Show($"Delete user '{user.Username}'?", "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                {
+                    IsBusy = true;
+                    try { if (int.TryParse(user.Id, out int id)) { await Task.Run(() => _userRepository.Remove(id)); StatusMessage = "User deleted."; ExecuteLoadUsers(null); } }
+                    catch (Exception ex) { StatusMessage = $"Error: {ex.Message}"; }
+                    finally { IsBusy = false; }
+                }
+            }
         }
 
         private async void ExecuteTestConnection(object obj)
         {
-            IsBusy = true; RebuildConnectionStrings(); StatusMessage = $"Testing {SelectedDatabaseType} connections..."; await Task.Delay(100);
-            bool authSuccess = false; string authError = ""; bool dataSuccess = false; string dataError = "";
+            IsBusy = true; StatusMessage = "Checking Network...";
+            string host = DbHost;
+            if (host.ToLower() != "localhost" && host != "." && host != "(local)")
+            {
+                bool pingSuccess = await Task.Run(() => { try { return new Ping().Send(host, 2000).Status == IPStatus.Success; } catch { return false; } });
+                if (!pingSuccess) { IsBusy = false; StatusMessage = "❌ Network unreachable."; MessageBox.Show($"Cannot Ping '{host}'. Check IP/Firewall.", "Error", MessageBoxButton.OK, MessageBoxImage.Error); return; }
+            }
+            RebuildConnectionStrings();
+            StatusMessage = "Testing connections...";
+            bool authSuccess = false, dataSuccess = false; string authError = "", dataError = "";
             await Task.Run(() =>
             {
                 string authStr = (SelectedDatabaseType == DatabaseType.SqlServer) ? _sqlAuthString : _postgresAuthString;
@@ -347,65 +321,23 @@ namespace WPF_LoginForm.ViewModels
                 (dataSuccess, dataError) = TestSingleConnection(dataStr, SelectedDatabaseType);
             });
             IsBusy = false;
-
             if (authSuccess && dataSuccess)
             {
-                bool authMissing = authError.Contains("missing");
-                bool dataMissing = dataError.Contains("missing");
-
-                if (authMissing || dataMissing)
-                {
-                    StatusMessage = "⚠️ SERVER FOUND. DATABASES MISSING.";
-                    MessageBox.Show("Configuration Valid!\n\nThe Server is reachable and credentials are correct.\nThe database files ('LoginDb' / 'MainDataDb') do not exist yet.\n\nPLEASE SAVE AND RESTART to allow the app to create them automatically.", "Server Connected", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-                else
-                {
-                    StatusMessage = "✅ SUCCESS! Both connections are valid.";
-                    MessageBox.Show("Connection Test Successful!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
+                bool authMissing = authError.Contains("missing"), dataMissing = dataError.Contains("missing");
+                if (authMissing || dataMissing) { StatusMessage = "⚠️ DB MISSING."; MessageBox.Show("Server Connected! Databases missing. Save & Restart to create them.", "Connected", MessageBoxButton.OK, MessageBoxImage.Warning); }
+                else { StatusMessage = "✅ SUCCESS!"; MessageBox.Show("Connection Successful!", "Success", MessageBoxButton.OK, MessageBoxImage.Information); }
             }
-            else
-            {
-                StatusMessage = "❌ CONNECTION FAILED.";
-                MessageBox.Show($"[Auth]: {authError}\n\n[Data]: {dataError}", "Connection Failed", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            else { StatusMessage = "❌ FAILED."; MessageBox.Show($"Auth: {authError}\nData: {dataError}", "Failed", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
         private (bool success, string error) TestSingleConnection(string connString, DatabaseType type)
         {
-            if (string.IsNullOrWhiteSpace(connString)) return (false, "Empty string.");
-            try
-            {
-                using (IDbConnection conn = (type == DatabaseType.SqlServer) ? (IDbConnection)new SqlConnection(connString) : new NpgsqlConnection(connString))
-                {
-                    conn.Open();
-                    using (var cmd = conn.CreateCommand()) { cmd.CommandText = "SELECT 1"; cmd.ExecuteScalar(); }
-                }
-                return (true, "");
-            }
+            if (string.IsNullOrWhiteSpace(connString)) return (false, "Empty");
+            try { using (IDbConnection conn = (type == DatabaseType.SqlServer) ? (IDbConnection)new SqlConnection(connString) : new NpgsqlConnection(connString)) { conn.Open(); using (var cmd = conn.CreateCommand()) { cmd.CommandText = "SELECT 1"; cmd.ExecuteScalar(); } } return (true, ""); }
             catch (Exception ex)
             {
-                bool isMissingDb = false;
-                if (ex is SqlException sqlEx && sqlEx.Number == 4060) isMissingDb = true;
-                if (ex is PostgresException pgEx && pgEx.SqlState == "3D000") isMissingDb = true;
-
-                if (isMissingDb)
-                {
-                    try
-                    {
-                        string systemDbName = (type == DatabaseType.SqlServer) ? "master" : "postgres";
-                        var builder = (type == DatabaseType.SqlServer) ? (System.Data.Common.DbConnectionStringBuilder)new SqlConnectionStringBuilder(connString) : new NpgsqlConnectionStringBuilder(connString);
-                        if (type == DatabaseType.SqlServer) ((SqlConnectionStringBuilder)builder).InitialCatalog = systemDbName;
-                        else ((NpgsqlConnectionStringBuilder)builder).Database = systemDbName;
-
-                        using (IDbConnection sysConn = (type == DatabaseType.SqlServer) ? (IDbConnection)new SqlConnection(builder.ConnectionString) : new NpgsqlConnection(builder.ConnectionString))
-                        {
-                            sysConn.Open();
-                        }
-                        return (true, "Database missing (Server OK)");
-                    }
-                    catch { return (false, ex.Message); }
-                }
+                bool isMissing = (ex is SqlException s && s.Number == 4060) || (ex is PostgresException p && p.SqlState == "3D000");
+                if (isMissing) return (true, "Database missing");
                 return (false, ex.Message);
             }
         }

@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Threading;
-using System.Collections.Generic; // Added for List
-using System.Linq; // Added for Any()
+using System.Threading.Tasks; // Added for Task.Run
 using WPF_LoginForm.Services.Database;
 
 namespace WPF_LoginForm.Services
@@ -11,17 +12,11 @@ namespace WPF_LoginForm.Services
     {
         private readonly ILogger _fallbackLogger;
 
-        // NEW: List of phrases/tags we do NOT want to save to the database
+        // Logs we ignore to prevent spamming the DB
         private readonly List<string> _ignoredPhrases = new List<string>
         {
-            "[ARLVM]",           // ViewModel internal state
-            "[ARLEVM]",          // Entry Logic internal state
-            "Main Dashboard initialized",
-            "Started in Normal Mode",
-            "Started in 'Only Report' Mode",
-            "Visibilities updated",
-            "EntryDate updated",
-            "Found last entry date"
+            "[ARLVM]", "[ARLEVM]", "Main Dashboard initialized",
+            "Visibilities updated", "EntryDate updated", "Found last entry date"
         };
 
         public DatabaseLogger(ILogger fallbackLogger)
@@ -29,64 +24,64 @@ namespace WPF_LoginForm.Services
             _fallbackLogger = fallbackLogger;
         }
 
-        public void LogInfo(string message) => WriteLog("INFO", message, null);
+        public void LogInfo(string message) => WriteLogSafe("INFO", message, null);
+        public void LogWarning(string message) => WriteLogSafe("WARN", message, null);
+        public void LogError(string message, Exception ex = null) => WriteLogSafe("ERROR", message, ex);
 
-        public void LogWarning(string message) => WriteLog("WARN", message, null);
-
-        public void LogError(string message, Exception ex = null) => WriteLog("ERROR", message, ex);
-
-        private void WriteLog(string level, string message, Exception ex)
+        private void WriteLogSafe(string level, string message, Exception ex)
         {
-            // --- NEW: Noise Filter Logic ---
-            // If it's just an INFO log, check if it contains any ignored phrases.
-            // We always let ERRORs and WARNs through.
+            // 1. Noise Filter
             if (level == "INFO" && !string.IsNullOrEmpty(message))
             {
-                if (_ignoredPhrases.Any(phrase => message.Contains(phrase)))
-                {
-                    // This is "noise" - do not save to DB.
-                    // Optionally write to debug console only if needed.
-                    System.Diagnostics.Debug.WriteLine($"[Ignored Log] {message}");
-                    return;
-                }
+                if (_ignoredPhrases.Any(phrase => message.Contains(phrase))) return;
             }
 
+            // 2. Fire and Forget on a background thread to prevent UI lag
+            Task.Run(() =>
+            {
+                try
+                {
+                    WriteLogToDatabase(level, message, ex);
+                }
+                catch (Exception dbEx)
+                {
+                    // 3. Fallback: If DB fails (Network down), write to file
+                    _fallbackLogger?.LogWarning($"[DB_LOG_FAIL] Could not log to database. Network issue? Error: {dbEx.Message}");
+                    _fallbackLogger?.LogError($"[OFFLINE_LOG] {level}: {message}", ex);
+                }
+            });
+        }
+
+        private void WriteLogToDatabase(string level, string message, Exception ex)
+        {
             string username = Thread.CurrentPrincipal?.Identity?.Name ?? "System";
             string exceptionStr = ex?.ToString();
 
-            try
+            using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
             {
-                using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
+                connection.Open();
+                using (var command = connection.CreateCommand())
                 {
-                    connection.Open();
-                    using (var command = connection.CreateCommand())
+                    string query;
+                    if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql)
                     {
-                        string query;
-
-                        if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql)
-                        {
-                            query = "INSERT INTO \"Logs\" (\"LogLevel\", \"Message\", \"Username\", \"Exception\", \"LogDate\") " +
-                                    "VALUES (@Level, @Msg, @User, @Ex, CURRENT_TIMESTAMP)";
-                        }
-                        else
-                        {
-                            query = "INSERT INTO [Logs] ([LogLevel], [Message], [Username], [Exception], [LogDate]) " +
-                                    "VALUES (@Level, @Msg, @User, @Ex, GETDATE())";
-                        }
-
-                        command.CommandText = query;
-                        AddParameter(command, "@Level", level);
-                        AddParameter(command, "@Msg", message ?? (object)DBNull.Value);
-                        AddParameter(command, "@User", username);
-                        AddParameter(command, "@Ex", exceptionStr ?? (object)DBNull.Value);
-
-                        command.ExecuteNonQuery();
+                        query = "INSERT INTO \"Logs\" (\"LogLevel\", \"Message\", \"Username\", \"Exception\", \"LogDate\") " +
+                                "VALUES (@Level, @Msg, @User, @Ex, CURRENT_TIMESTAMP)";
                     }
+                    else
+                    {
+                        query = "INSERT INTO [Logs] ([LogLevel], [Message], [Username], [Exception], [LogDate]) " +
+                                "VALUES (@Level, @Msg, @User, @Ex, GETDATE())";
+                    }
+
+                    command.CommandText = query;
+                    AddParameter(command, "@Level", level);
+                    AddParameter(command, "@Msg", message ?? (object)DBNull.Value);
+                    AddParameter(command, "@User", username);
+                    AddParameter(command, "@Ex", exceptionStr ?? (object)DBNull.Value);
+
+                    command.ExecuteNonQuery();
                 }
-            }
-            catch (Exception dbEx)
-            {
-                _fallbackLogger?.LogError($"[DB LOG FAILURE] {message}", dbEx);
             }
         }
 

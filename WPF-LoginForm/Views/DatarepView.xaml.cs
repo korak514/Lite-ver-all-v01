@@ -180,5 +180,10 @@ namespace WPF_LoginForm.Views
                 e.Handled = true;
             }
         }
+
+        private void CheckBox_Checked()
+        {
+
+        }
     }
 }

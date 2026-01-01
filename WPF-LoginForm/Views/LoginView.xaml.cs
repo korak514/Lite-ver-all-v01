@@ -3,9 +3,6 @@ using System.Windows.Input;
 
 namespace WPF_LoginForm.Views
 {
-    /// <summary>
-    /// Interaction logic for LoginView.xaml
-    /// </summary>
     public partial class LoginView : Window
     {
         public LoginView()
@@ -29,6 +26,9 @@ namespace WPF_LoginForm.Views
             Application.Current.Shutdown();
         }
 
-        private void btnLogin_Click(object sender, RoutedEventArgs e) { }
+        // This event handler is empty because the command in ViewModel handles the logic
+        private void btnLogin_Click(object sender, RoutedEventArgs e)
+        {
+        }
     }
 }

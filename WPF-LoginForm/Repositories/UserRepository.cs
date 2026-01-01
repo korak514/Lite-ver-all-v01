@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Net;
+using System.Threading.Tasks;
 using Npgsql;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Services.Database;
@@ -11,7 +12,7 @@ namespace WPF_LoginForm.Repositories
 {
     public class UserRepository : IUserRepository
     {
-        // Helper to quote tables based on DB Type
+        // --- Table & Column Abstraction for SQL/Postgres ---
         private string TableName => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"User\"" : "[User]";
 
         private string ColId => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Id\"" : "[Id]";
@@ -20,10 +21,9 @@ namespace WPF_LoginForm.Repositories
         private string ColName => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Name\"" : "[Name]";
         private string ColLast => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"LastName\"" : "[LastName]";
         private string ColEmail => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Email\"" : "[Email]";
-
-        // NEW: Role Column
         private string ColRole => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Role\"" : "[Role]";
 
+        // --- Synchronous Authentication (Legacy/Fallback) ---
         public bool AuthenticateUser(NetworkCredential credential)
         {
             bool validUser;
@@ -50,6 +50,48 @@ namespace WPF_LoginForm.Repositories
             return validUser;
         }
 
+        // --- Asynchronous Authentication (Network Optimized) ---
+        public async Task<bool> AuthenticateUserAsync(NetworkCredential credential)
+        {
+            bool validUser = false;
+            var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth);
+
+            try
+            {
+                using (connection)
+                {
+                    // Open Async based on type
+                    if (connection is SqlConnection sqlConn) await sqlConn.OpenAsync();
+                    else if (connection is NpgsqlConnection pgConn) await pgConn.OpenAsync();
+                    else connection.Open(); // Fallback
+
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText = $"SELECT COUNT(*) FROM {TableName} WHERE {ColUser}=@username AND {ColPass}=@password";
+                        AddParameter(command, "@username", credential.UserName);
+                        AddParameter(command, "@password", credential.Password);
+
+                        // Execute Async based on type
+                        object result;
+                        if (command is SqlCommand sqlCmd) result = await sqlCmd.ExecuteScalarAsync();
+                        else if (command is NpgsqlCommand pgCmd) result = await pgCmd.ExecuteScalarAsync();
+                        else result = command.ExecuteScalar();
+
+                        validUser = result != null && Convert.ToInt32(result) > 0;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Logic error or Connection failure
+                System.Diagnostics.Debug.WriteLine($"Auth Async Failed: {ex.Message}");
+                validUser = false;
+                // Re-throw if you want the ViewModel to catch specific network errors
+                throw;
+            }
+            return validUser;
+        }
+
         public void Add(UserModel userModel)
         {
             using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
@@ -57,7 +99,6 @@ namespace WPF_LoginForm.Repositories
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    // UPDATED: Include Role
                     command.CommandText = $"INSERT INTO {TableName} ({ColUser}, {ColPass}, {ColName}, {ColLast}, {ColEmail}, {ColRole}) " +
                                           "VALUES (@username, @password, @name, @lastname, @email, @role)";
 
@@ -66,7 +107,7 @@ namespace WPF_LoginForm.Repositories
                     AddParameter(command, "@name", userModel.Name);
                     AddParameter(command, "@lastname", userModel.LastName);
                     AddParameter(command, "@email", userModel.Email);
-                    AddParameter(command, "@role", userModel.Role ?? "User"); // Default to User
+                    AddParameter(command, "@role", userModel.Role ?? "User");
 
                     command.ExecuteNonQuery();
                 }
@@ -80,7 +121,6 @@ namespace WPF_LoginForm.Repositories
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    // UPDATED: Include Role
                     command.CommandText = $"UPDATE {TableName} SET {ColUser}=@username, {ColPass}=@password, " +
                                           $"{ColName}=@name, {ColLast}=@lastname, {ColEmail}=@email, {ColRole}=@role " +
                                           $"WHERE {ColId}=@id";
@@ -148,7 +188,6 @@ namespace WPF_LoginForm.Repositories
                                 LastName = reader["LastName"].ToString(),
                                 Email = reader["Email"].ToString(),
                                 Password = reader["Password"].ToString(),
-                                // UPDATED: Read Role
                                 Role = reader["Role"] != DBNull.Value ? reader["Role"].ToString() : "User"
                             };
                         }
@@ -181,7 +220,6 @@ namespace WPF_LoginForm.Repositories
                                 LastName = reader["LastName"].ToString(),
                                 Email = reader["Email"].ToString(),
                                 Password = reader["Password"].ToString(),
-                                // UPDATED: Read Role
                                 Role = reader["Role"] != DBNull.Value ? reader["Role"].ToString() : "User"
                             };
                         }
@@ -213,8 +251,7 @@ namespace WPF_LoginForm.Repositories
                                 LastName = reader["LastName"].ToString(),
                                 Email = reader["Email"].ToString(),
                                 Password = reader["Password"].ToString(),
-                                // UPDATED: Read Role
-                                Role = reader["Role"] != DBNull.Value ? reader["Role"].ToString() : "User"
+                                Role = reader["Role"] != DBNull.Value ? reader["Role"].ToString() : "Guest"
                             };
                             userList.Add(user);
                         }

@@ -108,6 +108,7 @@
     </Compile>
     <Compile Include="Services\DashboardStorageService.cs" />
     <Compile Include="Services\Database\DatabaseBootstrapper.cs" />
+    <Compile Include="Services\UserSessionService.cs" />
     <Compile Include="ViewModels\HelpViewModel.cs" />
     <Compile Include="ViewModels\HierarchyImportViewModel.cs" />
     <Compile Include="Views\HelpView.xaml.cs">

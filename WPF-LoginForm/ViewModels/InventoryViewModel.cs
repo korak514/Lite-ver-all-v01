@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Data;
-using System.Threading; // Required for Principal
 using System.Threading.Tasks;
 using System.Windows.Input;
 using WPF_LoginForm.Repositories;
-using WPF_LoginForm.Services;
+using WPF_LoginForm.Services; // Required for UserSessionService
 
 namespace WPF_LoginForm.ViewModels
 {
@@ -16,26 +15,12 @@ namespace WPF_LoginForm.ViewModels
         private bool _isBusy;
         private string _statusMessage;
 
-        public DataTable LogsTable
-        {
-            get => _logsTable;
-            set => SetProperty(ref _logsTable, value);
-        }
+        public DataTable LogsTable { get => _logsTable; set => SetProperty(ref _logsTable, value); }
+        public bool IsBusy { get => _isBusy; set => SetProperty(ref _isBusy, value); }
+        public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
 
-        public bool IsBusy
-        {
-            get => _isBusy;
-            set => SetProperty(ref _isBusy, value);
-        }
-
-        public string StatusMessage
-        {
-            get => _statusMessage;
-            set => SetProperty(ref _statusMessage, value);
-        }
-
-        // --- NEW: Security Property ---
-        public bool IsAdmin => Thread.CurrentPrincipal.IsInRole("Admin");
+        // --- NEW: Using UserSessionService ---
+        public bool IsAdmin => UserSessionService.IsAdmin;
 
         public ICommand RefreshLogsCommand { get; }
         public ICommand ClearLogsCommand { get; }
@@ -46,7 +31,8 @@ namespace WPF_LoginForm.ViewModels
             _dialogService = dialogService;
 
             RefreshLogsCommand = new ViewModelCommand(ExecuteRefreshLogs);
-            // UPDATED: Check IsAdmin for CanExecute
+
+            // Check IsAdmin via Service
             ClearLogsCommand = new ViewModelCommand(ExecuteClearLogs, (o) => IsAdmin);
 
             ExecuteRefreshLogs(null);
@@ -62,52 +48,29 @@ namespace WPF_LoginForm.ViewModels
                 LogsTable = data;
                 StatusMessage = $"Loaded {data.Rows.Count} log entries.";
             }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Error loading logs: {ex.Message}";
-            }
-            finally
-            {
-                IsBusy = false;
-            }
+            catch (Exception ex) { StatusMessage = $"Error: {ex.Message}"; }
+            finally { IsBusy = false; }
         }
 
         private async void ExecuteClearLogs(object obj)
         {
-            // Extra security check
             if (!IsAdmin)
             {
-                StatusMessage = "Access Denied: Only Admins can clear logs.";
+                StatusMessage = "Access Denied: Admins only.";
                 return;
             }
 
-            bool confirm = _dialogService.ShowConfirmationDialog("Clear System Logs",
-                "Are you sure you want to delete ALL system logs? This cannot be undone.");
-
-            if (!confirm) return;
+            if (!_dialogService.ShowConfirmationDialog("Clear Logs", "Delete all system logs?")) return;
 
             IsBusy = true;
             try
             {
                 bool success = await _dataRepository.ClearSystemLogsAsync();
-                if (success)
-                {
-                    LogsTable?.Clear();
-                    StatusMessage = "System logs cleared successfully.";
-                }
-                else
-                {
-                    StatusMessage = "Failed to clear logs.";
-                }
+                if (success) { LogsTable?.Clear(); StatusMessage = "Logs cleared."; }
+                else StatusMessage = "Failed to clear logs.";
             }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Error: {ex.Message}";
-            }
-            finally
-            {
-                IsBusy = false;
-            }
+            catch (Exception ex) { StatusMessage = $"Error: {ex.Message}"; }
+            finally { IsBusy = false; }
         }
     }
 }

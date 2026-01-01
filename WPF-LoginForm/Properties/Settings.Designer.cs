@@ -166,5 +166,41 @@ namespace WPF_LoginForm.Properties {
                 this["DashboardDateTickSize"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("500")]
+        public int DefaultRowLimit {
+            get {
+                return ((int)(this["DefaultRowLimit"]));
+            }
+            set {
+                this["DefaultRowLimit"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("15")]
+        public int ConnectionTimeout {
+            get {
+                return ((int)(this["ConnectionTimeout"]));
+            }
+            set {
+                this["ConnectionTimeout"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool TrustServerCertificate {
+            get {
+                return ((bool)(this["TrustServerCertificate"]));
+            }
+            set {
+                this["TrustServerCertificate"] = value;
+            }
+        }
     }
 }

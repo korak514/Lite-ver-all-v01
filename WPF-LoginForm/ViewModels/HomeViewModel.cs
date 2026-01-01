@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks; // Required for Parallel execution
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -16,7 +17,6 @@ using WPF_LoginForm.Repositories;
 using WPF_LoginForm.Services;
 using System.IO;
 using Newtonsoft.Json.Linq;
-using System.Threading.Tasks;
 using WPF_LoginForm.Properties;
 using System.Collections.ObjectModel;
 
@@ -37,7 +37,7 @@ namespace WPF_LoginForm.ViewModels
         private bool _isActive = false;
         private bool _isLoading = false;
 
-        // --- Dashboard Selection Logic ---
+        // --- Collections & Properties ---
         public ObservableCollection<string> DashboardFiles { get; } = new ObservableCollection<string>();
 
         private string _selectedDashboardFile;
@@ -51,7 +51,6 @@ namespace WPF_LoginForm.ViewModels
                 {
                     if (_isActive && !string.IsNullOrEmpty(_selectedDashboardFile))
                     {
-                        // Add a small delay to prevent rapid consecutive changes
                         Task.Delay(50).ContinueWith(_ =>
                         {
                             Application.Current.Dispatcher.Invoke(() =>
@@ -286,6 +285,503 @@ namespace WPF_LoginForm.ViewModels
 
             InitializeEmptyAxes();
             TryLoadAutoSave();
+        }
+
+        // --- OPTIMIZED NETWORK LOADING ---
+        private async void LoadAllChartsData(Dictionary<(int, string), string> colorMap = null)
+        {
+            // Prevent loading if not active or no configurations
+            if (_dashboardConfigurations == null || !_isActive) return;
+
+            // Prevent concurrent loads
+            if (_isLoading) return;
+
+            _isLoading = true;
+
+            try
+            {
+                // 1. Clear UI on Main Thread
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    try
+                    {
+                        Chart1Series.Clear();
+                        Chart2Series.Clear();
+                        Chart3Series.Clear();
+                        Chart4Series.Clear();
+                        Chart5Series.Clear();
+                        ClearAndReinitializeAxes();
+                    }
+                    catch (Exception) { }
+                });
+
+                var validConfigs = _dashboardConfigurations
+                    .Where(c => c.IsEnabled &&
+                               !string.IsNullOrEmpty(c.TableName) &&
+                               c.Series.Any(s => !string.IsNullOrEmpty(s.ColumnName)))
+                    .ToList();
+
+                // 2. PARALLEL EXECUTION: Fetch all data at once
+                // This reduces network wait time significantly by firing multiple SQL queries in parallel tasks.
+                var tasks = validConfigs.Select(config => ProcessChartConfigurationAsync(config, colorMap)).ToList();
+
+                await Task.WhenAll(tasks);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError($"Error in LoadAllChartsData: {ex.Message}");
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+
+        private async Task ProcessChartConfigurationAsync(DashboardConfiguration config, Dictionary<(int, string), string> colorMap)
+        {
+            try
+            {
+                // Run on background thread to ensure UI doesn't freeze during SQL query creation/wait
+                await Task.Run(async () =>
+                {
+                    var columnsToFetch = config.Series.Select(s => s.ColumnName).ToList();
+                    if (!string.IsNullOrEmpty(config.DateColumn)) columnsToFetch.Add(config.DateColumn);
+                    columnsToFetch = columnsToFetch.Distinct().ToList();
+
+                    DateTime? startDate = null;
+                    DateTime? endDate = null;
+
+                    if (IsFilterByDate && config.DataStructureType == "Daily Date")
+                    {
+                        startDate = this.StartDate;
+                        endDate = this.EndDate;
+                    }
+
+                    // Network call happening here
+                    DataTable dataTable = await _dataRepository.GetDataAsync(config.TableName, columnsToFetch, config.DateColumn, startDate, endDate);
+
+                    // Update UI on Dispatcher
+                    await Application.Current.Dispatcher.InvokeAsync(() => UpdateChartData(dataTable, config, colorMap));
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning($"Failed to load chart {config.ChartPosition} (Table: {config.TableName}). Error: {ex.Message}");
+            }
+        }
+
+        private void UpdateChartData(DataTable dataTable, DashboardConfiguration config, Dictionary<(int, string), string> colorMap = null)
+        {
+            if (dataTable == null) return;
+
+            if (config.RowsToIgnore > 0 && dataTable.Rows.Count > 0)
+            {
+                int rowsToRemove = Math.Min(config.RowsToIgnore, dataTable.Rows.Count);
+                for (int i = 0; i < rowsToRemove; i++)
+                {
+                    dataTable.Rows.RemoveAt(dataTable.Rows.Count - 1);
+                }
+            }
+
+            if (IgnoreNonDateData && !string.IsNullOrEmpty(config.DateColumn) && dataTable.Columns.Contains(config.DateColumn))
+            {
+                for (int i = dataTable.Rows.Count - 1; i >= 0; i--)
+                {
+                    if (dataTable.Rows[i][config.DateColumn] == DBNull.Value)
+                    {
+                        dataTable.Rows.RemoveAt(i);
+                    }
+                }
+            }
+
+            double ratioStart = StartMonthSliderValue / SliderMaximum;
+            double ratioEnd = EndMonthSliderValue / SliderMaximum;
+            bool isDateBasedChart = config.DataStructureType == "Daily Date" && !string.IsNullOrEmpty(config.DateColumn);
+
+            if (!isDateBasedChart || !IsFilterByDate)
+            {
+                int totalRows = dataTable.Rows.Count;
+                if (totalRows > 0)
+                {
+                    int startIndex = (int)(totalRows * ratioStart);
+                    int endIndex = (int)(totalRows * ratioEnd);
+
+                    if (startIndex < 0) startIndex = 0;
+                    if (endIndex >= totalRows) endIndex = totalRows - 1;
+                    if (startIndex > endIndex) startIndex = endIndex;
+
+                    var rowsToKeep = new List<DataRow>();
+                    for (int i = startIndex; i <= endIndex; i++)
+                    {
+                        rowsToKeep.Add(dataTable.Rows[i]);
+                    }
+
+                    DataTable filteredTable = dataTable.Clone();
+                    foreach (var row in rowsToKeep) filteredTable.ImportRow(row);
+                    dataTable = filteredTable;
+                }
+            }
+
+            Func<object, double> safeConvertToDouble = (obj) =>
+            {
+                if (obj == null || obj == DBNull.Value) return 0.0;
+                var culture = config.UseInvariantCultureForNumbers ? CultureInfo.InvariantCulture : CultureInfo.CurrentCulture;
+                double.TryParse(obj.ToString(), NumberStyles.Any, culture, out double result);
+                return result;
+            };
+
+            var newYAxis = new AxesCollection();
+            var newSeries = new SeriesCollection();
+            var newXAxis = new AxesCollection();
+            var axisForegroundColor = Brushes.WhiteSmoke;
+
+            Brush GetSeriesBrush(string seriesTitle) { if (colorMap != null && colorMap.TryGetValue((config.ChartPosition, seriesTitle), out string hexColor)) { return HexToBrush(hexColor); } return GetNewBrush(); }
+
+            if (string.Equals(config.ChartType, "Pie", StringComparison.OrdinalIgnoreCase))
+            {
+                newXAxis = null; newYAxis = null;
+                foreach (var seriesConfig in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dataTable.Columns.Contains(s.ColumnName)))
+                {
+                    double total = dataTable.AsEnumerable().Sum(row => safeConvertToDouble(row[seriesConfig.ColumnName]));
+                    newSeries.Add(new PieSeries { Title = seriesConfig.ColumnName, Values = new ChartValues<double> { total }, DataLabels = true, LabelPoint = chartPoint => string.Format("{0:P0}", chartPoint.Participation), Fill = GetSeriesBrush(seriesConfig.ColumnName) });
+                }
+            }
+            else
+            {
+                newYAxis.Add(new Axis { Title = "Values", MinValue = 0, Foreground = axisForegroundColor });
+
+                switch (config.DataStructureType)
+                {
+                    case "Daily Date":
+                        ProcessDailyDateChart(dataTable, config, newSeries, newXAxis, GetSeriesBrush, safeConvertToDouble);
+                        break;
+
+                    case "Monthly Date":
+                        ProcessCategoricalChart(dataTable, config, newSeries, newXAxis, GetSeriesBrush, safeConvertToDouble, SortDataByMonth);
+                        break;
+
+                    case "ID":
+                    case "General":
+                        ProcessCategoricalChart(dataTable, config, newSeries, newXAxis, GetSeriesBrush, safeConvertToDouble);
+                        break;
+                }
+            }
+
+            switch (config.ChartPosition)
+            {
+                case 1: Chart1Series.AddRange(newSeries); Chart1X.Clear(); if (newXAxis != null) Chart1X.AddRange(newXAxis); Chart1Y.Clear(); if (newYAxis != null) Chart1Y.AddRange(newYAxis); break;
+                case 2: Chart2Series.AddRange(newSeries); Chart2X.Clear(); if (newXAxis != null) Chart2X.AddRange(newXAxis); Chart2Y.Clear(); if (newYAxis != null) Chart2Y.AddRange(newYAxis); break;
+                case 3: Chart3Series.AddRange(newSeries); Chart3X.Clear(); if (newXAxis != null) Chart3X.AddRange(newXAxis); Chart3Y.Clear(); if (newYAxis != null) Chart3Y.AddRange(newYAxis); break;
+                case 4: Chart4Series.AddRange(newSeries); break;
+                case 5: Chart5Series.AddRange(newSeries); Chart5X.Clear(); if (newXAxis != null) Chart5X.AddRange(newXAxis); Chart5Y.Clear(); if (newYAxis != null) Chart5Y.AddRange(newYAxis); break;
+            }
+        }
+
+        private void ProcessDailyDateChart(DataTable dataTable, DashboardConfiguration config, SeriesCollection newSeries, AxesCollection newXAxis, Func<string, Brush> brushProvider, Func<object, double> numberParser)
+        {
+            var allDataPoints = dataTable.AsEnumerable().Select(r => new { Date = (DateTime)r[config.DateColumn], Row = r }).OrderBy(p => p.Date).ToList();
+
+            if (config.AggregationType != "Daily")
+            {
+                IEnumerable<IGrouping<string, dynamic>> aggregatedGroups;
+                if (config.AggregationType == "Weekly") { aggregatedGroups = allDataPoints.GroupBy(p => GetStartOfWeek(p.Date, DayOfWeek.Monday).ToString("d")); }
+                else { aggregatedGroups = allDataPoints.GroupBy(p => new DateTime(p.Date.Year, p.Date.Month, 1).ToString("MMM yyyy")); }
+
+                var labels = aggregatedGroups.Select(g => g.Key).ToList();
+                foreach (var seriesConfig in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dataTable.Columns.Contains(s.ColumnName)))
+                {
+                    var values = new ChartValues<double>(aggregatedGroups.Select(g => g.Sum(item => (double)numberParser(item.Row[seriesConfig.ColumnName]))));
+
+                    if (config.ChartType == "Line")
+                        newSeries.Add(new LineSeries { Title = seriesConfig.ColumnName, Values = values, PointGeometry = DefaultGeometries.Circle, Stroke = brushProvider(seriesConfig.ColumnName) });
+                    else
+                        newSeries.Add(new ColumnSeries { Title = seriesConfig.ColumnName, Values = values, Fill = brushProvider(seriesConfig.ColumnName) });
+                }
+                newXAxis.Add(new Axis { Labels = labels, Separator = new Separator { IsEnabled = false }, Foreground = Brushes.WhiteSmoke });
+            }
+            else
+            {
+                if (config.ChartType == "Line")
+                {
+                    foreach (var seriesConfig in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dataTable.Columns.Contains(s.ColumnName)))
+                    {
+                        var values = allDataPoints.Select(p => new DateTimePoint(p.Date, numberParser(p.Row[seriesConfig.ColumnName])));
+                        newSeries.Add(new LineSeries { Title = seriesConfig.ColumnName, Values = new ChartValues<DateTimePoint>(values), PointGeometry = DefaultGeometries.None, Stroke = brushProvider(seriesConfig.ColumnName) });
+                    }
+                    newXAxis.Add(new Axis { LabelFormatter = DateFormatter, Separator = new Separator { IsEnabled = false }, Foreground = Brushes.WhiteSmoke });
+                }
+                else
+                {
+                    var simplifiedLabels = allDataPoints.Select(p => p.Date.ToString("d")).ToArray();
+                    foreach (var seriesConfig in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dataTable.Columns.Contains(s.ColumnName)))
+                    {
+                        var values = allDataPoints.Select(p => numberParser(p.Row[seriesConfig.ColumnName]));
+                        newSeries.Add(new ColumnSeries { Title = seriesConfig.ColumnName, Values = new ChartValues<double>(values), Fill = brushProvider(seriesConfig.ColumnName) });
+                    }
+                    newXAxis.Add(new Axis { Labels = simplifiedLabels, Separator = new Separator { IsEnabled = false }, Foreground = Brushes.WhiteSmoke });
+                }
+            }
+        }
+
+        private void ProcessCategoricalChart(DataTable dataTable, DashboardConfiguration config, SeriesCollection newSeries, AxesCollection newXAxis, Func<string, Brush> brushProvider, Func<object, double> numberParser, Func<IEnumerable<DataRow>, string, IEnumerable<DataRow>> sorter = null)
+        {
+            IEnumerable<DataRow> dataRows = dataTable.AsEnumerable();
+
+            if (sorter != null)
+            {
+                dataRows = sorter(dataRows, config.DateColumn);
+            }
+
+            var labels = dataRows.Select(r => r[config.DateColumn]?.ToString()).ToArray();
+
+            foreach (var seriesConfig in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dataTable.Columns.Contains(s.ColumnName)))
+            {
+                var values = new ChartValues<double>(dataRows.Select(r => numberParser(r[seriesConfig.ColumnName])));
+                if (config.ChartType == "Line")
+                {
+                    newSeries.Add(new LineSeries { Title = seriesConfig.ColumnName, Values = values, Stroke = brushProvider(seriesConfig.ColumnName), PointGeometry = DefaultGeometries.Circle });
+                }
+                else
+                {
+                    newSeries.Add(new ColumnSeries { Title = seriesConfig.ColumnName, Values = values, Fill = brushProvider(seriesConfig.ColumnName) });
+                }
+            }
+            newXAxis.Add(new Axis { Labels = labels, Separator = new Separator { IsEnabled = false }, Foreground = Brushes.WhiteSmoke });
+        }
+
+        private IEnumerable<DataRow> SortDataByMonth(IEnumerable<DataRow> data, string monthColumnName)
+        {
+            var culture = CultureInfo.CurrentCulture;
+            var monthNames = culture.DateTimeFormat.MonthNames.Take(12).Select(m => m.ToLower(culture)).ToList();
+
+            return data.OrderBy(row =>
+            {
+                string monthStr = row[monthColumnName]?.ToString()?.ToLower(culture) ?? "";
+                int index = monthNames.IndexOf(monthStr);
+                return index == -1 ? 99 : index;
+            });
+        }
+
+        private DateTime GetStartOfWeek(DateTime dt, DayOfWeek startOfWeek) => dt.AddDays(-1 * ((7 + (dt.DayOfWeek - startOfWeek)) % 7)).Date;
+
+        private Brush GetNewBrush() => new SolidColorBrush(Color.FromRgb((byte)_random.Next(100, 256), (byte)_random.Next(100, 256), (byte)_random.Next(100, 256)));
+
+        private string BrushToHex(Brush brush)
+        {
+            if (brush is SolidColorBrush scb) { return scb.Color.ToString(); }
+            return "#808080";
+        }
+
+        private Brush HexToBrush(string hexColor)
+        {
+            if (string.IsNullOrEmpty(hexColor)) return new SolidColorBrush(Colors.Gray);
+            try { return (Brush)new BrushConverter().ConvertFrom(hexColor); }
+            catch { return new SolidColorBrush(Colors.Gray); }
+        }
+
+        private void RebuildAxesFromConfigs()
+        {
+            var axisColor = Brushes.WhiteSmoke;
+            var configs = _dashboardConfigurations;
+            Action<int, AxesCollection, AxesCollection> setupAxes = (pos, xAxis, yAxis) =>
+            {
+                var config = configs.FirstOrDefault(c => c.ChartPosition == pos && c.IsEnabled);
+                if (config == null || config.ChartType == "Pie") return;
+                yAxis.Clear(); xAxis.Clear();
+                yAxis.Add(new Axis { Title = "Values", MinValue = 0, Foreground = axisColor });
+                if (config.DataStructureType == "Daily Date")
+                {
+                    var seriesCollection = (SeriesCollection)this.GetType().GetProperty($"Chart{pos}Series").GetValue(this);
+                    if (seriesCollection.Any() && seriesCollection[0].Values.Count > 0 && seriesCollection[0].Values[0] is DateTimePoint)
+                    {
+                        xAxis.Add(new Axis { LabelFormatter = DateFormatter, Separator = new Separator { IsEnabled = false }, Foreground = axisColor });
+                    }
+                    else { xAxis.Add(new Axis { Separator = new Separator { IsEnabled = false }, Foreground = axisColor }); }
+                }
+                else { xAxis.Add(new Axis { Separator = new Separator { IsEnabled = false }, Foreground = axisColor }); }
+            };
+            setupAxes(1, Chart1X, Chart1Y);
+            setupAxes(2, Chart2X, Chart2Y);
+            setupAxes(3, Chart3X, Chart3Y);
+            setupAxes(5, Chart5X, Chart5Y);
+        }
+
+        private async void ShowConfigurationWindow()
+        {
+            var configViewModel = new ConfigurationViewModel(_dataRepository);
+            await configViewModel.InitializeAsync();
+            configViewModel.LoadConfigurations(_dashboardConfigurations);
+            if (_dialogService.ShowConfigurationDialog(configViewModel))
+            {
+                _dashboardConfigurations = configViewModel.GetFinalConfigurations();
+                Activate();
+                AutoSave();
+            }
+        }
+
+        private void ImportConfiguration()
+        {
+            var openFileDialog = new OpenFileDialog { Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*", Title = "Import Dashboard" };
+            if (openFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    string json = File.ReadAllText(openFileDialog.FileName);
+                    var snapshot = JsonConvert.DeserializeObject<DashboardSnapshot>(json);
+                    if (snapshot.SeriesData != null && snapshot.SeriesData.Any()) LoadDashboardFromSnapshot(snapshot);
+                    else { _dashboardConfigurations = snapshot.Configurations; Activate(); AutoSave(); }
+                }
+                catch (Exception ex) { MessageBox.Show($"Error loading: {ex.Message}"); }
+            }
+        }
+
+        private void ExportConfiguration()
+        {
+            if (_dashboardConfigurations == null || !_dashboardConfigurations.Any()) return;
+            var snapshot = new DashboardSnapshot { StartDate = this.StartDate, EndDate = this.EndDate, Configurations = _dashboardConfigurations };
+            // Capture logic
+            Action<SeriesCollection, int> captureSeries = (seriesCollection, position) =>
+            {
+                foreach (var series in seriesCollection.Cast<Series>())
+                {
+                    var seriesSnapshot = new ChartSeriesSnapshot { ChartPosition = position, SeriesTitle = series.Title, DataPoints = IsSnapshotExport ? series.Values.Cast<object>().ToList() : new List<object>() };
+                    if (series is LineSeries lineSeries) seriesSnapshot.HexColor = BrushToHex(lineSeries.Stroke);
+                    else if (series is ColumnSeries columnSeries) seriesSnapshot.HexColor = BrushToHex(columnSeries.Fill);
+                    else if (series is PieSeries pieSeries) seriesSnapshot.HexColor = BrushToHex(pieSeries.Fill);
+                    snapshot.SeriesData.Add(seriesSnapshot);
+                }
+            };
+            captureSeries(Chart1Series, 1); captureSeries(Chart2Series, 2); captureSeries(Chart3Series, 3); captureSeries(Chart4Series, 4); captureSeries(Chart5Series, 5);
+
+            var saveFileDialog = new SaveFileDialog { Filter = "JSON Files (*.json)|*.json", DefaultExt = ".json" };
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                try { string json = JsonConvert.SerializeObject(snapshot, Formatting.Indented); File.WriteAllText(saveFileDialog.FileName, json); }
+                catch (Exception ex) { MessageBox.Show($"Error saving: {ex.Message}"); }
+            }
+        }
+
+        private void LoadDashboardFromSnapshot(DashboardSnapshot snapshot)
+        {
+            if (snapshot == null) return;
+
+            // Store the active state before clearing
+            bool wasActive = _isActive;
+
+            // Temporarily deactivate to prevent automatic reloads
+            _isActive = false;
+
+            try
+            {
+                // Clear current state
+                _dashboardConfigurations = snapshot.Configurations;
+
+                // Force dates to MinValue to ignore JSON saved state and use full data range
+                _startDate = DateTime.MinValue;
+                _endDate = DateTime.MinValue;
+
+                // Clear all chart data
+                ClearAndReinitializeAxes();
+                Chart1Series.Clear();
+                Chart2Series.Clear();
+                Chart3Series.Clear();
+                Chart4Series.Clear();
+                Chart5Series.Clear();
+
+                // Load series from snapshot if available
+                if (snapshot.SeriesData != null && snapshot.SeriesData.Any())
+                {
+                    foreach (var seriesSnapshot in snapshot.SeriesData)
+                    {
+                        var config = _dashboardConfigurations.FirstOrDefault(c => c.ChartPosition == seriesSnapshot.ChartPosition);
+                        if (config == null) continue;
+
+                        Series newSeries = null;
+                        var seriesColor = HexToBrush(seriesSnapshot.HexColor);
+
+                        try
+                        {
+                            if (config.ChartType == "Line" && config.DataStructureType == "Daily Date")
+                            {
+                                var values = new ChartValues<DateTimePoint>();
+                                values.AddRange(seriesSnapshot.DataPoints.Cast<JObject>().Select(jo => jo.ToObject<DateTimePoint>()));
+                                newSeries = new LineSeries
+                                {
+                                    Title = seriesSnapshot.SeriesTitle,
+                                    Values = values,
+                                    PointGeometry = DefaultGeometries.None,
+                                    Stroke = seriesColor
+                                };
+                            }
+                            else
+                            {
+                                var values = new ChartValues<double>();
+                                values.AddRange(seriesSnapshot.DataPoints.Select(p => Convert.ToDouble(p)));
+
+                                if (config.ChartType == "Line")
+                                    newSeries = new LineSeries
+                                    {
+                                        Title = seriesSnapshot.SeriesTitle,
+                                        Values = values,
+                                        PointGeometry = DefaultGeometries.None,
+                                        Stroke = seriesColor
+                                    };
+                                else if (config.ChartType == "Bar")
+                                    newSeries = new ColumnSeries
+                                    {
+                                        Title = seriesSnapshot.SeriesTitle,
+                                        Values = values,
+                                        Fill = seriesColor
+                                    };
+                                else if (config.ChartType == "Pie")
+                                    newSeries = new PieSeries
+                                    {
+                                        Title = seriesSnapshot.SeriesTitle,
+                                        Values = values,
+                                        DataLabels = true,
+                                        LabelPoint = chartPoint => string.Format("{0:P0}", chartPoint.Participation),
+                                        Fill = seriesColor
+                                    };
+                            }
+                        }
+                        catch { continue; }
+
+                        if (newSeries == null) continue;
+
+                        switch (seriesSnapshot.ChartPosition)
+                        {
+                            case 1: Chart1Series.Add(newSeries); break;
+                            case 2: Chart2Series.Add(newSeries); break;
+                            case 3: Chart3Series.Add(newSeries); break;
+                            case 4: Chart4Series.Add(newSeries); break;
+                            case 5: Chart5Series.Add(newSeries); break;
+                        }
+                    }
+                    RebuildAxesFromConfigs();
+                }
+
+                // Only reload data if we were active AND we didn't load snapshot data
+                if (wasActive && (snapshot.SeriesData == null || !snapshot.SeriesData.Any()))
+                {
+                    _isActive = true; // Restore active state
+                    UpdateDateFilterState();
+
+                    // Initialize without triggering LoadAllChartsData multiple times
+                    _ = InitializeDashboardAsync();
+                }
+                else if (wasActive)
+                {
+                    _isActive = true; // Restore active state
+                }
+            }
+            finally
+            {
+                // Ensure _isActive is restored if something goes wrong
+                if (wasActive && !_isActive)
+                {
+                    _isActive = true;
+                }
+            }
         }
 
         private void ExecuteChartClick(object parameter)
@@ -686,496 +1182,6 @@ namespace WPF_LoginForm.ViewModels
             {
                 StartSliderTooltip = $"Data: {StartMonthSliderValue:F0}%";
                 EndSliderTooltip = $"Data: {EndMonthSliderValue:F0}%";
-            }
-        }
-
-        private async void LoadAllChartsData(Dictionary<(int, string), string> colorMap = null)
-        {
-            // Prevent loading if not active or no configurations
-            if (_dashboardConfigurations == null || !_isActive) return;
-
-            // Prevent concurrent loads
-            if (_isLoading) return;
-
-            _isLoading = true;
-
-            try
-            {
-                // Clear existing data on UI thread
-                await Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    try
-                    {
-                        Chart1Series.Clear();
-                        Chart2Series.Clear();
-                        Chart3Series.Clear();
-                        Chart4Series.Clear();
-                        Chart5Series.Clear();
-                        ClearAndReinitializeAxes();
-                    }
-                    catch (Exception) { }
-                });
-
-                var validConfigs = _dashboardConfigurations
-                    .Where(c => c.IsEnabled &&
-                               !string.IsNullOrEmpty(c.TableName) &&
-                               c.Series.Any(s => !string.IsNullOrEmpty(s.ColumnName)))
-                    .ToList();
-
-                // Process charts sequentially to prevent overlap
-                foreach (var config in validConfigs)
-                {
-                    try
-                    {
-                        await ProcessChartConfiguration(config, colorMap);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.LogWarning($"Failed to load chart {config.ChartPosition} (Table: {config.TableName}). Error: {ex.Message}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError($"Error in LoadAllChartsData: {ex.Message}");
-            }
-            finally
-            {
-                _isLoading = false;
-            }
-        }
-
-        private async Task ProcessChartConfiguration(DashboardConfiguration config, Dictionary<(int, string), string> colorMap)
-        {
-            var columnsToFetch = config.Series.Select(s => s.ColumnName).ToList();
-            if (!string.IsNullOrEmpty(config.DateColumn)) columnsToFetch.Add(config.DateColumn);
-            columnsToFetch = columnsToFetch.Distinct().ToList();
-
-            DateTime? startDate = null;
-            DateTime? endDate = null;
-
-            if (IsFilterByDate && config.DataStructureType == "Daily Date")
-            {
-                startDate = this.StartDate;
-                endDate = this.EndDate;
-            }
-
-            DataTable dataTable = await _dataRepository.GetDataAsync(config.TableName, columnsToFetch, config.DateColumn, startDate, endDate);
-
-            await Application.Current.Dispatcher.InvokeAsync(() => UpdateChartData(dataTable, config, colorMap));
-        }
-
-        private void UpdateChartData(DataTable dataTable, DashboardConfiguration config, Dictionary<(int, string), string> colorMap = null)
-        {
-            if (dataTable == null) return;
-
-            if (config.RowsToIgnore > 0 && dataTable.Rows.Count > 0)
-            {
-                int rowsToRemove = Math.Min(config.RowsToIgnore, dataTable.Rows.Count);
-                for (int i = 0; i < rowsToRemove; i++)
-                {
-                    dataTable.Rows.RemoveAt(dataTable.Rows.Count - 1);
-                }
-            }
-
-            if (IgnoreNonDateData && !string.IsNullOrEmpty(config.DateColumn) && dataTable.Columns.Contains(config.DateColumn))
-            {
-                for (int i = dataTable.Rows.Count - 1; i >= 0; i--)
-                {
-                    if (dataTable.Rows[i][config.DateColumn] == DBNull.Value)
-                    {
-                        dataTable.Rows.RemoveAt(i);
-                    }
-                }
-            }
-
-            double ratioStart = StartMonthSliderValue / SliderMaximum;
-            double ratioEnd = EndMonthSliderValue / SliderMaximum;
-            bool isDateBasedChart = config.DataStructureType == "Daily Date" && !string.IsNullOrEmpty(config.DateColumn);
-
-            if (!isDateBasedChart || !IsFilterByDate)
-            {
-                int totalRows = dataTable.Rows.Count;
-                if (totalRows > 0)
-                {
-                    int startIndex = (int)(totalRows * ratioStart);
-                    int endIndex = (int)(totalRows * ratioEnd);
-
-                    if (startIndex < 0) startIndex = 0;
-                    if (endIndex >= totalRows) endIndex = totalRows - 1;
-                    if (startIndex > endIndex) startIndex = endIndex;
-
-                    var rowsToKeep = new List<DataRow>();
-                    for (int i = startIndex; i <= endIndex; i++)
-                    {
-                        rowsToKeep.Add(dataTable.Rows[i]);
-                    }
-
-                    DataTable filteredTable = dataTable.Clone();
-                    foreach (var row in rowsToKeep) filteredTable.ImportRow(row);
-                    dataTable = filteredTable;
-                }
-            }
-
-            Func<object, double> safeConvertToDouble = (obj) =>
-            {
-                if (obj == null || obj == DBNull.Value) return 0.0;
-                var culture = config.UseInvariantCultureForNumbers ? CultureInfo.InvariantCulture : CultureInfo.CurrentCulture;
-                double.TryParse(obj.ToString(), NumberStyles.Any, culture, out double result);
-                return result;
-            };
-
-            var newYAxis = new AxesCollection();
-            var newSeries = new SeriesCollection();
-            var newXAxis = new AxesCollection();
-            var axisForegroundColor = Brushes.WhiteSmoke;
-
-            Brush GetSeriesBrush(string seriesTitle) { if (colorMap != null && colorMap.TryGetValue((config.ChartPosition, seriesTitle), out string hexColor)) { return HexToBrush(hexColor); } return GetNewBrush(); }
-
-            if (string.Equals(config.ChartType, "Pie", StringComparison.OrdinalIgnoreCase))
-            {
-                newXAxis = null; newYAxis = null;
-                foreach (var seriesConfig in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dataTable.Columns.Contains(s.ColumnName)))
-                {
-                    double total = dataTable.AsEnumerable().Sum(row => safeConvertToDouble(row[seriesConfig.ColumnName]));
-                    newSeries.Add(new PieSeries { Title = seriesConfig.ColumnName, Values = new ChartValues<double> { total }, DataLabels = true, LabelPoint = chartPoint => string.Format("{0:P0}", chartPoint.Participation), Fill = GetSeriesBrush(seriesConfig.ColumnName) });
-                }
-            }
-            else
-            {
-                newYAxis.Add(new Axis { Title = "Values", MinValue = 0, Foreground = axisForegroundColor });
-
-                switch (config.DataStructureType)
-                {
-                    case "Daily Date":
-                        ProcessDailyDateChart(dataTable, config, newSeries, newXAxis, GetSeriesBrush, safeConvertToDouble);
-                        break;
-
-                    case "Monthly Date":
-                        ProcessCategoricalChart(dataTable, config, newSeries, newXAxis, GetSeriesBrush, safeConvertToDouble, SortDataByMonth);
-                        break;
-
-                    case "ID":
-                    case "General":
-                        ProcessCategoricalChart(dataTable, config, newSeries, newXAxis, GetSeriesBrush, safeConvertToDouble);
-                        break;
-                }
-            }
-
-            switch (config.ChartPosition)
-            {
-                case 1: Chart1Series.AddRange(newSeries); Chart1X.Clear(); if (newXAxis != null) Chart1X.AddRange(newXAxis); Chart1Y.Clear(); if (newYAxis != null) Chart1Y.AddRange(newYAxis); break;
-                case 2: Chart2Series.AddRange(newSeries); Chart2X.Clear(); if (newXAxis != null) Chart2X.AddRange(newXAxis); Chart2Y.Clear(); if (newYAxis != null) Chart2Y.AddRange(newYAxis); break;
-                case 3: Chart3Series.AddRange(newSeries); Chart3X.Clear(); if (newXAxis != null) Chart3X.AddRange(newXAxis); Chart3Y.Clear(); if (newYAxis != null) Chart3Y.AddRange(newYAxis); break;
-                case 4: Chart4Series.AddRange(newSeries); break;
-                case 5: Chart5Series.AddRange(newSeries); Chart5X.Clear(); if (newXAxis != null) Chart5X.AddRange(newXAxis); Chart5Y.Clear(); if (newYAxis != null) Chart5Y.AddRange(newYAxis); break;
-            }
-        }
-
-        private void ProcessDailyDateChart(DataTable dataTable, DashboardConfiguration config, SeriesCollection newSeries, AxesCollection newXAxis, Func<string, Brush> brushProvider, Func<object, double> numberParser)
-        {
-            var allDataPoints = dataTable.AsEnumerable().Select(r => new { Date = (DateTime)r[config.DateColumn], Row = r }).OrderBy(p => p.Date).ToList();
-
-            if (config.AggregationType != "Daily")
-            {
-                IEnumerable<IGrouping<string, dynamic>> aggregatedGroups;
-                if (config.AggregationType == "Weekly") { aggregatedGroups = allDataPoints.GroupBy(p => GetStartOfWeek(p.Date, DayOfWeek.Monday).ToString("d")); }
-                else { aggregatedGroups = allDataPoints.GroupBy(p => new DateTime(p.Date.Year, p.Date.Month, 1).ToString("MMM yyyy")); }
-
-                var labels = aggregatedGroups.Select(g => g.Key).ToList();
-                foreach (var seriesConfig in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dataTable.Columns.Contains(s.ColumnName)))
-                {
-                    var values = new ChartValues<double>(aggregatedGroups.Select(g => g.Sum(item => (double)numberParser(item.Row[seriesConfig.ColumnName]))));
-
-                    if (config.ChartType == "Line")
-                        newSeries.Add(new LineSeries { Title = seriesConfig.ColumnName, Values = values, PointGeometry = DefaultGeometries.Circle, Stroke = brushProvider(seriesConfig.ColumnName) });
-                    else
-                        newSeries.Add(new ColumnSeries { Title = seriesConfig.ColumnName, Values = values, Fill = brushProvider(seriesConfig.ColumnName) });
-                }
-                newXAxis.Add(new Axis { Labels = labels, Separator = new Separator { IsEnabled = false }, Foreground = Brushes.WhiteSmoke });
-            }
-            else
-            {
-                if (config.ChartType == "Line")
-                {
-                    foreach (var seriesConfig in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dataTable.Columns.Contains(s.ColumnName)))
-                    {
-                        var values = allDataPoints.Select(p => new DateTimePoint(p.Date, numberParser(p.Row[seriesConfig.ColumnName])));
-                        newSeries.Add(new LineSeries { Title = seriesConfig.ColumnName, Values = new ChartValues<DateTimePoint>(values), PointGeometry = DefaultGeometries.None, Stroke = brushProvider(seriesConfig.ColumnName) });
-                    }
-                    newXAxis.Add(new Axis { LabelFormatter = DateFormatter, Separator = new Separator { IsEnabled = false }, Foreground = Brushes.WhiteSmoke });
-                }
-                else
-                {
-                    var simplifiedLabels = allDataPoints.Select(p => p.Date.ToString("d")).ToArray();
-                    foreach (var seriesConfig in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dataTable.Columns.Contains(s.ColumnName)))
-                    {
-                        var values = allDataPoints.Select(p => numberParser(p.Row[seriesConfig.ColumnName]));
-                        newSeries.Add(new ColumnSeries { Title = seriesConfig.ColumnName, Values = new ChartValues<double>(values), Fill = brushProvider(seriesConfig.ColumnName) });
-                    }
-                    newXAxis.Add(new Axis { Labels = simplifiedLabels, Separator = new Separator { IsEnabled = false }, Foreground = Brushes.WhiteSmoke });
-                }
-            }
-        }
-
-        private void ProcessCategoricalChart(DataTable dataTable, DashboardConfiguration config, SeriesCollection newSeries, AxesCollection newXAxis, Func<string, Brush> brushProvider, Func<object, double> numberParser, Func<IEnumerable<DataRow>, string, IEnumerable<DataRow>> sorter = null)
-        {
-            IEnumerable<DataRow> dataRows = dataTable.AsEnumerable();
-
-            if (sorter != null)
-            {
-                dataRows = sorter(dataRows, config.DateColumn);
-            }
-
-            var labels = dataRows.Select(r => r[config.DateColumn]?.ToString()).ToArray();
-
-            foreach (var seriesConfig in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dataTable.Columns.Contains(s.ColumnName)))
-            {
-                var values = new ChartValues<double>(dataRows.Select(r => numberParser(r[seriesConfig.ColumnName])));
-                if (config.ChartType == "Line")
-                {
-                    newSeries.Add(new LineSeries { Title = seriesConfig.ColumnName, Values = values, Stroke = brushProvider(seriesConfig.ColumnName), PointGeometry = DefaultGeometries.Circle });
-                }
-                else
-                {
-                    newSeries.Add(new ColumnSeries { Title = seriesConfig.ColumnName, Values = values, Fill = brushProvider(seriesConfig.ColumnName) });
-                }
-            }
-            newXAxis.Add(new Axis { Labels = labels, Separator = new Separator { IsEnabled = false }, Foreground = Brushes.WhiteSmoke });
-        }
-
-        private IEnumerable<DataRow> SortDataByMonth(IEnumerable<DataRow> data, string monthColumnName)
-        {
-            var culture = CultureInfo.CurrentCulture;
-            var monthNames = culture.DateTimeFormat.MonthNames.Take(12).Select(m => m.ToLower(culture)).ToList();
-
-            return data.OrderBy(row =>
-            {
-                string monthStr = row[monthColumnName]?.ToString()?.ToLower(culture) ?? "";
-                int index = monthNames.IndexOf(monthStr);
-                return index == -1 ? 99 : index;
-            });
-        }
-
-        private DateTime GetStartOfWeek(DateTime dt, DayOfWeek startOfWeek) => dt.AddDays(-1 * ((7 + (dt.DayOfWeek - startOfWeek)) % 7)).Date;
-
-        private Brush GetNewBrush() => new SolidColorBrush(Color.FromRgb((byte)_random.Next(100, 256), (byte)_random.Next(100, 256), (byte)_random.Next(100, 256)));
-
-        private string BrushToHex(Brush brush)
-        {
-            if (brush is SolidColorBrush scb) { return scb.Color.ToString(); }
-            return "#808080";
-        }
-
-        private Brush HexToBrush(string hexColor)
-        {
-            if (string.IsNullOrEmpty(hexColor)) return new SolidColorBrush(Colors.Gray);
-            try { return (Brush)new BrushConverter().ConvertFrom(hexColor); }
-            catch { return new SolidColorBrush(Colors.Gray); }
-        }
-
-        private void RebuildAxesFromConfigs()
-        {
-            var axisColor = Brushes.WhiteSmoke;
-            var configs = _dashboardConfigurations;
-            Action<int, AxesCollection, AxesCollection> setupAxes = (pos, xAxis, yAxis) =>
-            {
-                var config = configs.FirstOrDefault(c => c.ChartPosition == pos && c.IsEnabled);
-                if (config == null || config.ChartType == "Pie") return;
-                yAxis.Clear(); xAxis.Clear();
-                yAxis.Add(new Axis { Title = "Values", MinValue = 0, Foreground = axisColor });
-                if (config.DataStructureType == "Daily Date")
-                {
-                    var seriesCollection = (SeriesCollection)this.GetType().GetProperty($"Chart{pos}Series").GetValue(this);
-                    if (seriesCollection.Any() && seriesCollection[0].Values.Count > 0 && seriesCollection[0].Values[0] is DateTimePoint)
-                    {
-                        xAxis.Add(new Axis { LabelFormatter = DateFormatter, Separator = new Separator { IsEnabled = false }, Foreground = axisColor });
-                    }
-                    else { xAxis.Add(new Axis { Separator = new Separator { IsEnabled = false }, Foreground = axisColor }); }
-                }
-                else { xAxis.Add(new Axis { Separator = new Separator { IsEnabled = false }, Foreground = axisColor }); }
-            };
-            setupAxes(1, Chart1X, Chart1Y);
-            setupAxes(2, Chart2X, Chart2Y);
-            setupAxes(3, Chart3X, Chart3Y);
-            setupAxes(5, Chart5X, Chart5Y);
-        }
-
-        private async void ShowConfigurationWindow()
-        {
-            var configViewModel = new ConfigurationViewModel(_dataRepository);
-            await configViewModel.InitializeAsync();
-            configViewModel.LoadConfigurations(_dashboardConfigurations);
-            if (_dialogService.ShowConfigurationDialog(configViewModel))
-            {
-                _dashboardConfigurations = configViewModel.GetFinalConfigurations();
-                Activate();
-                AutoSave();
-            }
-        }
-
-        private void ImportConfiguration()
-        {
-            var openFileDialog = new OpenFileDialog { Filter = "JSON Files (*.json)|*.json|All files (*.*)|*.*", Title = "Import Dashboard" };
-            if (openFileDialog.ShowDialog() == true)
-            {
-                try
-                {
-                    string json = File.ReadAllText(openFileDialog.FileName);
-                    var snapshot = JsonConvert.DeserializeObject<DashboardSnapshot>(json);
-                    if (snapshot.SeriesData != null && snapshot.SeriesData.Any()) LoadDashboardFromSnapshot(snapshot);
-                    else { _dashboardConfigurations = snapshot.Configurations; Activate(); AutoSave(); }
-                }
-                catch (Exception ex) { MessageBox.Show($"Error loading: {ex.Message}"); }
-            }
-        }
-
-        private void ExportConfiguration()
-        {
-            if (_dashboardConfigurations == null || !_dashboardConfigurations.Any()) return;
-            var snapshot = new DashboardSnapshot { StartDate = this.StartDate, EndDate = this.EndDate, Configurations = _dashboardConfigurations };
-            // Capture logic
-            Action<SeriesCollection, int> captureSeries = (seriesCollection, position) =>
-            {
-                foreach (var series in seriesCollection.Cast<Series>())
-                {
-                    var seriesSnapshot = new ChartSeriesSnapshot { ChartPosition = position, SeriesTitle = series.Title, DataPoints = IsSnapshotExport ? series.Values.Cast<object>().ToList() : new List<object>() };
-                    if (series is LineSeries lineSeries) seriesSnapshot.HexColor = BrushToHex(lineSeries.Stroke);
-                    else if (series is ColumnSeries columnSeries) seriesSnapshot.HexColor = BrushToHex(columnSeries.Fill);
-                    else if (series is PieSeries pieSeries) seriesSnapshot.HexColor = BrushToHex(pieSeries.Fill);
-                    snapshot.SeriesData.Add(seriesSnapshot);
-                }
-            };
-            captureSeries(Chart1Series, 1); captureSeries(Chart2Series, 2); captureSeries(Chart3Series, 3); captureSeries(Chart4Series, 4); captureSeries(Chart5Series, 5);
-
-            var saveFileDialog = new SaveFileDialog { Filter = "JSON Files (*.json)|*.json", DefaultExt = ".json" };
-            if (saveFileDialog.ShowDialog() == true)
-            {
-                try { string json = JsonConvert.SerializeObject(snapshot, Formatting.Indented); File.WriteAllText(saveFileDialog.FileName, json); }
-                catch (Exception ex) { MessageBox.Show($"Error saving: {ex.Message}"); }
-            }
-        }
-
-        private void LoadDashboardFromSnapshot(DashboardSnapshot snapshot)
-        {
-            if (snapshot == null) return;
-
-            // Store the active state before clearing
-            bool wasActive = _isActive;
-
-            // Temporarily deactivate to prevent automatic reloads
-            _isActive = false;
-
-            try
-            {
-                // Clear current state
-                _dashboardConfigurations = snapshot.Configurations;
-
-                // --- BUG FIX: Force dates to MinValue to ignore JSON saved state and use full data range ---
-                _startDate = DateTime.MinValue;
-                _endDate = DateTime.MinValue;
-
-                // Clear all chart data
-                ClearAndReinitializeAxes();
-                Chart1Series.Clear();
-                Chart2Series.Clear();
-                Chart3Series.Clear();
-                Chart4Series.Clear();
-                Chart5Series.Clear();
-
-                // Load series from snapshot if available
-                if (snapshot.SeriesData != null && snapshot.SeriesData.Any())
-                {
-                    foreach (var seriesSnapshot in snapshot.SeriesData)
-                    {
-                        var config = _dashboardConfigurations.FirstOrDefault(c => c.ChartPosition == seriesSnapshot.ChartPosition);
-                        if (config == null) continue;
-
-                        Series newSeries = null;
-                        var seriesColor = HexToBrush(seriesSnapshot.HexColor);
-
-                        try
-                        {
-                            if (config.ChartType == "Line" && config.DataStructureType == "Daily Date")
-                            {
-                                var values = new ChartValues<DateTimePoint>();
-                                values.AddRange(seriesSnapshot.DataPoints.Cast<JObject>().Select(jo => jo.ToObject<DateTimePoint>()));
-                                newSeries = new LineSeries
-                                {
-                                    Title = seriesSnapshot.SeriesTitle,
-                                    Values = values,
-                                    PointGeometry = DefaultGeometries.None,
-                                    Stroke = seriesColor
-                                };
-                            }
-                            else
-                            {
-                                var values = new ChartValues<double>();
-                                values.AddRange(seriesSnapshot.DataPoints.Select(p => Convert.ToDouble(p)));
-
-                                if (config.ChartType == "Line")
-                                    newSeries = new LineSeries
-                                    {
-                                        Title = seriesSnapshot.SeriesTitle,
-                                        Values = values,
-                                        PointGeometry = DefaultGeometries.None,
-                                        Stroke = seriesColor
-                                    };
-                                else if (config.ChartType == "Bar")
-                                    newSeries = new ColumnSeries
-                                    {
-                                        Title = seriesSnapshot.SeriesTitle,
-                                        Values = values,
-                                        Fill = seriesColor
-                                    };
-                                else if (config.ChartType == "Pie")
-                                    newSeries = new PieSeries
-                                    {
-                                        Title = seriesSnapshot.SeriesTitle,
-                                        Values = values,
-                                        DataLabels = true,
-                                        LabelPoint = chartPoint => string.Format("{0:P0}", chartPoint.Participation),
-                                        Fill = seriesColor
-                                    };
-                            }
-                        }
-                        catch { continue; }
-
-                        if (newSeries == null) continue;
-
-                        switch (seriesSnapshot.ChartPosition)
-                        {
-                            case 1: Chart1Series.Add(newSeries); break;
-                            case 2: Chart2Series.Add(newSeries); break;
-                            case 3: Chart3Series.Add(newSeries); break;
-                            case 4: Chart4Series.Add(newSeries); break;
-                            case 5: Chart5Series.Add(newSeries); break;
-                        }
-                    }
-                    RebuildAxesFromConfigs();
-                }
-
-                // Only reload data if we were active AND we didn't load snapshot data
-                if (wasActive && (snapshot.SeriesData == null || !snapshot.SeriesData.Any()))
-                {
-                    _isActive = true; // Restore active state
-                    UpdateDateFilterState();
-
-                    // Initialize without triggering LoadAllChartsData multiple times
-                    _ = InitializeDashboardAsync();
-                }
-                else if (wasActive)
-                {
-                    _isActive = true; // Restore active state
-                }
-            }
-            finally
-            {
-                // Ensure _isActive is restored if something goes wrong
-                if (wasActive && !_isActive)
-                {
-                    _isActive = true;
-                }
             }
         }
     }
