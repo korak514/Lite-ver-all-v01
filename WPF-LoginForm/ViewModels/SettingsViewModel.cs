@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
+using System.Collections.ObjectModel; // Required for ObservableCollection
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
@@ -15,20 +15,21 @@ using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
-using System.IO;
 
 namespace WPF_LoginForm.ViewModels
 {
     public class SettingsViewModel : ViewModelBase
     {
-        // ... (Previous fields for DB, Language etc. remain the same) ...
+        // --- Private Fields ---
         private DatabaseType _selectedDatabaseType;
 
         private string _statusMessage;
         private bool _isBusy;
         private string _selectedLanguage;
 
+        // DB UI Fields
         private string _dbHost;
+
         private string _dbPort;
         private string _dbUser;
         private SecureString _dbPassword;
@@ -36,17 +37,20 @@ namespace WPF_LoginForm.ViewModels
 
         private string _authDbName = "LoginDb";
         private string _dataDbName = "MainDataDb";
+
+        // Raw Strings
         private string _sqlAuthString;
+
         private string _sqlDataString;
         private string _postgresAuthString;
         private string _postgresDataString;
 
-        // --- Auto Import Fields ---
+        // Auto Import Fields
         private bool _autoImportEnabled;
 
         private bool _importIsRelative;
-        private string _importFileName; // Default File Name (e.g. "dashboard.json")
-        private string _importAbsolutePath; // Folder Path (e.g. "C:\MyDashboards")
+        private string _importFileName;
+        private string _importAbsolutePath;
 
         // Dashboard Config Fields
         private bool _showDashboardDateFilter;
@@ -61,7 +65,10 @@ namespace WPF_LoginForm.ViewModels
         private string _newUserLastName;
         private string _newUserEmail;
         private SecureString _newUserPassword;
+
+        // NEW: Role Fields
         private string _newUserRole;
+
         private readonly IUserRepository _userRepository;
 
         // --- Properties ---
@@ -79,7 +86,9 @@ namespace WPF_LoginForm.ViewModels
         public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
         public bool IsBusy { get => _isBusy; set => SetProperty(ref _isBusy, value); }
 
+        // DB Binding
         public string DbHost { get => _dbHost; set => SetProperty(ref _dbHost, value); }
+
         public string DbPort { get => _dbPort; set => SetProperty(ref _dbPort, value); }
         public string DbUser { get => _dbUser; set => SetProperty(ref _dbUser, value); }
         public SecureString DbPassword { get => _dbPassword; set => SetProperty(ref _dbPassword, value); }
@@ -93,40 +102,19 @@ namespace WPF_LoginForm.ViewModels
         public bool IsCredentialsEnabled => !UseWindowsAuth;
         public bool IsWindowsAuthVisible => SelectedDatabaseType == DatabaseType.SqlServer;
 
-        // --- Auto Import Properties ---
+        // Auto Import Properties
         public bool AutoImportEnabled
         { get => _autoImportEnabled; set { SetProperty(ref _autoImportEnabled, value); OnPropertyChanged(nameof(IsImportConfigEnabled)); } }
 
         public bool IsImportConfigEnabled => AutoImportEnabled;
-
         public bool ImportIsRelative
-        {
-            get => _importIsRelative;
-            set
-            {
-                SetProperty(ref _importIsRelative, value);
-                OnPropertyChanged(nameof(IsRelativeInputVisible));
-                OnPropertyChanged(nameof(IsAbsoluteInputVisible));
-            }
-        }
-
+        { get => _importIsRelative; set { SetProperty(ref _importIsRelative, value); OnPropertyChanged(nameof(IsRelativeInputVisible)); OnPropertyChanged(nameof(IsAbsoluteInputVisible)); } }
         public bool ImportIsAbsolute
         { get => !ImportIsRelative; set { ImportIsRelative = !value; } }
-
         public bool IsRelativeInputVisible => ImportIsRelative;
         public bool IsAbsoluteInputVisible => !ImportIsRelative;
-
-        public string ImportFileName
-        {
-            get => _importFileName;
-            set => SetProperty(ref _importFileName, value);
-        }
-
-        public string ImportAbsolutePath
-        {
-            get => _importAbsolutePath;
-            set => SetProperty(ref _importAbsolutePath, value);
-        }
+        public string ImportFileName { get => _importFileName; set => SetProperty(ref _importFileName, value); }
+        public string ImportAbsolutePath { get => _importAbsolutePath; set => SetProperty(ref _importAbsolutePath, value); }
 
         // Dashboard Config Properties
         public bool ShowDashboardDateFilter { get => _showDashboardDateFilter; set => SetProperty(ref _showDashboardDateFilter, value); }
@@ -136,19 +124,21 @@ namespace WPF_LoginForm.ViewModels
         // User Management Properties
         public ObservableCollection<UserModel> Users { get => _users; set => SetProperty(ref _users, value); }
 
-        // ... (User fields unchanged)
         public string NewUserUsername { get => _newUserUsername; set => SetProperty(ref _newUserUsername, value); }
-
         public string NewUserName { get => _newUserName; set => SetProperty(ref _newUserName, value); }
         public string NewUserLastName { get => _newUserLastName; set => SetProperty(ref _newUserLastName, value); }
         public string NewUserEmail { get => _newUserEmail; set => SetProperty(ref _newUserEmail, value); }
         public SecureString NewUserPassword { get => _newUserPassword; set => SetProperty(ref _newUserPassword, value); }
+
+        // NEW: Role Selection
         public string NewUserRole { get => _newUserRole; set => SetProperty(ref _newUserRole, value); }
+
+        // NEW: List of Roles to populate ComboBox
         public List<string> AvailableRoles { get; } = new List<string> { "User", "Admin" };
 
-        public bool CanManageUsers => System.Threading.Thread.CurrentPrincipal.IsInRole("Admin") || IsBusy; // Allow view in offline mode effectively via IsBusy check logic or just Role
-
+        // --- Commands ---
         public ICommand SaveCommand { get; }
+
         public ICommand TestConnectionCommand { get; }
         public ICommand BrowseImportFileCommand { get; }
         public ICommand LoadUsersCommand { get; }
@@ -171,12 +161,13 @@ namespace WPF_LoginForm.ViewModels
 
             AutoImportEnabled = Settings.Default.AutoImportEnabled;
             ImportIsRelative = Settings.Default.ImportIsRelative;
-            ImportFileName = Settings.Default.ImportFileName; // Now treated as just the filename
-            ImportAbsolutePath = Settings.Default.ImportAbsolutePath; // Now treated as the folder path
+            ImportFileName = Settings.Default.ImportFileName;
+            ImportAbsolutePath = Settings.Default.ImportAbsolutePath;
             ShowDashboardDateFilter = Settings.Default.ShowDashboardDateFilter;
             DashboardDateTickSize = Settings.Default.DashboardDateTickSize;
             if (DashboardDateTickSize < 1) DashboardDateTickSize = 1;
 
+            // Default new user role
             NewUserRole = "User";
 
             LoadFromCurrentProvider();
@@ -191,50 +182,10 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteBrowseImportFile(object obj)
         {
-            // Since we want a folder, but WPF doesn't have a native FolderBrowser without external deps or Forms,
-            // we use OpenFileDialog to select a file, then get its directory.
             var dialog = new Microsoft.Win32.OpenFileDialog();
-            dialog.Title = "Select any file inside the desired folder";
-            dialog.Filter = "All files|*.*";
-            dialog.CheckFileExists = true;
-
-            if (dialog.ShowDialog() == true)
-            {
-                ImportAbsolutePath = Path.GetDirectoryName(dialog.FileName);
-                // Optionally set the filename too if it matches typical convention
-                // ImportFileName = Path.GetFileName(dialog.FileName);
-            }
+            dialog.Filter = "Dashboard JSON|*.json|All files|*.*";
+            if (dialog.ShowDialog() == true) { ImportAbsolutePath = dialog.FileName; }
         }
-
-        // ... (ExecuteSaveCommand, LoadFromCurrentProvider, RebuildConnectionStrings, User Commands unchanged - omitted for brevity) ...
-
-        private void ExecuteSaveCommand(object obj)
-        {
-            try
-            {
-                RebuildConnectionStrings();
-                DbConnectionFactory.CurrentDatabaseType = SelectedDatabaseType;
-                Settings.Default.SqlAuthConnString = _sqlAuthString;
-                Settings.Default.SqlDataConnString = _sqlDataString;
-                Settings.Default.PostgresAuthConnString = _postgresAuthString;
-                Settings.Default.PostgresDataConnString = _postgresDataString;
-                Settings.Default.AppLanguage = SelectedLanguage;
-
-                Settings.Default.AutoImportEnabled = AutoImportEnabled;
-                Settings.Default.ImportIsRelative = ImportIsRelative;
-                Settings.Default.ImportFileName = ImportFileName;
-                Settings.Default.ImportAbsolutePath = ImportAbsolutePath; // Saves the Folder Path
-
-                Settings.Default.ShowDashboardDateFilter = ShowDashboardDateFilter;
-                Settings.Default.DashboardDateTickSize = DashboardDateTickSize;
-                Settings.Default.Save();
-                StatusMessage = "Settings saved successfully.";
-                MessageBox.Show("Settings have been saved.\n\nPLEASE RESTART THE APPLICATION to apply changes.", "Restart Required", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex) { StatusMessage = $"Error saving: {ex.Message}"; }
-        }
-
-        // ... (ExecuteLoadUsers, ExecuteAddUser, ExecuteDeleteUser, ExecuteTestConnection unchanged) ...
 
         private void LoadFromCurrentProvider()
         {
@@ -284,6 +235,31 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
+        private void ExecuteSaveCommand(object obj)
+        {
+            try
+            {
+                RebuildConnectionStrings();
+                DbConnectionFactory.CurrentDatabaseType = SelectedDatabaseType;
+                Settings.Default.SqlAuthConnString = _sqlAuthString;
+                Settings.Default.SqlDataConnString = _sqlDataString;
+                Settings.Default.PostgresAuthConnString = _postgresAuthString;
+                Settings.Default.PostgresDataConnString = _postgresDataString;
+                Settings.Default.AppLanguage = SelectedLanguage;
+                Settings.Default.AutoImportEnabled = AutoImportEnabled;
+                Settings.Default.ImportIsRelative = ImportIsRelative;
+                Settings.Default.ImportFileName = ImportFileName;
+                Settings.Default.ImportAbsolutePath = ImportAbsolutePath;
+                Settings.Default.ShowDashboardDateFilter = ShowDashboardDateFilter;
+                Settings.Default.DashboardDateTickSize = DashboardDateTickSize;
+                Settings.Default.Save();
+                StatusMessage = "Settings saved successfully.";
+                MessageBox.Show("Settings have been saved.\n\nPLEASE RESTART THE APPLICATION to apply changes.", "Restart Required", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex) { StatusMessage = $"Error saving: {ex.Message}"; }
+        }
+
+        // --- User Logic ---
         private async void ExecuteLoadUsers(object obj)
         {
             IsBusy = true; StatusMessage = "Loading users...";
@@ -309,14 +285,16 @@ namespace WPF_LoginForm.ViewModels
                     Name = NewUserName ?? "",
                     LastName = NewUserLastName ?? "",
                     Email = NewUserEmail ?? "",
+                    // NEW: Pass selected Role
                     Role = NewUserRole ?? "User",
                     Password = new NetworkCredential("", NewUserPassword).Password
                 };
 
                 await Task.Run(() => _userRepository.Add(newUser));
 
+                // Clear Form
                 NewUserUsername = ""; NewUserName = ""; NewUserLastName = ""; NewUserEmail = ""; NewUserPassword = null;
-                NewUserRole = "User";
+                NewUserRole = "User"; // Reset role
                 OnPropertyChanged(nameof(NewUserPassword));
 
                 StatusMessage = "User added successfully.";
@@ -335,6 +313,7 @@ namespace WPF_LoginForm.ViewModels
             if (obj is UserModel user) { if (user.Username.Equals("admin", StringComparison.OrdinalIgnoreCase)) { MessageBox.Show("Cannot delete the default 'admin' user.", "Restricted", MessageBoxButton.OK, MessageBoxImage.Stop); return; } if (MessageBox.Show($"Are you sure you want to delete user '{user.Username}'?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes) { IsBusy = true; try { if (int.TryParse(user.Id, out int id)) { await Task.Run(() => _userRepository.Remove(id)); StatusMessage = $"User '{user.Username}' deleted."; ExecuteLoadUsers(null); } } catch (Exception ex) { StatusMessage = $"Error deleting user: {ex.Message}"; } finally { IsBusy = false; } } }
         }
 
+        // --- Connection Tester ---
         private async void ExecuteTestConnection(object obj)
         {
             IsBusy = true; RebuildConnectionStrings(); StatusMessage = $"Testing {SelectedDatabaseType} connections..."; await Task.Delay(100);

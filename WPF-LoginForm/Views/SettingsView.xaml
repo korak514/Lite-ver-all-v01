@@ -32,6 +32,7 @@
                             <Trigger Property="IsSelected" Value="False">
                                 <Setter Property="Foreground" Value="Gray" />
                             </Trigger>
+                            <!-- Hide Tab if Visibility is Collapsed -->
                             <Trigger Property="Visibility" Value="Collapsed">
                                 <Setter Property="Width" Value="0" />
                                 <Setter Property="Height" Value="0" />
@@ -91,6 +92,9 @@
                         </Border>
 
                         <!-- 2. Database Configuration -->
+                        <!-- NEW: IsEnabled bound to IsDbConfigEditable.
+                             If logged in as Standard User, this whole block is disabled.
+                             If Offline or Admin, it is enabled. -->
                         <Border CornerRadius="10" Padding="20" Margin="0,0,0,20" BorderBrush="{StaticResource panelActiveColor}" BorderThickness="1"
                                 IsEnabled="{Binding IsDbConfigEditable}">
                             <Border.Background>
@@ -133,37 +137,26 @@
                                 <SolidColorBrush Color="{StaticResource primaryBackColor2}" />
                             </Border.Background>
                             <StackPanel>
-                                <TextBlock Text="Automation &amp; Dashboard Folder" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,15" />
-                                <CheckBox Content="Enable Dashboard Folder Scanning" IsChecked="{Binding AutoImportEnabled, Mode=TwoWay}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
-
+                                <TextBlock Text="Automation &amp; Dashboard" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,15" />
+                                <CheckBox Content="Enable Automatic Dashboard Configuration Import" IsChecked="{Binding AutoImportEnabled, Mode=TwoWay}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
                                 <StackPanel Margin="20,0,0,15" IsEnabled="{Binding IsImportConfigEnabled}">
-                                    <RadioButton GroupName="ImportMode" Content="Folder is relative to executable (App Folder)" IsChecked="{Binding ImportIsRelative, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
-                                    <RadioButton GroupName="ImportMode" Content="Folder is at a specific path" IsChecked="{Binding ImportIsAbsolute, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
-
-                                    <!-- Absolute Path Selector -->
-                                    <Grid Margin="0,5,0,10" Visibility="{Binding IsAbsoluteInputVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <RadioButton GroupName="ImportMode" Content="File is located beside application executable" IsChecked="{Binding ImportIsRelative, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
+                                    <StackPanel Orientation="Horizontal" Margin="20,0,0,10" Visibility="{Binding IsRelativeInputVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock Text="File Name:" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <TextBox Text="{Binding ImportFileName, UpdateSourceTrigger=PropertyChanged}" Width="250" Height="26" Padding="2" />
+                                    </StackPanel>
+                                    <RadioButton GroupName="ImportMode" Content="File is located at a specific path" IsChecked="{Binding ImportIsAbsolute, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
+                                    <Grid Margin="20,0,0,0" Visibility="{Binding IsAbsoluteInputVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Folder Path:" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <TextBlock Grid.Column="0" Text="Full Path:" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
                                         <TextBox Grid.Column="1" Text="{Binding ImportAbsolutePath, UpdateSourceTrigger=PropertyChanged}" Height="26" Padding="2" />
-                                        <Button Grid.Column="2" Content="..." Command="{Binding BrowseImportFileCommand}" Width="30" Height="26" Margin="5,0,0,0" ToolTip="Select a file inside the desired folder" />
+                                        <Button Grid.Column="2" Content="..." Command="{Binding BrowseImportFileCommand}" Width="30" Height="26" Margin="5,0,0,0" />
                                     </Grid>
-
-                                    <!-- Default File Name (Always Visible if Enabled) -->
-                                    <Grid Margin="0,5,0,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Default Dashboard File:" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                        <TextBox Grid.Column="1" Text="{Binding ImportFileName, UpdateSourceTrigger=PropertyChanged}" Height="26" Padding="2" ToolTip="e.g. dashboard.json" />
-                                    </Grid>
-                                    <TextBlock Text="* The app will list all .json files in the selected folder." Foreground="Gray" FontSize="10" Margin="0,5,0,0" FontStyle="Italic" />
                                 </StackPanel>
-
                                 <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,15" />
                                 <CheckBox Content="Show Date Filter on Dashboard" IsChecked="{Binding ShowDashboardDateFilter, Mode=TwoWay}" Foreground="White" Margin="0,0,0,10" />
                                 <StackPanel Orientation="Horizontal">
@@ -184,8 +177,8 @@
             </TabItem>
 
             <!-- TAB 2: USER MANAGEMENT -->
+            <!-- NEW: Visibility Bound to CanManageUsers (Admin Only) -->
             <TabItem Header="User Management" Visibility="{Binding CanManageUsers, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <!-- (Content unchanged, omitted for brevity, identical to previous) -->
                 <Grid Margin="0,10,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -239,6 +232,7 @@
 
                             <TextBlock Grid.Row="0" Grid.ColumnSpan="4" Text="Add New User" Foreground="White" FontWeight="Bold" Margin="0,0,0,10" />
 
+                            <!-- Row 1 Input -->
                             <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
                                 <TextBlock Text="Username *" Foreground="Gray" FontSize="10" />
                                 <TextBox Text="{Binding NewUserUsername, UpdateSourceTrigger=PropertyChanged}" Height="25" />
@@ -256,6 +250,7 @@
                                 <TextBox Text="{Binding NewUserEmail, UpdateSourceTrigger=PropertyChanged}" Height="25" />
                             </StackPanel>
 
+                            <!-- Row 2 Input -->
                             <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,10,10,0">
                                 <TextBlock Text="First Name" Foreground="Gray" FontSize="10" />
                                 <TextBox Text="{Binding NewUserName, UpdateSourceTrigger=PropertyChanged}" Height="25" />

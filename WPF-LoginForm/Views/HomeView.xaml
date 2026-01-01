@@ -74,7 +74,7 @@
             <StackPanel Grid.Column="0" Orientation="Vertical"
                         Visibility="{Binding IsDateFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
 
-                <!-- Row 1: Date Pickers & Config Gear & Dashboard Selector -->
+                <!-- Row 1: Date Pickers & Config Gear -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,10">
                     <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsFilterByDate}">
                         <TextBlock Text="Start:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke" />
@@ -86,13 +86,6 @@
                     <ToggleButton x:Name="FilterConfigToggle" Margin="15,0,0,0" ToolTip="Filter Settings" Style="{StaticResource GearToggleStyle}">
                         <fa:ImageAwesome Icon="Gear" Height="16" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                     </ToggleButton>
-
-                    <!-- NEW: Dashboard File Selector -->
-                    <ComboBox ItemsSource="{Binding DashboardFiles}"
-                              SelectedItem="{Binding SelectedDashboardFile, Mode=TwoWay}"
-                              Width="150" Height="22" Margin="15,0,0,0"
-                              ToolTip="Switch Dashboard Layout"
-                              Visibility="{Binding IsDashboardSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                     <Popup IsOpen="{Binding IsChecked, ElementName=FilterConfigToggle}" StaysOpen="False" PlacementTarget="{Binding ElementName=FilterConfigToggle}" Placement="Bottom">
                         <Border Background="#030347" BorderBrush="#49A956" BorderThickness="1" CornerRadius="4" Padding="10">
