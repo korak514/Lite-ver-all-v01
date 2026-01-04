@@ -16,10 +16,12 @@ namespace WPF_LoginForm.Repositories
     public class DataRepository : IDataRepository
     {
         private readonly ILogger _logger;
+        private readonly CacheService _cache;
 
         public DataRepository(ILogger logger)
         {
             _logger = logger;
+            _cache = new CacheService();
         }
 
         private bool IsPostgres => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql;
@@ -29,120 +31,198 @@ namespace WPF_LoginForm.Repositories
             return IsPostgres ? $"\"{identifier}\"" : $"[{identifier}]";
         }
 
-        // --- 1. DATA RETRIEVAL (Optimized) ---
+        // --- 1. DATA RETRIEVAL (Smart Sort & Limit) ---
         public async Task<DataTable> GetTableDataAsync(string tableName, int limit = 0)
         {
-            var dt = new DataTable();
+            return await DatabaseRetryPolicy.ExecuteAsync(async () =>
+            {
+                var dt = new DataTable();
+                try
+                {
+                    // Step 1: Find the best column to sort by (ID > EntryDate > Date)
+                    string sortColumn = await GetBestSortColumnAsync(tableName);
+
+                    using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
+                    {
+                        if (conn is SqlConnection sqlConn) await sqlConn.OpenAsync();
+                        else if (conn is NpgsqlConnection pgConn) await pgConn.OpenAsync();
+                        else conn.Open();
+
+                        using (var cmd = conn.CreateCommand())
+                        {
+                            string query;
+                            string orderByClause = string.Empty;
+
+                            // Build Order By Clause if a valid column was found
+                            if (!string.IsNullOrEmpty(sortColumn))
+                            {
+                                orderByClause = $" ORDER BY {Quote(sortColumn)} DESC";
+                            }
+
+                            if (IsPostgres)
+                            {
+                                query = $"SELECT * FROM {Quote(tableName)}{orderByClause}";
+                                if (limit > 0) query += $" LIMIT {limit}";
+                            }
+                            else
+                            {
+                                // SQL Server
+                                if (limit > 0)
+                                    query = $"SELECT TOP {limit} * FROM {Quote(tableName)}{orderByClause}";
+                                else
+                                    query = $"SELECT * FROM {Quote(tableName)}{orderByClause}";
+                            }
+
+                            cmd.CommandText = query;
+                            FillDataTable(cmd, dt);
+                            dt.TableName = tableName;
+                        }
+                    }
+                    return dt;
+                }
+                catch (Exception ex)
+                {
+                    if (IsTransientInternal(ex)) throw;
+                    _logger.LogError($"Error fetching data for {tableName}", ex);
+                    return new DataTable(tableName);
+                }
+            });
+        }
+
+        // --- NEW HELPER: Smart Column Detection ---
+        private async Task<string> GetBestSortColumnAsync(string tableName)
+        {
             try
             {
+                var columns = new List<string>();
                 using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
                 {
-                    conn.Open();
+                    if (conn is SqlConnection sqlConn) await sqlConn.OpenAsync();
+                    else if (conn is NpgsqlConnection pgConn) await pgConn.OpenAsync();
+                    else conn.Open();
+
                     using (var cmd = conn.CreateCommand())
                     {
-                        string query;
-                        // Try to find a column to sort by (ID or EntryDate) for "Recent" data
-                        string orderBy = "ORDER BY 1 DESC"; // Default fallback
-
-                        // NOTE: In a real scenario, you might check schema for specific columns.
-                        // For now, we assume ID exists or we rely on default sort.
-                        // Ideally: ORDER BY [ID] DESC if ID exists.
-
                         if (IsPostgres)
                         {
-                            query = $"SELECT * FROM {Quote(tableName)}";
-                            // Check for ID column presence implicitly or just try sorting
-                            // Simple approach: SELECT * FROM table ORDER BY "ID" DESC LIMIT N
-                            // We will use a safe generic approach:
-                            if (limit > 0) query += $" LIMIT {limit}";
+                            cmd.CommandText = "SELECT column_name FROM information_schema.columns WHERE table_name = @t";
+                            AddParameter(cmd, "@t", tableName);
                         }
                         else
                         {
-                            // SQL Server: SELECT TOP N * FROM table
-                            if (limit > 0)
-                                query = $"SELECT TOP {limit} * FROM {Quote(tableName)}";
-                            else
-                                query = $"SELECT * FROM {Quote(tableName)}";
+                            // SQL Server
+                            cmd.CommandText = $"SELECT name FROM sys.columns WHERE object_id = OBJECT_ID(@t)";
+                            AddParameter(cmd, "@t", tableName);
                         }
 
-                        cmd.CommandText = query;
-                        FillDataTable(cmd, dt);
-                        dt.TableName = tableName;
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                columns.Add(reader[0].ToString());
+                            }
+                        }
                     }
                 }
+
+                // Priority Logic:
+                // 1. ID (Primary Key usually)
+                if (columns.Any(c => c.Equals("ID", StringComparison.OrdinalIgnoreCase))) return "ID";
+
+                // 2. EntryDate (Explicit creation date)
+                if (columns.Any(c => c.Equals("EntryDate", StringComparison.OrdinalIgnoreCase))) return "EntryDate";
+
+                // 3. Date / Tarih (Generic dates)
+                if (columns.Any(c => c.Equals("Date", StringComparison.OrdinalIgnoreCase))) return "Date";
+                if (columns.Any(c => c.Equals("Tarih", StringComparison.OrdinalIgnoreCase))) return "Tarih";
+
+                // 4. No suitable sort column found -> Return null (Default database sort)
+                return null;
             }
-            catch (Exception ex)
+            catch
             {
-                _logger.LogError($"Error fetching data for {tableName}", ex);
-                // Return empty table with name so UI doesn't crash
-                var emptyDt = new DataTable(tableName);
-                return emptyDt;
+                // If metadata fetch fails, fallback to no sort
+                return null;
             }
-            return dt;
         }
+
+        // --- EXISTING METHODS (Unchanged but included for complete file context) ---
 
         public async Task<DataTable> GetDataAsync(string tableName, List<string> columns, string dateColumn, DateTime? startDate, DateTime? endDate)
         {
-            var dt = new DataTable();
-            try
+            return await DatabaseRetryPolicy.ExecuteAsync(async () =>
             {
-                // Safety: Ensure columns are unique and quoted
-                var distinctCols = columns.Distinct().ToList();
-                var safeColumns = distinctCols.Select(c => Quote(c));
-                string colString = string.Join(", ", safeColumns);
-
-                string query = $"SELECT {colString} FROM {Quote(tableName)} WHERE 1=1";
-
-                if (startDate.HasValue && endDate.HasValue && !string.IsNullOrEmpty(dateColumn))
+                var dt = new DataTable();
+                try
                 {
-                    query += $" AND {Quote(dateColumn)} >= @start AND {Quote(dateColumn)} <= @end ORDER BY {Quote(dateColumn)}";
-                }
+                    var distinctCols = columns.Distinct().ToList();
+                    var safeColumns = distinctCols.Select(c => Quote(c));
+                    string colString = string.Join(", ", safeColumns);
 
-                using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
-                {
-                    conn.Open();
-                    using (var cmd = conn.CreateCommand())
+                    string query = $"SELECT {colString} FROM {Quote(tableName)} WHERE 1=1";
+
+                    if (startDate.HasValue && endDate.HasValue && !string.IsNullOrEmpty(dateColumn))
                     {
-                        cmd.CommandText = query;
-                        if (startDate.HasValue && endDate.HasValue)
-                        {
-                            AddParameter(cmd, "@start", startDate.Value);
-                            AddParameter(cmd, "@end", endDate.Value);
-                        }
-                        FillDataTable(cmd, dt);
+                        query += $" AND {Quote(dateColumn)} >= @start AND {Quote(dateColumn)} <= @end ORDER BY {Quote(dateColumn)}";
                     }
+
+                    using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
+                    {
+                        if (conn is SqlConnection sqlConn) await sqlConn.OpenAsync();
+                        else if (conn is NpgsqlConnection pgConn) await pgConn.OpenAsync();
+                        else conn.Open();
+
+                        using (var cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = query;
+                            if (startDate.HasValue && endDate.HasValue)
+                            {
+                                AddParameter(cmd, "@start", startDate.Value);
+                                AddParameter(cmd, "@end", endDate.Value);
+                            }
+                            FillDataTable(cmd, dt);
+                        }
+                    }
+                    return dt;
                 }
-            }
-            catch (Exception ex) { _logger.LogError($"Error filtered data {tableName}", ex); }
-            return dt;
+                catch (Exception ex)
+                {
+                    if (IsTransientInternal(ex)) throw;
+                    _logger.LogError($"Error filtered data {tableName}", ex);
+                    return new DataTable();
+                }
+            });
         }
 
-        // --- 2. LOGS ---
+        private bool IsTransientInternal(Exception ex)
+        {
+            return ex is SqlException || ex is PostgresException || ex is System.Net.Sockets.SocketException;
+        }
+
         public async Task<DataTable> GetSystemLogsAsync()
         {
-            var dt = new DataTable();
-            try
+            return await DatabaseRetryPolicy.ExecuteAsync(async () =>
             {
+                var dt = new DataTable();
                 using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
                 {
-                    conn.Open();
+                    if (conn is SqlConnection sqlConn) await sqlConn.OpenAsync();
+                    else if (conn is NpgsqlConnection pgConn) await pgConn.OpenAsync();
+                    else conn.Open();
+
                     using (var cmd = conn.CreateCommand())
                     {
-                        int limit = Properties.Settings.Default.DefaultRowLimit; // Access Global Variable
-
+                        int limit = Properties.Settings.Default.DefaultRowLimit;
                         if (IsPostgres)
                             cmd.CommandText = $"SELECT \"LogDate\", \"LogLevel\", \"Username\", \"Message\" FROM \"Logs\" ORDER BY \"LogDate\" DESC LIMIT {limit}";
                         else
                             cmd.CommandText = $"SELECT TOP {limit} [LogDate], [LogLevel], [Username], [Message] FROM [Logs] ORDER BY [LogDate] DESC";
+
                         FillDataTable(cmd, dt);
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error reading logs: {ex.Message}");
-            }
-            return dt;
+                return dt;
+            });
         }
 
         public async Task<bool> ClearSystemLogsAsync()
@@ -164,30 +244,45 @@ namespace WPF_LoginForm.Repositories
             catch { return false; }
         }
 
-        // --- 3. SCHEMA & METADATA ---
         public async Task<List<string>> GetTableNamesAsync()
         {
-            var list = new List<string>();
-            try
-            {
-                using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
-                {
-                    conn.Open();
-                    using (var cmd = conn.CreateCommand())
-                    {
-                        if (IsPostgres)
-                            cmd.CommandText = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'";
-                        else
-                            cmd.CommandText = "SELECT name FROM sys.tables WHERE name != 'sysdiagrams' ORDER BY name";
+            var cached = _cache.Get<List<string>>("TableNames");
+            if (cached != null && cached.Any()) return cached;
 
-                        using (var reader = cmd.ExecuteReader())
+            var list = await DatabaseRetryPolicy.ExecuteAsync(async () =>
+            {
+                var dbList = new List<string>();
+                try
+                {
+                    using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
+                    {
+                        if (conn is SqlConnection sqlConn) await sqlConn.OpenAsync();
+                        else if (conn is NpgsqlConnection pgConn) await pgConn.OpenAsync();
+                        else conn.Open();
+
+                        using (var cmd = conn.CreateCommand())
                         {
-                            while (reader.Read()) list.Add(reader[0].ToString());
+                            if (IsPostgres)
+                                cmd.CommandText = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'";
+                            else
+                                cmd.CommandText = "SELECT name FROM sys.tables WHERE name != 'sysdiagrams' ORDER BY name";
+
+                            using (var reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read()) dbList.Add(reader[0].ToString());
+                            }
                         }
                     }
                 }
-            }
-            catch (Exception ex) { _logger.LogError("Error fetching tables.", ex); }
+                catch (Exception ex)
+                {
+                    if (IsTransientInternal(ex)) throw;
+                    _logger.LogError("Error fetching tables.", ex);
+                }
+                return dbList;
+            });
+
+            if (list.Any()) _cache.Set("TableNames", list, TimeSpan.FromHours(1));
             return list;
         }
 
@@ -230,6 +325,10 @@ namespace WPF_LoginForm.Repositories
 
         public async Task<(DateTime Min, DateTime Max)> GetDateRangeAsync(string tableName, string dateColumn)
         {
+            string cacheKey = $"DateRange_{tableName}_{dateColumn}";
+            var cached = _cache.Get<Tuple<DateTime, DateTime>>(cacheKey);
+            if (cached != null) return (cached.Item1, cached.Item2);
+
             DateTime min = DateTime.MinValue;
             DateTime max = DateTime.MinValue;
             try
@@ -252,10 +351,11 @@ namespace WPF_LoginForm.Repositories
                 }
             }
             catch (Exception ex) { _logger.LogError($"Error date range {tableName}", ex); }
+
+            if (min != DateTime.MinValue) _cache.Set(cacheKey, new Tuple<DateTime, DateTime>(min, max), TimeSpan.FromMinutes(15));
             return (min, max);
         }
 
-        // --- 4. DISTINCT VALUES & MAP ---
         public async Task<List<string>> GetDistinctPart1ValuesAsync(string tableName) => await GetMapValuesAsync("Part1Value", tableName, null);
 
         public async Task<List<string>> GetDistinctPart2ValuesAsync(string tableName, string p1) => await GetMapValuesAsync("Part2Value", tableName, new Dictionary<string, string> { { "Part1Value", p1 } });
@@ -268,6 +368,12 @@ namespace WPF_LoginForm.Repositories
 
         private async Task<List<string>> GetMapValuesAsync(string targetCol, string tableName, Dictionary<string, string> filters)
         {
+            string filterKey = filters == null ? "None" : string.Join("_", filters.Select(k => $"{k.Key}-{k.Value}"));
+            string cacheKey = $"Hierarchy_{tableName}_{targetCol}_{filterKey}";
+
+            var cached = _cache.Get<List<string>>(cacheKey);
+            if (cached != null) return cached;
+
             var list = new List<string>();
             try
             {
@@ -295,6 +401,8 @@ namespace WPF_LoginForm.Repositories
                 }
             }
             catch (Exception ex) { _logger.LogError($"Error fetching map values for {targetCol}", ex); }
+
+            if (list.Any()) _cache.Set(cacheKey, list, TimeSpan.FromHours(1));
             return list;
         }
 
@@ -302,6 +410,7 @@ namespace WPF_LoginForm.Repositories
         {
             try
             {
+                _cache.Clear();
                 using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
                 {
                     conn.Open();
@@ -317,9 +426,12 @@ namespace WPF_LoginForm.Repositories
             catch (Exception ex) { _logger.LogError($"Error clearing hierarchy map for {tableName}", ex); return false; }
         }
 
-        public async Task<(bool Success, string ErrorMessage)> ImportHierarchyMapAsync(DataTable mapData) => await BulkImportDataAsync("ColumnHierarchyMap", mapData);
+        public async Task<(bool Success, string ErrorMessage)> ImportHierarchyMapAsync(DataTable mapData)
+        {
+            _cache.Clear();
+            return await BulkImportDataAsync("ColumnHierarchyMap", mapData);
+        }
 
-        // --- 5. WRITE OPERATIONS ---
         public async Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName)
         {
             try
@@ -360,6 +472,7 @@ namespace WPF_LoginForm.Repositories
         {
             try
             {
+                _cache.Clear();
                 using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
                 {
                     conn.Open();
@@ -390,6 +503,7 @@ namespace WPF_LoginForm.Repositories
                     conn.Open();
                     using (var cmd = conn.CreateCommand()) { cmd.CommandText = sb.ToString(); cmd.ExecuteNonQuery(); }
                 }
+                _cache.Clear();
                 return (true, null);
             }
             catch (Exception ex) { return (false, ex.Message); }

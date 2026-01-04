@@ -2,35 +2,48 @@
 
 namespace WPF_LoginForm.Services
 {
-    // THIS IS THE SINGLE SOURCE OF TRUTH
+    /// <summary>
+    /// A global static service to hold the current user's Role and Name.
+    /// This prevents thread-context switching issues associated with Thread.CurrentPrincipal.
+    /// </summary>
     public static class UserSessionService
     {
-        // 1. Default Role is ALWAYS Guest
         private static string _currentRole = "Guest";
+        private static string _currentUsername = "";
 
-        // 2. Read-Only Property for the rest of the app
+        // --- PUBLIC PROPERTIES (These were missing or private) ---
         public static string CurrentRole => _currentRole;
 
-        // 3. Convenience Boolean
+        public static string CurrentUsername => _currentUsername;
+
+        // Convenient Bool for binding checks
         public static bool IsAdmin => string.Equals(_currentRole, "Admin", StringComparison.OrdinalIgnoreCase);
 
-        // 4. The ONLY method to change the role.
-        public static void SetSession(string role)
+        /// <summary>
+        /// Sets the current session. Should only be called by LoginViewModel.
+        /// </summary>
+        public static void SetSession(string username, string role)
         {
-            // Simple normalization
-            if (string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+            _currentUsername = username;
+
+            // Normalize Role Logic
+            if (!string.IsNullOrEmpty(role) && role.Trim().Equals("admin", StringComparison.OrdinalIgnoreCase))
             {
-                _currentRole = "Admin";
+                _currentRole = "Admin"; // Force specific casing
             }
             else
             {
-                _currentRole = role ?? "User";
+                _currentRole = "User"; // Default for non-admins
             }
         }
 
+        /// <summary>
+        /// Resets to Guest (Locked state).
+        /// </summary>
         public static void Logout()
         {
             _currentRole = "Guest";
+            _currentUsername = "";
         }
     }
 }

@@ -92,7 +92,7 @@ namespace WPF_LoginForm.ViewModels
 
                     // 4. Set the Global Session
                     // The Service handles the logic: if dbRole == "admin" (any case) -> it becomes "Admin"
-                    UserSessionService.SetSession(dbRole);
+                    UserSessionService.SetSession(Username, dbRole);
 
                     // 5. Final Security Check
                     if (UserSessionService.CurrentRole == "Guest")

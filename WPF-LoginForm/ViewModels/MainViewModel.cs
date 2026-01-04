@@ -3,7 +3,7 @@ using System.Threading;
 using System.Windows.Input;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
-using WPF_LoginForm.Services;
+using WPF_LoginForm.Services; // Required for UserSessionService
 using WPF_LoginForm.Services.Database;
 using System;
 
@@ -35,14 +35,19 @@ namespace WPF_LoginForm.ViewModels
 
         public UserAccountModel CurrentUserAccount
         { get => _currentUserAccount; set { _currentUserAccount = value; OnPropertyChanged(); } }
+
         public ViewModelBase CurrentChildView
         { get => _currentChildView; set { if (_currentChildView != null && _currentChildView != value) DeactivateCurrentView(); _currentChildView = value; OnPropertyChanged(); ActivateCurrentView(); } }
+
         public string Caption
         { get => _caption; set { _caption = value; OnPropertyChanged(); } }
+
         public IconChar Icon
         { get => _icon; set { _icon = value; OnPropertyChanged(); } }
+
         public bool IsNavigationVisible
         { get => _isNavigationVisible; set { _isNavigationVisible = value; OnPropertyChanged(); } }
+
         public bool IsOfflineMode
         { get => _isOfflineMode; set { _isOfflineMode = value; OnPropertyChanged(); } }
 
@@ -101,7 +106,6 @@ namespace WPF_LoginForm.ViewModels
             CurrentChildView = _homeViewModel; Caption = "Dashboard"; Icon = IconChar.Home;
         }
 
-        // --- UPDATED: 3-Argument Handler ---
         private void OnDashboardDrillDown(string tableName, DateTime start, DateTime end)
         {
             ExecuteShowReportsViewCommand(null);
@@ -110,8 +114,6 @@ namespace WPF_LoginForm.ViewModels
                 _datarepViewModel.LoadTableWithFilter(tableName, start, end);
             }
         }
-
-        // -----------------------------------
 
         private void ExecuteShowCustomerViewCommand(object obj)
         { if (_customerViewModel == null) _customerViewModel = new CustomerViewModel(_dataRepository); CurrentChildView = _customerViewModel; Caption = "Customers"; Icon = IconChar.UserGroup; }
@@ -128,16 +130,33 @@ namespace WPF_LoginForm.ViewModels
         private void ExecuteShowHelpViewCommand(object obj)
         { if (_helpViewModel == null) _helpViewModel = new HelpViewModel(); CurrentChildView = _helpViewModel; Caption = "Help"; Icon = IconChar.QuestionCircle; }
 
+        // --- FIXED: Use UserSessionService ---
         private void LoadCurrentUserData()
         {
-            var identity = Thread.CurrentPrincipal?.Identity;
-            if (identity != null && identity.IsAuthenticated)
+            // 1. Get Username from the Static Session (Reliable)
+            string username = UserSessionService.CurrentUsername;
+
+            if (!string.IsNullOrEmpty(username))
             {
-                var user = _userRepository.GetByUsername(identity.Name);
-                if (user != null) { CurrentUserAccount.Username = user.Username; CurrentUserAccount.DisplayName = $"{user.Name} {user.LastName}"; CurrentUserAccount.Role = user.Role; CurrentUserAccount.ProfilePicture = null; }
-                else { CurrentUserAccount.DisplayName = "Unknown User"; }
+                // 2. Fetch display details from DB
+                var user = _userRepository.GetByUsername(username);
+                if (user != null)
+                {
+                    CurrentUserAccount.Username = user.Username;
+                    CurrentUserAccount.DisplayName = $"{user.Name} {user.LastName}";
+                    CurrentUserAccount.Role = UserSessionService.CurrentRole; // Use Session Role
+                    CurrentUserAccount.ProfilePicture = null;
+                }
+                else
+                {
+                    CurrentUserAccount.DisplayName = "Unknown User";
+                }
             }
-            else { CurrentUserAccount.DisplayName = "Not logged in"; }
+            else
+            {
+                // Fallback
+                CurrentUserAccount.DisplayName = "Not logged in";
+            }
         }
     }
 }

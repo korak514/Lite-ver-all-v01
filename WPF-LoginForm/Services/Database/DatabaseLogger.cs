@@ -2,8 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks; // Added for Task.Run
+using System.Threading.Tasks;
 using WPF_LoginForm.Services.Database;
 
 namespace WPF_LoginForm.Services
@@ -12,11 +11,17 @@ namespace WPF_LoginForm.Services
     {
         private readonly ILogger _fallbackLogger;
 
-        // Logs we ignore to prevent spamming the DB
+        // List of phrases to ignore to prevent database spam
         private readonly List<string> _ignoredPhrases = new List<string>
         {
-            "[ARLVM]", "[ARLEVM]", "Main Dashboard initialized",
-            "Visibilities updated", "EntryDate updated", "Found last entry date"
+            "[ARLVM]",
+            "[ARLEVM]",
+            "Main Dashboard initialized",
+            "Started in Normal Mode",
+            "Started in 'Only Report' Mode",
+            "Visibilities updated",
+            "EntryDate updated",
+            "Found last entry date"
         };
 
         public DatabaseLogger(ILogger fallbackLogger)
@@ -25,7 +30,9 @@ namespace WPF_LoginForm.Services
         }
 
         public void LogInfo(string message) => WriteLogSafe("INFO", message, null);
+
         public void LogWarning(string message) => WriteLogSafe("WARN", message, null);
+
         public void LogError(string message, Exception ex = null) => WriteLogSafe("ERROR", message, ex);
 
         private void WriteLogSafe(string level, string message, Exception ex)
@@ -33,28 +40,38 @@ namespace WPF_LoginForm.Services
             // 1. Noise Filter
             if (level == "INFO" && !string.IsNullOrEmpty(message))
             {
-                if (_ignoredPhrases.Any(phrase => message.Contains(phrase))) return;
+                if (_ignoredPhrases.Any(phrase => message.Contains(phrase)))
+                {
+                    // Ignored log, print to debug only
+                    System.Diagnostics.Debug.WriteLine($"[Ignored Log] {message}");
+                    return;
+                }
             }
 
-            // 2. Fire and Forget on a background thread to prevent UI lag
+            // 2. Capture Username BEFORE switching threads
+            // This ensures we get the user even if they log out 1ms later
+            string username = UserSessionService.CurrentUsername;
+            if (string.IsNullOrEmpty(username)) username = "System";
+
+            // 3. Fire and Forget on a background thread
+            // This prevents the UI from stuttering while waiting for the database
             Task.Run(() =>
             {
                 try
                 {
-                    WriteLogToDatabase(level, message, ex);
+                    WriteLogToDatabase(level, message, username, ex);
                 }
                 catch (Exception dbEx)
                 {
-                    // 3. Fallback: If DB fails (Network down), write to file
-                    _fallbackLogger?.LogWarning($"[DB_LOG_FAIL] Could not log to database. Network issue? Error: {dbEx.Message}");
-                    _fallbackLogger?.LogError($"[OFFLINE_LOG] {level}: {message}", ex);
+                    // 4. Fallback: If DB fails (Network down), write to local file
+                    _fallbackLogger?.LogWarning($"[DB_LOG_FAIL] Could not log to database. Error: {dbEx.Message}");
+                    _fallbackLogger?.LogError($"[OFFLINE_LOG] [{username}] {level}: {message}", ex);
                 }
             });
         }
 
-        private void WriteLogToDatabase(string level, string message, Exception ex)
+        private void WriteLogToDatabase(string level, string message, string username, Exception ex)
         {
-            string username = Thread.CurrentPrincipal?.Identity?.Name ?? "System";
             string exceptionStr = ex?.ToString();
 
             using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
@@ -63,6 +80,7 @@ namespace WPF_LoginForm.Services
                 using (var command = connection.CreateCommand())
                 {
                     string query;
+
                     if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql)
                     {
                         query = "INSERT INTO \"Logs\" (\"LogLevel\", \"Message\", \"Username\", \"Exception\", \"LogDate\") " +
