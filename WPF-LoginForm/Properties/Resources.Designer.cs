@@ -115,6 +115,15 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Create Table....
+        /// </summary>
+        public static string CreateNewTable {
+            get {
+                return ResourceManager.GetString("CreateNewTable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Customers.
         /// </summary>
         public static string Customers {
@@ -250,6 +259,15 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Load Full History.
+        /// </summary>
+        public static string LoadFullHistory {
+            get {
+                return ResourceManager.GetString("LoadFullHistory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to LOG IN.
         /// </summary>
         public static string LoginButton {
@@ -282,6 +300,123 @@ namespace WPF_LoginForm.Properties {
         public static string Logs {
             get {
                 return ResourceManager.GetString("Logs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to * Error: Access Denied (Role Verification Failed)..
+        /// </summary>
+        public static string Msg_AccessDeniedRole {
+            get {
+                return ResourceManager.GetString("Msg_AccessDeniedRole", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database initialization failed. Check credentials..
+        /// </summary>
+        public static string Msg_DbInitFailed {
+            get {
+                return ResourceManager.GetString("Msg_DbInitFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to * Invalid username or password.
+        /// </summary>
+        public static string Msg_InvalidCredentials {
+            get {
+                return ResourceManager.GetString("Msg_InvalidCredentials", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Network unreachable..
+        /// </summary>
+        public static string Msg_NetworkUnreachable {
+            get {
+                return ResourceManager.GetString("Msg_NetworkUnreachable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Settings saved. Please RESTART the app to apply changes..
+        /// </summary>
+        public static string Msg_SettingsSavedRestart {
+            get {
+                return ResourceManager.GetString("Msg_SettingsSavedRestart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User added successfully..
+        /// </summary>
+        public static string Msg_UserAdded {
+            get {
+                return ResourceManager.GetString("Msg_UserAdded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User deleted successfully..
+        /// </summary>
+        public static string Msg_UserDeleted {
+            get {
+                return ResourceManager.GetString("Msg_UserDeleted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Customers.
+        /// </summary>
+        public static string Nav_Customers {
+            get {
+                return ResourceManager.GetString("Nav_Customers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dashboard.
+        /// </summary>
+        public static string Nav_Dashboard {
+            get {
+                return ResourceManager.GetString("Nav_Dashboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Help.
+        /// </summary>
+        public static string Nav_Help {
+            get {
+                return ResourceManager.GetString("Nav_Help", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to System Logs.
+        /// </summary>
+        public static string Nav_Logs {
+            get {
+                return ResourceManager.GetString("Nav_Logs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reports.
+        /// </summary>
+        public static string Nav_Reports {
+            get {
+                return ResourceManager.GetString("Nav_Reports", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Settings.
+        /// </summary>
+        public static string Nav_Settings {
+            get {
+                return ResourceManager.GetString("Nav_Settings", resourceCulture);
             }
         }
         
@@ -385,6 +520,24 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Loading....
+        /// </summary>
+        public static string Status_Loading {
+            get {
+                return ResourceManager.GetString("Status_Loading", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ready.
+        /// </summary>
+        public static string Status_Ready {
+            get {
+                return ResourceManager.GetString("Status_Ready", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Table:.
         /// </summary>
         public static string Table {
@@ -399,6 +552,24 @@ namespace WPF_LoginForm.Properties {
         public static string TestConnection {
             get {
                 return ResourceManager.GetString("TestConnection", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Create a new database table from Excel.
+        /// </summary>
+        public static string Tip_CreateNewTable {
+            get {
+                return ResourceManager.GetString("Tip_CreateNewTable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Uncheck for speed (Last 500 rows). Check to see everything..
+        /// </summary>
+        public static string Tip_LoadFullHistory {
+            get {
+                return ResourceManager.GetString("Tip_LoadFullHistory", resourceCulture);
             }
         }
         

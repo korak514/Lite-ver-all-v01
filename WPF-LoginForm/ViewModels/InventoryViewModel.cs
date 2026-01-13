@@ -19,7 +19,7 @@ namespace WPF_LoginForm.ViewModels
         public bool IsBusy { get => _isBusy; set => SetProperty(ref _isBusy, value); }
         public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
 
-        // --- NEW: Using UserSessionService ---
+        // Uses the Static Single Source of Truth
         public bool IsAdmin => UserSessionService.IsAdmin;
 
         public ICommand RefreshLogsCommand { get; }
@@ -32,14 +32,19 @@ namespace WPF_LoginForm.ViewModels
 
             RefreshLogsCommand = new ViewModelCommand(ExecuteRefreshLogs);
 
-            // Check IsAdmin via Service
+            // Command logic: Only executable if IsAdmin is true
             ClearLogsCommand = new ViewModelCommand(ExecuteClearLogs, (o) => IsAdmin);
 
+            // Initial Load
             ExecuteRefreshLogs(null);
         }
 
         private async void ExecuteRefreshLogs(object obj)
         {
+            // FIX: Force the UI to re-check if the "Clear Logs" button should be enabled.
+            // This handles cases where user role changed (Admin -> Guest) but View was cached.
+            (ClearLogsCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+
             IsBusy = true;
             StatusMessage = "Loading logs...";
             try
@@ -48,12 +53,19 @@ namespace WPF_LoginForm.ViewModels
                 LogsTable = data;
                 StatusMessage = $"Loaded {data.Rows.Count} log entries.";
             }
-            catch (Exception ex) { StatusMessage = $"Error: {ex.Message}"; }
-            finally { IsBusy = false; }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error: {ex.Message}";
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         private async void ExecuteClearLogs(object obj)
         {
+            // Double check permission at execution time
             if (!IsAdmin)
             {
                 StatusMessage = "Access Denied: Admins only.";
@@ -66,11 +78,24 @@ namespace WPF_LoginForm.ViewModels
             try
             {
                 bool success = await _dataRepository.ClearSystemLogsAsync();
-                if (success) { LogsTable?.Clear(); StatusMessage = "Logs cleared."; }
-                else StatusMessage = "Failed to clear logs.";
+                if (success)
+                {
+                    LogsTable?.Clear();
+                    StatusMessage = "Logs cleared.";
+                }
+                else
+                {
+                    StatusMessage = "Failed to clear logs.";
+                }
             }
-            catch (Exception ex) { StatusMessage = $"Error: {ex.Message}"; }
-            finally { IsBusy = false; }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error: {ex.Message}";
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
     }
 }

@@ -7,13 +7,12 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Security;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using Npgsql;
 using WPF_LoginForm.Properties;
-using WPF_LoginForm.Services; // Required for UserSessionService
+using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
@@ -30,45 +29,33 @@ namespace WPF_LoginForm.ViewModels
         private bool _isBusy;
         private string _selectedLanguage;
 
-        // Connection Fields
         private string _dbHost;
-
         private string _dbPort;
         private string _dbUser;
         private SecureString _dbPassword;
         private bool _useWindowsAuth;
 
-        // Network & Resilience Fields
         private int _connectionTimeout = 15;
-
         private bool _trustServerCertificate = true;
-        private string _dbServerName; // Backup Hostname
+        private string _dbServerName;
 
-        // Database Names
         private string _authDbName = "LoginDb";
-
         private string _dataDbName = "MainDataDb";
         private string _sqlAuthString;
         private string _sqlDataString;
         private string _postgresAuthString;
         private string _postgresDataString;
 
-        // Auto Import Fields
         private bool _autoImportEnabled;
-
         private bool _importIsRelative;
         private string _importFileName;
         private string _importAbsolutePath;
 
-        // Dashboard Config Fields
         private bool _showDashboardDateFilter;
-
         private int _dashboardDateTickSize;
-        private int _defaultRowLimit; // Performance Limit
+        private int _defaultRowLimit;
 
-        // User Management Fields
         private ObservableCollection<UserModel> _users;
-
         private string _newUserUsername;
         private string _newUserName;
         private string _newUserLastName;
@@ -98,7 +85,6 @@ namespace WPF_LoginForm.ViewModels
             {
                 if (SetProperty(ref _isBusy, value))
                 {
-                    // Notify UI to re-evaluate enabled states
                     OnPropertyChanged(nameof(IsDbConfigEditable));
                     OnPropertyChanged(nameof(CanManageUsers));
                     (SaveCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
@@ -111,28 +97,29 @@ namespace WPF_LoginForm.ViewModels
         public string DbPort { get => _dbPort; set => SetProperty(ref _dbPort, value); }
         public string DbUser { get => _dbUser; set => SetProperty(ref _dbUser, value); }
         public SecureString DbPassword { get => _dbPassword; set => SetProperty(ref _dbPassword, value); }
+
         public bool UseWindowsAuth
         { get => _useWindowsAuth; set { SetProperty(ref _useWindowsAuth, value); OnPropertyChanged(nameof(IsCredentialsEnabled)); } }
 
-        // Network Properties
         public int ConnectionTimeout { get => _connectionTimeout; set => SetProperty(ref _connectionTimeout, value); }
-
         public bool TrustServerCertificate { get => _trustServerCertificate; set => SetProperty(ref _trustServerCertificate, value); }
-        public string DbServerName { get => _dbServerName; set => SetProperty(ref _dbServerName, value); } // Backup Name
+        public string DbServerName { get => _dbServerName; set => SetProperty(ref _dbServerName, value); }
 
         public bool IsCredentialsEnabled => !UseWindowsAuth;
         public bool IsWindowsAuthVisible => SelectedDatabaseType == DatabaseType.SqlServer;
         public bool IsDbConfigEditable => !IsBusy;
 
-        // Auto Import Properties
         public bool AutoImportEnabled
         { get => _autoImportEnabled; set { SetProperty(ref _autoImportEnabled, value); OnPropertyChanged(nameof(IsImportConfigEnabled)); } }
 
         public bool IsImportConfigEnabled => AutoImportEnabled;
+
         public bool ImportIsRelative
         { get => _importIsRelative; set { SetProperty(ref _importIsRelative, value); OnPropertyChanged(nameof(IsRelativeInputVisible)); OnPropertyChanged(nameof(IsAbsoluteInputVisible)); } }
+
         public bool ImportIsAbsolute
         { get => !ImportIsRelative; set { ImportIsRelative = !value; } }
+
         public bool IsRelativeInputVisible => ImportIsRelative;
         public bool IsAbsoluteInputVisible => !ImportIsRelative;
         public string ImportFileName { get => _importFileName; set => SetProperty(ref _importFileName, value); }
@@ -141,9 +128,7 @@ namespace WPF_LoginForm.ViewModels
         public int DashboardDateTickSize { get => _dashboardDateTickSize; set => SetProperty(ref _dashboardDateTickSize, value); }
         public int DefaultRowLimit { get => _defaultRowLimit; set => SetProperty(ref _defaultRowLimit, value); }
 
-        // User Management Properties
         public ObservableCollection<UserModel> Users { get => _users; set => SetProperty(ref _users, value); }
-
         public string NewUserUsername { get => _newUserUsername; set => SetProperty(ref _newUserUsername, value); }
         public string NewUserName { get => _newUserName; set => SetProperty(ref _newUserName, value); }
         public string NewUserLastName { get => _newUserLastName; set => SetProperty(ref _newUserLastName, value); }
@@ -152,32 +137,20 @@ namespace WPF_LoginForm.ViewModels
         public string NewUserRole { get => _newUserRole; set => SetProperty(ref _newUserRole, value); }
         public List<string> AvailableRoles { get; } = new List<string> { "User", "Admin" };
 
-        // --- FIXED: Admin Check using UserSessionService ---
-        public bool CanManageUsers
-        {
-            get
-            {
-                // Uses the Static Single Source of Truth
-                return UserSessionService.IsAdmin || IsBusy;
-            }
-        }
+        public bool CanManageUsers => UserSessionService.IsAdmin || IsBusy;
 
-        // Commands
         public ICommand SaveCommand { get; }
-
         public ICommand TestConnectionCommand { get; }
         public ICommand BrowseImportFileCommand { get; }
         public ICommand LoadUsersCommand { get; }
         public ICommand AddUserCommand { get; }
         public ICommand DeleteUserCommand { get; }
 
-        // --- Constructor ---
         public SettingsViewModel()
         {
             _userRepository = new UserRepository();
             Users = new ObservableCollection<UserModel>();
 
-            // Load Existing Settings
             _sqlAuthString = Settings.Default.SqlAuthConnString;
             _sqlDataString = Settings.Default.SqlDataConnString;
             _postgresAuthString = Settings.Default.PostgresAuthConnString;
@@ -195,17 +168,15 @@ namespace WPF_LoginForm.ViewModels
             DashboardDateTickSize = Settings.Default.DashboardDateTickSize;
             if (DashboardDateTickSize < 1) DashboardDateTickSize = 1;
 
-            // Load Network/Performance Settings
             ConnectionTimeout = Settings.Default.ConnectionTimeout;
             TrustServerCertificate = Settings.Default.TrustServerCertificate;
-            DbServerName = Settings.Default.DbServerName; // Load Backup Name
+            DbServerName = Settings.Default.DbServerName;
             DefaultRowLimit = Settings.Default.DefaultRowLimit;
-            if (DefaultRowLimit < 1) DefaultRowLimit = 500;
+            if (DefaultRowLimit < 0) DefaultRowLimit = 500;
 
             NewUserRole = "User";
             LoadFromCurrentProvider();
 
-            // Init Commands
             SaveCommand = new ViewModelCommand(ExecuteSaveCommand, (o) => !IsBusy);
             TestConnectionCommand = new ViewModelCommand(ExecuteTestConnection, (o) => !IsBusy);
             BrowseImportFileCommand = new ViewModelCommand(ExecuteBrowseImportFile);
@@ -213,8 +184,6 @@ namespace WPF_LoginForm.ViewModels
             AddUserCommand = new ViewModelCommand(ExecuteAddUser);
             DeleteUserCommand = new ViewModelCommand(ExecuteDeleteUser);
         }
-
-        // --- Methods ---
 
         private void ExecuteBrowseImportFile(object obj)
         {
@@ -224,18 +193,22 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteSaveCommand(object obj)
         {
+            if (!int.TryParse(DbPort, out int portNum) || portNum < 0 || portNum > 65535)
+            {
+                MessageBox.Show("Please enter a valid Port number (0-65535).", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             try
             {
                 RebuildConnectionStrings();
                 DbConnectionFactory.CurrentDatabaseType = SelectedDatabaseType;
 
-                // Save DB Configs
                 Settings.Default.SqlAuthConnString = _sqlAuthString;
                 Settings.Default.SqlDataConnString = _sqlDataString;
                 Settings.Default.PostgresAuthConnString = _postgresAuthString;
                 Settings.Default.PostgresDataConnString = _postgresDataString;
 
-                // Save App Configs
                 Settings.Default.AppLanguage = SelectedLanguage;
                 Settings.Default.AutoImportEnabled = AutoImportEnabled;
                 Settings.Default.ImportIsRelative = ImportIsRelative;
@@ -244,26 +217,21 @@ namespace WPF_LoginForm.ViewModels
                 Settings.Default.ShowDashboardDateFilter = ShowDashboardDateFilter;
                 Settings.Default.DashboardDateTickSize = DashboardDateTickSize;
 
-                // Save Network/Performance Configs
                 Settings.Default.ConnectionTimeout = ConnectionTimeout;
                 Settings.Default.TrustServerCertificate = TrustServerCertificate;
-                Settings.Default.DbServerName = DbServerName; // Save Backup Name
+                Settings.Default.DbServerName = DbServerName;
 
-                if (DefaultRowLimit < 1) DefaultRowLimit = 1;
+                if (DefaultRowLimit < 0) DefaultRowLimit = 500;
                 Settings.Default.DefaultRowLimit = DefaultRowLimit;
 
-                // Save Manual Fields to Settings Store (to persist IP/Port in UI)
                 Settings.Default.DbHost = DbHost;
                 Settings.Default.DbPort = DbPort;
                 Settings.Default.DbUser = DbUser;
-                // Note: Password usually shouldn't be saved plain text in 'Settings',
-                // it lives in the Connection String which is encrypted by .NET user config.
-                // But for UI restoration we can keep it in memory or parse from conn string.
 
                 Settings.Default.Save();
 
-                StatusMessage = "Settings saved successfully.";
-                MessageBox.Show("Settings saved. Please RESTART the app to apply changes.", "Restart Required", MessageBoxButton.OK, MessageBoxImage.Information);
+                StatusMessage = Resources.Msg_SettingsSavedRestart;
+                MessageBox.Show(Resources.Msg_SettingsSavedRestart, "Restart Required", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex) { StatusMessage = $"Error saving: {ex.Message}"; }
         }
@@ -278,7 +246,6 @@ namespace WPF_LoginForm.ViewModels
                 {
                     var builder = new SqlConnectionStringBuilder(raw);
                     DbHost = builder.DataSource;
-                    // Handle "Host,Port" syntax for SQL Server
                     if (DbHost.Contains(","))
                     {
                         var parts = DbHost.Split(',');
@@ -314,7 +281,6 @@ namespace WPF_LoginForm.ViewModels
             }
             catch
             {
-                // Default fallback
                 DbHost = "localhost";
                 DbUser = "admin";
             }
@@ -327,7 +293,6 @@ namespace WPF_LoginForm.ViewModels
             if (SelectedDatabaseType == DatabaseType.SqlServer)
             {
                 var builder = new SqlConnectionStringBuilder();
-                // Combine Host and Port
                 builder.DataSource = DbHost + (string.IsNullOrEmpty(DbPort) ? "" : "," + DbPort);
                 builder.IntegratedSecurity = UseWindowsAuth;
                 builder.TrustServerCertificate = TrustServerCertificate;
@@ -346,7 +311,6 @@ namespace WPF_LoginForm.ViewModels
                 if (int.TryParse(DbPort, out int port)) builder.Port = port;
                 builder.Username = DbUser;
                 builder.Password = password;
-
                 builder.TrustServerCertificate = TrustServerCertificate;
                 builder.Timeout = ConnectionTimeout;
                 builder.PersistSecurityInfo = true;
@@ -356,11 +320,10 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        // --- User Management Logic ---
-
         private async void ExecuteLoadUsers(object obj)
         {
-            IsBusy = true; StatusMessage = "Loading users...";
+            IsBusy = true;
+            StatusMessage = Resources.Status_Loading;
             try
             {
                 var usersList = await Task.Run(() => _userRepository.GetByAll());
@@ -398,7 +361,7 @@ namespace WPF_LoginForm.ViewModels
                 NewUserPassword = null; NewUserRole = "User";
                 OnPropertyChanged(nameof(NewUserPassword));
 
-                StatusMessage = "User added.";
+                StatusMessage = Resources.Msg_UserAdded;
                 ExecuteLoadUsers(null);
             }
             catch (Exception ex)
@@ -424,10 +387,10 @@ namespace WPF_LoginForm.ViewModels
                     IsBusy = true;
                     try
                     {
-                        if (int.TryParse(user.Id, out int id))
+                        if (!string.IsNullOrEmpty(user.Id))
                         {
-                            await Task.Run(() => _userRepository.Remove(id));
-                            StatusMessage = "User deleted.";
+                            await Task.Run(() => _userRepository.Remove(user.Id));
+                            StatusMessage = Resources.Msg_UserDeleted;
                             ExecuteLoadUsers(null);
                         }
                     }
@@ -437,16 +400,22 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        // --- Connection Testing Logic ---
-
         private async void ExecuteTestConnection(object obj)
         {
             IsBusy = true;
             StatusMessage = "Checking Network...";
             string host = DbHost;
 
-            // 1. Network Ping Test
-            if (host.ToLower() != "localhost" && host != "." && host != "(local)")
+            // FIX: Validate Port Number in Test Connection too
+            if (!int.TryParse(DbPort, out int portNum) || portNum < 0 || portNum > 65535)
+            {
+                IsBusy = false;
+                StatusMessage = "Invalid Port";
+                MessageBox.Show("Please enter a valid Port number (0-65535).", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(host) && host.ToLower() != "localhost" && host != "." && host != "(local)")
             {
                 bool pingSuccess = await Task.Run(() =>
                 {
@@ -457,13 +426,12 @@ namespace WPF_LoginForm.ViewModels
                 if (!pingSuccess)
                 {
                     IsBusy = false;
-                    StatusMessage = "❌ Network unreachable.";
+                    StatusMessage = "❌ " + Resources.Msg_NetworkUnreachable;
                     MessageBox.Show($"Could not Ping the server '{host}'.\n\n1. Check IP.\n2. Check Firewall.\n3. Check if host is on.", "Network Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
             }
 
-            // 2. DB Connection Test
             RebuildConnectionStrings();
             StatusMessage = "Testing connections...";
             bool authSuccess = false, dataSuccess = false;
@@ -490,7 +458,7 @@ namespace WPF_LoginForm.ViewModels
                 }
                 else
                 {
-                    StatusMessage = "✅ SUCCESS!";
+                    StatusMessage = "✅ " + Resources.Status_Ready;
                     MessageBox.Show("Connection Successful!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }

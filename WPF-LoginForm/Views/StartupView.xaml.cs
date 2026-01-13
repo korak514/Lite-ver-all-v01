@@ -5,7 +5,7 @@ using WPF_LoginForm.Services.Database;
 using System.Net.NetworkInformation;
 using WPF_LoginForm.Properties;
 using WPF_LoginForm.ViewModels;
-using WPF_LoginForm.Services.Network; // Ensure this namespace is here
+using WPF_LoginForm.Services.Network;
 
 namespace WPF_LoginForm.Views
 {
@@ -25,16 +25,12 @@ namespace WPF_LoginForm.Views
         {
             try
             {
-                // --- STEP 1: RESOLVE BEST HOST (Failsafe Logic) ---
                 UpdateStatus("Locating Server...", 10);
 
-                // This checks IP vs Backup Name and updates connection strings if needed
                 string bestHost = await ConnectionManager.ResolveBestHostAsync();
 
-                // --- STEP 2: VERIFY NETWORK ---
                 UpdateStatus($"Pinging {bestHost}...", 20);
 
-                // Simple check to see if the resolved host is actually reachable
                 if (!IsLocalHost(bestHost))
                 {
                     bool pingSuccess = await Task.Run(() =>
@@ -50,11 +46,9 @@ namespace WPF_LoginForm.Views
                     }
                 }
 
-                // --- STEP 3: DATABASE BOOTSTRAP ---
                 UpdateStatus("Connecting to Database...", 50);
-                await Task.Delay(500); // UI feel
+                await Task.Delay(500);
 
-                // Run the bootstrapper (It uses the Settings updated by Step 1)
                 bool dbConnected = await Task.Run(() => DatabaseBootstrapper.Run());
 
                 if (!dbConnected)
@@ -63,7 +57,6 @@ namespace WPF_LoginForm.Views
                     return;
                 }
 
-                // --- STEP 4: LAUNCH LOGIN ---
                 UpdateStatus("Starting Application...", 100);
                 await Task.Delay(500);
 
@@ -81,9 +74,16 @@ namespace WPF_LoginForm.Views
 
             loginView.IsVisibleChanged += (s, ev) =>
             {
+                // FIX: Added WindowState check
                 if (loginView.IsVisible == false && loginView.IsLoaded)
                 {
+                    // If user minimized the window, do NOT launch main app
+                    if (loginView.WindowState == WindowState.Minimized)
+                        return;
+
                     var loginVM = loginView.DataContext as LoginViewModel;
+
+                    // Check if ViewModel actually signaled a successful login
                     if (loginVM != null && !loginVM.IsViewVisible)
                     {
                         var mainView = new MainView();

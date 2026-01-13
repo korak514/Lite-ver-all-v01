@@ -10,33 +10,24 @@ namespace WPF_LoginForm.Services.Network
 {
     public static class ConnectionManager
     {
-        /// <summary>
-        /// Checks Primary IP vs Backup Name. Updates Settings if a swap is needed.
-        /// Returns the working address.
-        /// </summary>
         public static async Task<string> ResolveBestHostAsync()
         {
             string primaryIp = Settings.Default.DbHost;
             string backupName = Settings.Default.DbServerName;
 
-            // 1. If no backup exists, we stick with the primary
             if (string.IsNullOrWhiteSpace(backupName)) return primaryIp;
 
-            // 2. Try Primary IP (Fast check - 1s timeout)
             if (await PingHostAsync(primaryIp))
             {
                 return primaryIp;
             }
 
-            // 3. Primary failed. Try Backup Name.
             if (await PingHostAsync(backupName))
             {
-                // Backup works! We need to update the connection strings to use this new host.
                 UpdateConnectionStrings(backupName);
                 return backupName;
             }
 
-            // 4. Both failed. Return primary and let the database driver throw the error.
             return primaryIp;
         }
 
@@ -44,29 +35,48 @@ namespace WPF_LoginForm.Services.Network
         {
             try
             {
-                // Update the simple setting
                 Settings.Default.DbHost = newHost;
 
-                // Read current credentials
                 string port = Settings.Default.DbPort;
                 string user = Settings.Default.DbUser;
-                string pass = Settings.Default.DbPassword;
-                bool useWindowsAuth = false; // Assuming false for network scenarios usually
+                bool useWindowsAuth = false;
+
+                // FIX: Retrieve existing password from the current active connection string
+                // instead of relying on the potentially empty Settings.Default.DbPassword
+                string currentPass = "";
+
+                try
+                {
+                    if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer)
+                    {
+                        var builder = new SqlConnectionStringBuilder(Settings.Default.SqlAuthConnString);
+                        currentPass = builder.Password;
+                        useWindowsAuth = builder.IntegratedSecurity;
+                    }
+                    else
+                    {
+                        var builder = new NpgsqlConnectionStringBuilder(Settings.Default.PostgresAuthConnString);
+                        currentPass = builder.Password;
+                    }
+                }
+                catch
+                {
+                    // Fallback to settings if parsing fails
+                    currentPass = Settings.Default.DbPassword;
+                }
 
                 // Rebuild SQL Server Strings
                 var sqlBuilder = new SqlConnectionStringBuilder();
                 sqlBuilder.DataSource = newHost + (string.IsNullOrEmpty(port) ? "" : "," + port);
                 sqlBuilder.UserID = user;
-                sqlBuilder.Password = pass;
+                sqlBuilder.Password = currentPass; // Use the extracted password
                 sqlBuilder.IntegratedSecurity = useWindowsAuth;
                 sqlBuilder.TrustServerCertificate = Settings.Default.TrustServerCertificate;
                 sqlBuilder.ConnectTimeout = Settings.Default.ConnectionTimeout;
 
-                // Update LoginDb String
                 sqlBuilder.InitialCatalog = "LoginDb";
                 Settings.Default.SqlAuthConnString = sqlBuilder.ConnectionString;
 
-                // Update MainDataDb String
                 sqlBuilder.InitialCatalog = "MainDataDb";
                 Settings.Default.SqlDataConnString = sqlBuilder.ConnectionString;
 
@@ -75,20 +85,17 @@ namespace WPF_LoginForm.Services.Network
                 pgBuilder.Host = newHost;
                 if (int.TryParse(port, out int portNum)) pgBuilder.Port = portNum;
                 pgBuilder.Username = user;
-                pgBuilder.Password = pass;
+                pgBuilder.Password = currentPass; // Use the extracted password
                 pgBuilder.TrustServerCertificate = Settings.Default.TrustServerCertificate;
                 pgBuilder.Timeout = Settings.Default.ConnectionTimeout;
 
-                // Update LoginDb String
                 pgBuilder.Database = "LoginDb";
                 Settings.Default.PostgresAuthConnString = pgBuilder.ConnectionString;
 
-                // Update MainDataDb String
                 pgBuilder.Database = "MainDataDb";
                 Settings.Default.PostgresDataConnString = pgBuilder.ConnectionString;
 
-                // Save changes to memory (and disk if desired, though memory is enough for session)
-                // Settings.Default.Save(); // Uncomment to make the switch permanent
+                Settings.Default.Save();
             }
             catch (Exception ex)
             {

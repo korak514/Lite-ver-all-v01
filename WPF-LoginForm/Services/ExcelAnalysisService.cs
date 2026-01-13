@@ -24,16 +24,25 @@ namespace WPF_LoginForm.Services
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             var fileInfo = new FileInfo(filePath);
 
-            using (var package = new ExcelPackage(fileInfo))
+            try
             {
-                await Task.Run(() =>
+                using (var package = new ExcelPackage(fileInfo))
                 {
-                    foreach (var worksheet in package.Workbook.Worksheets)
+                    await Task.Run(() =>
                     {
-                        names.Add(worksheet.Name);
-                    }
-                });
+                        foreach (var worksheet in package.Workbook.Worksheets)
+                        {
+                            names.Add(worksheet.Name);
+                        }
+                    });
+                }
             }
+            catch (IOException)
+            {
+                // FIX: Handle file locking gracefully
+                throw new IOException($"The file '{Path.GetFileName(filePath)}' is currently open in another program.\nPlease close it and try again.");
+            }
+
             return names;
         }
 
@@ -48,86 +57,83 @@ namespace WPF_LoginForm.Services
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             var fileInfo = new FileInfo(filePath);
 
-            using (var package = new ExcelPackage(fileInfo))
+            try
             {
-                var worksheet = await Task.Run(() => package.Workbook.Worksheets[worksheetName]);
-                if (worksheet == null || worksheet.Dimension == null)
+                using (var package = new ExcelPackage(fileInfo))
                 {
-                    throw new DataException($"The worksheet '{worksheetName}' is empty or could not be found.");
-                }
-
-                int totalColumns = worksheet.Dimension.End.Column;
-
-                // --- MODIFIED: HashSet to track duplicate headers ---
-                var usedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-                for (int col = 1; col <= totalColumns; col++)
-                {
-                    string header = worksheet.Cells[headerRow, col].Text.Trim();
-                    if (string.IsNullOrEmpty(header))
+                    var worksheet = await Task.Run(() => package.Workbook.Worksheets[worksheetName]);
+                    if (worksheet == null || worksheet.Dimension == null)
                     {
-                        header = $"Column{col}";
+                        throw new DataException($"The worksheet '{worksheetName}' is empty or could not be found.");
                     }
 
-                    // --- NEW: Duplicate Header Handling ---
-                    string originalHeader = header;
-                    int duplicateCount = 1;
-                    while (usedHeaders.Contains(header))
-                    {
-                        header = $"{originalHeader}_{duplicateCount}";
-                        duplicateCount++;
-                    }
-                    usedHeaders.Add(header);
-                    // --------------------------------------
+                    int totalColumns = worksheet.Dimension.End.Column;
+                    var usedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                    schemaList.Add(new ColumnSchemaViewModel
+                    for (int col = 1; col <= totalColumns; col++)
                     {
-                        SourceColumnName = header, // Use the unique header name here
-                        DestinationColumnName = SanitizeSqlName(header)
-                    });
-                }
-
-                // --- NEW LOGIC: Find the first row that actually contains data ---
-                int firstDataRowIndex = headerRow + 1; // Start looking from the row after the header
-                bool dataFound = false;
-                for (int rowIndex = headerRow + 1; rowIndex <= worksheet.Dimension.End.Row; rowIndex++)
-                {
-                    // Check if any cell in this row contains a numerical value.
-                    // This helps skip over rows with units or other text-only info.
-                    for (int colIndex = 1; colIndex <= totalColumns; colIndex++)
-                    {
-                        if (decimal.TryParse(worksheet.Cells[rowIndex, colIndex].Text, out _))
+                        string header = worksheet.Cells[headerRow, col].Text.Trim();
+                        if (string.IsNullOrEmpty(header))
                         {
-                            firstDataRowIndex = rowIndex;
-                            dataFound = true;
-                            break; // Exit the inner column loop
+                            header = $"Column{col}";
                         }
-                    }
-                    if (dataFound)
-                    {
-                        break; // Exit the outer row loop
-                    }
-                }
 
-                // If no numeric data is found at all, we still start after the header to be safe.
-                if (!dataFound) firstDataRowIndex = headerRow + 1;
-                // --- END OF NEW LOGIC ---
-
-                // Scan up to 50 rows for a more reliable analysis, starting from the first real data row
-                int scanLimit = Math.Min(worksheet.Dimension.End.Row, firstDataRowIndex + 50);
-                for (int i = 0; i < schemaList.Count; i++)
-                {
-                    var columnData = new List<string>();
-                    for (int row = firstDataRowIndex; row <= scanLimit; row++)
-                    {
-                        var cellValue = worksheet.Cells[row, i + 1].Text;
-                        if (!string.IsNullOrWhiteSpace(cellValue))
+                        string originalHeader = header;
+                        int duplicateCount = 1;
+                        while (usedHeaders.Contains(header))
                         {
-                            columnData.Add(cellValue);
+                            header = $"{originalHeader}_{duplicateCount}";
+                            duplicateCount++;
                         }
+                        usedHeaders.Add(header);
+
+                        schemaList.Add(new ColumnSchemaViewModel
+                        {
+                            SourceColumnName = header,
+                            DestinationColumnName = SanitizeSqlName(header)
+                        });
                     }
-                    schemaList[i].SelectedDataType = GuessDataType(columnData);
+
+                    int firstDataRowIndex = headerRow + 1;
+                    bool dataFound = false;
+                    int maxScanRow = Math.Min(worksheet.Dimension.End.Row, headerRow + 20);
+
+                    for (int rowIndex = headerRow + 1; rowIndex <= maxScanRow; rowIndex++)
+                    {
+                        for (int colIndex = 1; colIndex <= totalColumns; colIndex++)
+                        {
+                            if (!string.IsNullOrWhiteSpace(worksheet.Cells[rowIndex, colIndex].Text))
+                            {
+                                firstDataRowIndex = rowIndex;
+                                dataFound = true;
+                                break;
+                            }
+                        }
+                        if (dataFound) break;
+                    }
+
+                    if (!dataFound) firstDataRowIndex = headerRow + 1;
+
+                    int scanLimit = Math.Min(worksheet.Dimension.End.Row, firstDataRowIndex + 50);
+                    for (int i = 0; i < schemaList.Count; i++)
+                    {
+                        var columnData = new List<string>();
+                        for (int row = firstDataRowIndex; row <= scanLimit; row++)
+                        {
+                            var cellValue = worksheet.Cells[row, i + 1].Text;
+                            if (!string.IsNullOrWhiteSpace(cellValue))
+                            {
+                                columnData.Add(cellValue);
+                            }
+                        }
+                        schemaList[i].SelectedDataType = GuessDataType(columnData);
+                    }
                 }
+            }
+            catch (IOException)
+            {
+                // FIX: Handle file locking gracefully
+                throw new IOException($"The file '{Path.GetFileName(filePath)}' is currently open in another program.\nPlease close it and try again.");
             }
 
             return schemaList;
@@ -137,7 +143,7 @@ namespace WPF_LoginForm.Services
         {
             if (data == null || !data.Any())
             {
-                return "Text (string)"; // Default if no data to analyze
+                return "Text (string)";
             }
 
             var culture = CultureInfo.CurrentCulture;

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -171,15 +172,12 @@ namespace WPF_LoginForm.ViewModels
             if (await _dataRepository.TableExistsAsync(ProposedTableName)) { MessageBox.Show($"A table named '{ProposedTableName}' already exists.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
             if (ProposedSchema.Count(s => s.IsPrimaryKey) != 1) { MessageBox.Show("You must select exactly one primary key.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
 
-            // 1. Create the Table Structure in DB
             var creationResult = await _dataRepository.CreateTableAsync(ProposedTableName, ProposedSchema.ToList());
             if (!creationResult.Success) { MessageBox.Show($"Failed to create table.\n\n{creationResult.ErrorMessage}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error); return; }
 
-            // 2. Prepare Data with Strong Types
             System.Data.DataTable dataToImport = await LoadExcelToDataTableAsync();
             if (dataToImport == null) return;
 
-            // 3. Bulk Import
             var importResult = await _dataRepository.BulkImportDataAsync(ProposedTableName, dataToImport);
             if (!importResult.Success) { MessageBox.Show($"Table created, but data import failed.\n\n{importResult.ErrorMessage}", "Import Error", MessageBoxButton.OK, MessageBoxImage.Error); return; }
 
@@ -187,7 +185,6 @@ namespace WPF_LoginForm.ViewModels
             CloseAction?.Invoke();
         }
 
-        // --- UPDATED: Strong Typing for Binary Import ---
         private async Task<System.Data.DataTable> LoadExcelToDataTableAsync()
         {
             var dt = new System.Data.DataTable();
@@ -203,14 +200,10 @@ namespace WPF_LoginForm.ViewModels
 
                     var schemaToImport = ProposedSchema.Where(s => s.SourceColumnName != "ID (Auto-Generated)").ToList();
 
-                    // Step A: Create Strongly Typed Columns based on Selection
                     foreach (var colSchema in schemaToImport)
                     {
-                        Type colType = GetClrType(colSchema.SelectedDataType);
-                        dt.Columns.Add(colSchema.DestinationColumnName, colType);
+                        dt.Columns.Add(colSchema.DestinationColumnName, GetClrType(colSchema.SelectedDataType));
                     }
-
-                    // worksheet.Workbook.Calculate(); // Optional: Slow but necessary if you have formulas
 
                     int emptyRowCount = 0;
                     int maxRow = worksheet.Dimension.End.Row;
@@ -229,34 +222,44 @@ namespace WPF_LoginForm.ViewModels
                             if (excelCol != null)
                             {
                                 var cellValue = worksheet.Cells[rowNum, excelCol.Start.Column].Value;
+                                string cellText = cellValue?.ToString()?.Trim();
 
-                                if (cellValue != null && !string.IsNullOrWhiteSpace(cellValue.ToString()))
+                                if (!string.IsNullOrEmpty(cellText))
                                 {
-                                    // Step B: Convert Data safely to the target type
                                     try
                                     {
                                         Type targetType = dt.Columns[i].DataType;
 
-                                        // Specific handling for Excel Dates which might come as doubles
-                                        if (targetType == typeof(DateTime) && cellValue is double dVal)
+                                        // FIX: Culture-Aware Decimal/Double Parsing
+                                        if (targetType == typeof(decimal) || targetType == typeof(double))
                                         {
-                                            rowData[i] = DateTime.FromOADate(dVal);
+                                            if (decimal.TryParse(cellText, NumberStyles.Any, CultureInfo.CurrentCulture, out decimal localVal))
+                                                rowData[i] = localVal;
+                                            else if (decimal.TryParse(cellText, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal invVal))
+                                                rowData[i] = invVal;
+                                            else
+                                                rowData[i] = DBNull.Value;
                                         }
-                                        // Specific handling for Decimals
-                                        else if (targetType == typeof(decimal))
+                                        // FIX: Date Parsing
+                                        else if (targetType == typeof(DateTime))
                                         {
-                                            rowData[i] = Convert.ToDecimal(cellValue);
+                                            if (cellValue is double dVal)
+                                                rowData[i] = DateTime.FromOADate(dVal);
+                                            else if (DateTime.TryParse(cellText, CultureInfo.CurrentCulture, DateTimeStyles.None, out DateTime localDate))
+                                                rowData[i] = localDate;
+                                            else if (DateTime.TryParse(cellText, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime invDate))
+                                                rowData[i] = invDate;
+                                            else
+                                                rowData[i] = DBNull.Value;
                                         }
                                         else
                                         {
-                                            // General conversion
                                             rowData[i] = Convert.ChangeType(cellValue, targetType);
                                         }
                                         hasValues = true;
                                     }
                                     catch
                                     {
-                                        // If conversion fails (e.g. text in a number column), null it to avoid crash
                                         rowData[i] = DBNull.Value;
                                         _logger.LogWarning($"Data Conversion Failed in Row {rowNum}, Col '{colSchema.DestinationColumnName}'. Value: '{cellValue}'");
                                     }
@@ -290,7 +293,6 @@ namespace WPF_LoginForm.ViewModels
             return dt;
         }
 
-        // --- HELPER: Map UI Selection to C# Type ---
         private Type GetClrType(string uiType)
         {
             if (string.IsNullOrEmpty(uiType)) return typeof(string);
@@ -304,6 +306,11 @@ namespace WPF_LoginForm.ViewModels
         }
 
         private string SanitizeSqlName(string rawName)
-        { if (string.IsNullOrWhiteSpace(rawName)) return "New_Table"; string sanitized = System.Text.RegularExpressions.Regex.Replace(rawName, @"[^\w]", "_"); if (char.IsDigit(sanitized[0])) { sanitized = "_" + sanitized; } return sanitized; }
+        {
+            if (string.IsNullOrWhiteSpace(rawName)) return "New_Table";
+            string sanitized = System.Text.RegularExpressions.Regex.Replace(rawName, @"[^\w]", "_");
+            if (char.IsDigit(sanitized[0])) { sanitized = "_" + sanitized; }
+            return sanitized;
+        }
     }
 }

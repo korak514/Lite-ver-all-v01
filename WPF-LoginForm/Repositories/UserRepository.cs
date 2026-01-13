@@ -12,9 +12,7 @@ namespace WPF_LoginForm.Repositories
 {
     public class UserRepository : IUserRepository
     {
-        // --- Table & Column Abstraction for SQL/Postgres ---
         private string TableName => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"User\"" : "[User]";
-
         private string ColId => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Id\"" : "[Id]";
         private string ColUser => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Username\"" : "[Username]";
         private string ColPass => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Password\"" : "[Password]";
@@ -23,7 +21,6 @@ namespace WPF_LoginForm.Repositories
         private string ColEmail => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Email\"" : "[Email]";
         private string ColRole => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Role\"" : "[Role]";
 
-        // --- Synchronous Authentication (Legacy/Fallback) ---
         public bool AuthenticateUser(NetworkCredential credential)
         {
             bool validUser;
@@ -50,7 +47,6 @@ namespace WPF_LoginForm.Repositories
             return validUser;
         }
 
-        // --- Asynchronous Authentication (Network Optimized) ---
         public async Task<bool> AuthenticateUserAsync(NetworkCredential credential)
         {
             bool validUser = false;
@@ -60,10 +56,9 @@ namespace WPF_LoginForm.Repositories
             {
                 using (connection)
                 {
-                    // Open Async based on type
                     if (connection is SqlConnection sqlConn) await sqlConn.OpenAsync();
                     else if (connection is NpgsqlConnection pgConn) await pgConn.OpenAsync();
-                    else connection.Open(); // Fallback
+                    else connection.Open();
 
                     using (var command = connection.CreateCommand())
                     {
@@ -71,7 +66,6 @@ namespace WPF_LoginForm.Repositories
                         AddParameter(command, "@username", credential.UserName);
                         AddParameter(command, "@password", credential.Password);
 
-                        // Execute Async based on type
                         object result;
                         if (command is SqlCommand sqlCmd) result = await sqlCmd.ExecuteScalarAsync();
                         else if (command is NpgsqlCommand pgCmd) result = await pgCmd.ExecuteScalarAsync();
@@ -83,10 +77,8 @@ namespace WPF_LoginForm.Repositories
             }
             catch (Exception ex)
             {
-                // Logic error or Connection failure
                 System.Diagnostics.Debug.WriteLine($"Auth Async Failed: {ex.Message}");
                 validUser = false;
-                // Re-throw if you want the ViewModel to catch specific network errors
                 throw;
             }
             return validUser;
@@ -134,7 +126,8 @@ namespace WPF_LoginForm.Repositories
 
                     var paramId = command.CreateParameter();
                     paramId.ParameterName = "@id";
-                    paramId.Value = int.Parse(userModel.Id);
+                    // FIX: Parse String ID to Guid
+                    paramId.Value = Guid.Parse(userModel.Id);
                     command.Parameters.Add(paramId);
 
                     command.ExecuteNonQuery();
@@ -142,7 +135,7 @@ namespace WPF_LoginForm.Repositories
             }
         }
 
-        public void Remove(int id)
+        public void Remove(string id)
         {
             using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
             {
@@ -153,7 +146,8 @@ namespace WPF_LoginForm.Repositories
 
                     var paramId = command.CreateParameter();
                     paramId.ParameterName = "@id";
-                    paramId.Value = id;
+                    // FIX: Parse String ID to Guid
+                    paramId.Value = Guid.Parse(id);
                     command.Parameters.Add(paramId);
 
                     command.ExecuteNonQuery();
@@ -161,7 +155,7 @@ namespace WPF_LoginForm.Repositories
             }
         }
 
-        public UserModel GetById(int id)
+        public UserModel GetById(string id)
         {
             UserModel user = null;
             using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
@@ -173,7 +167,8 @@ namespace WPF_LoginForm.Repositories
 
                     var paramId = command.CreateParameter();
                     paramId.ParameterName = "@id";
-                    paramId.Value = id;
+                    // FIX: Parse String ID to Guid
+                    paramId.Value = Guid.Parse(id);
                     command.Parameters.Add(paramId);
 
                     using (var reader = command.ExecuteReader())

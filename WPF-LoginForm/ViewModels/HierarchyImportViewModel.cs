@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using OfficeOpenXml; // EPPlus
+using OfficeOpenXml;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
 using WPF_LoginForm.Services;
@@ -26,7 +26,6 @@ namespace WPF_LoginForm.ViewModels
         private bool _isImporting;
         private DataTable _previewData;
 
-        // --- Properties ---
         public ObservableCollection<string> TableNames { get; } = new ObservableCollection<string>();
 
         public string SelectedTableName
@@ -54,11 +53,9 @@ namespace WPF_LoginForm.ViewModels
         public ObservableCollection<MappingItem> Mappings { get; } = new ObservableCollection<MappingItem>();
         public ObservableCollection<string> ExcelHeaders { get; } = new ObservableCollection<string>();
 
-        // --- Commands ---
         public ICommand BrowseCommand { get; }
-
         public ICommand ImportCommand { get; }
-        public ICommand DownloadTemplateCommand { get; } // NEW
+        public ICommand DownloadTemplateCommand { get; }
 
         public HierarchyImportViewModel(IDataRepository dataRepository, IDialogService dialogService, ILogger logger)
         {
@@ -68,8 +65,6 @@ namespace WPF_LoginForm.ViewModels
 
             BrowseCommand = new ViewModelCommand(ExecuteBrowse);
             ImportCommand = new ViewModelCommand(ExecuteImport, CanExecuteImport);
-
-            // NEW: Initialize Download Command
             DownloadTemplateCommand = new ViewModelCommand(ExecuteDownloadTemplate);
 
             Initialize();
@@ -81,19 +76,19 @@ namespace WPF_LoginForm.ViewModels
             foreach (var t in tables) TableNames.Add(t);
         }
 
-        // --- NEW: Template Generator Logic ---
         private void ExecuteDownloadTemplate(object obj)
         {
             if (_dialogService.ShowSaveFileDialog("Save Template", "Hierarchy_Template", ".xlsx", "Excel Files|*.xlsx", out string path))
             {
                 try
                 {
+                    // FIX: Set License Context to prevent Crash
                     ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
                     using (var package = new ExcelPackage(new FileInfo(path)))
                     {
                         var ws = package.Workbook.Worksheets.Add("HierarchyDefinition");
 
-                        // 1. Define Headers representing the DB structure
                         var headers = new List<string>
                         {
                             "Part1Value (Category)",
@@ -110,7 +105,6 @@ namespace WPF_LoginForm.ViewModels
                             ws.Cells[1, i + 1].Style.Font.Bold = true;
                         }
 
-                        // 2. Add some example data to guide the user
                         ws.Cells[2, 1].Value = "Electronics"; ws.Cells[2, 2].Value = "Laptops"; ws.Cells[2, 5].Value = "Gaming Laptop 15inch"; ws.Cells[2, 6].Value = "Laptop_Sales_Qty";
                         ws.Cells[3, 1].Value = "Electronics"; ws.Cells[3, 2].Value = "Phones"; ws.Cells[3, 5].Value = "Smartphone 5G"; ws.Cells[3, 6].Value = "Phone_Sales_Qty";
 
@@ -125,8 +119,6 @@ namespace WPF_LoginForm.ViewModels
                 }
             }
         }
-
-        // -------------------------------------
 
         private void ExecuteBrowse(object obj)
         {
@@ -149,6 +141,7 @@ namespace WPF_LoginForm.ViewModels
             {
                 await Task.Run(() =>
                 {
+                    // License context also needed here
                     ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
                     using (var package = new ExcelPackage(new FileInfo(FilePath)))
                     {
@@ -188,9 +181,8 @@ namespace WPF_LoginForm.ViewModels
             {
                 var mapping = new MappingItem { DbColumnName = sysCol };
 
-                // Smart Match
                 var match = headers.FirstOrDefault(h =>
-                    h.StartsWith(sysCol, StringComparison.OrdinalIgnoreCase) || // Matches "Part1Value" or "Part1Value (Category)"
+                    h.StartsWith(sysCol, StringComparison.OrdinalIgnoreCase) ||
                     (sysCol == "ActualDataTableColumnName" && h.Contains("Column")) ||
                     (sysCol == "CoreItemDisplayName" && h.Contains("Label"))
                 );

@@ -140,7 +140,6 @@ namespace WPF_LoginForm.Views
 
                 if (string.IsNullOrEmpty(sortBy))
                 {
-                    viewModel.SetErrorMessage($"Cannot sort: Column '{column.Header}' has no SortMemberPath defined.");
                     e.Handled = true;
                     return;
                 }
@@ -148,11 +147,15 @@ namespace WPF_LoginForm.Views
                 ListSortDirection direction = (column.SortDirection != ListSortDirection.Ascending)
                                                ? ListSortDirection.Ascending
                                                : ListSortDirection.Descending;
+
                 try
                 {
                     string sortExpression;
+
+                    // FIX: Handle column names with spaces or special chars
                     if (sortBy.Any(c => char.IsWhiteSpace(c) || "()[]{}%#&+-*/\\".Contains(c)))
                     {
+                        // Escape existing brackets and wrap in brackets
                         sortExpression = $"[{sortBy.Replace("]", "]]")}] {(direction == ListSortDirection.Ascending ? "ASC" : "DESC")}";
                     }
                     else
@@ -160,18 +163,20 @@ namespace WPF_LoginForm.Views
                         sortExpression = $"{sortBy} {(direction == ListSortDirection.Ascending ? "ASC" : "DESC")}";
                     }
 
+                    // Apply sort to the underlying DataView
                     viewModel.DataTableView.Sort = sortExpression;
-                    viewModel.SetErrorMessage(null);
 
+                    // Update UI arrow
                     column.SortDirection = direction;
                 }
                 catch (Exception ex)
                 {
-                    string errorMsg = $"Error sorting by column '{column.Header}': {ex.Message}";
-                    viewModel.SetErrorMessage(errorMsg);
+                    // Prevent crash if sort fails
+                    System.Diagnostics.Debug.WriteLine($"Sort Error: {ex.Message}");
                 }
                 finally
                 {
+                    // Mark handled to prevent default DataGrid sort which fights with DataView sort
                     e.Handled = true;
                 }
             }
@@ -183,7 +188,6 @@ namespace WPF_LoginForm.Views
 
         private void CheckBox_Checked()
         {
-
         }
     }
 }

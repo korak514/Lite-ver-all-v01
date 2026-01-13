@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Net;
-using System.Threading.Tasks; // Required for Task
+using System.Threading.Tasks;
 
 namespace WPF_LoginForm.Models
 {
@@ -8,16 +8,17 @@ namespace WPF_LoginForm.Models
     {
         bool AuthenticateUser(NetworkCredential credential);
 
-        // --- NEW: Async Authentication ---
         Task<bool> AuthenticateUserAsync(NetworkCredential credential);
 
         void Add(UserModel userModel);
 
         void Edit(UserModel userModel);
 
-        void Remove(int id);
+        // CHANGED: int to string to support GUIDs
+        void Remove(string id);
 
-        UserModel GetById(int id);
+        // CHANGED: int to string to support GUIDs
+        UserModel GetById(string id);
 
         UserModel GetByUsername(string username);
 

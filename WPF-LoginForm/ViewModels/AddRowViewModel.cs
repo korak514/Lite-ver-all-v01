@@ -97,30 +97,41 @@ namespace WPF_LoginForm.ViewModels
                 {
                     entry.Value = initialValue;
                 }
-                // 2. If it's the ID column, calculate Max + 1 default
+                // 2. If it's the ID column, determine default value based on Type
                 else if (name.Equals(_idColumnName, StringComparison.OrdinalIgnoreCase) && _sourceTable != null)
                 {
-                    entry.Value = CalculateNextId();
+                    entry.Value = CalculateDefaultIdValue(name);
                 }
 
                 ColumnEntries.Add(entry);
             }
         }
 
-        private object CalculateNextId()
+        // FIX: Replaced CalculateNextId with type-aware logic
+        private object CalculateDefaultIdValue(string colName)
         {
             try
             {
-                if (_sourceTable.Columns.Contains(_idColumnName))
+                if (!_sourceTable.Columns.Contains(colName)) return null;
+
+                Type type = _sourceTable.Columns[colName].DataType;
+
+                // Case A: GUID
+                if (type == typeof(Guid))
                 {
-                    // Find max ID safely
+                    return Guid.NewGuid();
+                }
+
+                // Case B: Integers (Auto-Increment logic)
+                if (type == typeof(int) || type == typeof(long) || type == typeof(short))
+                {
                     var ids = _sourceTable.AsEnumerable()
-                        .Select(r => r[_idColumnName])
+                        .Select(r => r[colName])
                         .Where(val => val != null && val != DBNull.Value)
                         .Select(val =>
                         {
-                            if (int.TryParse(val.ToString(), out int id)) return id;
-                            return 0;
+                            if (long.TryParse(val.ToString(), out long id)) return id;
+                            return 0L;
                         })
                         .ToList();
 
@@ -128,42 +139,50 @@ namespace WPF_LoginForm.ViewModels
                     {
                         return ids.Max() + 1;
                     }
+                    return 1;
                 }
             }
             catch { }
-            return 1; // Default if table empty
+
+            // Case C: Strings or others -> Leave blank for user input
+            return null;
         }
 
-        // --- NEW: Validation Method ---
         public bool ValidateData(out string errorMsg)
         {
             errorMsg = "";
-            if (_sourceTable == null) return true; // Cannot validate without schema
+            if (_sourceTable == null) return true;
 
             foreach (var entry in ColumnEntries)
             {
-                // 1. Find the column definition
                 if (!_sourceTable.Columns.Contains(entry.ColumnName)) continue;
                 DataColumn col = _sourceTable.Columns[entry.ColumnName];
 
                 string strVal = entry.Value?.ToString();
 
-                // 2. Check for Nulls on Required Columns
+                // Check for Nulls on Required Columns
                 if (string.IsNullOrWhiteSpace(strVal))
                 {
-                    if (!col.AllowDBNull)
+                    if (!col.AllowDBNull && !col.AutoIncrement)
                     {
                         errorMsg = $"Column '{entry.ColumnName}' is required.";
                         return false;
                     }
-                    continue; // Null is allowed, skip type check
+                    continue;
                 }
 
-                // 3. Check Type Compatibility
+                // Check Type Compatibility
                 try
                 {
-                    // Try to convert. If it fails, it throws an exception.
-                    var converted = Convert.ChangeType(entry.Value, col.DataType);
+                    // Special handling for GUID strings
+                    if (col.DataType == typeof(Guid))
+                    {
+                        Guid.Parse(strVal);
+                    }
+                    else
+                    {
+                        Convert.ChangeType(entry.Value, col.DataType);
+                    }
                 }
                 catch
                 {
@@ -178,13 +197,11 @@ namespace WPF_LoginForm.ViewModels
         {
             var newRowData = new NewRowData();
 
-            // 1. Add Manual Entries
             foreach (var entry in ColumnEntries)
             {
                 newRowData.Values[entry.ColumnName] = entry.Value;
             }
 
-            // 2. Add Date (if applicable)
             if (!string.IsNullOrEmpty(_dateTargetColumn))
             {
                 newRowData.Values[_dateTargetColumn] = EntryDate;

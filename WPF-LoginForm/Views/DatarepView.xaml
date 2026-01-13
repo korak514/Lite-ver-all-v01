@@ -37,7 +37,6 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <!-- CRITICAL: Height must be * so DataGrid is constrained to window size -->
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -52,26 +51,26 @@
                     <Button Content="{x:Static p:Resources.Delete}" ToolTip="Permanently delete table" Margin="0,0,10,0" Command="{Binding DeleteTableCommand}" Foreground="Red"
                             Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                    <Button Content="{x:Static p:Resources.Add}" ToolTip="Add New Row" Margin="4,0" Command="{Binding AddNewRowCommand}" />
-                    <Button Content="{x:Static p:Resources.Delete}" ToolTip="Delete Selected Row(s)" Margin="4,0" Command="{Binding DeleteSelectedRowCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" />
+                    <Button Content="{x:Static p:Resources.Add}" ToolTip="{x:Static p:Resources.Add}" Margin="4,0" Command="{Binding AddNewRowCommand}" />
+                    <Button Content="{x:Static p:Resources.Delete}" ToolTip="{x:Static p:Resources.Delete}" Margin="4,0" Command="{Binding DeleteSelectedRowCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" />
                     <Separator Margin="4,0" />
 
-                    <Button Content="{x:Static p:Resources.Save}" ToolTip="Save Changes" Margin="4,0" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDirty}" />
-                    <Button Content="{x:Static p:Resources.Undo}" ToolTip="Undo Local Changes" Margin="4,0" Command="{Binding UndoChangesCommand}" IsEnabled="{Binding UndoChangesCommand.CanExecute, Mode=OneWay}" />
+                    <Button Content="{x:Static p:Resources.Save}" ToolTip="{x:Static p:Resources.Save}" Margin="4,0" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDirty}" />
+                    <Button Content="{x:Static p:Resources.Undo}" ToolTip="{x:Static p:Resources.Undo}" Margin="4,0" Command="{Binding UndoChangesCommand}" IsEnabled="{Binding UndoChangesCommand.CanExecute, Mode=OneWay}" />
 
                     <Separator Margin="4,0" />
 
-                    <!-- Optimization Toggle -->
-                    <CheckBox Content="Load Full History"
+                    <!-- Optimization Toggle (LOCALIZED) -->
+                    <CheckBox Content="{x:Static p:Resources.LoadFullHistory}"
                               IsChecked="{Binding LoadAllData, Mode=TwoWay}"
-                              ToolTip="Uncheck for speed (Last 500 rows). Check to see everything."
+                              ToolTip="{x:Static p:Resources.Tip_LoadFullHistory}"
                               VerticalAlignment="Center" Margin="4,0" />
 
-                    <Button Content="{x:Static p:Resources.Reload}" ToolTip="Reload Data" Margin="4,0" Command="{Binding ReloadDataCommand}" />
+                    <Button Content="{x:Static p:Resources.Reload}" ToolTip="{x:Static p:Resources.Reload}" Margin="4,0" Command="{Binding ReloadDataCommand}" />
 
                     <Separator Margin="4,0" />
-                    <Button Content="{x:Static p:Resources.Edit}" ToolTip="Enable Editing" Margin="4,0" Command="{Binding EditSelectedRowsCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" />
-                    <Button Content="{x:Static p:Resources.SelectAll}" ToolTip="Select All Rows" Margin="4,0,0,0" Click="SelectAllButton_Click" />
+                    <Button Content="{x:Static p:Resources.Edit}" ToolTip="{x:Static p:Resources.Edit}" Margin="4,0" Command="{Binding EditSelectedRowsCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" />
+                    <Button Content="{x:Static p:Resources.SelectAll}" ToolTip="{x:Static p:Resources.SelectAll}" Margin="4,0,0,0" Click="SelectAllButton_Click" />
                 </ToolBar>
 
                 <!-- Toolbar 2: Filtering and Display -->
@@ -96,17 +95,17 @@
                                   ToolTip="Show Import Table/Map buttons" />
                     </StackPanel>
 
-                    <Button Content="{x:Static p:Resources.Clear}" ToolTip="Clear Search" Margin="4,0" Command="{Binding ClearSearchCommand}" />
+                    <Button Content="{x:Static p:Resources.Clear}" ToolTip="{x:Static p:Resources.Clear}" Margin="4,0" Command="{Binding ClearSearchCommand}" />
                     <Separator Margin="4,0" />
 
                     <ToggleButton IsChecked="{Binding IsDateFilterPanelVisible, Mode=TwoWay}"
-                                  ToolTip="Filter by Date" Margin="4,0,0,0"
+                                  ToolTip="{x:Static p:Resources.FilterbyDate}" Margin="4,0,0,0"
                                   Visibility="{Binding IsDateFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <fa:ImageAwesome Icon="Calendar" Height="14" Foreground="DimGray" />
                     </ToggleButton>
 
                     <Separator Margin="4,0" />
-                    <Button Content="{x:Static p:Resources.Import}" ToolTip="Import Data" Margin="4,0" Command="{Binding ImportDataCommand}" />
+                    <Button Content="{x:Static p:Resources.Import}" ToolTip="{x:Static p:Resources.Import}" Margin="4,0" Command="{Binding ImportDataCommand}" />
 
                     <!-- Advanced Buttons (Hidden by Default) -->
                     <Button Content="Import Table" ToolTip="Advanced Import" Margin="4,0"
@@ -122,17 +121,22 @@
                         </StackPanel>
                     </Button>
 
-                    <Button Content="Create Table..." ToolTip="Create New Table" Margin="4,0" Command="{Binding ShowCreateTableCommand}" />
+                    <!-- Create Table Button (LOCALIZED) -->
+                    <Button Content="{x:Static p:Resources.CreateNewTable}"
+                            ToolTip="{x:Static p:Resources.Tip_CreateNewTable}"
+                            Margin="4,0"
+                            Command="{Binding ShowCreateTableCommand}" />
 
-                    <Button Content="{x:Static p:Resources.Export}" ToolTip="Export Data" Margin="4,0" Command="{Binding ExportDataCommand}" />
+                    <Button Content="{x:Static p:Resources.Export}" ToolTip="{x:Static p:Resources.Export}" Margin="4,0" Command="{Binding ExportDataCommand}" />
                     <Separator Margin="4,0" />
                     <Button Content="A-" Margin="4,0" Command="{Binding DecreaseFontSizeCommand}" />
                     <Button Content="A+" Margin="4,0" Command="{Binding IncreaseFontSizeCommand}" />
                 </ToolBar>
 
+                <!-- Toolbar 3: Date Filter Panel -->
                 <ToolBar Band="3" BandIndex="1" ToolBar.OverflowMode="Never"
                          Visibility="{Binding IsDateFilterPanelVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Label Content="Filter by Date:" VerticalAlignment="Center" />
+                    <Label Content="{x:Static p:Resources.FilterbyDate}" VerticalAlignment="Center" />
                     <DatePicker SelectedDate="{Binding FilterStartDate, Mode=TwoWay}" VerticalAlignment="Center" Margin="4,0" />
                     <Label Content="to" VerticalAlignment="Center" Margin="5,0" />
                     <DatePicker SelectedDate="{Binding FilterEndDate, Mode=TwoWay}" VerticalAlignment="Center" Margin="4,0,10,0" />
@@ -167,9 +171,8 @@
             <TextBlock Grid.Column="2" Text="{Binding FilterStatus}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FF5555" />
         </Grid>
 
-        <!-- Data Grid (OPTIMIZED FOR PERFORMANCE) -->
+        <!-- Data Grid -->
         <Grid Grid.Row="2">
-            <!-- Ensure NO ScrollViewer wraps this DataGrid for virtualization to work -->
             <DataGrid x:Name="DataDisplayGrid"
                       ItemsSource="{Binding DataTableView}"
                       AutoGenerateColumns="True"

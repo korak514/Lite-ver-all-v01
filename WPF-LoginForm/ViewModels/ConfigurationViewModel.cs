@@ -107,6 +107,8 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
+        // ... inside ConfigurationViewModel
+
         private async Task LoadColumnsForTable(string tableName)
         {
             if (string.IsNullOrEmpty(tableName))
@@ -117,20 +119,30 @@ namespace WPF_LoginForm.ViewModels
             {
                 try
                 {
-                    // FIX: Handle tuple return
-                    // We only need the schema (columns), limit 1 is safest/fastest.
+                    // Limit 1 is sufficient to get schema
                     var result = await _dataRepository.GetTableDataAsync(tableName, 1);
-                    DataTable dataTable = result.Data;
 
-                    AvailableColumns = dataTable.Columns
-                        .Cast<DataColumn>()
-                        .Select(c => c.ColumnName)
-                        .Where(name => !name.Equals("ID", StringComparison.OrdinalIgnoreCase))
-                        .ToList();
+                    // FIX: Check for null Data before accessing Columns
+                    if (result.Data != null)
+                    {
+                        DataTable dataTable = result.Data;
+
+                        AvailableColumns = dataTable.Columns
+                            .Cast<DataColumn>()
+                            .Select(c => c.ColumnName)
+                            .Where(name => !name.Equals("ID", StringComparison.OrdinalIgnoreCase))
+                            .ToList();
+                    }
+                    else
+                    {
+                        // Handle null case gracefully
+                        AvailableColumns = new List<string>();
+                    }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Failed to load columns for table '{tableName}': {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    // Log error but don't crash the window
+                    System.Diagnostics.Debug.WriteLine($"Error loading columns: {ex.Message}");
                     AvailableColumns = new List<string>();
                 }
             }

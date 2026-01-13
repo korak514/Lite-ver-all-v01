@@ -3,12 +3,12 @@ using System.Net;
 using System.Security;
 using System.Security.Principal;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Input;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
-using WPF_LoginForm.Services; // Ensure this is present
+using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
+using WPF_LoginForm.Properties; // Required for Resources
 
 namespace WPF_LoginForm.ViewModels
 {
@@ -75,7 +75,6 @@ namespace WPF_LoginForm.ViewModels
 
             try
             {
-                // 1. Reset Session
                 UserSessionService.Logout();
 
                 var isValidUser = await userRepository.AuthenticateUserAsync(new NetworkCredential(Username, Password));
@@ -83,19 +82,16 @@ namespace WPF_LoginForm.ViewModels
                 if (isValidUser)
                 {
                     var user = userRepository.GetByUsername(Username);
-
-                    // 2. Set Static Session (Single Source of Truth)
                     UserSessionService.SetSession(Username, user?.Role);
 
-                    // 3. Also set Thread Principal for standard .NET compatibility (Optional but good)
                     var identity = new GenericIdentity(Username);
                     var principal = new GenericPrincipal(identity, new string[] { UserSessionService.CurrentRole });
                     Thread.CurrentPrincipal = principal;
 
-                    // 4. Verification
                     if (UserSessionService.CurrentRole == "Guest")
                     {
-                        ErrorMessage = "* Error: Access Denied (Role Verification Failed).";
+                        // FIX: Localized Error Message
+                        ErrorMessage = Resources.Msg_AccessDeniedRole;
                     }
                     else
                     {
@@ -105,7 +101,8 @@ namespace WPF_LoginForm.ViewModels
                 }
                 else
                 {
-                    ErrorMessage = "* Invalid username or password";
+                    // FIX: Localized Error Message
+                    ErrorMessage = Resources.Msg_InvalidCredentials;
                 }
             }
             catch (Exception ex)

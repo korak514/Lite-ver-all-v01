@@ -3,9 +3,13 @@ using System.Threading;
 using System.Windows.Input;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
-using WPF_LoginForm.Services; // Required for UserSessionService
+using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
 using System;
+using System.Windows;
+using WPF_LoginForm.Views;
+using System.Threading.Tasks;
+using WPF_LoginForm.Properties;
 
 namespace WPF_LoginForm.ViewModels
 {
@@ -65,7 +69,9 @@ namespace WPF_LoginForm.ViewModels
             _dialogService = new DialogService();
             _userRepository = new UserRepository();
             _dataRepository = new DataRepository(_logger);
-            CurrentUserAccount = new UserAccountModel();
+
+            // Initialize with placeholder to prevent null binding errors
+            CurrentUserAccount = new UserAccountModel { DisplayName = "Loading..." };
 
             ShowHomeViewCommand = new ViewModelCommand(ExecuteShowHomeViewCommand);
             ShowCustomerViewCommand = new ViewModelCommand(ExecuteShowCustomerViewCommand);
@@ -75,19 +81,76 @@ namespace WPF_LoginForm.ViewModels
             ShowHelpViewCommand = new ViewModelCommand(ExecuteShowHelpViewCommand);
             ReturnToLoginCommand = new ViewModelCommand(ExecuteReturnToLogin);
 
-            LoadCurrentUserData();
+            // Load User Data Asynchronously
+            Task.Run(() => LoadCurrentUserDataAsync());
+
             _logger.LogInfo("Main Dashboard initialized.");
         }
 
         public void Initialize(AppMode mode)
         {
-            if (mode == AppMode.SettingsOnly) { IsNavigationVisible = false; IsOfflineMode = true; ExecuteShowSettingsViewCommand(null); _logger.LogInfo("Started in 'Settings Only' Mode."); CurrentUserAccount.DisplayName = "Offline Config"; }
-            else if (mode == AppMode.ReportOnly) { IsNavigationVisible = false; IsOfflineMode = false; ExecuteShowReportsViewCommand(null); _logger.LogInfo("Started in 'Only Report' Mode."); }
-            else { IsNavigationVisible = true; IsOfflineMode = false; ExecuteShowHomeViewCommand(null); _logger.LogInfo("Started in Normal Mode."); }
+            if (mode == AppMode.SettingsOnly)
+            {
+                IsNavigationVisible = false;
+                IsOfflineMode = true;
+                ExecuteShowSettingsViewCommand(null);
+                _logger.LogInfo("Started in 'Settings Only' Mode.");
+                // Create NEW object to trigger UI update
+                CurrentUserAccount = new UserAccountModel { DisplayName = "Offline Config" };
+            }
+            else if (mode == AppMode.ReportOnly)
+            {
+                IsNavigationVisible = false;
+                IsOfflineMode = false;
+                ExecuteShowReportsViewCommand(null);
+                _logger.LogInfo("Started in 'Only Report' Mode.");
+            }
+            else
+            {
+                IsNavigationVisible = true;
+                IsOfflineMode = false;
+                ExecuteShowHomeViewCommand(null);
+                _logger.LogInfo("Started in Normal Mode.");
+            }
         }
 
         private void ExecuteReturnToLogin(object obj)
-        { var filename = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName; System.Diagnostics.Process.Start(filename); System.Windows.Application.Current.Shutdown(); }
+        {
+            UserSessionService.Logout();
+            _logger.LogInfo("User Logged Out.");
+
+            var loginView = new LoginView();
+
+            loginView.IsVisibleChanged += (s, ev) =>
+            {
+                if (loginView.IsVisible == false && loginView.IsLoaded && loginView.WindowState != WindowState.Minimized)
+                {
+                    var loginVM = loginView.DataContext as LoginViewModel;
+                    if (loginVM != null && !loginVM.IsViewVisible)
+                    {
+                        var newMain = new MainView();
+                        if (newMain.DataContext is MainViewModel mainVM)
+                        {
+                            if (loginVM.IsSettingsModeOnly) mainVM.Initialize(AppMode.SettingsOnly);
+                            else mainVM.Initialize(loginVM.IsReportModeOnly ? AppMode.ReportOnly : AppMode.Normal);
+                        }
+                        newMain.Show();
+                        loginView.Close();
+                    }
+                }
+            };
+
+            loginView.Show();
+
+            foreach (Window win in Application.Current.Windows)
+            {
+                if (win.DataContext == this)
+                {
+                    win.Close();
+                    break;
+                }
+            }
+        }
 
         private void DeactivateCurrentView()
         { if (_currentChildView is HomeViewModel homeViewModel) homeViewModel.Deactivate(); }
@@ -100,10 +163,11 @@ namespace WPF_LoginForm.ViewModels
             if (_homeViewModel == null)
             {
                 _homeViewModel = new HomeViewModel(_dataRepository, _dialogService, _logger);
-                // Subscribe to Drill Down
                 _homeViewModel.DrillDownRequested += OnDashboardDrillDown;
             }
-            CurrentChildView = _homeViewModel; Caption = "Dashboard"; Icon = IconChar.Home;
+            CurrentChildView = _homeViewModel;
+            Caption = Resources.Nav_Dashboard;
+            Icon = IconChar.Home;
         }
 
         private void OnDashboardDrillDown(string tableName, DateTime start, DateTime end)
@@ -116,46 +180,77 @@ namespace WPF_LoginForm.ViewModels
         }
 
         private void ExecuteShowCustomerViewCommand(object obj)
-        { if (_customerViewModel == null) _customerViewModel = new CustomerViewModel(_dataRepository); CurrentChildView = _customerViewModel; Caption = "Customers"; Icon = IconChar.UserGroup; }
+        {
+            if (_customerViewModel == null) _customerViewModel = new CustomerViewModel(_dataRepository);
+            CurrentChildView = _customerViewModel;
+            Caption = Resources.Nav_Customers;
+            Icon = IconChar.UserGroup;
+        }
 
         private void ExecuteShowInventoryViewCommand(object obj)
-        { if (_inventoryViewModel == null) _inventoryViewModel = new InventoryViewModel(_dataRepository, _dialogService); CurrentChildView = _inventoryViewModel; Caption = "System Logs"; Icon = IconChar.ListAlt; }
+        {
+            if (_inventoryViewModel == null) _inventoryViewModel = new InventoryViewModel(_dataRepository, _dialogService);
+            CurrentChildView = _inventoryViewModel;
+            Caption = Resources.Nav_Logs;
+            Icon = IconChar.ListAlt;
+        }
 
         private void ExecuteShowReportsViewCommand(object obj)
-        { if (_datarepViewModel == null) _datarepViewModel = new DatarepViewModel(_logger, _dialogService, _dataRepository); CurrentChildView = _datarepViewModel; Caption = "Reports"; Icon = IconChar.BarChart; }
+        {
+            if (_datarepViewModel == null) _datarepViewModel = new DatarepViewModel(_logger, _dialogService, _dataRepository);
+            CurrentChildView = _datarepViewModel;
+            Caption = Resources.Nav_Reports;
+            Icon = IconChar.BarChart;
+        }
 
         private void ExecuteShowSettingsViewCommand(object obj)
-        { if (_settingsViewModel == null) _settingsViewModel = new SettingsViewModel(); CurrentChildView = _settingsViewModel; Caption = "Settings"; Icon = IconChar.Cogs; }
+        {
+            if (_settingsViewModel == null) _settingsViewModel = new SettingsViewModel();
+            CurrentChildView = _settingsViewModel;
+            Caption = Resources.Nav_Settings;
+            Icon = IconChar.Cogs;
+        }
 
         private void ExecuteShowHelpViewCommand(object obj)
-        { if (_helpViewModel == null) _helpViewModel = new HelpViewModel(); CurrentChildView = _helpViewModel; Caption = "Help"; Icon = IconChar.QuestionCircle; }
-
-        // --- FIXED: Use UserSessionService ---
-        private void LoadCurrentUserData()
         {
-            // 1. Get Username from the Static Session (Reliable)
+            if (_helpViewModel == null) _helpViewModel = new HelpViewModel();
+            CurrentChildView = _helpViewModel;
+            Caption = Resources.Nav_Help;
+            Icon = IconChar.QuestionCircle;
+        }
+
+        private async Task LoadCurrentUserDataAsync()
+        {
             string username = UserSessionService.CurrentUsername;
 
             if (!string.IsNullOrEmpty(username))
             {
-                // 2. Fetch display details from DB
                 var user = _userRepository.GetByUsername(username);
-                if (user != null)
+
+                // Marshal back to UI thread
+                Application.Current.Dispatcher.Invoke(() =>
                 {
-                    CurrentUserAccount.Username = user.Username;
-                    CurrentUserAccount.DisplayName = $"{user.Name} {user.LastName}";
-                    CurrentUserAccount.Role = UserSessionService.CurrentRole; // Use Session Role
-                    CurrentUserAccount.ProfilePicture = null;
-                }
-                else
-                {
-                    CurrentUserAccount.DisplayName = "Unknown User";
-                }
+                    if (user != null)
+                    {
+                        // FIX: Create a NEW object to trigger the PropertyChanged event
+                        CurrentUserAccount = new UserAccountModel
+                        {
+                            Username = user.Username,
+                            DisplayName = $"{user.Name} {user.LastName}",
+                            Role = UserSessionService.CurrentRole,
+                            ProfilePicture = null
+                        };
+                    }
+                    else
+                    {
+                        CurrentUserAccount = new UserAccountModel { DisplayName = "Unknown User" };
+                    }
+                });
             }
             else
             {
-                // Fallback
-                CurrentUserAccount.DisplayName = "Not logged in";
+                Application.Current.Dispatcher.Invoke(() =>
+                    CurrentUserAccount = new UserAccountModel { DisplayName = "Not logged in" });
             }
         }
     }

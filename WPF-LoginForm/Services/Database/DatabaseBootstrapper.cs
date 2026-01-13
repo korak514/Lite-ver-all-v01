@@ -59,15 +59,16 @@ namespace WPF_LoginForm.Services.Database
                     conn.Open();
                     if (type == DatabaseType.SqlServer)
                     {
-                        // SQL Server: Check if column exists, if not, ADD it
+                        // SQL Server
                         string query = "IF COL_LENGTH('[User]', 'Role') IS NULL BEGIN ALTER TABLE [User] ADD [Role] NVARCHAR(50) DEFAULT 'User' WITH VALUES END";
                         ExecuteNonQuery(conn, query);
-                        // Ensure Admin has Admin role
-                        ExecuteNonQuery(conn, "UPDATE [User] SET [Role] = 'Admin' WHERE [Username] = 'admin'");
+
+                        // FIX: Use LOWER() for safety, though SQL is usually insensitive
+                        ExecuteNonQuery(conn, "UPDATE [User] SET [Role] = 'Admin' WHERE LOWER([Username]) = 'admin'");
                     }
                     else
                     {
-                        // PostgreSQL: Check info_schema, if not exists, ADD it
+                        // PostgreSQL
                         string query = @"
                             DO $$
                             BEGIN
@@ -77,7 +78,9 @@ namespace WPF_LoginForm.Services.Database
                             END
                             $$;";
                         ExecuteNonQuery(conn, query);
-                        ExecuteNonQuery(conn, "UPDATE \"User\" SET \"Role\" = 'Admin' WHERE \"Username\" = 'admin'");
+
+                        // FIX: Use LOWER() because Postgres is Case Sensitive
+                        ExecuteNonQuery(conn, "UPDATE \"User\" SET \"Role\" = 'Admin' WHERE LOWER(\"Username\") = 'admin'");
                     }
                 }
             }

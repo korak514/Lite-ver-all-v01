@@ -24,7 +24,6 @@ namespace WPF_LoginForm.CustomControls
             txtPassword.PasswordChanged += OnPasswordChanged;
         }
 
-        // 1. Handle updates FROM the ViewModel (Loading settings)
         private static void OnPasswordPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is BindablePasswordBox passwordBox)
@@ -41,23 +40,20 @@ namespace WPF_LoginForm.CustomControls
                 return;
             }
 
-            // Convert SecureString to normal string to display dots
-            // Note: This momentarily exposes the password in memory, which is unavoidable
-            // if you want to use the standard PasswordBox for 2-way binding.
             string newPassword = new NetworkCredential("", Password).Password;
 
+            // FIX: Check equality before assigning to prevent recursive loop
             if (txtPassword.Password != newPassword)
             {
                 txtPassword.Password = newPassword;
             }
         }
 
-        // 2. Handle updates FROM the UI (Typing)
         private void OnPasswordChanged(object sender, RoutedEventArgs e)
         {
             if (this.DataContext != null)
             {
-                // Prevent infinite loop by checking if values are already synced
+                // FIX: Check if values are already synced to prevent infinite loop
                 string currentVmValue = Password == null ? "" : new NetworkCredential("", Password).Password;
 
                 if (txtPassword.Password != currentVmValue)

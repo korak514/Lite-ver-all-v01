@@ -1,26 +1,21 @@
-﻿using System.Configuration; // Add this using
-using Microsoft.Data.SqlClient; // Keep or add if needed for SqlConnection type
+﻿using System.Data.SqlClient;
+using WPF_LoginForm.Properties; // Access Settings directly
+using WPF_LoginForm.Services.Database; // Access your Factory
 
 namespace WPF_LoginForm.Repositories
 {
     public abstract class RepositoryBase
     {
-        private readonly string _connectionString;
-        public RepositoryBase()
-        {
-            // Read connection string from App.config by name
-            _connectionString = ConfigurationManager.ConnectionStrings["LoginDbConnection"]?.ConnectionString;
+        // REMOVED: The logic reading from ConfigurationManager
 
-            // Optional: Add a check if the connection string is null/empty
-            if (string.IsNullOrEmpty(_connectionString))
-            {
-                throw new ConfigurationErrorsException("Connection string 'LoginDbConnection' not found or empty in App.config.");
-            }
-        }
+        // ADDED: Logic to read from the dynamic user settings
         protected SqlConnection GetConnection()
         {
-            // Consider adding error handling if _connectionString was null
-            return new SqlConnection(_connectionString);
+            // Option A: Use the existing Factory (Recommended for consistency)
+            return (SqlConnection)DbConnectionFactory.GetConnection(ConnectionTarget.Auth);
+
+            // OR Option B: Read directly from Settings (if you want to bypass the factory)
+            // return new SqlConnection(Settings.Default.SqlAuthConnString);
         }
     }
 }

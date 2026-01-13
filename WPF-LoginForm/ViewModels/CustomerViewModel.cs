@@ -14,7 +14,6 @@ namespace WPF_LoginForm.ViewModels
         private bool _isBusy;
         private string _statusMessage;
 
-        // The exact table name in the database we are looking for
         private const string TargetTableName = "Customers";
 
         public DataView CustomersData
@@ -65,7 +64,6 @@ namespace WPF_LoginForm.ViewModels
             StatusMessage = "Loading customers...";
             try
             {
-                // Check if table exists first to avoid crashing
                 bool exists = await _dataRepository.TableExistsAsync(TargetTableName);
                 if (!exists)
                 {
@@ -74,8 +72,6 @@ namespace WPF_LoginForm.ViewModels
                     return;
                 }
 
-                // FIX: Handle tuple return (Data, IsSortable)
-                // We just need the data here, so we extract .Data
                 var result = await _dataRepository.GetTableDataAsync(TargetTableName);
                 DataTable dt = result.Data;
 
@@ -105,20 +101,29 @@ namespace WPF_LoginForm.ViewModels
             {
                 try
                 {
-                    // --- FIX: Escape ---
+                    // FIX: Escape special characters
                     string safeSearch = SearchText
-                        .Replace("'", "''")
                         .Replace("[", "[[]")
                         .Replace("%", "[%]")
-                        .Replace("*", "[*]");
+                        .Replace("*", "[*]")
+                        .Replace("'", "''");
 
                     if (CustomersData.Table.Columns.Contains("Name"))
+                    {
                         CustomersData.RowFilter = $"Name LIKE '%{safeSearch}%'";
-                    // ... etc
+                    }
+                    else if (CustomersData.Table.Columns.Count > 1)
+                    {
+                        // Fallback search on second column if 'Name' missing
+                        string colName = CustomersData.Table.Columns[1].ColumnName;
+                        CustomersData.RowFilter = $"[{colName}] LIKE '%{safeSearch}%'";
+                    }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Ignore invalid filter input while typing
+                    // Prevent crash on invalid syntax
+                    StatusMessage = "Invalid search syntax.";
+                    System.Diagnostics.Debug.WriteLine($"Filter Error: {ex.Message}");
                 }
             }
         }
