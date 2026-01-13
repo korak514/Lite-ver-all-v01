@@ -1,0 +1,61 @@
+﻿<Window x:Class="WPF_LoginForm.Views.StartupView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Starting..." Height="350" Width="500"
+        WindowStyle="None" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        AllowsTransparency="True" Background="Transparent"
+        ContentRendered="Window_ContentRendered">
+
+    <Border CornerRadius="15" BorderThickness="1" BorderBrush="#464643">
+        <Border.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#030347" Offset="0.0" />
+                <GradientStop Color="#09092B" Offset="1.0" />
+            </LinearGradientBrush>
+        </Border.Background>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="3*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="1*" />
+            </Grid.RowDefinitions>
+
+            <!-- Logo Area -->
+            <StackPanel Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <!-- Replace with your Logo path if available, using text for safety -->
+                <TextBlock Text="BIOSUN" FontSize="52" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center">
+                    <TextBlock.Effect>
+                        <DropShadowEffect Color="#16AC21" BlurRadius="20" ShadowDepth="0" />
+                    </TextBlock.Effect>
+                </TextBlock>
+                <TextBlock Text="System Initialization App Configiration" FontSize="16" Foreground="#AAAAAA" HorizontalAlignment="Center" Margin="0,5,0,0" />
+            </StackPanel>
+
+            <!-- Status Text -->
+            <TextBlock x:Name="txtStatus" Grid.Row="1" Text="Initializing..."
+                       Foreground="WhiteSmoke" HorizontalAlignment="Center" Margin="0,0,0,10"
+                       FontFamily="Segoe UI" />
+
+            <!-- Progress Bar -->
+            <ProgressBar x:Name="progressBar" Grid.Row="2" Width="400" Height="6"
+                         IsIndeterminate="False" Value="0" Maximum="100"
+                         Background="#202020" Foreground="#18CE26" BorderThickness="0" />
+
+            <!-- Version Info -->
+            <TextBlock Grid.Row="3" Text="v1.0.0" Foreground="#505050"
+                       VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,15,10" />
+
+            <!-- Error Action Area (Hidden by default) -->
+            <Button x:Name="btnSettings" Grid.Row="3" Content="Open Settings"
+                    Width="120" Height="30" Visibility="Collapsed"
+                    Click="btnSettings_Click"
+                    Background="#D14545" Foreground="White" FontWeight="Bold" BorderThickness="0" />
+        </Grid>
+    </Border>
+</Window>

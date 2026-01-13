@@ -37,6 +37,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <!-- CRITICAL: Height must be * so DataGrid is constrained to window size -->
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -60,8 +61,8 @@
 
                     <Separator Margin="4,0" />
 
-                    <!-- NEW: Optimization Toggle -->
-                    <CheckBox Content="L-Full"
+                    <!-- Optimization Toggle -->
+                    <CheckBox Content="Load Full History"
                               IsChecked="{Binding LoadAllData, Mode=TwoWay}"
                               ToolTip="Uncheck for speed (Last 500 rows). Check to see everything."
                               VerticalAlignment="Center" Margin="4,0" />
@@ -166,24 +167,32 @@
             <TextBlock Grid.Column="2" Text="{Binding FilterStatus}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FF5555" />
         </Grid>
 
-        <!-- Data Grid -->
+        <!-- Data Grid (OPTIMIZED FOR PERFORMANCE) -->
         <Grid Grid.Row="2">
+            <!-- Ensure NO ScrollViewer wraps this DataGrid for virtualization to work -->
             <DataGrid x:Name="DataDisplayGrid"
                       ItemsSource="{Binding DataTableView}"
                       AutoGenerateColumns="True"
+
                       CanUserAddRows="False"
                       CanUserDeleteRows="False"
                       SelectionMode="Extended"
                       AlternationCount="2"
                       GridLinesVisibility="All"
+
                       HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Auto"
                       FontSize="{Binding DataGridFontSize, FallbackValue=12}"
+
                       EnableRowVirtualization="True"
                       EnableColumnVirtualization="True"
                       VirtualizingPanel.IsVirtualizing="True"
                       VirtualizingPanel.VirtualizationMode="Recycling"
+                      VirtualizingPanel.ScrollUnit="Pixel"
+                      VirtualizingPanel.CacheLength="1,1"
+                      VirtualizingPanel.CacheLengthUnit="Page"
                       ScrollViewer.CanContentScroll="True"
+
                       AutoGeneratingColumn="DataDisplayGrid_AutoGeneratingColumn"
                       BeginningEdit="DataDisplayGrid_BeginningEdit"
                       Sorting="DataDisplayGrid_Sorting">

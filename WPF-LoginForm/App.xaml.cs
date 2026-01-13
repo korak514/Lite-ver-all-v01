@@ -4,69 +4,46 @@ using System.Windows;
 using WPF_LoginForm.Properties;
 using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
-using WPF_LoginForm.ViewModels;
-using WPF_LoginForm.Views;
 
 namespace WPF_LoginForm
 {
     public partial class App : Application
     {
+        // Global Logger instance accessible throughout the app
         public static ILogger GlobalLogger { get; private set; }
 
-        protected void ApplicationStart(object sender, StartupEventArgs e)
+        protected override void OnStartup(StartupEventArgs e)
         {
-            // 1. Apply Language
+            base.OnStartup(e);
+
+            // 1. Apply Language Settings
+            // This ensures the app starts in English or Turkish based on previous settings
             string languageCode = Settings.Default.AppLanguage;
             if (string.IsNullOrEmpty(languageCode)) languageCode = "en-US";
 
             var culture = new CultureInfo(languageCode);
             Thread.CurrentThread.CurrentCulture = culture;
             Thread.CurrentThread.CurrentUICulture = culture;
-            FrameworkElement.LanguageProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(System.Windows.Markup.XmlLanguage.GetLanguage(culture.IetfLanguageTag)));
 
-            // 2. Initialize Logger
+            // Fix for WPF Frame/Element localization
+            FrameworkElement.LanguageProperty.OverrideMetadata(
+                typeof(FrameworkElement),
+                new FrameworkPropertyMetadata(System.Windows.Markup.XmlLanguage.GetLanguage(culture.IetfLanguageTag)));
+
+            // 2. Initialize Logging Service
+            // We set up the logger here so even startup errors can be recorded
             var dbType = DbConnectionFactory.CurrentDatabaseType;
+
+            // Fallback file logger (in case DB is down)
             var fileLogger = new FileLogger("AppLog");
+
+            // Smart DB Logger (writes to DB if connected, File if not)
             GlobalLogger = new DatabaseLogger(fileLogger);
+
             GlobalLogger.LogInfo($"App Starting... Lang: {languageCode} | Provider: {dbType}");
 
-            // --- RE-ENABLED: Database Bootstrapper ---
-            // This checks if the DB exists. If not, it asks to create it.
-            // We ignore the return value (true/false).
-            // If it succeeds -> Good.
-            // If it fails/cancels -> We still show LoginView so you can go to Settings.
-            DatabaseBootstrapper.Run();
-            // -----------------------------------------
-
-            // 3. Show Login
-            var loginView = new LoginView();
-            loginView.Show();
-
-            loginView.IsVisibleChanged += (s, ev) =>
-            {
-                if (loginView.IsVisible == false && loginView.IsLoaded)
-                {
-                    // Logic to switch to MainView or SettingsView based on ViewModel state
-                    var loginVM = loginView.DataContext as LoginViewModel;
-                    var mainView = new MainView();
-
-                    if (mainView.DataContext is MainViewModel mainVM)
-                    {
-                        if (loginVM != null && loginVM.IsSettingsModeOnly)
-                        {
-                            mainVM.Initialize(AppMode.SettingsOnly);
-                        }
-                        else
-                        {
-                            bool isReport = loginVM?.IsReportModeOnly ?? false;
-                            mainVM.Initialize(isReport ? AppMode.ReportOnly : AppMode.Normal);
-                        }
-                    }
-
-                    mainView.Show();
-                    loginView.Close();
-                }
-            };
+            // Note: The visual startup sequence (checking DB connection, Bootstrapper)
+            // is now handled by Views/StartupView.xaml.cs, which is launched via StartupUri in App.xaml.
         }
     }
 }

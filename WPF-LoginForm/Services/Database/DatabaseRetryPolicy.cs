@@ -8,11 +8,11 @@ namespace WPF_LoginForm.Services.Database
     public static class DatabaseRetryPolicy
     {
         private const int MaxRetries = 3;
-        private const int DelayMilliseconds = 1000; // Wait 1 second between retries
+        private const int DelayMilliseconds = 1000;
 
-        /// <summary>
-        /// Executes a database operation with automatic retry logic for network failures.
-        /// </summary>
+        // --- NEW: Event to notify UI ---
+        public static event Action<string> OnRetryStatus;
+
         public static async Task<T> ExecuteAsync<T>(Func<Task<T>> operation)
         {
             int attempts = 0;
@@ -27,15 +27,17 @@ namespace WPF_LoginForm.Services.Database
                 {
                     if (attempts >= MaxRetries || !IsTransient(ex))
                     {
-                        // If we ran out of retries OR it's a real error (like bad SQL syntax), throw it.
                         throw;
                     }
 
-                    // Log internally to Debug output
-                    System.Diagnostics.Debug.WriteLine($"[RetryPolicy] Transient error detected. Attempt {attempts}/{MaxRetries}. Retrying in {DelayMilliseconds}ms... Error: {ex.Message}");
+                    // --- NEW: Fire Event ---
+                    string msg = $"⚠️ Network unstable. Retrying (Attempt {attempts}/{MaxRetries})...";
+                    System.Diagnostics.Debug.WriteLine(msg);
 
-                    // Wait before retrying (gives the network time to recover)
-                    await Task.Delay(DelayMilliseconds * attempts); // Simple linear backoff (1s, 2s, 3s)
+                    // Notify any listeners (like the ViewModel)
+                    OnRetryStatus?.Invoke(msg);
+
+                    await Task.Delay(DelayMilliseconds * attempts);
                 }
             }
         }
@@ -45,46 +47,23 @@ namespace WPF_LoginForm.Services.Database
             await ExecuteAsync<bool>(async () => { await operation(); return true; });
         }
 
-        /// <summary>
-        /// Determines if an exception is likely caused by a temporary network glitch.
-        /// </summary>
         private static bool IsTransient(Exception ex)
         {
-            // 1. Check SQL Server Errors
             if (ex is SqlException sqlEx)
             {
                 foreach (SqlError err in sqlEx.Errors)
                 {
                     switch (err.Number)
                     {
-                        case -2:      // Client Timeout
-                        case 53:      // Network Path Not Found
-                        case 121:     // Semaphore timeout period has expired
-                        case 10054:   // Connection reset by peer
-                        case 10060:   // Connection timed out
-                        case 40613:   // Database not currently available (Azure specific, but good to have)
-                            return true;
+                        case -2: case 53: case 121: case 10054: case 10060: case 40613: return true;
                     }
                 }
             }
-
-            // 2. Check PostgreSQL Errors
             if (ex is PostgresException pgEx)
             {
-                // PostgreSQL Error Codes (SqlState)
-                // Class 08 — Connection Exception
-                // 57P03 — Cannot Connect Now
-                if (pgEx.SqlState.StartsWith("08") || pgEx.SqlState == "57P03")
-                {
-                    return true;
-                }
+                if (pgEx.SqlState.StartsWith("08") || pgEx.SqlState == "57P03") return true;
             }
-
-            // 3. Generic Socket Errors (wrapped inside other exceptions)
-            if (ex.InnerException is System.Net.Sockets.SocketException)
-            {
-                return true;
-            }
+            if (ex.InnerException is System.Net.Sockets.SocketException) return true;
 
             return false;
         }

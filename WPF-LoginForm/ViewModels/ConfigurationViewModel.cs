@@ -117,9 +117,11 @@ namespace WPF_LoginForm.ViewModels
             {
                 try
                 {
-                    DataTable dataTable = await _dataRepository.GetTableDataAsync(tableName);
+                    // FIX: Handle tuple return
+                    // We only need the schema (columns), limit 1 is safest/fastest.
+                    var result = await _dataRepository.GetTableDataAsync(tableName, 1);
+                    DataTable dataTable = result.Data;
 
-                    // --- MODIFIED: Filter out 'ID' column so users don't try to graph it ---
                     AvailableColumns = dataTable.Columns
                         .Cast<DataColumn>()
                         .Select(c => c.ColumnName)
@@ -181,13 +183,18 @@ namespace WPF_LoginForm.ViewModels
         private bool _isSelected;
         public bool IsSelected { get => _isSelected; set => SetProperty(ref _isSelected, value); }
         public int ChartPosition => _model.ChartPosition;
+
         public bool IsEnabled
         { get => _model.IsEnabled; set { if (_model.IsEnabled != value) { _model.IsEnabled = value; OnPropertyChanged(); } } }
+
         public string TableName
         { get => _model.TableName; set { if (_model.TableName != value) { _model.TableName = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsTableSelected)); } } }
+
         public string DateColumn
         { get => _model.DateColumn; set { if (_model.DateColumn != value) { _model.DateColumn = value; OnPropertyChanged(); } } }
+
         public ObservableCollection<SeriesConfiguration> Series { get; }
+
         public string AggregationType
         { get => _model.AggregationType; set { if (_model.AggregationType != value) { _model.AggregationType = value; OnPropertyChanged(); } } }
 

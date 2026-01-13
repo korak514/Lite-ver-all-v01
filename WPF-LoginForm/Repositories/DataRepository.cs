@@ -32,15 +32,21 @@ namespace WPF_LoginForm.Repositories
         }
 
         // --- 1. DATA RETRIEVAL (Smart Sort & Limit) ---
-        public async Task<DataTable> GetTableDataAsync(string tableName, int limit = 0)
+        // Change return type from Task<DataTable> to Task<(DataTable, bool)>
+        public async Task<(DataTable Data, bool IsSortable)> GetTableDataAsync(string tableName, int limit = 0)
         {
             return await DatabaseRetryPolicy.ExecuteAsync(async () =>
             {
                 var dt = new DataTable();
+                bool isSortable = false; // Default to false
+
                 try
                 {
-                    // Step 1: Find the best column to sort by (ID > EntryDate > Date)
+                    // Find Sort Column
                     string sortColumn = await GetBestSortColumnAsync(tableName);
+
+                    // If we found a column, it is sortable/safe
+                    isSortable = !string.IsNullOrEmpty(sortColumn);
 
                     using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
                     {
@@ -53,8 +59,7 @@ namespace WPF_LoginForm.Repositories
                             string query;
                             string orderByClause = string.Empty;
 
-                            // Build Order By Clause if a valid column was found
-                            if (!string.IsNullOrEmpty(sortColumn))
+                            if (isSortable)
                             {
                                 orderByClause = $" ORDER BY {Quote(sortColumn)} DESC";
                             }
@@ -66,11 +71,8 @@ namespace WPF_LoginForm.Repositories
                             }
                             else
                             {
-                                // SQL Server
-                                if (limit > 0)
-                                    query = $"SELECT TOP {limit} * FROM {Quote(tableName)}{orderByClause}";
-                                else
-                                    query = $"SELECT * FROM {Quote(tableName)}{orderByClause}";
+                                if (limit > 0) query = $"SELECT TOP {limit} * FROM {Quote(tableName)}{orderByClause}";
+                                else query = $"SELECT * FROM {Quote(tableName)}{orderByClause}";
                             }
 
                             cmd.CommandText = query;
@@ -78,13 +80,14 @@ namespace WPF_LoginForm.Repositories
                             dt.TableName = tableName;
                         }
                     }
-                    return dt;
+                    // Return BOTH data and the safety flag
+                    return (dt, isSortable);
                 }
                 catch (Exception ex)
                 {
                     if (IsTransientInternal(ex)) throw;
                     _logger.LogError($"Error fetching data for {tableName}", ex);
-                    return new DataTable(tableName);
+                    return (new DataTable(tableName), false);
                 }
             });
         }
@@ -468,18 +471,43 @@ namespace WPF_LoginForm.Repositories
             }
         }
 
+        // In Repositories/DataRepository.cs
+
         public async Task<bool> DeleteTableAsync(string tableName)
         {
             try
             {
-                _cache.Clear();
+                _cache.Clear(); // Clear cache
+
                 using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data))
                 {
                     conn.Open();
-                    using (var cmd = conn.CreateCommand()) { cmd.CommandText = $"DROP TABLE {Quote(tableName)}"; await Task.Run(() => cmd.ExecuteNonQuery()); return true; }
+
+                    // --- FIX START: Clean up Metadata first ---
+                    using (var cmdClean = conn.CreateCommand())
+                    {
+                        // Delete hierarchy definitions for this table
+                        cmdClean.CommandText = $"DELETE FROM {Quote("ColumnHierarchyMap")} WHERE {Quote("OwningDataTableName")} = @t";
+                        AddParameter(cmdClean, "@t", tableName);
+                        await Task.Run(() => cmdClean.ExecuteNonQuery());
+                    }
+                    // --- FIX END ---
+
+                    // Drop the actual table
+                    using (var cmdDrop = conn.CreateCommand())
+                    {
+                        cmdDrop.CommandText = $"DROP TABLE {Quote(tableName)}";
+                        await Task.Run(() => cmdDrop.ExecuteNonQuery());
+                    }
+
+                    return true;
                 }
             }
-            catch (Exception ex) { _logger.LogError($"Error deleting {tableName}", ex); return false; }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error deleting {tableName}", ex);
+                return false;
+            }
         }
 
         public async Task<(bool Success, string ErrorMessage)> CreateTableAsync(string tableName, List<ColumnSchemaViewModel> schema)

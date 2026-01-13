@@ -51,6 +51,7 @@ namespace WPF_LoginForm.ViewModels
 
         private readonly string _idColumnName = "ID";
         private readonly DataTable _sourceTable;
+        private string _dateTargetColumn;
 
         // Designer Constructor
         public AddRowViewModel()
@@ -65,30 +66,22 @@ namespace WPF_LoginForm.ViewModels
             WindowTitle = $"Add New Row to '{tableName}'";
             _sourceTable = sourceTable;
 
-            // --- CHANGED: Do NOT filter out ID. ---
-            // If the repository passed "ID" in columnNames, it means it's not AutoIncrement in the DB,
-            // so we must allow the user to see/edit it (with a calculated default).
             var columnsToDisplay = columnNames.ToList();
 
-            // Check for Date Column to bind to the DatePicker (Move out of generic list)
+            // Detect Date Column to bind to the DatePicker
             var dateCol = columnsToDisplay.FirstOrDefault(c =>
                 c.Equals("EntryDate", StringComparison.OrdinalIgnoreCase) ||
                 c.Equals("Date", StringComparison.OrdinalIgnoreCase) ||
                 c.Equals("Tarih", StringComparison.OrdinalIgnoreCase));
 
-            string dateColName = null;
             if (dateCol != null)
             {
-                dateColName = dateCol;
-                columnsToDisplay.Remove(dateCol);
+                _dateTargetColumn = dateCol;
+                columnsToDisplay.Remove(dateCol); // Remove from generic list so it doesn't show twice
             }
 
             InitializeColumnEntries(columnsToDisplay, initialValues);
-
-            _dateTargetColumn = dateColName;
         }
-
-        private string _dateTargetColumn;
 
         private void InitializeColumnEntries(IEnumerable<string> columnNames, Dictionary<string, object> initialValues)
         {
@@ -104,7 +97,7 @@ namespace WPF_LoginForm.ViewModels
                 {
                     entry.Value = initialValue;
                 }
-                // 2. NEW: If it's the ID column, calculate Max + 1 default
+                // 2. If it's the ID column, calculate Max + 1 default
                 else if (name.Equals(_idColumnName, StringComparison.OrdinalIgnoreCase) && _sourceTable != null)
                 {
                     entry.Value = CalculateNextId();
@@ -126,7 +119,6 @@ namespace WPF_LoginForm.ViewModels
                         .Where(val => val != null && val != DBNull.Value)
                         .Select(val =>
                         {
-                            // Try to convert to int, ignore failures
                             if (int.TryParse(val.ToString(), out int id)) return id;
                             return 0;
                         })
@@ -138,11 +130,48 @@ namespace WPF_LoginForm.ViewModels
                     }
                 }
             }
-            catch
-            {
-                // Fallback if calculation fails (e.g. GUIDs or strange types)
-            }
+            catch { }
             return 1; // Default if table empty
+        }
+
+        // --- NEW: Validation Method ---
+        public bool ValidateData(out string errorMsg)
+        {
+            errorMsg = "";
+            if (_sourceTable == null) return true; // Cannot validate without schema
+
+            foreach (var entry in ColumnEntries)
+            {
+                // 1. Find the column definition
+                if (!_sourceTable.Columns.Contains(entry.ColumnName)) continue;
+                DataColumn col = _sourceTable.Columns[entry.ColumnName];
+
+                string strVal = entry.Value?.ToString();
+
+                // 2. Check for Nulls on Required Columns
+                if (string.IsNullOrWhiteSpace(strVal))
+                {
+                    if (!col.AllowDBNull)
+                    {
+                        errorMsg = $"Column '{entry.ColumnName}' is required.";
+                        return false;
+                    }
+                    continue; // Null is allowed, skip type check
+                }
+
+                // 3. Check Type Compatibility
+                try
+                {
+                    // Try to convert. If it fails, it throws an exception.
+                    var converted = Convert.ChangeType(entry.Value, col.DataType);
+                }
+                catch
+                {
+                    errorMsg = $"Value '{strVal}' is not valid for column '{entry.ColumnName}' (Expected: {col.DataType.Name}).";
+                    return false;
+                }
+            }
+            return true;
         }
 
         public NewRowData GetEnteredData()

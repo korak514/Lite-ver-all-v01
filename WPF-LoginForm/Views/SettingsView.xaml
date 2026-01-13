@@ -105,29 +105,41 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
-                                        <!-- New Network Rows -->
                                         <RowDefinition Height="Auto" />
+                                        <!-- User/Pass -->
                                         <RowDefinition Height="Auto" />
+                                        <!-- User/Pass -->
+                                        <RowDefinition Height="Auto" />
+                                        <!-- Network Settings -->
                                     </Grid.RowDefinitions>
 
+                                    <!-- Host & Port -->
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Server Address / Host IP:" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
                                     <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding DbHost, UpdateSourceTrigger=PropertyChanged}" Height="28" Margin="0,0,10,10" Padding="2" />
 
                                     <TextBlock Grid.Row="0" Grid.Column="1" Text="Port:" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
                                     <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DbPort, UpdateSourceTrigger=PropertyChanged}" Height="28" Margin="0,0,0,10" Padding="2" ToolTip="Default: 1433" />
 
-                                    <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="0,5,0,5">
+                                    <!-- NEW: Server Name Backup -->
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="Server Computer Name (Backup):" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
+                                    <TextBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                             Text="{Binding DbServerName, UpdateSourceTrigger=PropertyChanged}"
+                                             Height="28" Margin="0,0,0,10" Padding="2"
+                                             ToolTip="If the IP Address changes, the app will try to connect using this name (e.g. DESKTOP-ABC1234)." />
+
+                                    <!-- Auth -->
+                                    <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Margin="0,5,0,5">
                                         <CheckBox Content="Use Windows Authentication (Integrated Security)" IsChecked="{Binding UseWindowsAuth, Mode=TwoWay}" Visibility="{Binding IsWindowsAuthVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="White" Margin="0,0,0,10" />
                                     </StackPanel>
 
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Database Username:" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
-                                    <TextBox Grid.Row="4" Grid.Column="0" Text="{Binding DbUser, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsCredentialsEnabled}" Height="28" Margin="0,0,10,10" Padding="2" />
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Database Username:" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
+                                    <TextBox Grid.Row="6" Grid.Column="0" Text="{Binding DbUser, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsCredentialsEnabled}" Height="28" Margin="0,0,10,10" Padding="2" />
 
-                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Database Password:" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
-                                    <customcontrols:BindablePasswordBox Grid.Row="4" Grid.Column="1" Password="{Binding DbPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsCredentialsEnabled}" Height="28" Margin="0,0,0,10" />
+                                    <TextBlock Grid.Row="5" Grid.Column="1" Text="Database Password:" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
+                                    <customcontrols:BindablePasswordBox Grid.Row="6" Grid.Column="1" Password="{Binding DbPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsCredentialsEnabled}" Height="28" Margin="0,0,0,10" />
 
-                                    <!-- NEW: Network Tuning -->
-                                    <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Margin="0,15,0,5">
+                                    <!-- Network Tuning -->
+                                    <StackPanel Grid.Row="7" Grid.ColumnSpan="2" Margin="0,15,0,5">
                                         <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,10" />
                                         <TextBlock Text="Network / Remote Access Settings" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,5" />
 
@@ -186,6 +198,20 @@
                                         <TextBox Grid.Column="1" Text="{Binding ImportFileName, UpdateSourceTrigger=PropertyChanged}" Height="26" Padding="2" ToolTip="e.g. dashboard.json" />
                                     </Grid>
                                 </StackPanel>
+
+                                <!-- NEW: Global Data Limit Settings -->
+                                <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,15" />
+                                <TextBlock Text="Performance Optimization" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="Default Row Limit (0 = All):" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <TextBox Text="{Binding DefaultRowLimit, UpdateSourceTrigger=PropertyChanged}" Width="50" Height="26" Padding="2" HorizontalContentAlignment="Center" ToolTip="Limits how many rows are fetched by default to speed up network loading." />
+                                </StackPanel>
+
+                                <CheckBox Content="Show Date Filter on Dashboard" IsChecked="{Binding ShowDashboardDateFilter, Mode=TwoWay}" Foreground="White" Margin="0,0,0,10" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Date Slider Tick Size (Step):" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <TextBox Text="{Binding DashboardDateTickSize, UpdateSourceTrigger=PropertyChanged}" Width="50" Height="26" Padding="2" HorizontalContentAlignment="Center" />
+                                </StackPanel>
                             </StackPanel>
                         </Border>
 
@@ -199,7 +225,7 @@
                 </ScrollViewer>
             </TabItem>
 
-            <!-- TAB 2: USER MANAGEMENT (Omitted for brevity, logic identical to previous version) -->
+            <!-- TAB 2: USER MANAGEMENT -->
             <TabItem Header="User Management" Visibility="{Binding CanManageUsers, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid Margin="0,10,0,0">
                     <Grid.RowDefinitions>

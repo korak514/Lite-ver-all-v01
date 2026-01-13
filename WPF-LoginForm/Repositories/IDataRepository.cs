@@ -23,7 +23,7 @@ namespace WPF_LoginForm.Repositories
         /// Gets data from a table.
         /// </summary>
         /// <param name="limit">Number of rows to fetch (0 for all).</param>
-        Task<DataTable> GetTableDataAsync(string tableName, int limit = 0);
+        Task<(DataTable Data, bool IsSortable)> GetTableDataAsync(string tableName, int limit = 0);
 
         Task<DataTable> GetDataAsync(string tableName, List<string> columns, string dateColumn, DateTime? startDate, DateTime? endDate);
 

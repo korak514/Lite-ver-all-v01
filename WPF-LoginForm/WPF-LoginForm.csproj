@@ -110,7 +110,9 @@
     <Compile Include="Services\Database\CacheService.cs" />
     <Compile Include="Services\Database\DatabaseBootstrapper.cs" />
     <Compile Include="Services\Database\DatabaseRetryPolicy.cs" />
+    <Compile Include="Services\Network\ConnectionManager.cs" />
     <Compile Include="Services\UserSessionService.cs" />
+    <Compile Include="ViewModels\HelpTopic.cs" />
     <Compile Include="ViewModels\HelpViewModel.cs" />
     <Compile Include="ViewModels\HierarchyImportViewModel.cs" />
     <Compile Include="Views\HelpView.xaml.cs">
@@ -121,6 +123,9 @@
     </Compile>
     <Compile Include="Views\SettingsView.xaml.cs">
       <DependentUpon>SettingsView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\StartupView.xaml.cs">
+      <DependentUpon>StartupView.xaml</DependentUpon>
     </Compile>
     <PackageReference Include="ClosedXML">
       <Version>0.105.0</Version>
@@ -301,6 +306,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Views\StartupView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -369,5 +378,6 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

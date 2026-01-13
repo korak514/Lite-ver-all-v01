@@ -5,7 +5,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Globalization;
 using System.Linq;
-using System.Threading.Tasks; // <<< ADDED THIS DIRECTIVE
+using System.Threading.Tasks;
 using System.Windows.Input;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
@@ -22,6 +22,7 @@ namespace WPF_LoginForm.ViewModels
 
         // --- Date Control Properties ---
         private bool _isDateToday = true;
+
         public bool IsDateToday
         {
             get => _isDateToday;
@@ -40,6 +41,7 @@ namespace WPF_LoginForm.ViewModels
         private DateTime _lastKnownEntryDate;
 
         private DateTime _entryDate;
+
         public DateTime EntryDate
         {
             get => _entryDate;
@@ -52,6 +54,7 @@ namespace WPF_LoginForm.ViewModels
         public ICommand RemoveEntryLineCommand { get; }
 
         private string _windowTitle;
+
         public string WindowTitle
         {
             get => _windowTitle;
@@ -74,12 +77,9 @@ namespace WPF_LoginForm.ViewModels
             AddEntryLineCommand = new ViewModelCommand(ExecuteAddEntryLine);
             RemoveEntryLineCommand = new ViewModelCommand(ExecuteRemoveEntryLine, CanExecuteRemoveEntryLine);
 
-            // Call the async initializer. This is a "fire-and-forget" call from the constructor.
-            // The UI might appear before all data is loaded, which is acceptable for this setup.
             InitializeViewModelAsync();
         }
 
-        // This method is async void because it's the top-level async call from the constructor
         private async void InitializeViewModelAsync()
         {
             await LoadTargetTableSchemaAsync();
@@ -103,19 +103,23 @@ namespace WPF_LoginForm.ViewModels
             _logger?.LogInfo($"[ARLVM] EntryDate updated to: {EntryDate.ToShortDateString()} (IsDateToday={IsDateToday})");
         }
 
-        // CORRECTED: This method now correctly returns a Task
         private async Task FindLastEntryDateAsync()
         {
             _lastKnownEntryDate = DateTime.MinValue;
             if (_targetTableSchema == null || !_targetTableSchema.Columns.Contains("EntryDate"))
             {
                 _logger?.LogWarning($"[ARLVM] Cannot find last entry date: 'EntryDate' column not found in schema for {_owningTableName}.");
-                return; // Return completes the Task
+                return;
             }
 
             try
             {
-                DataTable fullTable = await _dataRepository.GetTableDataAsync(_owningTableName);
+                // FIX: Handle tuple return
+                // We ask for limit 1 to get the latest row efficiently since we only need the date
+                // Note: GetTableDataAsync uses 'limit' for 'TOP N' or 'LIMIT N', and it sorts DESC by default.
+                var result = await _dataRepository.GetTableDataAsync(_owningTableName, 1);
+                DataTable fullTable = result.Data;
+
                 var lastDate = fullTable.AsEnumerable()
                                         .Select(row => row.Field<DateTime?>("EntryDate"))
                                         .Where(d => d.HasValue)
@@ -137,12 +141,15 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        // CORRECTED: This method now correctly returns a Task
         private async Task LoadTargetTableSchemaAsync()
         {
             try
             {
-                _targetTableSchema = await _dataRepository.GetTableDataAsync(_owningTableName);
+                // FIX: Handle tuple return. Limit 0 means fetch what logic dictates, usually 500 or all.
+                // Since we just need schema (columns), limit 1 is actually safer/faster, but 0 is fine.
+                var result = await _dataRepository.GetTableDataAsync(_owningTableName, 1);
+                _targetTableSchema = result.Data;
+
                 _logger?.LogInfo($"[ARLVM {_owningTableName}] Target table schema loaded.");
             }
             catch (Exception ex)

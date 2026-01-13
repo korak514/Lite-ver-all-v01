@@ -1,8 +1,9 @@
 ﻿using System.Windows;
-using System.Windows.Controls; // Needed for TextBox, ItemsControl, ContentPresenter
-using System.Windows.Media; // Needed for VisualTreeHelper
+using System.Windows.Controls;
+using System.Windows.Media;
+using WPF_LoginForm.ViewModels;
 
-namespace WPF_LoginForm.Views // Ensure namespace is correct
+namespace WPF_LoginForm.Views
 {
     public partial class AddRowWindow : Window
     {
@@ -11,12 +12,22 @@ namespace WPF_LoginForm.Views // Ensure namespace is correct
         public AddRowWindow()
         {
             InitializeComponent();
-            // REMOVED: The problematic owner-setting logic has been deleted from here.
-            // The DialogService is now solely responsible for setting the owner.
         }
 
         private void OkButton_Click(object sender, RoutedEventArgs e)
         {
+            // --- NEW: Validation Logic ---
+            if (DataContext is AddRowViewModel vm)
+            {
+                if (!vm.ValidateData(out string error))
+                {
+                    // Show error and STOP. Keep window open so user can fix typo.
+                    MessageBox.Show(error, "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+            }
+
+            // If valid, close window and return True
             DialogResult = true;
         }
 

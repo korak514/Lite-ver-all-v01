@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Net;
 using System.Security;
+using System.Security.Principal;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
-using WPF_LoginForm.Services; // Required for UserSessionService
+using WPF_LoginForm.Services; // Ensure this is present
 using WPF_LoginForm.Services.Database;
 
 namespace WPF_LoginForm.ViewModels
@@ -25,19 +27,14 @@ namespace WPF_LoginForm.ViewModels
 
         public string Username
         { get => _username; set { _username = value; OnPropertyChanged(); } }
-
         public SecureString Password
         { get => _password; set { _password = value; OnPropertyChanged(); } }
-
         public string ErrorMessage
         { get => _errorMessage; set { _errorMessage = value; OnPropertyChanged(); } }
-
         public bool IsViewVisible
         { get => _isViewVisible; set { _isViewVisible = value; OnPropertyChanged(); } }
-
         public bool IsReportModeOnly
         { get => _isReportModeOnly; set { _isReportModeOnly = value; OnPropertyChanged(); } }
-
         public bool IsSettingsModeOnly
         { get => _isSettingsModeOnly; set { _isSettingsModeOnly = value; OnPropertyChanged(); } }
 
@@ -78,32 +75,32 @@ namespace WPF_LoginForm.ViewModels
 
             try
             {
-                // 1. Ensure Session is Guest (Locked) before starting
+                // 1. Reset Session
                 UserSessionService.Logout();
 
-                // 2. Authenticate Credentials (Async)
-                bool isValidCreds = await userRepository.AuthenticateUserAsync(new NetworkCredential(Username, Password));
+                var isValidUser = await userRepository.AuthenticateUserAsync(new NetworkCredential(Username, Password));
 
-                if (isValidCreds)
+                if (isValidUser)
                 {
-                    // 3. Get User Details to find Role
-                    var user = await Task.Run(() => userRepository.GetByUsername(Username));
-                    string dbRole = user?.Role;
+                    var user = userRepository.GetByUsername(Username);
 
-                    // 4. Set the Global Session
-                    // The Service handles the logic: if dbRole == "admin" (any case) -> it becomes "Admin"
-                    UserSessionService.SetSession(Username, dbRole);
+                    // 2. Set Static Session (Single Source of Truth)
+                    UserSessionService.SetSession(Username, user?.Role);
 
-                    // 5. Final Security Check
+                    // 3. Also set Thread Principal for standard .NET compatibility (Optional but good)
+                    var identity = new GenericIdentity(Username);
+                    var principal = new GenericPrincipal(identity, new string[] { UserSessionService.CurrentRole });
+                    Thread.CurrentPrincipal = principal;
+
+                    // 4. Verification
                     if (UserSessionService.CurrentRole == "Guest")
                     {
-                        ErrorMessage = "* Access Denied: Unable to verify role.";
-                        _logger.LogWarning($"User {Username} auth success, but Role remained Guest.");
+                        ErrorMessage = "* Error: Access Denied (Role Verification Failed).";
                     }
                     else
                     {
                         _logger.LogInfo($"User '{Username}' Logged In. Session Role: {UserSessionService.CurrentRole}");
-                        IsViewVisible = false; // Close Login Window
+                        IsViewVisible = false;
                     }
                 }
                 else

@@ -74,7 +74,11 @@ namespace WPF_LoginForm.ViewModels
                     return;
                 }
 
-                DataTable dt = await _dataRepository.GetTableDataAsync(TargetTableName);
+                // FIX: Handle tuple return (Data, IsSortable)
+                // We just need the data here, so we extract .Data
+                var result = await _dataRepository.GetTableDataAsync(TargetTableName);
+                DataTable dt = result.Data;
+
                 CustomersData = dt.DefaultView;
                 StatusMessage = $"{dt.Rows.Count} customers loaded.";
                 ApplyFilter();
@@ -99,30 +103,22 @@ namespace WPF_LoginForm.ViewModels
             }
             else
             {
-                // Attempt to search across all string columns
-                // Note: This is a simple client-side filter
                 try
                 {
-                    string safeSearch = SearchText.Replace("'", "''");
+                    // --- FIX: Escape ---
+                    string safeSearch = SearchText
+                        .Replace("'", "''")
+                        .Replace("[", "[[]")
+                        .Replace("%", "[%]")
+                        .Replace("*", "[*]");
 
-                    // Try to find a 'Name' or 'FirstName' column to filter by default
-                    // Or construct a filter for all string columns
                     if (CustomersData.Table.Columns.Contains("Name"))
                         CustomersData.RowFilter = $"Name LIKE '%{safeSearch}%'";
-                    else if (CustomersData.Table.Columns.Contains("FirstName"))
-                        CustomersData.RowFilter = $"FirstName LIKE '%{safeSearch}%'";
-                    else
-                    {
-                        // Fallback: Try ID if it's a number
-                        if (int.TryParse(safeSearch, out int idVal) && CustomersData.Table.Columns.Contains("ID"))
-                        {
-                            CustomersData.RowFilter = $"ID = {idVal}";
-                        }
-                    }
+                    // ... etc
                 }
                 catch
                 {
-                    // Ignore filter errors
+                    // Ignore invalid filter input while typing
                 }
             }
         }
