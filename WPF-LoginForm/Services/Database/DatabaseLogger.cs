@@ -11,17 +11,9 @@ namespace WPF_LoginForm.Services
     {
         private readonly ILogger _fallbackLogger;
 
-        // List of phrases to ignore to prevent database spam
         private readonly List<string> _ignoredPhrases = new List<string>
         {
-            "[ARLVM]",
-            "[ARLEVM]",
-            "Main Dashboard initialized",
-            "Started in Normal Mode",
-            "Started in 'Only Report' Mode",
-            "Visibilities updated",
-            "EntryDate updated",
-            "Found last entry date"
+            "[ARLVM]", "[ARLEVM]", "Main Dashboard initialized", "Visibilities updated", "EntryDate updated"
         };
 
         public DatabaseLogger(ILogger fallbackLogger)
@@ -37,24 +29,15 @@ namespace WPF_LoginForm.Services
 
         private void WriteLogSafe(string level, string message, Exception ex)
         {
-            // 1. Noise Filter
+            // Noise Filter
             if (level == "INFO" && !string.IsNullOrEmpty(message))
             {
-                if (_ignoredPhrases.Any(phrase => message.Contains(phrase)))
-                {
-                    // Ignored log, print to debug only
-                    System.Diagnostics.Debug.WriteLine($"[Ignored Log] {message}");
-                    return;
-                }
+                if (_ignoredPhrases.Any(phrase => message.Contains(phrase))) return;
             }
 
-            // 2. Capture Username BEFORE switching threads
-            // This ensures we get the user even if they log out 1ms later
             string username = UserSessionService.CurrentUsername;
             if (string.IsNullOrEmpty(username)) username = "System";
 
-            // 3. Fire and Forget on a background thread
-            // This prevents the UI from stuttering while waiting for the database
             Task.Run(() =>
             {
                 try
@@ -63,15 +46,15 @@ namespace WPF_LoginForm.Services
                 }
                 catch (Exception dbEx)
                 {
-                    // 4. Fallback: If DB fails (Network down), write to local file
-                    _fallbackLogger?.LogWarning($"[DB_LOG_FAIL] Could not log to database. Error: {dbEx.Message}");
-                    _fallbackLogger?.LogError($"[OFFLINE_LOG] [{username}] {level}: {message}", ex);
+                    _fallbackLogger?.LogError($"[OFFLINE_LOG] {level}: {message}", ex);
                 }
             });
         }
 
         private void WriteLogToDatabase(string level, string message, string username, Exception ex)
         {
+            // FIX: Ensure message is never null to prevent DB constraint errors
+            string safeMessage = message ?? "No message provided";
             string exceptionStr = ex?.ToString();
 
             using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
@@ -80,7 +63,6 @@ namespace WPF_LoginForm.Services
                 using (var command = connection.CreateCommand())
                 {
                     string query;
-
                     if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql)
                     {
                         query = "INSERT INTO \"Logs\" (\"LogLevel\", \"Message\", \"Username\", \"Exception\", \"LogDate\") " +
@@ -94,9 +76,9 @@ namespace WPF_LoginForm.Services
 
                     command.CommandText = query;
                     AddParameter(command, "@Level", level);
-                    AddParameter(command, "@Msg", message ?? (object)DBNull.Value);
+                    AddParameter(command, "@Msg", safeMessage); // Use safe version
                     AddParameter(command, "@User", username);
-                    AddParameter(command, "@Ex", exceptionStr ?? (object)DBNull.Value);
+                    AddParameter(command, "@Ex", (object)exceptionStr ?? DBNull.Value);
 
                     command.ExecuteNonQuery();
                 }

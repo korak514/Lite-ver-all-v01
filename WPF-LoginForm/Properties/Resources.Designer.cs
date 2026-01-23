@@ -466,6 +466,15 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to RenameColumn.
+        /// </summary>
+        public static string RenameColumn {
+            get {
+                return ResourceManager.GetString("RenameColumn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Only Report Mode.
         /// </summary>
         public static string ReportMode {
@@ -570,6 +579,15 @@ namespace WPF_LoginForm.Properties {
         public static string Tip_LoadFullHistory {
             get {
                 return ResourceManager.GetString("Tip_LoadFullHistory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tip_RenameColumn.
+        /// </summary>
+        public static string Tip_RenameColumn {
+            get {
+                return ResourceManager.GetString("Tip_RenameColumn", resourceCulture);
             }
         }
         

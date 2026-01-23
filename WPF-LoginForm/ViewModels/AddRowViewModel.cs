@@ -53,14 +53,12 @@ namespace WPF_LoginForm.ViewModels
         private readonly DataTable _sourceTable;
         private string _dateTargetColumn;
 
-        // Designer Constructor
         public AddRowViewModel()
         {
             WindowTitle = "Add New Row (Design)";
             InitializeColumnEntries(new List<string> { "Col1", "Col2" }, null);
         }
 
-        // Runtime Constructor
         public AddRowViewModel(IEnumerable<string> columnNames, string tableName, Dictionary<string, object> initialValues, DataTable sourceTable, bool hideId)
         {
             WindowTitle = $"Add New Row to '{tableName}'";
@@ -68,7 +66,15 @@ namespace WPF_LoginForm.ViewModels
 
             var columnsToDisplay = columnNames.ToList();
 
-            // Detect Date Column to bind to the DatePicker
+            if (hideId)
+            {
+                var idCol = columnsToDisplay.FirstOrDefault(c => c.Equals(_idColumnName, StringComparison.OrdinalIgnoreCase));
+                if (idCol != null)
+                {
+                    columnsToDisplay.Remove(idCol);
+                }
+            }
+
             var dateCol = columnsToDisplay.FirstOrDefault(c =>
                 c.Equals("EntryDate", StringComparison.OrdinalIgnoreCase) ||
                 c.Equals("Date", StringComparison.OrdinalIgnoreCase) ||
@@ -77,7 +83,7 @@ namespace WPF_LoginForm.ViewModels
             if (dateCol != null)
             {
                 _dateTargetColumn = dateCol;
-                columnsToDisplay.Remove(dateCol); // Remove from generic list so it doesn't show twice
+                columnsToDisplay.Remove(dateCol);
             }
 
             InitializeColumnEntries(columnsToDisplay, initialValues);
@@ -92,12 +98,10 @@ namespace WPF_LoginForm.ViewModels
             {
                 var entry = new ColumnEntry(name);
 
-                // 1. Check if specific initial value provided
                 if (initialValues != null && initialValues.TryGetValue(name, out object initialValue))
                 {
                     entry.Value = initialValue;
                 }
-                // 2. If it's the ID column, determine default value based on Type
                 else if (name.Equals(_idColumnName, StringComparison.OrdinalIgnoreCase) && _sourceTable != null)
                 {
                     entry.Value = CalculateDefaultIdValue(name);
@@ -107,7 +111,6 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        // FIX: Replaced CalculateNextId with type-aware logic
         private object CalculateDefaultIdValue(string colName)
         {
             try
@@ -116,13 +119,11 @@ namespace WPF_LoginForm.ViewModels
 
                 Type type = _sourceTable.Columns[colName].DataType;
 
-                // Case A: GUID
                 if (type == typeof(Guid))
                 {
                     return Guid.NewGuid();
                 }
 
-                // Case B: Integers (Auto-Increment logic)
                 if (type == typeof(int) || type == typeof(long) || type == typeof(short))
                 {
                     var ids = _sourceTable.AsEnumerable()
@@ -143,8 +144,6 @@ namespace WPF_LoginForm.ViewModels
                 }
             }
             catch { }
-
-            // Case C: Strings or others -> Leave blank for user input
             return null;
         }
 
@@ -160,7 +159,6 @@ namespace WPF_LoginForm.ViewModels
 
                 string strVal = entry.Value?.ToString();
 
-                // Check for Nulls on Required Columns
                 if (string.IsNullOrWhiteSpace(strVal))
                 {
                     if (!col.AllowDBNull && !col.AutoIncrement)
@@ -171,13 +169,18 @@ namespace WPF_LoginForm.ViewModels
                     continue;
                 }
 
-                // Check Type Compatibility
                 try
                 {
-                    // Special handling for GUID strings
                     if (col.DataType == typeof(Guid))
                     {
                         Guid.Parse(strVal);
+                    }
+                    // FIX: Handle "1"/"yes" for boolean columns
+                    else if (col.DataType == typeof(bool))
+                    {
+                        string v = strVal.ToLower();
+                        if (v == "1" || v == "yes" || v == "y" || v == "on") { /* valid */ }
+                        else Boolean.Parse(strVal);
                     }
                     else
                     {
@@ -199,7 +202,30 @@ namespace WPF_LoginForm.ViewModels
 
             foreach (var entry in ColumnEntries)
             {
-                newRowData.Values[entry.ColumnName] = entry.Value;
+                // FIX: Apply the boolean parse logic here too
+                if (_sourceTable.Columns.Contains(entry.ColumnName) && _sourceTable.Columns[entry.ColumnName].DataType == typeof(bool))
+                {
+                    string v = entry.Value?.ToString().ToLower() ?? "";
+                    if (v == "1" || v == "yes" || v == "y" || v == "on") newRowData.Values[entry.ColumnName] = true;
+                    else if (v == "0" || v == "no" || v == "n" || v == "off") newRowData.Values[entry.ColumnName] = false;
+                    else newRowData.Values[entry.ColumnName] = entry.Value;
+                }
+                else
+                {
+                    newRowData.Values[entry.ColumnName] = entry.Value;
+                }
+            }
+
+            if (_sourceTable != null && _sourceTable.Columns.Contains(_idColumnName))
+            {
+                DataColumn idCol = _sourceTable.Columns[_idColumnName];
+                if (!idCol.AutoIncrement && !newRowData.Values.ContainsKey(_idColumnName))
+                {
+                    if (idCol.DataType == typeof(Guid))
+                    {
+                        newRowData.Values[_idColumnName] = Guid.NewGuid();
+                    }
+                }
             }
 
             if (!string.IsNullOrEmpty(_dateTargetColumn))

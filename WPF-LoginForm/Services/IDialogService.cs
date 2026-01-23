@@ -31,5 +31,8 @@ namespace WPF_LoginForm.Services
         bool ShowSaveFileDialog(string title, string defaultFileName, string defaultExtension, string filter, out string selectedFilePath);
 
         bool ShowOpenFileDialog(string title, string filter, out string selectedFilePath);
+
+        // Add to interface
+        bool ShowInputDialog(string title, string message, string defaultValue, out string result);
     }
 }

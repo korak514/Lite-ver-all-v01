@@ -60,7 +60,6 @@
 
                     <Separator Margin="4,0" />
 
-                    <!-- Optimization Toggle (LOCALIZED) -->
                     <CheckBox Content="{x:Static p:Resources.LoadFullHistory}"
                               IsChecked="{Binding LoadAllData, Mode=TwoWay}"
                               ToolTip="{x:Static p:Resources.Tip_LoadFullHistory}"
@@ -77,7 +76,12 @@
                 <ToolBar Band="2" BandIndex="1" ToolBar.OverflowMode="Never">
                     <Label Content="{x:Static p:Resources.QuickSearch}" VerticalAlignment="Center" />
                     <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" MinWidth="170" VerticalAlignment="Center" />
-
+                    <!-- NEW CHECKBOX -->
+                    <CheckBox Content="Global"
+                              IsChecked="{Binding IsGlobalSearchActive}"
+                              ToolTip="Search in ALL columns"
+                              VerticalAlignment="Center"
+                              Margin="5,0,5,0" />
                     <ToggleButton IsChecked="{Binding IsColumnSelectorVisible, Mode=TwoWay}" ToolTip="Options" Margin="4,0,0,0">
                         <fa:ImageAwesome Icon="Gear" Height="14" Foreground="DimGray" />
                     </ToggleButton>
@@ -85,12 +89,25 @@
                     <ComboBox ItemsSource="{Binding SearchableColumns}" SelectedItem="{Binding SelectedSearchColumn, Mode=TwoWay}" MinWidth="140" VerticalAlignment="Center" Margin="2,0,5,0"
                               Visibility="{Binding IsColumnSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
+                    <!-- NEW: Options Panel with Rename Button -->
                     <StackPanel Orientation="Horizontal" Visibility="{Binding IsColumnSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Button Content="{x:Static p:Resources.AddId}" Command="{Binding AddIdColumnCommand}" Margin="5,0" Background="#FFF0F0F0" BorderBrush="Gray" />
+
+                        <!-- RENAME BUTTON -->
+                        <Button Command="{Binding RenameColumnCommand}"
+            ToolTip="{x:Static p:Resources.Tip_RenameColumn}"
+            Margin="5,0"
+            Background="#FFF0F0F0"
+            BorderBrush="Gray">
+                            <StackPanel Orientation="Horizontal">
+                                <fa:ImageAwesome Icon="Pencil" Height="12" Foreground="DimGray" Margin="0,0,5,0" />
+                                <TextBlock Text="{x:Static p:Resources.RenameColumn}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
                         <CheckBox Content="{x:Static p:Resources.HideId}" IsChecked="{Binding IsIdHidden, Mode=TwoWay}" VerticalAlignment="Center" Margin="5,0" />
                         <CheckBox Content="{x:Static p:Resources.EditId}" IsChecked="{Binding IsIdEditable, Mode=TwoWay}" VerticalAlignment="Center" Margin="5,0" />
 
-                        <!-- Toggle for Advanced Imports -->
                         <CheckBox Content="Show Adv. Import" IsChecked="{Binding IsAdvancedImportVisible, Mode=TwoWay}" VerticalAlignment="Center" Margin="10,0,5,0"
                                   ToolTip="Show Import Table/Map buttons" />
                     </StackPanel>
@@ -107,7 +124,6 @@
                     <Separator Margin="4,0" />
                     <Button Content="{x:Static p:Resources.Import}" ToolTip="{x:Static p:Resources.Import}" Margin="4,0" Command="{Binding ImportDataCommand}" />
 
-                    <!-- Advanced Buttons (Hidden by Default) -->
                     <Button Content="Import Table" ToolTip="Advanced Import" Margin="4,0"
                             Command="{Binding ShowAdvancedImportCommand}"
                             Visibility="{Binding IsAdvancedImportVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
@@ -121,7 +137,6 @@
                         </StackPanel>
                     </Button>
 
-                    <!-- Create Table Button (LOCALIZED) -->
                     <Button Content="{x:Static p:Resources.CreateNewTable}"
                             ToolTip="{x:Static p:Resources.Tip_CreateNewTable}"
                             Margin="4,0"
@@ -167,7 +182,6 @@
             <TextBox Grid.Column="1" Text="{Binding ErrorMessage, Mode=OneWay}" Style="{StaticResource ErrorMessageTextBoxStyle}" Margin="10,0,0,0"
                      Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-            <!-- Optimization Status Text -->
             <TextBlock Grid.Column="2" Text="{Binding FilterStatus}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FF5555" />
         </Grid>
 

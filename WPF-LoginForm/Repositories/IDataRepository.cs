@@ -18,21 +18,22 @@ namespace WPF_LoginForm.Repositories
 
         Task<(DateTime Min, DateTime Max)> GetDateRangeAsync(string tableName, string dateColumn);
 
-        // --- OPTIMIZED: Data Retrieval now supports an optional limit ---
-        /// <summary>
-        /// Gets data from a table.
-        /// </summary>
-        /// <param name="limit">Number of rows to fetch (0 for all).</param>
+        Task<(bool Success, string ErrorMessage)> RenameColumnAsync(string tableName, string oldName, string newName);
+
+        // Data Retrieval
         Task<(DataTable Data, bool IsSortable)> GetTableDataAsync(string tableName, int limit = 0);
 
         Task<DataTable> GetDataAsync(string tableName, List<string> columns, string dateColumn, DateTime? startDate, DateTime? endDate);
+
+        // NEW: Error Analytics
+        Task<List<ErrorEventModel>> GetErrorDataAsync(DateTime startDate, DateTime endDate, string tableName);
 
         // System Logs
         Task<DataTable> GetSystemLogsAsync();
 
         Task<bool> ClearSystemLogsAsync();
 
-        // Distinct Values
+        // Hierarchy Dropdowns
         Task<List<string>> GetDistinctPart1ValuesAsync(string tableName);
 
         Task<List<string>> GetDistinctPart2ValuesAsync(string tableName, string p1);
@@ -43,7 +44,7 @@ namespace WPF_LoginForm.Repositories
 
         Task<List<string>> GetDistinctCoreItemDisplayNamesAsync(string tableName, string p1, string p2, string p3, string p4);
 
-        // Hierarchy Map
+        // Hierarchy Management
         Task<bool> ClearHierarchyMapForTableAsync(string tableName);
 
         Task<(bool Success, string ErrorMessage)> ImportHierarchyMapAsync(DataTable mapData);
@@ -55,7 +56,7 @@ namespace WPF_LoginForm.Repositories
 
         Task<(bool Success, string ErrorMessage)> AddPrimaryKeyAsync(string tableName);
 
-        // Bulk / Creation
+        // Creation & Import
         Task<(bool Success, string ErrorMessage)> CreateTableAsync(string tableName, List<ColumnSchemaViewModel> schema);
 
         Task<(bool Success, string ErrorMessage)> BulkImportDataAsync(string tableName, DataTable data);

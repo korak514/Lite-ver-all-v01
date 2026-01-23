@@ -41,8 +41,6 @@ namespace WPF_LoginForm.Services.Network
                 string user = Settings.Default.DbUser;
                 bool useWindowsAuth = false;
 
-                // FIX: Retrieve existing password from the current active connection string
-                // instead of relying on the potentially empty Settings.Default.DbPassword
                 string currentPass = "";
 
                 try
@@ -61,15 +59,20 @@ namespace WPF_LoginForm.Services.Network
                 }
                 catch
                 {
-                    // Fallback to settings if parsing fails
                     currentPass = Settings.Default.DbPassword;
                 }
 
-                // Rebuild SQL Server Strings
+                // --- SQL SERVER BUILDER ---
                 var sqlBuilder = new SqlConnectionStringBuilder();
-                sqlBuilder.DataSource = newHost + (string.IsNullOrEmpty(port) ? "" : "," + port);
+
+                // FIX: Better Port Handling (Avoid trailing comma)
+                if (!string.IsNullOrWhiteSpace(port) && port != "1433")
+                    sqlBuilder.DataSource = $"{newHost},{port}";
+                else
+                    sqlBuilder.DataSource = newHost;
+
                 sqlBuilder.UserID = user;
-                sqlBuilder.Password = currentPass; // Use the extracted password
+                sqlBuilder.Password = currentPass;
                 sqlBuilder.IntegratedSecurity = useWindowsAuth;
                 sqlBuilder.TrustServerCertificate = Settings.Default.TrustServerCertificate;
                 sqlBuilder.ConnectTimeout = Settings.Default.ConnectionTimeout;
@@ -80,12 +83,12 @@ namespace WPF_LoginForm.Services.Network
                 sqlBuilder.InitialCatalog = "MainDataDb";
                 Settings.Default.SqlDataConnString = sqlBuilder.ConnectionString;
 
-                // Rebuild PostgreSQL Strings
+                // --- POSTGRES BUILDER ---
                 var pgBuilder = new NpgsqlConnectionStringBuilder();
                 pgBuilder.Host = newHost;
                 if (int.TryParse(port, out int portNum)) pgBuilder.Port = portNum;
                 pgBuilder.Username = user;
-                pgBuilder.Password = currentPass; // Use the extracted password
+                pgBuilder.Password = currentPass;
                 pgBuilder.TrustServerCertificate = Settings.Default.TrustServerCertificate;
                 pgBuilder.Timeout = Settings.Default.ConnectionTimeout;
 

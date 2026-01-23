@@ -30,12 +30,15 @@ namespace WPF_LoginForm.ViewModels
         private readonly IDataRepository _dataRepository;
         private readonly ILogger _logger;
 
+        // Cached Views
         private HomeViewModel _homeViewModel;
+
         private CustomerViewModel _customerViewModel;
         private DatarepViewModel _datarepViewModel;
         private InventoryViewModel _inventoryViewModel;
         private SettingsViewModel _settingsViewModel;
         private HelpViewModel _helpViewModel;
+        private ErrorManagementViewModel _errorViewModel; // Added Field
 
         public UserAccountModel CurrentUserAccount
         { get => _currentUserAccount; set { _currentUserAccount = value; OnPropertyChanged(); } }
@@ -55,13 +58,16 @@ namespace WPF_LoginForm.ViewModels
         public bool IsOfflineMode
         { get => _isOfflineMode; set { _isOfflineMode = value; OnPropertyChanged(); } }
 
+        // Commands
         public ICommand ShowHomeViewCommand { get; }
+
         public ICommand ShowCustomerViewCommand { get; }
         public ICommand ShowReportsViewCommand { get; }
         public ICommand ShowInventoryViewCommand { get; }
         public ICommand ShowSettingsViewCommand { get; }
         public ICommand ShowHelpViewCommand { get; }
         public ICommand ReturnToLoginCommand { get; }
+        public ICommand ShowErrorViewCommand { get; } // Added Property
 
         public MainViewModel()
         {
@@ -70,9 +76,10 @@ namespace WPF_LoginForm.ViewModels
             _userRepository = new UserRepository();
             _dataRepository = new DataRepository(_logger);
 
-            // Initialize with placeholder to prevent null binding errors
+            // Placeholder to prevent null binding errors
             CurrentUserAccount = new UserAccountModel { DisplayName = "Loading..." };
 
+            // Initialize Commands
             ShowHomeViewCommand = new ViewModelCommand(ExecuteShowHomeViewCommand);
             ShowCustomerViewCommand = new ViewModelCommand(ExecuteShowCustomerViewCommand);
             ShowReportsViewCommand = new ViewModelCommand(ExecuteShowReportsViewCommand);
@@ -81,7 +88,9 @@ namespace WPF_LoginForm.ViewModels
             ShowHelpViewCommand = new ViewModelCommand(ExecuteShowHelpViewCommand);
             ReturnToLoginCommand = new ViewModelCommand(ExecuteReturnToLogin);
 
-            // Load User Data Asynchronously
+            // FIX: Initialize the new command properly here
+            ShowErrorViewCommand = new ViewModelCommand(ExecuteShowErrorViewCommand);
+
             Task.Run(() => LoadCurrentUserDataAsync());
 
             _logger.LogInfo("Main Dashboard initialized.");
@@ -95,7 +104,6 @@ namespace WPF_LoginForm.ViewModels
                 IsOfflineMode = true;
                 ExecuteShowSettingsViewCommand(null);
                 _logger.LogInfo("Started in 'Settings Only' Mode.");
-                // Create NEW object to trigger UI update
                 CurrentUserAccount = new UserAccountModel { DisplayName = "Offline Config" };
             }
             else if (mode == AppMode.ReportOnly)
@@ -118,6 +126,16 @@ namespace WPF_LoginForm.ViewModels
         {
             UserSessionService.Logout();
             _logger.LogInfo("User Logged Out.");
+
+            // FIX 29: Clear cached views to prevent data leaking to the next user
+            _homeViewModel = null;
+            _customerViewModel = null;
+            _datarepViewModel = null;
+            _inventoryViewModel = null;
+            _settingsViewModel = null;
+            _helpViewModel = null;
+            _errorViewModel = null; // Clear new view
+            CurrentChildView = null;
 
             var loginView = new LoginView();
 
@@ -219,6 +237,39 @@ namespace WPF_LoginForm.ViewModels
             Icon = IconChar.QuestionCircle;
         }
 
+        // New Logic for Error Analytics
+        // ... (inside MainViewModel)
+
+        private void ExecuteShowErrorViewCommand(object obj)
+        {
+            // FIX: Always create a NEW instance to refresh data and fix click state
+            if (_errorViewModel != null)
+            {
+                _errorViewModel.DrillDownRequested -= OnErrorDrillDown; // Unsubscribe old
+                _errorViewModel = null;
+            }
+
+            _errorViewModel = new ErrorManagementViewModel(_dataRepository);
+            _errorViewModel.DrillDownRequested += OnErrorDrillDown;
+
+            CurrentChildView = _errorViewModel;
+            Caption = "Error Analytics";
+            Icon = IconChar.PieChart;
+        }
+
+        // This runs when you click a chart slice
+        private void OnErrorDrillDown(string tableName, DateTime start, DateTime end, string filterText)
+        {
+            // 1. Switch View to Reports
+            ExecuteShowReportsViewCommand(null);
+
+            // 2. Pass the data to the Reports View
+            if (_datarepViewModel != null)
+            {
+                _datarepViewModel.LoadTableWithFilter(tableName, start, end, filterText);
+            }
+        }
+
         private async Task LoadCurrentUserDataAsync()
         {
             string username = UserSessionService.CurrentUsername;
@@ -227,12 +278,13 @@ namespace WPF_LoginForm.ViewModels
             {
                 var user = _userRepository.GetByUsername(username);
 
-                // Marshal back to UI thread
-                Application.Current.Dispatcher.Invoke(() =>
+                // FIX 27: Shutdown Safety Check
+                if (Application.Current == null) return;
+
+                await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
                     if (user != null)
                     {
-                        // FIX: Create a NEW object to trigger the PropertyChanged event
                         CurrentUserAccount = new UserAccountModel
                         {
                             Username = user.Username,
@@ -249,7 +301,8 @@ namespace WPF_LoginForm.ViewModels
             }
             else
             {
-                Application.Current.Dispatcher.Invoke(() =>
+                if (Application.Current == null) return;
+                await Application.Current.Dispatcher.InvokeAsync(() =>
                     CurrentUserAccount = new UserAccountModel { DisplayName = "Not logged in" });
             }
         }

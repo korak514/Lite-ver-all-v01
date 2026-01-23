@@ -1,21 +1,23 @@
-﻿using WPF_LoginForm.Repositories;
-using WPF_LoginForm.Services;
-using WPF_LoginForm.Models;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Input;
 using System.Data;
-using System.Threading;
-using OfficeOpenXml;
-using System.Windows;
-using System.IO;
-using System.Text;
 using System.Globalization;
-using WPF_LoginForm.Services.Database; // Required for RetryPolicy
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions; // Required for CSV Regex
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using OfficeOpenXml; // Required for EPPlus
+using WPF_LoginForm.Models;
+using WPF_LoginForm.Properties;
+using WPF_LoginForm.Repositories;
+using WPF_LoginForm.Services;
+using WPF_LoginForm.Services.Database;
 
 namespace WPF_LoginForm.ViewModels
 {
@@ -25,7 +27,9 @@ namespace WPF_LoginForm.ViewModels
         private readonly IDataRepository _dataRepository;
         private readonly ILogger _logger;
 
+        // --- State Fields ---
         private DataView _dataTableView;
+
         private string _selectedTable;
         private ObservableCollection<string> _tableNames;
         private bool _isBusy;
@@ -35,18 +39,26 @@ namespace WPF_LoginForm.ViewModels
         private DataTable _currentDataTable;
         private double _dataGridFontSize = 12;
 
-        private ObservableCollection<DataRowView> _editableRows = new ObservableCollection<DataRowView>();
-        private readonly List<DataRow> _rowChangeHistory = new List<DataRow>();
+        // Thread Safety & History
         private int _longRunningOperationCount = 0;
 
+        private ObservableCollection<DataRowView> _editableRows = new ObservableCollection<DataRowView>();
+        private readonly List<DataRow> _rowChangeHistory = new List<DataRow>();
+
+        // --- Filtering Fields ---
         private string _searchText;
+
         private bool _isColumnSelectorVisible;
         private string _selectedSearchColumn;
         private string _filterStatus;
-
         private bool _loadAllData = false;
 
+        // NEW: Global Search Toggle State
+        private bool _isGlobalSearchActive = false;
+
+        // --- Date Filter Fields ---
         private bool _isDateFilterVisible;
+
         private bool _isDateFilterPanelVisible;
         private string _dateFilterColumnName;
         private DateTime? _filterStartDate;
@@ -57,51 +69,55 @@ namespace WPF_LoginForm.ViewModels
         private DateTime _minSliderDate;
         private bool _isUpdatingDates = false;
 
+        // --- Configuration ---
         private readonly List<string> _dateColumnAliases = new List<string> { "Tarih", "Date", "EntryDate" };
+
         private readonly List<Type> _numericTypes = new List<Type> { typeof(int), typeof(double), typeof(decimal), typeof(float), typeof(long), typeof(short), typeof(byte), typeof(sbyte), typeof(uint), typeof(ulong), typeof(ushort) };
 
         private bool _isIdHidden = true;
         private bool _isIdEditable = false;
         private bool _isAdvancedImportVisible = false;
 
-        // --- NEW: Using UserSessionService for Admin Check ---
-        public bool IsAdmin => UserSessionService.IsAdmin;
+        public bool IsAdmin
+        {
+            get { return UserSessionService.IsAdmin; }
+        }
+
+        // --- Properties (Verbose) ---
 
         public ObservableCollection<string> TableNames
         {
-            get => _tableNames;
-            private set => SetProperty(ref _tableNames, value);
+            get { return _tableNames; }
+            private set { SetProperty(ref _tableNames, value); }
         }
 
         public string SelectedTable
         {
-            get => _selectedTable;
+            get { return _selectedTable; }
             set
             {
-                if (_selectedTable != value)
+                if (SetProperty(ref _selectedTable, value))
                 {
+                    // Fix: Clear Ghost Edits to prevent crashes
+                    EditableRows.Clear();
+
+                    // Reset Date Filter State
                     IsDateFilterVisible = false;
                     IsDateFilterPanelVisible = false;
                     _dateFilterColumnName = null;
+
                     UnsubscribeFromTableEvents();
 
                     _selectedTable = value;
                     OnPropertyChanged();
 
                     LoadAllData = false;
-
-                    (AddNewRowCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
-                    (ImportDataCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
-                    (ShowAdvancedImportCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
-                    (ExportDataCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
-                    (ReloadDataCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
-                    (UndoChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
-                    (DeleteTableCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
-                    (AddIdColumnCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
-                    (ShowHierarchyImportCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+                    RefreshCommandStates();
 
                     if (!string.IsNullOrEmpty(_selectedTable))
+                    {
                         LoadDataForSelectedTableAsync();
+                    }
                     else
                     {
                         DataTableView = null;
@@ -114,7 +130,7 @@ namespace WPF_LoginForm.ViewModels
 
         public bool LoadAllData
         {
-            get => _loadAllData;
+            get { return _loadAllData; }
             set
             {
                 if (SetProperty(ref _loadAllData, value))
@@ -127,10 +143,10 @@ namespace WPF_LoginForm.ViewModels
 
         public DataView DataTableView
         {
-            get => _dataTableView;
+            get { return _dataTableView; }
             private set
             {
-                if (_dataTableView != value)
+                if (SetProperty(ref _dataTableView, value))
                 {
                     UnsubscribeFromTableEvents();
                     _dataTableView = value;
@@ -141,32 +157,64 @@ namespace WPF_LoginForm.ViewModels
                     EditableRows.Clear();
                     _rowChangeHistory.Clear();
 
-                    ClearSearchCommand.Execute(null);
+                    // Reset Search but DO NOT trigger filter (prevents lag on load)
+                    _searchText = string.Empty;
+                    OnPropertyChanged(nameof(SearchText));
+
                     PopulateSearchableColumns();
 
-                    OnPropertyChanged(nameof(EditableRows));
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(EditableRows));
                 }
             }
         }
 
-        public bool IsBusy { get => _isBusy; private set => SetProperty(ref _isBusy, value); }
-        public bool IsProgressBarVisible { get => _isProgressBarVisible; private set => SetProperty(ref _isProgressBarVisible, value); }
+        // NEW: Global Search Property
+        public bool IsGlobalSearchActive
+        {
+            get { return _isGlobalSearchActive; }
+            set
+            {
+                if (SetProperty(ref _isGlobalSearchActive, value))
+                {
+                    // Re-apply filters when toggle changes
+                    ApplyCombinedFilters();
+                }
+            }
+        }
+
+        public bool IsBusy
+        {
+            get { return _isBusy; }
+            private set { SetProperty(ref _isBusy, value); }
+        }
+
+        public bool IsProgressBarVisible
+        {
+            get { return _isProgressBarVisible; }
+            private set { SetProperty(ref _isProgressBarVisible, value); }
+        }
 
         public string ErrorMessage
         {
-            get => _errorMessage;
+            get { return _errorMessage; }
             private set { if (SetProperty(ref _errorMessage, value)) OnPropertyChanged(nameof(HasError)); }
         }
 
-        public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+        public bool HasError
+        {
+            get { return !string.IsNullOrEmpty(ErrorMessage); }
+        }
 
         public bool IsDirty
-        { get => _isDirty; private set { if (SetProperty(ref _isDirty, value)) OnPropertyChanged(); } }
+        {
+            get { return _isDirty; }
+            private set { if (SetProperty(ref _isDirty, value)) OnPropertyChanged(); }
+        }
 
         public double DataGridFontSize
         {
-            get => _dataGridFontSize;
+            get { return _dataGridFontSize; }
             set
             {
                 var newSize = Math.Max(8, Math.Min(24, value));
@@ -178,44 +226,109 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        public ObservableCollection<DataRowView> EditableRows { get => _editableRows; }
+        public ObservableCollection<DataRowView> EditableRows
+        {
+            get { return _editableRows; }
+        }
+
         public ObservableCollection<string> SearchableColumns { get; } = new ObservableCollection<string>();
 
         public string SearchText
-        { get => _searchText; set { if (SetProperty(ref _searchText, value)) ApplyCombinedFilters(); } }
+        {
+            get { return _searchText; }
+            set
+            {
+                if (SetProperty(ref _searchText, value))
+                    ApplyCombinedFilters();
+            }
+        }
 
-        public bool IsColumnSelectorVisible { get => _isColumnSelectorVisible; set => SetProperty(ref _isColumnSelectorVisible, value); }
+        public bool IsColumnSelectorVisible
+        {
+            get { return _isColumnSelectorVisible; }
+            set { SetProperty(ref _isColumnSelectorVisible, value); }
+        }
 
         public string SelectedSearchColumn
-        { get => _selectedSearchColumn; set { if (SetProperty(ref _selectedSearchColumn, value)) ApplyCombinedFilters(); } }
+        {
+            get { return _selectedSearchColumn; }
+            set
+            {
+                if (SetProperty(ref _selectedSearchColumn, value))
+                {
+                    // FIX: If user picks a specific column, turn OFF global search
+                    _isGlobalSearchActive = false;
+                    OnPropertyChanged(nameof(IsGlobalSearchActive));
 
-        public string FilterStatus { get => _filterStatus; private set => SetProperty(ref _filterStatus, value); }
+                    ApplyCombinedFilters();
+                    RefreshCommandStates();
+                }
+            }
+        }
 
-        public bool IsDateFilterVisible { get => _isDateFilterVisible; private set => SetProperty(ref _isDateFilterVisible, value); }
-        public bool IsDateFilterPanelVisible { get => _isDateFilterPanelVisible; set => SetProperty(ref _isDateFilterPanelVisible, value); }
+        public string FilterStatus
+        {
+            get { return _filterStatus; }
+            private set { SetProperty(ref _filterStatus, value); }
+        }
+
+        public bool IsDateFilterVisible
+        {
+            get { return _isDateFilterVisible; }
+            private set { SetProperty(ref _isDateFilterVisible, value); }
+        }
+
+        public bool IsDateFilterPanelVisible
+        {
+            get { return _isDateFilterPanelVisible; }
+            set { SetProperty(ref _isDateFilterPanelVisible, value); }
+        }
 
         public DateTime? FilterStartDate
-        { get => _filterStartDate; set { if (SetProperty(ref _filterStartDate, value)) { if (!_isUpdatingDates) { ApplyCombinedFilters(); UpdateSlidersFromDates(); } } } }
+        {
+            get { return _filterStartDate; }
+            set { if (SetProperty(ref _filterStartDate, value) && !_isUpdatingDates) { ApplyCombinedFilters(); UpdateSlidersFromDates(); } }
+        }
 
         public DateTime? FilterEndDate
-        { get => _filterEndDate; set { if (SetProperty(ref _filterEndDate, value)) { if (!_isUpdatingDates) { ApplyCombinedFilters(); UpdateSlidersFromDates(); } } } }
+        {
+            get { return _filterEndDate; }
+            set { if (SetProperty(ref _filterEndDate, value) && !_isUpdatingDates) { ApplyCombinedFilters(); UpdateSlidersFromDates(); } }
+        }
 
-        public double SliderMaximum { get => _sliderMaximum; set => SetProperty(ref _sliderMaximum, value); }
+        public double SliderMaximum
+        { get { return _sliderMaximum; } set { SetProperty(ref _sliderMaximum, value); } }
 
         public double StartMonthSliderValue
-        { get => _startMonthSliderValue; set { if (SetProperty(ref _startMonthSliderValue, value)) { if (!_isUpdatingDates) UpdateDatesFromSliders(); } } }
+        {
+            get { return _startMonthSliderValue; }
+            set { if (SetProperty(ref _startMonthSliderValue, value) && !_isUpdatingDates) UpdateDatesFromSliders(); }
+        }
 
         public double EndMonthSliderValue
-        { get => _endMonthSliderValue; set { if (SetProperty(ref _endMonthSliderValue, value)) { if (!_isUpdatingDates) UpdateDatesFromSliders(); } } }
+        {
+            get { return _endMonthSliderValue; }
+            set { if (SetProperty(ref _endMonthSliderValue, value) && !_isUpdatingDates) UpdateDatesFromSliders(); }
+        }
 
         public bool IsIdHidden
-        { get => _isIdHidden; set { if (SetProperty(ref _isIdHidden, value)) OnPropertyChanged(nameof(IsIdVisible)); } }
+        {
+            get { return _isIdHidden; }
+            set { if (SetProperty(ref _isIdHidden, value)) OnPropertyChanged(nameof(IsIdVisible)); }
+        }
 
-        public bool IsIdEditable { get => _isIdEditable; set => SetProperty(ref _isIdEditable, value); }
-        public bool IsIdVisible => !_isIdHidden;
-        public bool IsAdvancedImportVisible { get => _isAdvancedImportVisible; set => SetProperty(ref _isAdvancedImportVisible, value); }
+        public bool IsIdVisible
+        { get { return !_isIdHidden; } }
 
+        public bool IsIdEditable
+        { get { return _isIdEditable; } set { SetProperty(ref _isIdEditable, value); } }
+
+        public bool IsAdvancedImportVisible
+        { get { return _isAdvancedImportVisible; } set { SetProperty(ref _isAdvancedImportVisible, value); } }
+
+        // --- Commands ---
         public ICommand AddNewRowCommand { get; }
+
         public ICommand SaveChangesCommand { get; }
         public ICommand UndoChangesCommand { get; }
         public ICommand EditSelectedRowsCommand { get; }
@@ -232,15 +345,16 @@ namespace WPF_LoginForm.ViewModels
         public ICommand ClearDateFilterCommand { get; }
         public ICommand AddIdColumnCommand { get; }
         public ICommand ShowHierarchyImportCommand { get; }
+        public ICommand RenameColumnCommand { get; }
 
         public DatarepViewModel(ILogger logger, IDialogService dialogService, IDataRepository dataRepository)
         {
             _logger = logger;
             _dialogService = dialogService;
             _dataRepository = dataRepository;
-
             TableNames = new ObservableCollection<string>();
 
+            // Initialize Commands
             AddNewRowCommand = new ViewModelCommand(ExecuteAddNewRow, CanExecuteAddNewRow);
             SaveChangesCommand = new ViewModelCommand(ExecuteSaveChanges, CanExecuteSaveChanges);
             UndoChangesCommand = new ViewModelCommand(ExecuteUndoChanges, CanExecuteUndoChanges);
@@ -252,28 +366,46 @@ namespace WPF_LoginForm.ViewModels
             ShowAdvancedImportCommand = new ViewModelCommand(ExecuteShowAdvancedImport, CanExecuteImportData);
             ShowCreateTableCommand = new ViewModelCommand(ExecuteShowCreateTableCommand);
             ExportDataCommand = new ViewModelCommand(ExecuteExportData, CanExecuteExportData);
+            AddIdColumnCommand = new ViewModelCommand(ExecuteAddIdColumn, CanExecuteAddIdColumn);
+
+            // Rename Column: Admin Only
+            RenameColumnCommand = new ViewModelCommand(ExecuteRenameColumn, p => !IsBusy && IsAdmin && !string.IsNullOrEmpty(SelectedSearchColumn));
 
             DecreaseFontSizeCommand = new ViewModelCommand(p => DataGridFontSize--, p => DataGridFontSize > 8);
             IncreaseFontSizeCommand = new ViewModelCommand(p => DataGridFontSize++, p => DataGridFontSize < 24);
 
-            ClearSearchCommand = new ViewModelCommand(p => SearchText = string.Empty);
-            ClearDateFilterCommand = new ViewModelCommand(p => { FilterStartDate = null; FilterEndDate = null; IsDateFilterPanelVisible = false; ApplyCombinedFilters(); });
-            AddIdColumnCommand = new ViewModelCommand(ExecuteAddIdColumn, CanExecuteAddIdColumn);
+            ClearSearchCommand = new ViewModelCommand(p =>
+            {
+                SearchText = string.Empty;
+                IsGlobalSearchActive = false; // Reset global search
+            });
+
+            ClearDateFilterCommand = new ViewModelCommand(p =>
+            {
+                FilterStartDate = null;
+                FilterEndDate = null;
+                IsDateFilterPanelVisible = false;
+                ApplyCombinedFilters();
+            });
+
             ShowHierarchyImportCommand = new ViewModelCommand(ExecuteShowHierarchyImport);
 
-            // --- NEW: Subscribe to Retry Events ---
+            // Subscribe to Retry Events
             DatabaseRetryPolicy.OnRetryStatus += (msg) =>
             {
-                Application.Current.Dispatcher.Invoke(() => SetErrorMessage(msg));
+                if (Application.Current != null)
+                    Application.Current.Dispatcher.Invoke(() => SetErrorMessage(msg));
             };
 
             LoadInitialDataAsync();
         }
 
-        public async void LoadTableWithFilter(string tableName, DateTime start, DateTime end)
+        // --- PUBLIC METHOD FOR DRILL-DOWN ---
+        public async void LoadTableWithFilter(string tableName, DateTime start, DateTime end, string searchText = "")
         {
             SelectedTable = tableName;
 
+            // Wait if busy to prevent crash
             int retries = 0;
             while (IsBusy && retries < 20) { await Task.Delay(100); retries++; }
 
@@ -281,51 +413,402 @@ namespace WPF_LoginForm.ViewModels
             {
                 FilterStartDate = start;
                 FilterEndDate = end;
+
+                // AUTO-ACTIVATE Global Search if text is provided (from Chart click)
+                if (!string.IsNullOrEmpty(searchText))
+                {
+                    IsGlobalSearchActive = true;
+                    SearchText = searchText;
+                }
+
                 IsDateFilterVisible = true;
                 IsDateFilterPanelVisible = true;
+
                 ApplyCombinedFilters();
             }
         }
 
-        // --- CORE: DATA LOADING WITH FIXES ---
+        // --- Command States ---
+
+        private void RefreshCommandStates()
+        {
+            (AddNewRowCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+            (SaveChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+            (DeleteTableCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+            (AddIdColumnCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+            (ReloadDataCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+            (ImportDataCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+            (ExportDataCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+            (RenameColumnCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+        }
+
+        // Explicit CanExecute Methods (Restored for Verbose Style)
+        private bool CanExecuteAddNewRow(object p)
+        { return _currentDataTable != null && !IsBusy; }
+
+        private bool CanExecuteSaveChanges(object p)
+        { return IsDirty && !IsBusy; }
+
+        private bool CanExecuteUndoChanges(object p)
+        { return _rowChangeHistory.Any() && !IsBusy; }
+
+        private bool CanExecuteEditSelectedRows(object p)
+        { return p is IList i && i.Count > 0 && !IsBusy; }
+
+        private bool CanExecuteReloadData(object p)
+        { return !string.IsNullOrEmpty(SelectedTable) && !IsBusy; }
+
+        private bool CanExecuteDeleteSelectedRow(object p)
+        { return p is IList i && i.Count > 0 && !IsBusy; }
+
+        private bool CanExecuteExportData(object p)
+        { return _currentDataTable != null && _currentDataTable.Rows.Count > 0 && !IsBusy; }
+
+        private bool CanExecuteImportData(object p)
+        { return _currentDataTable != null && !IsBusy; }
+
+        private bool CanExecuteAddIdColumn(object p)
+        { return _currentDataTable != null && !IsBusy && !_currentDataTable.Columns.Contains("ID"); }
+
+        private bool CanExecuteDeleteTableCommand(object p)
+        { return !string.IsNullOrEmpty(SelectedTable) && !IsBusy && IsAdmin; }
+
+        // --- RENAME COLUMN FEATURE ---
+        private async void ExecuteRenameColumn(object p)
+        {
+            if (string.IsNullOrEmpty(SelectedTable) || string.IsNullOrEmpty(SelectedSearchColumn)) return;
+
+            string oldName = SelectedSearchColumn;
+            if (oldName.Equals("ID", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show("Renaming the ID column is restricted.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (_dialogService.ShowInputDialog("Rename Column", $"Enter new name for column '{oldName}':", oldName, out string newName))
+            {
+                if (string.IsNullOrWhiteSpace(newName) || newName.Equals(oldName, StringComparison.OrdinalIgnoreCase)) return;
+
+                if (!Regex.IsMatch(newName, @"^[a-zA-Z0-9_]+$"))
+                {
+                    MessageBox.Show("Invalid name. Use only letters, numbers, and underscores.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                await ExecuteLongRunningOperation(async () =>
+                {
+                    var result = await _dataRepository.RenameColumnAsync(SelectedTable, oldName, newName);
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        if (result.Success)
+                        {
+                            LoadDataForSelectedTableAsync();
+                            SetErrorMessage(null);
+                        }
+                        else
+                        {
+                            SetErrorMessage($"Rename failed: {result.ErrorMessage}");
+                        }
+                    });
+                });
+            }
+        }
+
+        // --- DATA LOADING & THREADING ---
+
+        private async Task ExecuteLongRunningOperation(Func<Task> operation)
+        {
+            // Thread Safety: Interlocked (Restored)
+            Interlocked.Increment(ref _longRunningOperationCount);
+            IsBusy = true;
+            SetErrorMessage(null);
+            IsProgressBarVisible = false;
+
+            // Delayed Progress Bar (Restored)
+            var progressTask = Task.Run(async () =>
+            {
+                await Task.Delay(2000);
+                if (IsBusy && Application.Current != null)
+                {
+                    await Application.Current.Dispatcher.InvokeAsync(() => IsProgressBarVisible = true);
+                }
+            });
+
+            try
+            {
+                await operation();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("[LongOp] Exception.", ex);
+                SetErrorMessage($"An error occurred: {ex.Message}");
+            }
+            finally
+            {
+                if (Interlocked.Decrement(ref _longRunningOperationCount) == 0)
+                {
+                    IsBusy = false;
+                    IsProgressBarVisible = false;
+                }
+                RefreshCommandStates();
+            }
+        }
+
+        private async void LoadInitialDataAsync()
+        {
+            await ExecuteLongRunningOperation(async () =>
+            {
+                var names = await _dataRepository.GetTableNamesAsync();
+                if (Application.Current == null) return;
+
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    TableNames.Clear();
+                    foreach (var n in names ?? new List<string>()) TableNames.Add(n);
+                    SelectedTable = TableNames.FirstOrDefault();
+
+                    if (SelectedTable == null)
+                        SetErrorMessage("No tables found.");
+                });
+            });
+        }
+
         private async void LoadDataForSelectedTableAsync()
         {
             if (string.IsNullOrEmpty(SelectedTable)) return;
 
-            // 1. Race Condition Fix: Capture requested table
-            string tableNameRequested = SelectedTable;
+            string tableNameRequested = SelectedTable; // Capture to prevent race condition
 
             await ExecuteLongRunningOperation(async () =>
             {
-                int limit = LoadAllData ? 0 : Properties.Settings.Default.DefaultRowLimit;
+                int limit = LoadAllData ? 0 : Settings.Default.DefaultRowLimit;
 
-                // 2. Tuple Fix: Get Data AND Sortable Flag
                 var result = await _dataRepository.GetTableDataAsync(tableNameRequested, limit);
                 DataTable dataTable = result.Data;
                 bool isSortable = result.IsSortable;
 
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    // 3. Race Condition Fix: Verify selection hasn't changed
+                    // Race condition check
                     if (SelectedTable != tableNameRequested) return;
 
-                    DataTableView = dataTable.DefaultView;
+                    // --- BUG FIX: Enforce Primary Key Logic ---
+                    if (dataTable != null)
+                    {
+                        // 1. Find the ID column (Case Insensitive)
+                        var idColumn = dataTable.Columns.Cast<DataColumn>()
+                            .FirstOrDefault(c => c.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase));
+
+                        if (idColumn != null)
+                        {
+                            try
+                            {
+                                // 2. Force DataTable to recognize it as the Primary Key
+                                // This enables the "Find" method used during Save/Delete
+                                dataTable.PrimaryKey = new DataColumn[] { idColumn };
+
+                                // 3. Ensure the ID column itself is ReadOnly in the UI
+                                // (User shouldn't edit auto-increment IDs)
+                                if (idColumn.DataType == typeof(int) || idColumn.DataType == typeof(long))
+                                {
+                                    idColumn.AutoIncrement = true; // Hints the grid
+                                    idColumn.ReadOnly = true;      // Locks the cell
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                // If duplicate IDs exist (bad data), PK setting will fail.
+                                // Log it, but don't crash. Editing will be risky here.
+                                System.Diagnostics.Debug.WriteLine($"Could not set Primary Key: {ex.Message}");
+                            }
+                        }
+                    }
+                    // ------------------------------------------
+
+                    DataTableView = dataTable?.DefaultView;
                     SetupDateFilterForTable();
+
+                    // Re-apply filters (Global Search) if active
                     ApplyCombinedFilters();
 
-                    // 4. Stale Data/Sort Logic
                     if (!isSortable)
                     {
-                        // Warning for tables without ID/Date
-                        SetErrorMessage("⚠️ Table has no 'ID' or 'Date' column. Showing default rows. Edits might be risky.");
+                        SetErrorMessage("⚠️ Table has no 'ID' or 'Date'. Editing might be restricted.");
                     }
-                    else if (!LoadAllData && dataTable.Rows.Count >= limit)
+                    else if (!LoadAllData && dataTable.Rows.Count >= limit && limit > 0)
                     {
-                        FilterStatus = $"⚠️ Showing recent {limit} rows. Check 'Load All' for history.";
+                        FilterStatus = $"⚠️ {Resources.Tip_LoadFullHistory}";
                     }
                 });
             });
         }
+
+        // --- FILTERING LOGIC ---
+
+        private void ApplyCombinedFilters()
+        {
+            if (DataTableView == null || _currentDataTable == null) return;
+
+            var filters = new List<string>();
+
+            // 1. Text Search Logic
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                try
+                {
+                    string safeSearch = SearchText.Replace("'", "''").Replace("[", "[[]").Replace("%", "[%]").Replace("*", "[*]");
+                    string textFilter = string.Empty;
+
+                    // CASE A: Global Search (Look in ALL columns)
+                    if (IsGlobalSearchActive)
+                    {
+                        var colFilters = new List<string>();
+                        foreach (DataColumn col in _currentDataTable.Columns)
+                        {
+                            // Convert everything to string for loose searching
+                            colFilters.Add($"Convert([{col.ColumnName}], 'System.String') LIKE '%{safeSearch}%'");
+                        }
+                        // Construct OR query
+                        if (colFilters.Any())
+                            textFilter = $"({string.Join(" OR ", colFilters)})";
+                    }
+                    // CASE B: Specific Column Search (Default)
+                    else if (!string.IsNullOrEmpty(SelectedSearchColumn))
+                    {
+                        string safeColName = SelectedSearchColumn.Replace("]", "]]");
+
+                        // Numeric > < Logic
+                        if (SearchText.Trim().StartsWith(">") || SearchText.Trim().StartsWith("<"))
+                        {
+                            DataColumn column = _currentDataTable.Columns[SelectedSearchColumn];
+
+                            string op = SearchText.Trim().StartsWith(">=") || SearchText.Trim().StartsWith("<=")
+                                ? SearchText.Trim().Substring(0, 2)
+                                : SearchText.Trim().Substring(0, 1);
+
+                            string numberPart = SearchText.Trim().Substring(op.Length).Trim();
+
+                            if (_numericTypes.Contains(column.DataType) &&
+                                double.TryParse(numberPart, NumberStyles.Any, CultureInfo.CurrentCulture, out double numValue))
+                            {
+                                textFilter = $"[{safeColName}] {op} {numValue.ToString(CultureInfo.InvariantCulture)}";
+                            }
+                        }
+
+                        if (string.IsNullOrEmpty(textFilter))
+                        {
+                            textFilter = $"Convert([{safeColName}], 'System.String') LIKE '%{safeSearch}%'";
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(textFilter)) filters.Add(textFilter);
+                }
+                catch { }
+            }
+
+            // 2. Date Filter
+            if (IsDateFilterVisible && !string.IsNullOrEmpty(_dateFilterColumnName) && FilterStartDate.HasValue && FilterEndDate.HasValue)
+            {
+                string safeDateCol = _dateFilterColumnName.Replace("]", "]]");
+                filters.Add($"[{safeDateCol}] >= #{FilterStartDate.Value:MM/dd/yyyy}#");
+                filters.Add($"[{safeDateCol}] <= #{FilterEndDate.Value:MM/dd/yyyy}#");
+            }
+
+            try
+            {
+                DataTableView.RowFilter = string.Join(" AND ", filters);
+                UpdateFilterStatus();
+            }
+            catch (Exception ex) { SetErrorMessage($"Invalid filter: {ex.Message}"); }
+        }
+
+        // --- PERSISTENCE ---
+
+        private async void ExecuteSaveChanges(object p)
+        {
+            if (!CanExecuteSaveChanges(p)) return;
+
+            var changes = _currentDataTable?.GetChanges();
+            if (changes == null || changes.Rows.Count == 0)
+            {
+                IsDirty = false;
+                return;
+            }
+
+            // --- FIX START: Robust ID Check ---
+            // Check if "ID" column exists (Case Insensitive)
+            bool hasIdColumn = _currentDataTable.Columns.Cast<DataColumn>()
+                               .Any(c => c.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase));
+
+            if (!hasIdColumn)
+            {
+                MessageBox.Show("Cannot save: Table has no 'ID' column. Use 'Add ID Column' if needed.",
+                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            // --- FIX END ---
+
+            if (!_dialogService.ShowConfirmationDialog(Resources.Save, $"Save {changes.Rows.Count} changes?")) return;
+
+            bool hasNewRows = changes.AsEnumerable().Any(r => r.RowState == DataRowState.Added);
+
+            await ExecuteLongRunningOperation(async () =>
+            {
+                var result = await _dataRepository.SaveChangesAsync(changes, SelectedTable);
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    if (result.Success)
+                    {
+                        _currentDataTable.AcceptChanges();
+                        EditableRows.Clear();
+                        if (hasNewRows) LoadDataForSelectedTableAsync();
+                        SetErrorMessage(null);
+                        CheckIfDirty();
+                    }
+                    else
+                    {
+                        SetErrorMessage(GetFriendlyErrorMessage(result.ErrorMessage));
+                    }
+                });
+            });
+        }
+
+        // --- EVENTS & SETUP ---
+
+        private void SubscribeToTableEvents()
+        {
+            if (_currentDataTable != null)
+            {
+                _currentDataTable.RowChanged += OnDataTableRowChanged;
+                _currentDataTable.RowDeleted += OnDataTableRowChanged;
+                // Logic: TableNewRow event (Restored)
+                _currentDataTable.TableNewRow += OnDataTableNewRow;
+            }
+        }
+
+        private void UnsubscribeFromTableEvents()
+        {
+            if (_currentDataTable != null)
+            {
+                _currentDataTable.RowChanged -= OnDataTableRowChanged;
+                _currentDataTable.RowDeleted -= OnDataTableRowChanged;
+                _currentDataTable.TableNewRow -= OnDataTableNewRow;
+            }
+        }
+
+        private void OnDataTableRowChanged(object sender, DataRowChangeEventArgs e)
+        {
+            if (e.Action == DataRowAction.Add || e.Action == DataRowAction.Change || e.Action == DataRowAction.Delete)
+            {
+                if (_rowChangeHistory.Contains(e.Row)) _rowChangeHistory.Remove(e.Row);
+                _rowChangeHistory.Add(e.Row);
+            }
+            CheckIfDirty();
+            (UndoChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+        }
+
+        private void OnDataTableNewRow(object sender, DataTableNewRowEventArgs e)
+        { /* Hook for new row init if needed */ }
 
         private void SetupDateFilterForTable()
         {
@@ -357,27 +840,18 @@ namespace WPF_LoginForm.ViewModels
 
             if (!dates.Any()) return;
 
-            DateTime minDate = dates.Min();
-            DateTime maxDate = dates.Max();
-
-            _minSliderDate = minDate;
+            _minSliderDate = dates.Min();
             _dateFilterColumnName = dateColumn.ColumnName;
+            SliderMaximum = ((dates.Max().Year - _minSliderDate.Year) * 12) + dates.Max().Month - _minSliderDate.Month;
 
-            SliderMaximum = ((maxDate.Year - minDate.Year) * 12) + maxDate.Month - minDate.Month;
-
-            _isUpdatingDates = true;
-            StartMonthSliderValue = 0;
-            EndMonthSliderValue = SliderMaximum;
-            _isUpdatingDates = false;
-
-            UpdateDatesFromSliders();
+            _isUpdatingDates = true; StartMonthSliderValue = 0; EndMonthSliderValue = SliderMaximum; _isUpdatingDates = false;
             IsDateFilterVisible = true;
+            UpdateDatesFromSliders();
         }
 
         private void UpdateSlidersFromDates()
         {
             if (!IsDateFilterVisible || !FilterStartDate.HasValue || !FilterEndDate.HasValue || _isUpdatingDates) return;
-
             _isUpdatingDates = true;
             StartMonthSliderValue = ((FilterStartDate.Value.Year - _minSliderDate.Year) * 12) + FilterStartDate.Value.Month - _minSliderDate.Month;
             EndMonthSliderValue = ((FilterEndDate.Value.Year - _minSliderDate.Year) * 12) + FilterEndDate.Value.Month - _minSliderDate.Month;
@@ -387,18 +861,14 @@ namespace WPF_LoginForm.ViewModels
         private void UpdateDatesFromSliders()
         {
             if (!IsDateFilterVisible || _isUpdatingDates) return;
-
-            if (StartMonthSliderValue > EndMonthSliderValue) { StartMonthSliderValue = EndMonthSliderValue; }
-
             _isUpdatingDates = true;
-            var newStartDate = _minSliderDate.AddMonths((int)StartMonthSliderValue);
-            var newEndDate = _minSliderDate.AddMonths((int)EndMonthSliderValue);
 
-            _filterStartDate = new DateTime(newStartDate.Year, newStartDate.Month, 1);
-            _filterEndDate = new DateTime(newEndDate.Year, newEndDate.Month, DateTime.DaysInMonth(newEndDate.Year, newEndDate.Month));
+            if (StartMonthSliderValue > EndMonthSliderValue) StartMonthSliderValue = EndMonthSliderValue;
 
-            OnPropertyChanged(nameof(FilterStartDate));
-            OnPropertyChanged(nameof(FilterEndDate));
+            var start = _minSliderDate.AddMonths((int)StartMonthSliderValue);
+            var end = _minSliderDate.AddMonths((int)EndMonthSliderValue);
+            FilterStartDate = new DateTime(start.Year, start.Month, 1);
+            FilterEndDate = new DateTime(end.Year, end.Month, DateTime.DaysInMonth(end.Year, end.Month));
 
             _isUpdatingDates = false;
             ApplyCombinedFilters();
@@ -408,342 +878,107 @@ namespace WPF_LoginForm.ViewModels
         {
             SearchableColumns.Clear();
             if (_currentDataTable == null) return;
-
             foreach (DataColumn col in _currentDataTable.Columns) SearchableColumns.Add(col.ColumnName);
 
+            // Logic: Prefer String Columns
             SelectedSearchColumn = _currentDataTable.Columns.Cast<DataColumn>()
                 .FirstOrDefault(c => c.DataType == typeof(string))?.ColumnName ?? SearchableColumns.FirstOrDefault();
         }
 
-        // In ViewModels/DatarepViewModel.cs
+        // --- IMPORT/EXPORT LOGIC ---
 
-        // In ViewModels/DatarepViewModel.cs
-
-        private void ApplyCombinedFilters()
+        // --- IMPORT LOGIC (FIXED) ---
+        private async void ExecuteImportData(object parameter)
         {
-            if (DataTableView == null) return;
-
-            var filters = new List<string>();
-
-            // 1. Text / Numeric Filter
-            if (!string.IsNullOrWhiteSpace(SearchText) && !string.IsNullOrEmpty(SelectedSearchColumn))
+            if (!CanExecuteImportData(parameter)) return;
+            ImportSettings settings;
+            if (parameter is null)
             {
-                try
-                {
-                    // Escape special characters for RowFilter syntax
-                    string safeSearch = SearchText
-                        .Replace("'", "''")
-                        .Replace("[", "[[]")
-                        .Replace("%", "[%]")
-                        .Replace("*", "[*]");
-
-                    string textFilter = string.Empty;
-
-                    // Handle numeric comparison operators (> or <)
-                    if (SearchText.Trim().StartsWith(">") || SearchText.Trim().StartsWith("<"))
-                    {
-                        DataColumn column = _currentDataTable.Columns[SelectedSearchColumn];
-                        string numberPart = SearchText.Trim().Substring(1);
-
-                        // --- FIX: Use CurrentCulture to Parse User Input, InvariantCulture to Build Filter ---
-                        // This allows a Turkish user to type "> 10,5" and it works,
-                        // generating "[Col] > 10.5" for the internal engine.
-                        if (_numericTypes.Contains(column.DataType) &&
-                            double.TryParse(numberPart, NumberStyles.Any, CultureInfo.CurrentCulture, out double numValue))
-                        {
-                            string op = SearchText.Trim().First().ToString(); // '>' or '<'
-                            textFilter = $"[{SelectedSearchColumn}] {op} {numValue.ToString(CultureInfo.InvariantCulture)}";
-                        }
-                    }
-
-                    // Fallback: Standard "Contains" text search
-                    if (string.IsNullOrEmpty(textFilter))
-                    {
-                        // We use 'Convert' to allow searching numbers as text
-                        textFilter = $"Convert([{SelectedSearchColumn}], 'System.String') LIKE '%{safeSearch}%'";
-                    }
-
-                    filters.Add(textFilter);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"Could not apply text filter.", ex);
-                }
+                if (!_dialogService.ShowOpenFileDialog("Import Data File", "Excel/CSV|*.xlsx;*.csv|All|*.*", out string filePath)) return;
+                settings = new ImportSettings { FilePath = filePath, RowsToIgnore = 0 };
             }
+            else settings = parameter as ImportSettings;
 
-            // 2. Date Range Filter
-            if (IsDateFilterVisible && !string.IsNullOrEmpty(_dateFilterColumnName) && FilterStartDate.HasValue && FilterEndDate.HasValue)
-            {
-                string colName = $"[{_dateFilterColumnName}]";
-
-                // Use #MM/dd/yyyy# format, which is the standard safe format for DataView RowFilter
-                filters.Add($"{colName} >= #{FilterStartDate.Value:MM/dd/yyyy}#");
-                filters.Add($"{colName} <= #{FilterEndDate.Value:MM/dd/yyyy}#");
-            }
-
-            // 3. Apply to View
-            try
-            {
-                DataTableView.RowFilter = string.Join(" AND ", filters);
-            }
-            catch (Exception ex)
-            {
-                SetErrorMessage($"Invalid filter: {ex.Message}");
-            }
-
-            // 4. Update UI Status (unless showing a Limit Warning)
-            if (FilterStatus == null || !FilterStatus.StartsWith("⚠️"))
-            {
-                UpdateFilterStatus();
-            }
-        }
-
-        private void UpdateFilterStatus()
-        {
-            if (DataTableView == null) { FilterStatus = string.Empty; return; }
-            var total = DataTableView.Table.Rows.Count;
-            var visible = DataTableView.Count;
-            FilterStatus = total == visible ? string.Empty : $"Filtered: Showing {visible} of {total} rows";
-        }
-
-        // --- Helpers & Commands ---
-        public void SetErrorMessage(string message)
-        { ErrorMessage = message; }
-
-        private async Task ExecuteLongRunningOperation(Func<Task> operation)
-        {
-            Interlocked.Increment(ref _longRunningOperationCount);
-            IsBusy = true; SetErrorMessage(null); IsProgressBarVisible = false;
-            var progressTask = Task.Run(async () => { await Task.Delay(2000); if (IsBusy) { await Application.Current.Dispatcher.InvokeAsync(() => IsProgressBarVisible = true); } });
-            try { await operation(); }
-            catch (Exception ex) { _logger.LogError("[LongOp] Exception.", ex); SetErrorMessage($"An error occurred: {ex.Message}"); }
-            finally { if (Interlocked.Decrement(ref _longRunningOperationCount) == 0) { IsBusy = false; IsProgressBarVisible = false; } }
-        }
-
-        private void SubscribeToTableEvents()
-        { if (_currentDataTable != null) { _currentDataTable.RowChanged += OnDataTableRowChanged; _currentDataTable.RowDeleted += OnDataTableRowChanged; _currentDataTable.TableNewRow += OnDataTableNewRow; } }
-
-        private void UnsubscribeFromTableEvents()
-        { if (_currentDataTable != null) { _currentDataTable.RowChanged -= OnDataTableRowChanged; _currentDataTable.RowDeleted -= OnDataTableRowChanged; _currentDataTable.TableNewRow -= OnDataTableNewRow; } }
-
-        private void OnDataTableRowChanged(object sender, DataRowChangeEventArgs e)
-        { if (e.Action == DataRowAction.Add || e.Action == DataRowAction.Change || e.Action == DataRowAction.Delete) { if (_rowChangeHistory.Contains(e.Row)) { _rowChangeHistory.Remove(e.Row); } _rowChangeHistory.Add(e.Row); } CheckIfDirty(); (UndoChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); }
-
-        private void OnDataTableNewRow(object sender, DataTableNewRowEventArgs e)
-        { }
-
-        private void CheckIfDirty()
-        { IsDirty = _currentDataTable?.GetChanges() != null; }
-
-        private async void LoadInitialDataAsync()
-        { await ExecuteLongRunningOperation(async () => { var names = await _dataRepository.GetTableNamesAsync(); await Application.Current.Dispatcher.InvokeAsync(() => { TableNames.Clear(); foreach (var n in names ?? new List<string>()) TableNames.Add(n); SelectedTable = TableNames.FirstOrDefault(); if (SelectedTable == null) SetErrorMessage("No tables found."); }); }); }
-
-        private bool CanExecuteAddNewRow(object p) => _currentDataTable != null && !IsBusy;
-
-        private bool CanExecuteSaveChanges(object p) => IsDirty && !IsBusy;
-
-        private bool CanExecuteUndoChanges(object p) => _rowChangeHistory.Any() && !IsBusy;
-
-        private bool CanExecuteEditSelectedRows(object p) => p is IList i && i.Count > 0 && !IsBusy;
-
-        private bool CanExecuteReloadData(object p) => !string.IsNullOrEmpty(SelectedTable) && !IsBusy;
-
-        private bool CanExecuteDeleteSelectedRow(object p) => p is IList i && i.Count > 0 && !IsBusy;
-
-        private bool CanExecuteExportData(object p) => _currentDataTable != null && _currentDataTable.Rows.Count > 0 && !IsBusy;
-
-        private bool CanExecuteImportData(object p) => _currentDataTable != null && !IsBusy;
-
-        private bool CanExecuteAddIdColumn(object p) => _currentDataTable != null && !IsBusy && !_currentDataTable.Columns.Contains("ID");
-
-        private bool CanExecuteDeleteTableCommand(object p) => !string.IsNullOrEmpty(SelectedTable) && !IsBusy && IsAdmin;
-
-        private async void ExecuteAddIdColumn(object p)
-        { if (!CanExecuteAddIdColumn(p)) return; if (!_dialogService.ShowConfirmationDialog("Add ID Column?", $"This will add an auto-incrementing 'ID' column to '{SelectedTable}'. This is required for editing.\n\nProceed?")) return; await ExecuteLongRunningOperation(async () => { var result = await _dataRepository.AddPrimaryKeyAsync(SelectedTable); await Application.Current.Dispatcher.InvokeAsync(() => { if (result.Success) { LoadDataForSelectedTableAsync(); SetErrorMessage(null); } else { SetErrorMessage(GetFriendlyErrorMessage($"Failed to add ID: {result.ErrorMessage}")); } }); }); }
-
-        // ... (ExecuteAddNewRow, ExecuteSaveChanges, ExecuteUndoChanges, ExecuteEditSelectedRows, ExecuteReloadData, ExecuteDeleteSelectedRow, ExecuteDeleteTableCommand, ExecuteShowHierarchyImport, ExecuteShowAdvancedImport, ExecuteShowCreateTableCommand, ExecuteExportData, ExecuteImportData logic remains same as previous steps, just ensure referencing new properties/methods if needed) ...
-
-        // For brevity, ensuring the main Execute methods are here
-        private void ExecuteAddNewRow(object parameter)
-        {
-            if (!CanExecuteAddNewRow(parameter)) return;
-            SetErrorMessage(null);
-            NewRowData newRowData;
-            bool dialogResult;
-
-            if (SelectedTable.StartsWith("_Long_", StringComparison.OrdinalIgnoreCase))
-            {
-                var addRowLongVM = new AddRowLongViewModel(SelectedTable, _dataRepository, _logger, _dialogService);
-                dialogResult = _dialogService.ShowAddRowLongDialog(addRowLongVM, out newRowData);
-            }
-            else
-            {
-                var columnNames = _currentDataTable.Columns.Cast<DataColumn>().Where(c => !c.AutoIncrement && !c.ReadOnly).Select(c => c.ColumnName).ToList();
-                if (!columnNames.Any()) { SetErrorMessage($"Table '{SelectedTable}' has no editable columns."); return; }
-                var initialValues = new Dictionary<string, object>();
-                dialogResult = _dialogService.ShowAddRowDialog(columnNames, SelectedTable, initialValues, _currentDataTable, IsIdHidden, out newRowData);
-            }
-
-            if (dialogResult && newRowData != null)
-            {
-                try
-                {
-                    DataRow newActualDataRow = _currentDataTable.NewRow();
-                    foreach (var kvp in newRowData.Values)
-                    {
-                        if (_currentDataTable.Columns.Contains(kvp.Key))
-                        {
-                            var col = _currentDataTable.Columns[kvp.Key];
-                            if (col.ReadOnly || col.AutoIncrement) { if (kvp.Key == "ID") { } else continue; }
-                            try
-                            {
-                                if (kvp.Value == null || string.IsNullOrWhiteSpace(kvp.Value.ToString()))
-                                {
-                                    if (col.AllowDBNull) newActualDataRow[kvp.Key] = DBNull.Value;
-                                    else throw new InvalidOperationException($"Column '{col.ColumnName}' cannot be null.");
-                                }
-                                else newActualDataRow[kvp.Key] = Convert.ChangeType(kvp.Value, col.DataType, CultureInfo.CurrentCulture);
-                            }
-                            catch (Exception ex) { SetErrorMessage($"Error setting column '{kvp.Key}': {ex.Message}"); return; }
-                        }
-                    }
-                    _currentDataTable.Rows.Add(newActualDataRow);
-                }
-                catch (Exception ex) { SetErrorMessage($"Error finalizing new row: {ex.Message}"); }
-            }
-        }
-
-        // In ViewModels/DatarepViewModel.cs
-
-        private async void ExecuteSaveChanges(object p)
-        {
-            if (!CanExecuteSaveChanges(p)) return;
-
-            var changes = _currentDataTable?.GetChanges();
-            if (changes == null || changes.Rows.Count == 0) { IsDirty = false; return; }
-
-            // 1. Check if we are inserting new data (which generates IDs)
-            bool hasNewRows = false;
-            foreach (DataRow row in changes.Rows)
-            {
-                if (row.RowState == DataRowState.Added)
-                {
-                    hasNewRows = true;
-                    break;
-                }
-            }
-
-            if (_currentDataTable.PrimaryKey == null || _currentDataTable.PrimaryKey.Length == 0)
-            {
-                SetErrorMessage($"Table '{SelectedTable}' has no Primary Key. Editing is disabled.");
-                return;
-            }
-
-            if (!_dialogService.ShowConfirmationDialog("Confirm Save", $"Save {changes.Rows.Count} change(s)?")) return;
-
-            bool success = false;
-            string errorMsg = null;
+            if (settings == null || string.IsNullOrEmpty(settings.FilePath)) return;
 
             await ExecuteLongRunningOperation(async () =>
             {
-                var result = await _dataRepository.SaveChangesAsync(changes, SelectedTable);
-                success = result.Success;
-                errorMsg = result.ErrorMessage;
+                var errors = new List<string>();
+                DataTable importDt = null;
+
+                if (Path.GetExtension(settings.FilePath).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+                    importDt = await Task.Run(() => LoadXlsxToDataTable(settings.FilePath, errors, settings.RowsToIgnore));
+                else
+                    importDt = await Task.Run(() => LoadCsvToDataTable(settings.FilePath, errors, settings.RowsToIgnore));
+
+                if (importDt == null) { errors.Add("Could not read file or file is empty."); }
+
+                int imported = 0, skipped = 0;
+                if (importDt != null && importDt.Rows.Count > 0)
+                {
+                    var targetCols = _currentDataTable.Columns.Cast<DataColumn>().ToList();
+
+                    foreach (DataRow sRow in importDt.Rows)
+                    {
+                        var newRow = _currentDataTable.NewRow();
+                        bool valid = true;
+
+                        foreach (var tCol in targetCols)
+                        {
+                            // Skip ID (handled by DB)
+                            if (tCol.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase)) continue;
+
+                            var sCol = importDt.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.Equals(tCol.ColumnName, StringComparison.OrdinalIgnoreCase));
+
+                            if (sCol != null)
+                            {
+                                object val = sRow[sCol];
+                                try
+                                {
+                                    // Handle DBNull
+                                    if ((val == null || val == DBNull.Value || string.IsNullOrWhiteSpace(val.ToString())) && tCol.AllowDBNull)
+                                        newRow[tCol] = DBNull.Value;
+                                    else if ((val == null || val == DBNull.Value || string.IsNullOrWhiteSpace(val.ToString())) && !tCol.AllowDBNull)
+                                        throw new FormatException("Cannot be null.");
+
+                                    // --- FIX: Handle Excel Date (Double) ---
+                                    else if (tCol.DataType == typeof(DateTime))
+                                    {
+                                        if (val is double dVal) newRow[tCol] = DateTime.FromOADate(dVal);
+                                        else if (val is DateTime dtVal) newRow[tCol] = dtVal;
+                                        else newRow[tCol] = Convert.ChangeType(val, tCol.DataType, CultureInfo.CurrentCulture);
+                                    }
+                                    // --- FIX: Handle GUID & Bool ---
+                                    else if (tCol.DataType == typeof(Guid))
+                                        newRow[tCol] = Guid.Parse(val.ToString());
+                                    else if (tCol.DataType == typeof(bool))
+                                        newRow[tCol] = ParseBooleanSafe(val.ToString());
+                                    else
+                                        newRow[tCol] = Convert.ChangeType(val, tCol.DataType, CultureInfo.CurrentCulture);
+                                }
+                                catch (Exception) { valid = false; errors.Add($"Row {imported + skipped + 1}: Type mismatch on '{tCol.ColumnName}' (Value: {val})."); break; }
+                            }
+                            else if (!tCol.AllowDBNull && tCol.DefaultValue == DBNull.Value)
+                            {
+                                valid = false; errors.Add($"Row {imported + skipped + 1}: Missing required column '{tCol.ColumnName}'."); break;
+                            }
+                        }
+                        if (valid)
+                        {
+                            if (Application.Current != null) await Application.Current.Dispatcher.InvokeAsync(() => _currentDataTable.Rows.Add(newRow));
+                            imported++;
+                        }
+                        else skipped++;
+                    }
+                }
+                else if (!errors.Any()) { errors.Add("No data found in file to import."); }
 
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    if (!success)
-                        SetErrorMessage(GetFriendlyErrorMessage(errorMsg));
+                    SetErrorMessage($"Import complete. Added: {imported}, Skipped: {skipped}. " + (errors.Any() ? $"First error: {errors.First()}" : ""));
+                    CheckIfDirty();
                 });
             });
-
-            if (success)
-            {
-                _currentDataTable.AcceptChanges();
-                _rowChangeHistory.Clear();
-
-                // --- FIX STARTS HERE ---
-                if (hasNewRows)
-                {
-                    // We must reload to get the new Auto-Increment IDs from the server
-                    // Otherwise, editing this new row immediately will fail.
-                    LoadDataForSelectedTableAsync();
-                }
-                // --- FIX ENDS HERE ---
-            }
-
-            CheckIfDirty();
-            (UndoChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
-        }
-
-        private void ExecuteUndoChanges(object p)
-        {
-            if (!CanExecuteUndoChanges(p)) return;
-            var last = _rowChangeHistory.LastOrDefault();
-            if (last != null) { last.RejectChanges(); _rowChangeHistory.Remove(last); }
-            CheckIfDirty();
-            (SaveChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
-        }
-
-        private void ExecuteEditSelectedRows(object p)
-        {
-            if (!CanExecuteEditSelectedRows(p)) return;
-            EditableRows.Clear();
-            foreach (var i in (IList)p) if (i is DataRowView drv) EditableRows.Add(drv);
-            OnPropertyChanged(nameof(EditableRows));
-        }
-
-        private void ExecuteReloadData(object p)
-        {
-            if (!CanExecuteReloadData(p)) return;
-            if (IsDirty && !_dialogService.ShowConfirmationDialog("Discard Changes?", "You have unsaved changes. Reload and discard them?")) return;
-            LoadDataForSelectedTableAsync();
-        }
-
-        private void ExecuteDeleteSelectedRow(object p)
-        {
-            if (!CanExecuteDeleteSelectedRow(p)) return;
-            var items = ((IList)p).OfType<DataRowView>().ToList();
-            if (_dialogService.ShowConfirmationDialog("Confirm Delete", $"Delete {items.Count} row(s)?"))
-            {
-                foreach (var i in items) i.Row.Delete();
-            }
-        }
-
-        private async void ExecuteDeleteTableCommand(object parameter)
-        {
-            if (!CanExecuteDeleteTableCommand(parameter)) return;
-            if (_dialogService.ShowConfirmationDialog("Confirm Permanent Delete", $"Are you sure you want to delete table '{SelectedTable}'?"))
-            {
-                bool success = false;
-                await ExecuteLongRunningOperation(async () => { success = await _dataRepository.DeleteTableAsync(SelectedTable); });
-                if (success) LoadInitialDataAsync();
-                else SetErrorMessage("Failed to delete table.");
-            }
-        }
-
-        private void ExecuteShowHierarchyImport(object parameter)
-        {
-            var vm = new HierarchyImportViewModel(_dataRepository, _dialogService, _logger);
-            if (!string.IsNullOrEmpty(SelectedTable)) vm.SelectedTableName = SelectedTable;
-            _dialogService.ShowHierarchyImportDialog(vm);
-        }
-
-        private void ExecuteShowAdvancedImport(object parameter)
-        {
-            if (!CanExecuteImportData(parameter)) return;
-            var importVM = new ImportTableViewModel(SelectedTable, _dialogService);
-            if (_dialogService.ShowImportTableDialog(importVM, out ImportSettings settings))
-            {
-                ExecuteImportData(settings);
-            }
-        }
-
-        private void ExecuteShowCreateTableCommand(object parameter)
-        {
-            var createTableVM = new CreateTableViewModel(_dialogService, _logger, _dataRepository);
-            _dialogService.ShowCreateTableDialog(createTableVM);
-            LoadInitialDataAsync();
         }
 
         private async void ExecuteExportData(object p)
@@ -756,9 +991,8 @@ namespace WPF_LoginForm.ViewModels
                     var rowsToExport = _currentDataTable.AsEnumerable().Where(r => r.RowState != DataRowState.Deleted);
                     if (Path.GetExtension(path).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
                     {
-                        ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
-                        var fileInfo = new FileInfo(path);
-                        using (var package = new ExcelPackage(fileInfo))
+                        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                        using (var package = new ExcelPackage(new FileInfo(path)))
                         {
                             var ws = package.Workbook.Worksheets.Add(SanitizeSheetName(SelectedTable));
                             if (rowsToExport.Any())
@@ -766,7 +1000,7 @@ namespace WPF_LoginForm.ViewModels
                                 ws.Cells["A1"].LoadFromDataTable(rowsToExport.CopyToDataTable(), true);
                                 ws.Cells[ws.Dimension.Address].AutoFitColumns();
                             }
-                            await package.SaveAsAsync(fileInfo);
+                            await package.SaveAsync();
                         }
                     }
                     else
@@ -784,106 +1018,242 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        private async void ExecuteImportData(object parameter)
+        // --- Other Commands ---
+
+        private void ExecuteAddNewRow(object parameter)
         {
-            ImportSettings settings;
-            if (parameter is null)
+            if (!CanExecuteAddNewRow(parameter)) return;
+            SetErrorMessage(null);
+            NewRowData newRowData;
+            bool result;
+
+            if (SelectedTable.StartsWith("_Long_", StringComparison.OrdinalIgnoreCase))
             {
-                if (!_dialogService.ShowOpenFileDialog("Import Data File", "Excel/CSV|*.xlsx;*.csv|All|*.*", out string filePath)) { return; }
-                settings = new ImportSettings { FilePath = filePath, RowsToIgnore = 0 };
+                var vm = new AddRowLongViewModel(SelectedTable, _dataRepository, _logger, _dialogService);
+                result = _dialogService.ShowAddRowLongDialog(vm, out newRowData);
             }
-            else { settings = parameter as ImportSettings; }
+            else
+            {
+                var cols = _currentDataTable.Columns.Cast<DataColumn>().Where(c => !c.AutoIncrement && !c.ReadOnly).Select(c => c.ColumnName).ToList();
+                result = _dialogService.ShowAddRowDialog(cols, SelectedTable, null, _currentDataTable, IsIdHidden, out newRowData);
+            }
 
-            if (settings == null || string.IsNullOrEmpty(settings.FilePath)) return;
+            if (result && newRowData != null)
+            {
+                try
+                {
+                    var row = _currentDataTable.NewRow();
 
+                    // 1. Populate fields from User Input
+                    foreach (var kvp in newRowData.Values)
+                    {
+                        if (_currentDataTable.Columns.Contains(kvp.Key))
+                        {
+                            var col = _currentDataTable.Columns[kvp.Key];
+                            if (col.ReadOnly || col.AutoIncrement) continue;
+
+                            if (kvp.Value == null || string.IsNullOrWhiteSpace(kvp.Value.ToString()))
+                            {
+                                if (col.AllowDBNull) row[kvp.Key] = DBNull.Value;
+                                else throw new InvalidOperationException($"Column '{col.ColumnName}' cannot be null.");
+                            }
+                            else
+                            {
+                                if (col.DataType == typeof(Guid)) row[kvp.Key] = Guid.Parse(kvp.Value.ToString());
+                                else if (col.DataType == typeof(bool)) row[kvp.Key] = ParseBooleanSafe(kvp.Value.ToString());
+                                else row[kvp.Key] = Convert.ChangeType(kvp.Value, col.DataType, CultureInfo.CurrentCulture);
+                            }
+                        }
+                    }
+
+                    // 2. FIX: Handle Missing ID (Constraint Violation Fix)
+                    // If ID is null (because it was hidden/auto), we must provide a TEMP value to satisfy DataTable constraints.
+                    // The Repository's Insert Logic ignores this value and lets the DB generate the real ID.
+                    var idCol = _currentDataTable.Columns.Cast<DataColumn>()
+                        .FirstOrDefault(c => c.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase));
+
+                    if (idCol != null && (row[idCol] == DBNull.Value || row[idCol] == null) && !idCol.AutoIncrement)
+                    {
+                        if (idCol.DataType == typeof(int) || idCol.DataType == typeof(long))
+                        {
+                            // Calculate a unique temporary negative ID (e.g. -1, -2) to avoid collisions in memory
+                            long minId = 0;
+                            try
+                            {
+                                var existingIds = _currentDataTable.AsEnumerable()
+                                    .Select(r => r.RowState == DataRowState.Deleted ? 0 : Convert.ToInt64(r[idCol]));
+                                if (existingIds.Any()) minId = existingIds.Min();
+                            }
+                            catch { }
+
+                            // If minId is positive, start at -1. If negative, go lower.
+                            row[idCol] = (minId > 0) ? -1 : minId - 1;
+                        }
+                        else if (idCol.DataType == typeof(Guid))
+                        {
+                            row[idCol] = Guid.NewGuid();
+                        }
+                    }
+
+                    // 3. Add to Grid
+                    _currentDataTable.Rows.Add(row);
+                    CheckIfDirty();
+                }
+                catch (Exception ex)
+                {
+                    SetErrorMessage($"Error adding row: {ex.Message}");
+                }
+            }
+        }
+
+        private void ExecuteDeleteSelectedRow(object p)
+        {
+            if (!CanExecuteDeleteSelectedRow(p)) return;
+            var items = ((IList)p).OfType<DataRowView>().ToList();
+            if (!items.Any()) return;
+
+            if (_dialogService.ShowConfirmationDialog(Resources.Delete, $"Delete {items.Count} row(s)?"))
+            {
+                foreach (var item in items)
+                {
+                    if (EditableRows.Contains(item)) EditableRows.Remove(item);
+                    item.Row.Delete();
+                }
+                CheckIfDirty();
+            }
+        }
+
+        private async void ExecuteDeleteTableCommand(object p)
+        {
+            if (!CanExecuteDeleteTableCommand(p)) return;
+            if (_dialogService.ShowConfirmationDialog("Delete Table", $"PERMANENTLY delete '{SelectedTable}'?"))
+            {
+                bool success = false;
+                await ExecuteLongRunningOperation(async () => success = await _dataRepository.DeleteTableAsync(SelectedTable));
+                if (success) LoadInitialDataAsync();
+                else SetErrorMessage("Failed to delete table.");
+            }
+        }
+
+        private void ExecuteEditSelectedRows(object p)
+        {
+            if (!CanExecuteEditSelectedRows(p)) return;
+            EditableRows.Clear();
+            foreach (var i in (IList)p) if (i is DataRowView drv) EditableRows.Add(drv);
+            OnPropertyChanged(nameof(EditableRows));
+        }
+
+        private void ExecuteReloadData(object p)
+        {
+            if (!CanExecuteReloadData(p)) return;
+            if (IsDirty && !_dialogService.ShowConfirmationDialog("Discard Changes?", "Reloading will discard unsaved changes. Proceed?")) return;
+            LoadDataForSelectedTableAsync();
+        }
+
+        private void ExecuteUndoChanges(object p)
+        {
+            if (!CanExecuteUndoChanges(p)) return;
+            var last = _rowChangeHistory.LastOrDefault();
+            if (last != null) { last.RejectChanges(); _rowChangeHistory.Remove(last); }
+            CheckIfDirty();
+            (SaveChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+        }
+
+        private async void ExecuteAddIdColumn(object p)
+        {
+            if (!CanExecuteAddIdColumn(p)) return;
+            if (!_dialogService.ShowConfirmationDialog("Add ID", "Add auto-incrementing ID?")) return;
             await ExecuteLongRunningOperation(async () =>
             {
-                var errors = new List<string>();
-                DataTable importDt = Path.GetExtension(settings.FilePath).Equals(".xlsx", StringComparison.OrdinalIgnoreCase)
-                    ? await Task.Run(() => LoadXlsxToDataTable(settings.FilePath, errors, settings.RowsToIgnore))
-                    : await Task.Run(() => LoadCsvToDataTable(settings.FilePath, errors, settings.RowsToIgnore));
-
-                if (importDt == null) { errors.Add("Could not read file or file is empty."); }
-
-                int imported = 0, skipped = 0;
-                if (importDt != null && importDt.Rows.Count > 0)
-                {
-                    var targetCols = _currentDataTable.Columns.Cast<DataColumn>().ToList();
-                    foreach (DataRow sRow in importDt.Rows)
-                    {
-                        var newRow = _currentDataTable.NewRow();
-                        bool valid = true;
-                        foreach (var tCol in targetCols)
-                        {
-                            if (tCol.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase)) continue;
-                            var sCol = importDt.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.Equals(tCol.ColumnName, StringComparison.OrdinalIgnoreCase));
-                            if (sCol != null)
-                            {
-                                object val = sRow[sCol];
-                                try
-                                {
-                                    if ((val == null || val == DBNull.Value || string.IsNullOrWhiteSpace(val.ToString())) && tCol.AllowDBNull) newRow[tCol] = DBNull.Value;
-                                    else if ((val == null || val == DBNull.Value || string.IsNullOrWhiteSpace(val.ToString())) && !tCol.AllowDBNull) throw new FormatException("Cannot be null.");
-                                    else newRow[tCol] = Convert.ChangeType(val, tCol.DataType, CultureInfo.CurrentCulture);
-                                }
-                                catch (Exception) { valid = false; errors.Add($"Row {imported + skipped + 1}, Col '{tCol.ColumnName}': Type mismatch."); break; }
-                            }
-                            else if (!tCol.AllowDBNull && tCol.DefaultValue == DBNull.Value && string.IsNullOrEmpty(tCol.Expression))
-                            {
-                                valid = false; errors.Add($"Row {imported + skipped + 1}: Missing required column '{tCol.ColumnName}'."); break;
-                            }
-                        }
-                        if (valid)
-                        {
-                            await Application.Current.Dispatcher.InvokeAsync(() => _currentDataTable.Rows.Add(newRow));
-                            imported++;
-                        }
-                        else { skipped++; }
-                    }
-                }
-                else if (!errors.Any()) { errors.Add("No data found in file to import."); }
-
-                await Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    SetErrorMessage($"Import complete. Added: {imported}, Skipped: {skipped}. " + (errors.Any() ? $"First error: {errors.First()}" : ""));
-                });
+                var res = await _dataRepository.AddPrimaryKeyAsync(SelectedTable);
+                if (res.Success) LoadDataForSelectedTableAsync();
+                else SetErrorMessage(res.ErrorMessage);
             });
         }
+
+        private void ExecuteShowHierarchyImport(object p)
+        {
+            var vm = new HierarchyImportViewModel(_dataRepository, _dialogService, _logger);
+            vm.SelectedTableName = SelectedTable;
+            _dialogService.ShowHierarchyImportDialog(vm);
+        }
+
+        private void ExecuteShowCreateTableCommand(object p)
+        {
+            var createTableVM = new CreateTableViewModel(_dialogService, _logger, _dataRepository);
+            _dialogService.ShowCreateTableDialog(createTableVM);
+            LoadInitialDataAsync();
+        }
+
+        private void ExecuteShowAdvancedImport(object p)
+        {
+            if (!CanExecuteImportData(p)) return;
+            var vm = new ImportTableViewModel(SelectedTable, _dialogService);
+            if (_dialogService.ShowImportTableDialog(vm, out ImportSettings s)) ExecuteImportData(s);
+        }
+
+        // --- Helpers (Verbose & Robust) ---
 
         private DataTable LoadXlsxToDataTable(string path, List<string> errors, int rowsToIgnore)
         {
             var dt = new DataTable();
             try
             {
-                ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
                 var fileInfo = new FileInfo(path);
                 using (var package = new ExcelPackage(fileInfo))
                 {
                     var worksheet = package.Workbook.Worksheets.FirstOrDefault();
-                    if (worksheet == null || worksheet.Dimension == null) { errors.Add("Excel file is empty or contains no worksheets."); return null; }
+                    if (worksheet == null || worksheet.Dimension == null)
+                    {
+                        errors.Add("Excel file is empty.");
+                        return null;
+                    }
+
                     int headerRow = 1 + rowsToIgnore;
-                    if (headerRow > worksheet.Dimension.End.Row) { errors.Add("Rows to ignore exceeds the total number of rows in the sheet."); return null; }
+                    if (headerRow > worksheet.Dimension.End.Row)
+                    {
+                        errors.Add("Header row index exceeds total rows.");
+                        return null;
+                    }
+
+                    // Create Columns from Header
                     foreach (var firstRowCell in worksheet.Cells[headerRow, 1, headerRow, worksheet.Dimension.End.Column])
                     {
                         string columnName = firstRowCell.Text.Trim();
                         if (string.IsNullOrEmpty(columnName)) columnName = $"Column_{firstRowCell.Start.Column}";
-                        if (dt.Columns.Contains(columnName)) columnName = $"{columnName}_{dt.Columns.Count}";
-                        dt.Columns.Add(columnName);
+
+                        // Deduplicate column names
+                        int dupCount = 1;
+                        string tempName = columnName;
+                        while (dt.Columns.Contains(tempName)) tempName = $"{columnName}_{dupCount++}";
+
+                        dt.Columns.Add(tempName);
                     }
+
+                    // Load Data Rows
                     for (int rowNum = headerRow + 1; rowNum <= worksheet.Dimension.End.Row; rowNum++)
                     {
                         var wsRow = worksheet.Cells[rowNum, 1, rowNum, dt.Columns.Count];
                         DataRow row = dt.Rows.Add();
                         bool hasValues = false;
-                        foreach (var cell in wsRow) { row[cell.Start.Column - 1] = cell.Value ?? DBNull.Value; if (cell.Value != null) hasValues = true; }
+                        foreach (var cell in wsRow)
+                        {
+                            // Safety check for column index
+                            if (cell.Start.Column - 1 < dt.Columns.Count)
+                            {
+                                row[cell.Start.Column - 1] = cell.Value ?? DBNull.Value;
+                                if (cell.Value != null && !string.IsNullOrWhiteSpace(cell.Value.ToString())) hasValues = true;
+                            }
+                        }
                         if (!hasValues) { dt.Rows.Remove(row); }
                     }
                 }
             }
             catch (Exception ex)
             {
-                errors.Add($"Error reading XLSX file: {ex.Message}");
-                _logger.LogError($"[LoadXlsxToDataTable] Error: {ex.Message}", ex);
+                errors.Add($"Error reading XLSX: {ex.Message}");
+                _logger.LogError($"XLSX Import Error", ex);
                 return null;
             }
             return dt;
@@ -891,32 +1261,91 @@ namespace WPF_LoginForm.ViewModels
 
         private DataTable LoadCsvToDataTable(string path, List<string> errors, int rowsToIgnore)
         {
+            var dt = new DataTable();
             try
             {
-                var dt = new DataTable();
-                var lines = File.ReadAllLines(path).Skip(rowsToIgnore).ToList();
+                var lines = File.ReadAllLines(path, Encoding.UTF8).Skip(rowsToIgnore).ToList();
                 if (!lines.Any()) return dt;
-                var headers = lines[0].Split(',');
-                foreach (var h in headers) dt.Columns.Add(h.Trim());
-                foreach (var line in lines.Skip(1)) { var values = line.Split(','); dt.Rows.Add(values); }
+
+                // Fix: Regex for splitting on comma (ignoring quotes)
+                string pattern = ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
+
+                // Parse Headers
+                var headers = Regex.Split(lines[0], pattern);
+                foreach (var h in headers)
+                {
+                    string colName = h.Trim().Trim('"');
+                    int dupCount = 1;
+                    string tempName = colName;
+                    while (dt.Columns.Contains(tempName)) tempName = $"{colName}_{dupCount++}";
+                    dt.Columns.Add(tempName);
+                }
+
+                // Parse Rows
+                foreach (var line in lines.Skip(1))
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    var values = Regex.Split(line, pattern);
+
+                    var cleanValues = new object[dt.Columns.Count];
+                    for (int i = 0; i < Math.Min(values.Length, dt.Columns.Count); i++)
+                    {
+                        cleanValues[i] = values[i].Trim().Trim('"');
+                    }
+                    dt.Rows.Add(cleanValues);
+                }
                 return dt;
             }
             catch (Exception ex) { errors.Add(ex.Message); return null; }
         }
 
-        private string QuoteValueIfNeeded(string v) => (v != null && (v.Contains(",") || v.Contains("\""))) ? $"\"{v.Replace("\"", "\"\"")}\"" : v;
+        private bool ParseBooleanSafe(string val)
+        {
+            if (string.IsNullOrWhiteSpace(val)) return false;
+            val = val.Trim().ToLowerInvariant();
+            return val == "1" || val == "true" || val == "yes" || val == "y" || val == "on";
+        }
+
+        private string QuoteValueIfNeeded(string v)
+        {
+            if (string.IsNullOrEmpty(v)) return "";
+            if (v.Contains(",") || v.Contains("\"") || v.Contains("\n"))
+            {
+                return $"\"{v.Replace("\"", "\"\"")}\"";
+            }
+            return v;
+        }
 
         private string SanitizeSheetName(string n)
-        { var s = System.Text.RegularExpressions.Regex.Replace(n, @"[\\/\?\*\[\]:]", "_"); return s.Length > 31 ? s.Substring(0, 31) : (string.IsNullOrEmpty(s) ? "Sheet1" : s); }
-
-        private string GetFriendlyErrorMessage(string rawError)
         {
-            if (string.IsNullOrEmpty(rawError)) return rawError;
-            if (rawError.Contains("REFERENCE constraint") || rawError.Contains("foreign key constraint") || rawError.Contains("conflicted with the REFERENCE")) return "Cannot delete or update: This record is currently being used in another table.";
-            if (rawError.Contains("unique constraint") || rawError.Contains("UNIQUE KEY") || rawError.Contains("duplicate key")) return "Duplicate Value: A record with this value already exists.";
-            if (rawError.Contains("Cannot insert the value NULL") || rawError.Contains("violates not-null constraint")) return "Missing Data: Please ensure all required fields are filled.";
-            if (rawError.Contains("network-related") || rawError.Contains("Connection refused")) return "Database Connection Failed: Please check your network or Settings.";
-            return rawError;
+            if (string.IsNullOrEmpty(n)) return "Sheet1";
+            var s = System.Text.RegularExpressions.Regex.Replace(n, @"[\\/\?\*\[\]:]", "_");
+            return s.Length > 31 ? s.Substring(0, 31) : s;
+        }
+
+        private string GetFriendlyErrorMessage(string raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return null;
+            if (raw.Contains("REFERENCE")) return "Record is in use elsewhere.";
+            if (raw.Contains("UNIQUE") || raw.Contains("duplicate")) return "Duplicate record found.";
+            return raw;
+        }
+
+        private void SetErrorMessage(string msg)
+        {
+            ErrorMessage = msg;
+        }
+
+        private void UpdateFilterStatus()
+        {
+            if (DataTableView == null) return;
+            FilterStatus = DataTableView.Count == _currentDataTable.Rows.Count ? string.Empty : $"Filtered: {DataTableView.Count} / {_currentDataTable.Rows.Count}";
+        }
+
+        private void CheckIfDirty()
+        {
+            IsDirty = _currentDataTable?.GetChanges() != null;
+            (SaveChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
         }
     }
 }

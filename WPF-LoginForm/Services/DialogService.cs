@@ -199,5 +199,23 @@ namespace WPF_LoginForm.Services
             if (result == true) { selectedFilePath = openFileDialog.FileName; return true; }
             return false;
         }
+
+        // Add inside DialogService class
+        public bool ShowInputDialog(string title, string message, string defaultValue, out string result)
+        {
+            result = null;
+            var win = new WPF_LoginForm.Views.InputWindow(title, message, defaultValue);
+
+            // Set owner to center correctly
+            if (Application.Current.Windows.Count > 0)
+                win.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(x => x.IsActive);
+
+            if (win.ShowDialog() == true)
+            {
+                result = win.ResponseText;
+                return true;
+            }
+            return false;
+        }
     }
 }

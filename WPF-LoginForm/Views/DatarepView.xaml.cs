@@ -1,13 +1,12 @@
 ﻿using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Linq;
-using System.Data;
-using WPF_LoginForm.ViewModels;
-using System.Collections.ObjectModel;
+using System.Data; // Required for DataTable/DataColumn
 using System.ComponentModel;
-using WPF_LoginForm.Converters;
+using WPF_LoginForm.ViewModels;
+using WPF_LoginForm.Converters; // Ensure this matches your namespace
 
 namespace WPF_LoginForm.Views
 {
@@ -21,65 +20,129 @@ namespace WPF_LoginForm.Views
         private void DataDisplayGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
             string columnName = e.PropertyName;
-            e.Column.SortMemberPath = columnName;
+            string lowerName = columnName.ToLower();
 
-            DataColumn dataColumn = null;
-            if (this.DataContext is DatarepViewModel vm && vm.DataTableView?.Table != null && vm.DataTableView.Table.Columns.Contains(columnName))
+            // 1. Get Access to the Real Data Schema
+            // The DataGrid often guesses "object", so we check the ViewModel's Table directly.
+            Type realColumnType = typeof(string); // Default
+            bool isReadOnlyInDb = false;
+
+            if (this.DataContext is DatarepViewModel vm && vm.DataTableView != null)
             {
-                dataColumn = vm.DataTableView.Table.Columns[columnName];
+                if (vm.DataTableView.Table.Columns.Contains(columnName))
+                {
+                    var dtCol = vm.DataTableView.Table.Columns[columnName];
+                    realColumnType = dtCol.DataType;
+                    isReadOnlyInDb = dtCol.ReadOnly || dtCol.AutoIncrement;
+                }
             }
 
-            // --- LOGIC FOR ID COLUMN ---
+            // 2. ID Column Logic (Lock it down)
             if (columnName.Equals("ID", StringComparison.OrdinalIgnoreCase))
             {
-                // 1. Move ID to the far Left (Visual Fix)
                 e.Column.DisplayIndex = 0;
 
-                // 2. Bind Visibility to 'IsIdVisible'
+                // Visibility
                 Binding visBinding = new Binding("IsIdVisible")
                 {
                     Source = this.DataContext,
-                    Converter = new WPF_LoginForm.Converters.BooleanToVisibilityConverter()
+                    Converter = new Converters.BooleanToVisibilityConverter()
                 };
                 BindingOperations.SetBinding(e.Column, DataGridColumn.VisibilityProperty, visBinding);
 
-                // 3. Bind IsReadOnly to 'IsIdEditable'
-                Binding readOnlyBinding = new Binding("IsIdEditable")
-                {
-                    Source = this.DataContext,
-                    Converter = new BooleanInverterConverter()
-                };
-                BindingOperations.SetBinding(e.Column, DataGridColumn.IsReadOnlyProperty, readOnlyBinding);
+                // ReadOnly (Force True)
+                e.Column.IsReadOnly = true;
             }
+            // 3. Generic Column Logic
             else if (e.Column is DataGridTextColumn textColumn)
             {
-                // Default behavior for other columns
-                BindingMode bindingMode = BindingMode.TwoWay;
-
-                if (dataColumn != null && (dataColumn.AutoIncrement || dataColumn.ReadOnly))
+                // Apply ReadOnly if DB says so (e.g. Calculated columns)
+                if (isReadOnlyInDb)
                 {
-                    bindingMode = BindingMode.OneWay;
                     textColumn.IsReadOnly = true;
+                    // Switch to OneWay to prevent UI from trying to push updates
+                    if (textColumn.Binding is Binding b) b.Mode = BindingMode.OneWay;
                 }
 
-                Binding newBinding = new Binding()
+                // --- TIME & DATE FORMATTING ---
+                // We check the REAL type from the DataTable, not the 'e.PropertyType'
+                if (realColumnType == typeof(DateTime))
                 {
-                    Path = new PropertyPath($"[{columnName}]"),
-                    Mode = bindingMode,
-                    UpdateSourceTrigger = UpdateSourceTrigger.LostFocus
-                };
-                textColumn.Binding = newBinding;
-            }
-
-            if (e.PropertyType == typeof(DateTime))
-            {
-                if (e.Column is DataGridTextColumn dateTextColumn)
-                {
-                    if (dateTextColumn.Binding is Binding dateBinding)
+                    // Detect Time-Only columns
+                    if (lowerName.Contains("saat") ||
+                        lowerName.Contains("time") ||
+                        lowerName.Contains("süre") ||
+                        lowerName.Contains("duration") ||
+                        lowerName.Contains("bitiş") ||
+                        lowerName.Contains("başlangıç") ||
+                        lowerName.Contains("start") ||
+                        lowerName.Contains("end") ||
+                        lowerName.Contains("duraklama"))
                     {
-                        dateBinding.StringFormat = "d";
+                        // FORCE Time Format
+                        textColumn.Binding.StringFormat = "HH:mm";
+                    }
+                    else
+                    {
+                        // Standard Date Format
+                        textColumn.Binding.StringFormat = "dd.MM.yyyy HH:mm";
                     }
                 }
+                // Handle TimeSpan (Postgres Intervals)
+                else if (realColumnType == typeof(TimeSpan))
+                {
+                    textColumn.Binding.StringFormat = @"hh\:mm";
+                }
+            }
+        }
+
+        private void DataDisplayGrid_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
+        {
+            if (this.DataContext is DatarepViewModel viewModel)
+            {
+                // 1. Check Column ReadOnly state
+                if (e.Column.IsReadOnly)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+
+                // 2. Check "Edit Mode" (User must click 'Edit' button first)
+                if (e.Row != null && e.Row.Item is DataRowView drv)
+                {
+                    if (viewModel.EditableRows == null || !viewModel.EditableRows.Contains(drv))
+                    {
+                        e.Cancel = true;
+                    }
+                }
+            }
+        }
+
+        private void DataDisplayGrid_Sorting(object sender, DataGridSortingEventArgs e)
+        {
+            if (DataContext is DatarepViewModel viewModel && viewModel.DataTableView != null)
+            {
+                var column = e.Column;
+                string sortBy = column.SortMemberPath;
+                if (string.IsNullOrEmpty(sortBy)) return;
+
+                ListSortDirection direction = (column.SortDirection != ListSortDirection.Ascending)
+                                               ? ListSortDirection.Ascending
+                                               : ListSortDirection.Descending;
+                try
+                {
+                    // Handle spaces/brackets in column names for sorting
+                    string sortExpression = sortBy;
+                    if (sortBy.Any(c => char.IsWhiteSpace(c) || "()[]{}%#&+-*/\\".Contains(c)))
+                    {
+                        sortExpression = $"[{sortBy.Replace("]", "]]")}]";
+                    }
+
+                    viewModel.DataTableView.Sort = $"{sortExpression} {(direction == ListSortDirection.Ascending ? "ASC" : "DESC")}";
+                    column.SortDirection = direction;
+                }
+                catch { }
+                finally { e.Handled = true; }
             }
         }
 
@@ -88,106 +151,11 @@ namespace WPF_LoginForm.Views
             if (DataDisplayGrid.Items.Count > 0)
             {
                 if (DataDisplayGrid.SelectedItems.Count == DataDisplayGrid.Items.Count)
-                {
                     DataDisplayGrid.UnselectAll();
-                }
                 else
-                {
                     DataDisplayGrid.SelectAll();
-                }
             }
             DataDisplayGrid.Focus();
-        }
-
-        private void DataDisplayGrid_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
-        {
-            if (this.DataContext is DatarepViewModel viewModel)
-            {
-                if (e.Column.IsReadOnly)
-                {
-                    e.Cancel = true;
-                    return;
-                }
-
-                if (e.Row != null && e.Row.Item is DataRowView drv)
-                {
-                    if (viewModel.EditableRows != null && viewModel.EditableRows.Contains(drv))
-                    {
-                        e.Cancel = false;
-                    }
-                    else
-                    {
-                        e.Cancel = true;
-                    }
-                }
-                else
-                {
-                    e.Cancel = true;
-                }
-            }
-            else
-            {
-                e.Cancel = true;
-            }
-        }
-
-        private void DataDisplayGrid_Sorting(object sender, DataGridSortingEventArgs e)
-        {
-            if (DataContext is DatarepViewModel viewModel && viewModel.DataTableView != null)
-            {
-                DataGridColumn column = e.Column;
-                string sortBy = column.SortMemberPath;
-
-                if (string.IsNullOrEmpty(sortBy))
-                {
-                    e.Handled = true;
-                    return;
-                }
-
-                ListSortDirection direction = (column.SortDirection != ListSortDirection.Ascending)
-                                               ? ListSortDirection.Ascending
-                                               : ListSortDirection.Descending;
-
-                try
-                {
-                    string sortExpression;
-
-                    // FIX: Handle column names with spaces or special chars
-                    if (sortBy.Any(c => char.IsWhiteSpace(c) || "()[]{}%#&+-*/\\".Contains(c)))
-                    {
-                        // Escape existing brackets and wrap in brackets
-                        sortExpression = $"[{sortBy.Replace("]", "]]")}] {(direction == ListSortDirection.Ascending ? "ASC" : "DESC")}";
-                    }
-                    else
-                    {
-                        sortExpression = $"{sortBy} {(direction == ListSortDirection.Ascending ? "ASC" : "DESC")}";
-                    }
-
-                    // Apply sort to the underlying DataView
-                    viewModel.DataTableView.Sort = sortExpression;
-
-                    // Update UI arrow
-                    column.SortDirection = direction;
-                }
-                catch (Exception ex)
-                {
-                    // Prevent crash if sort fails
-                    System.Diagnostics.Debug.WriteLine($"Sort Error: {ex.Message}");
-                }
-                finally
-                {
-                    // Mark handled to prevent default DataGrid sort which fights with DataView sort
-                    e.Handled = true;
-                }
-            }
-            else
-            {
-                e.Handled = true;
-            }
-        }
-
-        private void CheckBox_Checked()
-        {
         }
     }
 }
