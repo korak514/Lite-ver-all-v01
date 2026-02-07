@@ -565,10 +565,14 @@ namespace WPF_LoginForm.ViewModels
                 {
                     TableNames.Clear();
                     foreach (var n in names ?? new List<string>()) TableNames.Add(n);
-                    SelectedTable = TableNames.FirstOrDefault();
 
-                    if (SelectedTable == null)
-                        SetErrorMessage("No tables found.");
+                    // CHANGED: Only select default table if one isn't already selected (e.g. by DrillDown)
+                    if (string.IsNullOrEmpty(SelectedTable))
+                    {
+                        SelectedTable = TableNames.FirstOrDefault();
+                        if (SelectedTable == null)
+                            SetErrorMessage("No tables found.");
+                    }
                 });
             });
         }
@@ -735,6 +739,9 @@ namespace WPF_LoginForm.ViewModels
                 return;
             }
 
+            // Check if we are adding new rows (which will generate new IDs)
+            bool hasNewRows = changes.AsEnumerable().Any(r => r.RowState == DataRowState.Added);
+
             // --- FIX START: Robust ID Check ---
             // Check if "ID" column exists (Case Insensitive)
             bool hasIdColumn = _currentDataTable.Columns.Cast<DataColumn>()
@@ -750,8 +757,6 @@ namespace WPF_LoginForm.ViewModels
 
             if (!_dialogService.ShowConfirmationDialog(Resources.Save, $"Save {changes.Rows.Count} changes?")) return;
 
-            bool hasNewRows = changes.AsEnumerable().Any(r => r.RowState == DataRowState.Added);
-
             await ExecuteLongRunningOperation(async () =>
             {
                 var result = await _dataRepository.SaveChangesAsync(changes, SelectedTable);
@@ -761,7 +766,13 @@ namespace WPF_LoginForm.ViewModels
                     {
                         _currentDataTable.AcceptChanges();
                         EditableRows.Clear();
-                        if (hasNewRows) LoadDataForSelectedTableAsync();
+
+                        // CRITICAL FIX: Reload data to get real IDs from DB if rows were added
+                        if (hasNewRows)
+                        {
+                            LoadDataForSelectedTableAsync();
+                        }
+
                         SetErrorMessage(null);
                         CheckIfDirty();
                     }
@@ -944,9 +955,9 @@ namespace WPF_LoginForm.ViewModels
                                     // --- FIX: Handle Excel Date (Double) ---
                                     else if (tCol.DataType == typeof(DateTime))
                                     {
-                                        if (val is double dVal) newRow[tCol] = DateTime.FromOADate(dVal);
-                                        else if (val is DateTime dtVal) newRow[tCol] = dtVal;
-                                        else newRow[tCol] = Convert.ChangeType(val, tCol.DataType, CultureInfo.CurrentCulture);
+                                        DateTime? dtVal = ParseDateSafe(val);
+                                        if (dtVal.HasValue) newRow[tCol] = dtVal.Value;
+                                        else throw new FormatException($"Invalid date: {val}");
                                     }
                                     // --- FIX: Handle GUID & Bool ---
                                     else if (tCol.DataType == typeof(Guid))
@@ -979,6 +990,30 @@ namespace WPF_LoginForm.ViewModels
                     CheckIfDirty();
                 });
             });
+        }
+
+        private DateTime? ParseDateSafe(object value)
+        {
+            if (value == null || value == DBNull.Value) return null;
+
+            if (value is DateTime dt) return dt;
+            if (value is double dVal) return DateTime.FromOADate(dVal);
+
+            string sVal = value.ToString();
+            if (string.IsNullOrWhiteSpace(sVal)) return null;
+
+            if (DateTime.TryParse(sVal, CultureInfo.CurrentCulture, DateTimeStyles.None, out DateTime result))
+                return result;
+
+            if (DateTime.TryParse(sVal, CultureInfo.InvariantCulture, DateTimeStyles.None, out result))
+                return result;
+
+            // Try common formats
+            string[] formats = { "dd.MM.yyyy", "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "yyyy-MM-dd HH:mm:ss" };
+            if (DateTime.TryParseExact(sVal, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out result))
+                return result;
+
+            return null;
         }
 
         private async void ExecuteExportData(object p)

@@ -363,6 +363,8 @@ namespace WPF_LoginForm.Repositories
             catch (Exception ex) { return (false, ex.Message); }
         }
 
+        // Partial change in WPF-LoginForm/Repositories/DataRepository.cs, method SaveChangesAsync
+
         public async Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName)
         {
             try
@@ -384,14 +386,19 @@ namespace WPF_LoginForm.Repositories
                     {
                         if (row.RowState == DataRowState.Deleted)
                         {
-                            // FIX: Use idColName variable
-                            string id = row[idColName, DataRowVersion.Original].ToString();
+                            // FIX: Use parameter for ID (Handles GUIDs/Strings correctly)
+                            object idValue = row[idColName, DataRowVersion.Original];
 
                             string q = DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer
-                                ? $"DELETE FROM [{tableName}] WHERE [{idColName}] = {id}"
-                                : $"DELETE FROM \"{tableName}\" WHERE \"{idColName}\" = {id}"; // Quote ID for Postgres
+                                ? $"DELETE FROM [{tableName}] WHERE [{idColName}] = @targetId"
+                                : $"DELETE FROM \"{tableName}\" WHERE \"{idColName}\" = @targetId";
 
-                            using (var cmd = conn.CreateCommand()) { cmd.CommandText = q; cmd.ExecuteNonQuery(); }
+                            using (var cmd = conn.CreateCommand())
+                            {
+                                cmd.CommandText = q;
+                                AddParameter(cmd, "@targetId", idValue);
+                                cmd.ExecuteNonQuery();
+                            }
                         }
                         else if (row.RowState == DataRowState.Added)
                         {
@@ -415,8 +422,8 @@ namespace WPF_LoginForm.Repositories
                         }
                         else if (row.RowState == DataRowState.Modified)
                         {
-                            // FIX: Use idColName variable
-                            string id = row[idColName].ToString();
+                            // FIX: Use parameter for ID
+                            object idValue = row[idColName];
 
                             // FIX: Exclude ID column
                             var cols = changes.Columns.Cast<DataColumn>()
@@ -425,13 +432,14 @@ namespace WPF_LoginForm.Repositories
                             string sets = string.Join(",", cols.Select(c => (DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer ? $"[{c.ColumnName}]" : $"\"{c.ColumnName}\"") + $"=@p{c.Ordinal}"));
 
                             string q = DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer
-                                ? $"UPDATE [{tableName}] SET {sets} WHERE [{idColName}] = {id}"
-                                : $"UPDATE \"{tableName}\" SET {sets} WHERE \"{idColName}\" = {id}";
+                                ? $"UPDATE [{tableName}] SET {sets} WHERE [{idColName}] = @targetId"
+                                : $"UPDATE \"{tableName}\" SET {sets} WHERE \"{idColName}\" = @targetId";
 
                             using (var cmd = conn.CreateCommand())
                             {
                                 cmd.CommandText = q;
                                 foreach (var c in cols) AddParameter(cmd, $"@p{c.Ordinal}", row[c]);
+                                AddParameter(cmd, "@targetId", idValue);
                                 cmd.ExecuteNonQuery();
                             }
                         }

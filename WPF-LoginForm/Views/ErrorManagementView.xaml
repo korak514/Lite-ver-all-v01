@@ -15,17 +15,17 @@
             <ColumnDefinition Width="240" />
         </Grid.ColumnDefinitions>
 
-        <!-- COL 0: Stacked Pie Charts -->
+        <!-- COL 0: Left Column Charts -->
         <Grid Grid.Column="0" Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- Machine Pie -->
+            <!-- Top Pie: Overall Machine Distribution -->
             <Border Grid.Row="0" Margin="0,0,5,10" Background="#181838" CornerRadius="10" Padding="10">
                 <Grid>
-                    <TextBlock Text="By Machine (Top 9)" Foreground="LightGray" FontWeight="Bold" VerticalAlignment="Top" />
+                    <TextBlock Text="Total Errors (By Machine)" Foreground="LightGray" FontWeight="Bold" VerticalAlignment="Top" />
                     <lvc:PieChart Series="{Binding MachineSeries}" LegendLocation="Right" InnerRadius="0" Hoverable="True"
                                   DataClickCommand="{Binding ChartClickCommand}" Margin="0,20,0,0">
                         <lvc:PieChart.DataTooltip>
@@ -38,10 +38,14 @@
                 </Grid>
             </Border>
 
-            <!-- Shift Pie -->
+            <!-- Bottom Pie: Specific Error Machine Distribution -->
             <Border Grid.Row="1" Margin="0,0,5,0" Background="#181838" CornerRadius="10" Padding="10">
                 <Grid>
-                    <TextBlock Text="Duraklama Süresi (By Shift)" Foreground="LightGray" FontWeight="Bold" VerticalAlignment="Top" />
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                        <TextBlock Text="Machines Responsible for: " Foreground="LightGray" FontWeight="Bold" />
+                        <TextBlock Text="{Binding SelectedErrorCategory}" Foreground="#FFC047" FontWeight="Bold" Margin="5,0,0,0" />
+                    </StackPanel>
+
                     <lvc:PieChart Series="{Binding ShiftSeries}" LegendLocation="Bottom" InnerRadius="40" Hoverable="True"
                                   DataClickCommand="{Binding ChartClickCommand}" Margin="0,20,0,0">
                         <lvc:PieChart.DataTooltip>
@@ -58,7 +62,6 @@
         <!-- COL 1: Main Bar Chart -->
         <Border Grid.Column="1" Margin="5,10,5,10" Background="#181838" CornerRadius="10" Padding="15">
             <Grid>
-                <!-- Updated Title -->
                 <TextBlock Text="Longest Single Downtime Events (Max Minutes)" Foreground="White" FontSize="16" FontWeight="SemiBold" />
 
                 <lvc:CartesianChart Series="{Binding ReasonSeries}" LegendLocation="None" DataClickCommand="{Binding ChartClickCommand}" Margin="10,35,10,25">
@@ -80,7 +83,7 @@
             </Grid>
         </Border>
 
-        <!-- COL 2: Controls & Slider (Right Side) -->
+        <!-- COL 2: Controls Panel (Right Side) -->
         <Border Grid.Column="2" Background="#101030" BorderBrush="#333" BorderThickness="1,0,0,0" Padding="15">
             <StackPanel>
                 <TextBlock Text="Data Controls" Foreground="#0078D7" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" />
@@ -88,12 +91,19 @@
                 <TextBlock Text="Select Table:" Foreground="Gray" Margin="0,0,0,5" />
                 <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable}" Height="30" Margin="0,0,0,15" VerticalContentAlignment="Center" Padding="5" />
 
-                <!-- NEW: Exclude MA-00 Checkbox -->
+                <!-- NEW: Error Category Selector -->
+                <TextBlock Text="Filter Machine Distribution By:" Foreground="#FFC047" FontWeight="SemiBold" Margin="0,0,0,5" />
+                <ComboBox ItemsSource="{Binding ErrorCategories}"
+                          SelectedItem="{Binding SelectedErrorCategory}"
+                          Height="30" Margin="0,0,0,15"
+                          VerticalContentAlignment="Center" Padding="5"
+                          ToolTip="Select an error type (e.g. TIKANMA) to see machine distribution below." />
+
                 <CheckBox Content="Exclude MA-00 (Lunch/Breaks)"
                           IsChecked="{Binding IsMachine00Excluded}"
                           Foreground="WhiteSmoke"
                           Margin="0,0,0,20"
-                          ToolTip="Hides generic stops (Cleaning, Lunch, etc) from charts" />
+                          ToolTip="Hides generic stops from charts" />
 
                 <TextBlock Text="Start Date:" Foreground="Gray" Margin="0,0,0,5" />
                 <Grid Margin="0,0,0,15">
@@ -127,8 +137,10 @@
                     <Button Grid.Column="4" Content="&gt;&gt;" Command="{Binding MoveDateCommand}" CommandParameter="End|7" Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" />
                 </Grid>
 
-                <TextBlock Text="Time Range:" Foreground="Gray" Margin="0,0,0,10" />
-                <xctk:RangeSlider Minimum="{Binding SliderMinimum}" Maximum="{Binding SliderMaximum}" LowerValue="{Binding SliderLowValue}" HigherValue="{Binding SliderHighValue}" Height="30" Margin="0,0,0,25" />
+                <TextBlock Text="Time Range (Days):" Foreground="Gray" Margin="0,0,0,10" />
+                <xctk:RangeSlider Minimum="{Binding SliderMinimum}" Maximum="{Binding SliderMaximum}"
+                                  LowerValue="{Binding SliderLowValue}" HigherValue="{Binding SliderHighValue}"
+                                  Height="30" Margin="0,0,0,25" />
 
                 <Button Content="REFRESH DATA" Command="{Binding LoadDataCommand}" Height="45" Background="#FF0078D7" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand">
                     <Button.Resources>
@@ -138,7 +150,7 @@
                     </Button.Resources>
                 </Button>
 
-                <TextBlock Text="* Bar Chart shows longest single incident." Foreground="#666" FontSize="11" TextWrapping="Wrap" Margin="0,20,0,0" FontStyle="Italic" />
+                <TextBlock Text="* Drill-down on bottom pie searches Machine + Error Type." Foreground="#666" FontSize="11" TextWrapping="Wrap" Margin="0,20,0,0" FontStyle="Italic" />
             </StackPanel>
         </Border>
     </Grid>

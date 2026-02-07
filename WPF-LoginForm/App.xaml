@@ -6,6 +6,7 @@
 
     <Application.Resources>
         <ResourceDictionary>
+
             <ResourceDictionary.MergedDictionaries>
                 <!-- 1. Colors First -->
                 <ResourceDictionary Source="/Styles/UIColors.xaml" />

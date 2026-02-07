@@ -15,7 +15,7 @@ namespace WPF_LoginForm.ViewModels
     public class LoginViewModel : ViewModelBase
     {
         private string _username;
-        private SecureString _password;
+        private SecureString _password; // This is the backing field that was missing/not found
         private string _errorMessage;
         private bool _isViewVisible = true;
         private bool _isReportModeOnly;
@@ -27,14 +27,31 @@ namespace WPF_LoginForm.ViewModels
 
         public string Username
         { get => _username; set { _username = value; OnPropertyChanged(); } }
+
         public SecureString Password
-        { get => _password; set { _password = value; OnPropertyChanged(); } }
+        {
+            get => _password;
+            set
+            {
+                if (_password != value)
+                {
+                    // FIX: Explicitly dispose the old SecureString to prevent memory leaks
+                    _password?.Dispose();
+                    _password = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public string ErrorMessage
         { get => _errorMessage; set { _errorMessage = value; OnPropertyChanged(); } }
+
         public bool IsViewVisible
         { get => _isViewVisible; set { _isViewVisible = value; OnPropertyChanged(); } }
+
         public bool IsReportModeOnly
         { get => _isReportModeOnly; set { _isReportModeOnly = value; OnPropertyChanged(); } }
+
         public bool IsSettingsModeOnly
         { get => _isSettingsModeOnly; set { _isSettingsModeOnly = value; OnPropertyChanged(); } }
 
@@ -90,7 +107,6 @@ namespace WPF_LoginForm.ViewModels
 
                     if (UserSessionService.CurrentRole == "Guest")
                     {
-                        // FIX: Localized Error Message
                         ErrorMessage = Resources.Msg_AccessDeniedRole;
                     }
                     else
@@ -101,7 +117,6 @@ namespace WPF_LoginForm.ViewModels
                 }
                 else
                 {
-                    // FIX: Localized Error Message
                     ErrorMessage = Resources.Msg_InvalidCredentials;
                 }
             }

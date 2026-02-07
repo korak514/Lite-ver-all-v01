@@ -94,6 +94,7 @@
     </ApplicationDefinition>
     <Compile Include="Converters\BooleanInverterConverter.cs" />
     <Compile Include="Converters\BooleanToVisibilityConverter.cs" />
+    <Compile Include="Converters\BoolToTextConverter.cs" />
     <Compile Include="Converters\EqualityConverter.cs" />
     <Compile Include="Converters\IsItemInCollectionConverter.cs" />
     <Compile Include="Converters\IsNullOrEmptyConverter.cs" />

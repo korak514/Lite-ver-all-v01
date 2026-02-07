@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Globalization;
+using System.IO;
 using System.Linq;
-using System.Threading.Tasks; // Required for Parallel execution
+using System.Threading; // Required for CancellationToken
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -12,13 +15,11 @@ using LiveCharts.Defaults;
 using LiveCharts.Wpf;
 using Microsoft.Win32;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using WPF_LoginForm.Models;
+using WPF_LoginForm.Properties;
 using WPF_LoginForm.Repositories;
 using WPF_LoginForm.Services;
-using System.IO;
-using Newtonsoft.Json.Linq;
-using WPF_LoginForm.Properties;
-using System.Collections.ObjectModel;
 
 namespace WPF_LoginForm.ViewModels
 {
@@ -36,6 +37,28 @@ namespace WPF_LoginForm.ViewModels
         private DateTime _maxSliderDate;
         private bool _isActive = false;
         private bool _isLoading = false;
+
+        // --- Cancellation Token for Async Loading ---
+        private CancellationTokenSource _cts;
+
+        public ObservableCollection<string> ErrorCategories { get; set; } = new ObservableCollection<string>();
+
+        private string _selectedErrorCategory;
+
+        public string SelectedErrorCategory
+        {
+            get => _selectedErrorCategory;
+            set
+            {
+                if (SetProperty(ref _selectedErrorCategory, value))
+                {
+                    // Only refresh the charts when selection changes
+                    InitializeSliders();
+                    LoadAllChartsData(); // Ensure this is LoadAllChartsData, NOT ExecuteLoadData
+                    AutoSave();
+                }
+            }
+        }
 
         // --- Collections & Properties ---
         public ObservableCollection<string> DashboardFiles { get; } = new ObservableCollection<string>();
@@ -287,24 +310,31 @@ namespace WPF_LoginForm.ViewModels
             TryLoadAutoSave();
         }
 
-        // --- OPTIMIZED NETWORK LOADING ---
+        // --- OPTIMIZED NETWORK LOADING WITH CANCELLATION ---
         private async void LoadAllChartsData(Dictionary<(int, string), string> colorMap = null)
         {
+            // 1. Cancel previous operations if running
+            if (_cts != null)
+            {
+                _cts.Cancel();
+                _cts.Dispose();
+            }
+            _cts = new CancellationTokenSource();
+            var token = _cts.Token;
+
             // Prevent loading if not active or no configurations
             if (_dashboardConfigurations == null || !_isActive) return;
-
-            // Prevent concurrent loads
-            if (_isLoading) return;
 
             _isLoading = true;
 
             try
             {
-                // 1. Clear UI on Main Thread
+                // Clear UI on Main Thread
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
                     try
                     {
+                        if (token.IsCancellationRequested) return;
                         Chart1Series.Clear();
                         Chart2Series.Clear();
                         Chart3Series.Clear();
@@ -315,17 +345,25 @@ namespace WPF_LoginForm.ViewModels
                     catch (Exception) { }
                 });
 
+                if (token.IsCancellationRequested) return;
+
                 var validConfigs = _dashboardConfigurations
                     .Where(c => c.IsEnabled &&
                                !string.IsNullOrEmpty(c.TableName) &&
                                c.Series.Any(s => !string.IsNullOrEmpty(s.ColumnName)))
                     .ToList();
 
-                // 2. PARALLEL EXECUTION: Fetch all data at once
-                // This reduces network wait time significantly by firing multiple SQL queries in parallel tasks.
-                var tasks = validConfigs.Select(config => ProcessChartConfigurationAsync(config, colorMap)).ToList();
+                // 2. PARALLEL EXECUTION with Token
+                var tasks = validConfigs.Select(config => ProcessChartConfigurationAsync(config, colorMap, token)).ToList();
 
-                await Task.WhenAll(tasks);
+                try
+                {
+                    await Task.WhenAll(tasks);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected behavior on rapid switching
+                }
             }
             catch (Exception ex)
             {
@@ -337,13 +375,16 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        private async Task ProcessChartConfigurationAsync(DashboardConfiguration config, Dictionary<(int, string), string> colorMap)
+        private async Task ProcessChartConfigurationAsync(DashboardConfiguration config, Dictionary<(int, string), string> colorMap, CancellationToken token)
         {
+            if (token.IsCancellationRequested) return;
+
             try
             {
-                // Run on background thread to ensure UI doesn't freeze during SQL query creation/wait
                 await Task.Run(async () =>
                 {
+                    if (token.IsCancellationRequested) return;
+
                     var columnsToFetch = config.Series.Select(s => s.ColumnName).ToList();
                     if (!string.IsNullOrEmpty(config.DateColumn)) columnsToFetch.Add(config.DateColumn);
                     columnsToFetch = columnsToFetch.Distinct().ToList();
@@ -357,13 +398,24 @@ namespace WPF_LoginForm.ViewModels
                         endDate = this.EndDate;
                     }
 
-                    // Network call happening here
+                    if (token.IsCancellationRequested) return;
+
+                    // Network call
                     DataTable dataTable = await _dataRepository.GetDataAsync(config.TableName, columnsToFetch, config.DateColumn, startDate, endDate);
 
+                    if (token.IsCancellationRequested) return;
+
                     // Update UI on Dispatcher
-                    await Application.Current.Dispatcher.InvokeAsync(() => UpdateChartData(dataTable, config, colorMap));
-                });
+                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        if (!token.IsCancellationRequested)
+                        {
+                            UpdateChartData(dataTable, config, colorMap);
+                        }
+                    });
+                }, token);
             }
+            catch (OperationCanceledException) { /* Safe to ignore */ }
             catch (Exception ex)
             {
                 _logger?.LogWarning($"Failed to load chart {config.ChartPosition} (Table: {config.TableName}). Error: {ex.Message}");
@@ -1029,6 +1081,13 @@ namespace WPF_LoginForm.ViewModels
         public void Deactivate()
         {
             _isActive = false;
+            // Cancel any running data fetch when deactivating
+            if (_cts != null)
+            {
+                _cts.Cancel();
+                _cts.Dispose();
+                _cts = null;
+            }
             AutoSave();
         }
 
