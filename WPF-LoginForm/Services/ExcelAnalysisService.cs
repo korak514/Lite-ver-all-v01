@@ -15,168 +15,160 @@ namespace WPF_LoginForm.Services
     {
         public async Task<List<string>> GetWorksheetNamesAsync(string filePath)
         {
-            if (!File.Exists(filePath))
-            {
-                throw new FileNotFoundException("The specified file does not exist.", filePath);
-            }
+            if (!File.Exists(filePath)) throw new FileNotFoundException("File not found.", filePath);
 
-            var names = new List<string>();
+            // Force Non-Commercial License to avoid EPPlus errors
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            var fileInfo = new FileInfo(filePath);
 
-            try
+            return await Task.Run(() =>
             {
-                using (var package = new ExcelPackage(fileInfo))
+                var names = new List<string>();
+                try
                 {
-                    await Task.Run(() =>
+                    // Open with FileShare.ReadWrite to allow reading even if Excel has it open
+                    using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    using (var package = new ExcelPackage(stream))
                     {
                         foreach (var worksheet in package.Workbook.Worksheets)
                         {
                             names.Add(worksheet.Name);
                         }
-                    });
+                    }
                 }
-            }
-            catch (IOException)
-            {
-                // FIX: Handle file locking gracefully
-                throw new IOException($"The file '{Path.GetFileName(filePath)}' is currently open in another program.\nPlease close it and try again.");
-            }
-
-            return names;
+                catch (IOException)
+                {
+                    throw new IOException($"The file '{Path.GetFileName(filePath)}' is locked by another process.\nPlease close Excel and try again.");
+                }
+                return names;
+            });
         }
 
         public async Task<List<ColumnSchemaViewModel>> AnalyzeFileAsync(string filePath, string worksheetName, int headerRow)
         {
-            var schemaList = new List<ColumnSchemaViewModel>();
-            if (!File.Exists(filePath))
-            {
-                throw new FileNotFoundException("The specified file does not exist.", filePath);
-            }
+            if (!File.Exists(filePath)) throw new FileNotFoundException("File not found.", filePath);
 
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            var fileInfo = new FileInfo(filePath);
-
-            try
+            return await Task.Run(() =>
             {
-                using (var package = new ExcelPackage(fileInfo))
+                var schemaList = new List<ColumnSchemaViewModel>();
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+                try
                 {
-                    var worksheet = await Task.Run(() => package.Workbook.Worksheets[worksheetName]);
-                    if (worksheet == null || worksheet.Dimension == null)
+                    using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    using (var package = new ExcelPackage(stream))
                     {
-                        throw new DataException($"The worksheet '{worksheetName}' is empty or could not be found.");
-                    }
+                        var worksheet = package.Workbook.Worksheets[worksheetName];
+                        if (worksheet == null || worksheet.Dimension == null)
+                            throw new DataException($"The worksheet '{worksheetName}' is empty.");
 
-                    int totalColumns = worksheet.Dimension.End.Column;
-                    var usedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        int totalColumns = worksheet.Dimension.End.Column;
+                        var usedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                    for (int col = 1; col <= totalColumns; col++)
-                    {
-                        string header = worksheet.Cells[headerRow, col].Text.Trim();
-                        if (string.IsNullOrEmpty(header))
+                        // 1. Extract Headers
+                        for (int col = 1; col <= totalColumns; col++)
                         {
-                            header = $"Column{col}";
-                        }
+                            string header = worksheet.Cells[headerRow, col].Text.Trim();
+                            if (string.IsNullOrEmpty(header)) header = $"Column{col}";
 
-                        string originalHeader = header;
-                        int duplicateCount = 1;
-                        while (usedHeaders.Contains(header))
-                        {
-                            header = $"{originalHeader}_{duplicateCount}";
-                            duplicateCount++;
-                        }
-                        usedHeaders.Add(header);
-
-                        schemaList.Add(new ColumnSchemaViewModel
-                        {
-                            SourceColumnName = header,
-                            DestinationColumnName = SanitizeSqlName(header)
-                        });
-                    }
-
-                    int firstDataRowIndex = headerRow + 1;
-                    bool dataFound = false;
-                    int maxScanRow = Math.Min(worksheet.Dimension.End.Row, headerRow + 20);
-
-                    for (int rowIndex = headerRow + 1; rowIndex <= maxScanRow; rowIndex++)
-                    {
-                        for (int colIndex = 1; colIndex <= totalColumns; colIndex++)
-                        {
-                            if (!string.IsNullOrWhiteSpace(worksheet.Cells[rowIndex, colIndex].Text))
+                            // Handle duplicates (e.g., "Date", "Date") -> "Date", "Date_1"
+                            string originalHeader = header;
+                            int dupCount = 1;
+                            while (usedHeaders.Contains(header))
                             {
-                                firstDataRowIndex = rowIndex;
-                                dataFound = true;
-                                break;
+                                header = $"{originalHeader}_{dupCount++}";
                             }
-                        }
-                        if (dataFound) break;
-                    }
+                            usedHeaders.Add(header);
 
-                    if (!dataFound) firstDataRowIndex = headerRow + 1;
-
-                    int scanLimit = Math.Min(worksheet.Dimension.End.Row, firstDataRowIndex + 50);
-                    for (int i = 0; i < schemaList.Count; i++)
-                    {
-                        var columnData = new List<string>();
-                        for (int row = firstDataRowIndex; row <= scanLimit; row++)
-                        {
-                            var cellValue = worksheet.Cells[row, i + 1].Text;
-                            if (!string.IsNullOrWhiteSpace(cellValue))
+                            schemaList.Add(new ColumnSchemaViewModel
                             {
-                                columnData.Add(cellValue);
-                            }
+                                SourceColumnName = header,
+                                DestinationColumnName = SanitizeSqlName(header)
+                            });
                         }
-                        schemaList[i].SelectedDataType = GuessDataType(columnData);
+
+                        // 2. Smart Type Guessing (Scan up to 500 rows)
+                        int startRow = headerRow + 1;
+                        int endRow = Math.Min(worksheet.Dimension.End.Row, startRow + 500);
+
+                        for (int i = 0; i < schemaList.Count; i++)
+                        {
+                            var samples = new List<string>();
+
+                            // Collect samples
+                            for (int r = startRow; r <= endRow; r++)
+                            {
+                                var cellValue = worksheet.Cells[r, i + 1].Text;
+                                if (!string.IsNullOrWhiteSpace(cellValue))
+                                {
+                                    samples.Add(cellValue);
+                                }
+                            }
+
+                            // Determine type based on majority consensus
+                            schemaList[i].SelectedDataType = GuessDataType(samples);
+                        }
                     }
                 }
-            }
-            catch (IOException)
-            {
-                // FIX: Handle file locking gracefully
-                throw new IOException($"The file '{Path.GetFileName(filePath)}' is currently open in another program.\nPlease close it and try again.");
-            }
+                catch (IOException)
+                {
+                    throw new IOException($"The file '{Path.GetFileName(filePath)}' is locked. Please close it.");
+                }
 
-            return schemaList;
+                return schemaList;
+            });
         }
 
         private string GuessDataType(List<string> data)
         {
-            if (data == null || !data.Any())
-            {
-                return "Text (string)";
-            }
+            if (data == null || !data.Any()) return "Text (string)";
+
+            int total = data.Count;
+            // Threshold: 90% of data must match the type to classify it as such
+            double threshold = 0.9;
 
             var culture = CultureInfo.CurrentCulture;
-            bool allAreDate = data.All(s => DateTime.TryParse(s, culture, DateTimeStyles.None, out _));
-            if (allAreDate)
-            {
-                return "Date (datetime)";
-            }
+            var invariant = CultureInfo.InvariantCulture;
 
-            bool allAreInt = data.All(s => long.TryParse(s.Trim(), NumberStyles.Integer, culture, out _));
-            if (allAreInt)
-            {
-                return "Number (int)";
-            }
+            // 1. Check Date
+            int dateCount = data.Count(s =>
+                DateTime.TryParse(s, culture, DateTimeStyles.None, out _) ||
+                DateTime.TryParse(s, invariant, DateTimeStyles.None, out _));
 
-            bool allAreDecimal = data.All(s => decimal.TryParse(s.Trim(), NumberStyles.Number, culture, out _));
-            if (allAreDecimal)
-            {
-                return "Decimal (decimal)";
-            }
+            if ((double)dateCount / total > threshold) return "Date (datetime)";
 
+            // 2. Check Integer (strict)
+            int intCount = data.Count(s => long.TryParse(s.Trim(), NumberStyles.Integer, culture, out _));
+            if ((double)intCount / total > threshold) return "Number (int)";
+
+            // 3. Check Decimal
+            int decimalCount = data.Count(s =>
+                decimal.TryParse(s.Trim(), NumberStyles.Any, culture, out _) ||
+                decimal.TryParse(s.Trim(), NumberStyles.Any, invariant, out _));
+
+            if ((double)decimalCount / total > threshold) return "Decimal (decimal)";
+
+            // Default
             return "Text (string)";
         }
 
         private string SanitizeSqlName(string rawName)
         {
-            if (string.IsNullOrWhiteSpace(rawName)) return "Unnamed_Column";
+            if (string.IsNullOrWhiteSpace(rawName)) return "Column_X";
+
+            // Replace non-alphanumeric characters with underscores
             string sanitized = Regex.Replace(rawName, @"[^\w]", "_");
+
+            // SQL columns cannot start with a digit
             if (char.IsDigit(sanitized[0]))
             {
                 sanitized = "_" + sanitized;
             }
-            return sanitized;
+
+            // Remove consecutive underscores for cleanliness
+            sanitized = Regex.Replace(sanitized, @"_{2,}", "_");
+
+            // Trim underscores from ends
+            return sanitized.Trim('_');
         }
     }
 }

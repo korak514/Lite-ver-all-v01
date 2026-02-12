@@ -39,23 +39,30 @@ namespace WPF_LoginForm.ViewModels
         private bool _trustServerCertificate = true;
         private string _dbServerName;
 
-        private string _authDbName = "LoginDb";
-        private string _dataDbName = "MainDataDb";
+        private const string _authDbName = "LoginDb";
+        private const string _dataDbName = "MainDataDb";
+
         private string _sqlAuthString;
         private string _sqlDataString;
         private string _postgresAuthString;
         private string _postgresDataString;
 
+        // Import Settings
         private bool _autoImportEnabled;
+
         private bool _importIsRelative;
         private string _importFileName;
         private string _importAbsolutePath;
 
+        // Dashboard Settings
         private bool _showDashboardDateFilter;
+
         private int _dashboardDateTickSize;
         private int _defaultRowLimit;
 
+        // User Management
         private ObservableCollection<UserModel> _users;
+
         private string _newUserUsername;
         private string _newUserName;
         private string _newUserLastName;
@@ -67,12 +74,23 @@ namespace WPF_LoginForm.ViewModels
         // --- Properties ---
         public IEnumerable<DatabaseType> DatabaseTypes => Enum.GetValues(typeof(DatabaseType)).Cast<DatabaseType>();
 
-        public Dictionary<string, string> Languages { get; } = new Dictionary<string, string> { { "English", "en-US" }, { "Türkçe", "tr-TR" } };
+        public Dictionary<string, string> Languages { get; } = new Dictionary<string, string>
+        {
+            { "English", "en-US" },
+            { "Türkçe", "tr-TR" }
+        };
 
         public DatabaseType SelectedDatabaseType
         {
             get => _selectedDatabaseType;
-            set { if (SetProperty(ref _selectedDatabaseType, value)) LoadFromCurrentProvider(); }
+            set
+            {
+                if (SetProperty(ref _selectedDatabaseType, value))
+                {
+                    OnPropertyChanged(nameof(IsWindowsAuthVisible));
+                    LoadFromCurrentProvider();
+                }
+            }
         }
 
         public string SelectedLanguage { get => _selectedLanguage; set => SetProperty(ref _selectedLanguage, value); }
@@ -96,10 +114,22 @@ namespace WPF_LoginForm.ViewModels
         public string DbHost { get => _dbHost; set => SetProperty(ref _dbHost, value); }
         public string DbPort { get => _dbPort; set => SetProperty(ref _dbPort, value); }
         public string DbUser { get => _dbUser; set => SetProperty(ref _dbUser, value); }
-        public SecureString DbPassword { get => _dbPassword; set => SetProperty(ref _dbPassword, value); }
+
+        public SecureString DbPassword
+        {
+            get => _dbPassword;
+            set => SetProperty(ref _dbPassword, value);
+        }
 
         public bool UseWindowsAuth
-        { get => _useWindowsAuth; set { SetProperty(ref _useWindowsAuth, value); OnPropertyChanged(nameof(IsCredentialsEnabled)); } }
+        {
+            get => _useWindowsAuth;
+            set
+            {
+                SetProperty(ref _useWindowsAuth, value);
+                OnPropertyChanged(nameof(IsCredentialsEnabled));
+            }
+        }
 
         public int ConnectionTimeout { get => _connectionTimeout; set => SetProperty(ref _connectionTimeout, value); }
         public bool TrustServerCertificate { get => _trustServerCertificate; set => SetProperty(ref _trustServerCertificate, value); }
@@ -129,17 +159,23 @@ namespace WPF_LoginForm.ViewModels
         public int DefaultRowLimit { get => _defaultRowLimit; set => SetProperty(ref _defaultRowLimit, value); }
 
         public ObservableCollection<UserModel> Users { get => _users; set => SetProperty(ref _users, value); }
+
+        // New User Properties
         public string NewUserUsername { get => _newUserUsername; set => SetProperty(ref _newUserUsername, value); }
+
         public string NewUserName { get => _newUserName; set => SetProperty(ref _newUserName, value); }
         public string NewUserLastName { get => _newUserLastName; set => SetProperty(ref _newUserLastName, value); }
         public string NewUserEmail { get => _newUserEmail; set => SetProperty(ref _newUserEmail, value); }
         public SecureString NewUserPassword { get => _newUserPassword; set => SetProperty(ref _newUserPassword, value); }
         public string NewUserRole { get => _newUserRole; set => SetProperty(ref _newUserRole, value); }
+
         public List<string> AvailableRoles { get; } = new List<string> { "User", "Admin" };
 
-        public bool CanManageUsers => UserSessionService.IsAdmin || IsBusy;
+        public bool CanManageUsers => UserSessionService.IsAdmin || IsBusy; // Allow viewing if busy, logic handled in commands
 
+        // Commands
         public ICommand SaveCommand { get; }
+
         public ICommand TestConnectionCommand { get; }
         public ICommand BrowseImportFileCommand { get; }
         public ICommand LoadUsersCommand { get; }
@@ -151,6 +187,7 @@ namespace WPF_LoginForm.ViewModels
             _userRepository = new UserRepository();
             Users = new ObservableCollection<UserModel>();
 
+            // Load raw strings from Settings
             _sqlAuthString = Settings.Default.SqlAuthConnString;
             _sqlDataString = Settings.Default.SqlDataConnString;
             _postgresAuthString = Settings.Default.PostgresAuthConnString;
@@ -175,6 +212,8 @@ namespace WPF_LoginForm.ViewModels
             if (DefaultRowLimit < 0) DefaultRowLimit = 500;
 
             NewUserRole = "User";
+
+            // Populate UI fields from connection strings
             LoadFromCurrentProvider();
 
             SaveCommand = new ViewModelCommand(ExecuteSaveCommand, (o) => !IsBusy);
@@ -201,7 +240,9 @@ namespace WPF_LoginForm.ViewModels
 
             try
             {
+                // Generates strings using the current SecureString password
                 RebuildConnectionStrings();
+
                 DbConnectionFactory.CurrentDatabaseType = SelectedDatabaseType;
 
                 Settings.Default.SqlAuthConnString = _sqlAuthString;
@@ -227,6 +268,8 @@ namespace WPF_LoginForm.ViewModels
                 Settings.Default.DbHost = DbHost;
                 Settings.Default.DbPort = DbPort;
                 Settings.Default.DbUser = DbUser;
+                // Note: We do NOT save DbPassword to simple settings if we can avoid it.
+                // It is embedded in the Connection Strings.
 
                 Settings.Default.Save();
 
@@ -275,9 +318,6 @@ namespace WPF_LoginForm.ViewModels
                     ConnectionTimeout = builder.Timeout;
                     TrustServerCertificate = builder.TrustServerCertificate;
                 }
-                OnPropertyChanged(nameof(IsWindowsAuthVisible));
-                OnPropertyChanged(nameof(ConnectionTimeout));
-                OnPropertyChanged(nameof(TrustServerCertificate));
             }
             catch
             {
@@ -288,6 +328,7 @@ namespace WPF_LoginForm.ViewModels
 
         private void RebuildConnectionStrings()
         {
+            // Secure Extraction
             string password = (DbPassword != null) ? new NetworkCredential("", DbPassword).Password : "";
 
             if (SelectedDatabaseType == DatabaseType.SqlServer)
@@ -345,6 +386,9 @@ namespace WPF_LoginForm.ViewModels
             IsBusy = true;
             try
             {
+                // Securely extract password for the operation then discard
+                string safePass = new NetworkCredential("", NewUserPassword).Password;
+
                 var newUser = new UserModel
                 {
                     Username = NewUserUsername,
@@ -352,7 +396,7 @@ namespace WPF_LoginForm.ViewModels
                     LastName = NewUserLastName ?? "",
                     Email = NewUserEmail ?? "",
                     Role = NewUserRole ?? "User",
-                    Password = new NetworkCredential("", NewUserPassword).Password
+                    Password = safePass
                 };
 
                 await Task.Run(() => _userRepository.Add(newUser));
@@ -406,7 +450,6 @@ namespace WPF_LoginForm.ViewModels
             StatusMessage = "Checking Network...";
             string host = DbHost;
 
-            // FIX: Validate Port Number in Test Connection too
             if (!int.TryParse(DbPort, out int portNum) || portNum < 0 || portNum > 65535)
             {
                 IsBusy = false;

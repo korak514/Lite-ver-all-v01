@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Threading; // Required for CancellationToken
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -25,6 +26,9 @@ namespace WPF_LoginForm.ViewModels
         private readonly CategoryMappingService _mappingService;
         private const string StateFileName = "analytics_state.json";
 
+        // --- Cancellation Token for Debouncing ---
+        private CancellationTokenSource _cts;
+
         public event Action<string, DateTime, DateTime, string> DrillDownRequested;
 
         private List<ErrorEventModel> _cachedRawData = new List<ErrorEventModel>();
@@ -41,15 +45,11 @@ namespace WPF_LoginForm.ViewModels
             get => _selectedTable;
             set
             {
-                if (_selectedTable != value)
+                if (SetProperty(ref _selectedTable, value))
                 {
-                    _selectedTable = value;
-                    OnPropertyChanged();
                     SaveState();
-
-                    // Trigger data load immediately when table changes
                     if (!string.IsNullOrEmpty(_selectedTable))
-                        _ = ExecuteLoadDataAsync();
+                        _ = LoadDataWithDebounce(); // Use Debounce
                 }
             }
         }
@@ -62,14 +62,7 @@ namespace WPF_LoginForm.ViewModels
         public string SelectedErrorCategory
         {
             get => _selectedErrorCategory;
-            set
-            {
-                if (SetProperty(ref _selectedErrorCategory, value))
-                {
-                    SaveState();
-                    UpdateCategoryMachineChart();
-                }
-            }
+            set { if (SetProperty(ref _selectedErrorCategory, value)) { SaveState(); UpdateCategoryMachineChart(); } }
         }
 
         private bool _isMachine00Excluded = false;
@@ -77,14 +70,7 @@ namespace WPF_LoginForm.ViewModels
         public bool IsMachine00Excluded
         {
             get => _isMachine00Excluded;
-            set
-            {
-                if (SetProperty(ref _isMachine00Excluded, value))
-                {
-                    SaveState();
-                    _ = ExecuteLoadDataAsync();
-                }
-            }
+            set { if (SetProperty(ref _isMachine00Excluded, value)) { SaveState(); _ = LoadDataWithDebounce(); } }
         }
 
         // --- 3. Date & Slider ---
@@ -96,13 +82,13 @@ namespace WPF_LoginForm.ViewModels
         public DateTime StartDate
         {
             get => _startDate;
-            set { if (_startDate != value) { _startDate = value; OnPropertyChanged(); if (!_isUpdatingFromSlider) RecalculateSliderValues(); SaveState(); } }
+            set { if (SetProperty(ref _startDate, value)) { if (!_isUpdatingFromSlider) RecalculateSliderValues(); SaveState(); } }
         }
 
         public DateTime EndDate
         {
             get => _endDate;
-            set { if (_endDate != value) { _endDate = value; OnPropertyChanged(); if (!_isUpdatingFromSlider) RecalculateSliderValues(); SaveState(); } }
+            set { if (SetProperty(ref _endDate, value)) { if (!_isUpdatingFromSlider) RecalculateSliderValues(); SaveState(); } }
         }
 
         private double _sliderMin = 0;
@@ -111,41 +97,34 @@ namespace WPF_LoginForm.ViewModels
         private double _sliderHigh;
         private DateTime _absoluteMinDate = DateTime.Today.AddYears(-1);
 
-        public double SliderMinimum
-        { get => _sliderMin; set { _sliderMin = value; OnPropertyChanged(); } }
-
-        public double SliderMaximum
-        { get => _sliderMax; set { _sliderMax = value; OnPropertyChanged(); } }
+        public double SliderMinimum { get => _sliderMin; set => SetProperty(ref _sliderMin, value); }
+        public double SliderMaximum { get => _sliderMax; set => SetProperty(ref _sliderMax, value); }
 
         public double SliderLowValue
         {
             get => _sliderLow;
-            set { _sliderLow = value; OnPropertyChanged(); if (!_isUpdatingFromSlider) UpdateDatesFromSlider(); }
+            set { if (SetProperty(ref _sliderLow, value) && !_isUpdatingFromSlider) UpdateDatesFromSlider(); }
         }
 
         public double SliderHighValue
         {
             get => _sliderHigh;
-            set { _sliderHigh = value; OnPropertyChanged(); if (!_isUpdatingFromSlider) UpdateDatesFromSlider(); }
+            set { if (SetProperty(ref _sliderHigh, value) && !_isUpdatingFromSlider) UpdateDatesFromSlider(); }
         }
 
         // --- 4. Chart Collections ---
         private SeriesCollection _reasonSeries;
 
-        public SeriesCollection ReasonSeries
-        { get => _reasonSeries; set { _reasonSeries = value; OnPropertyChanged(); } }
+        public SeriesCollection ReasonSeries { get => _reasonSeries; set => SetProperty(ref _reasonSeries, value); }
 
-        public string[] ReasonLabels { get; set; }
+        private string[] _reasonLabels;
+        public string[] ReasonLabels { get => _reasonLabels; set => SetProperty(ref _reasonLabels, value); }
 
         private SeriesCollection _machineSeries;
-
-        public SeriesCollection MachineSeries
-        { get => _machineSeries; set { _machineSeries = value; OnPropertyChanged(); } }
+        public SeriesCollection MachineSeries { get => _machineSeries; set => SetProperty(ref _machineSeries, value); }
 
         private SeriesCollection _shiftSeries;
-
-        public SeriesCollection ShiftSeries
-        { get => _shiftSeries; set { _shiftSeries = value; OnPropertyChanged(); } }
+        public SeriesCollection ShiftSeries { get => _shiftSeries; set => SetProperty(ref _shiftSeries, value); }
 
         public Func<double, string> NumberFormatter { get; set; }
 
@@ -162,143 +141,66 @@ namespace WPF_LoginForm.ViewModels
             _mappingService = new CategoryMappingService();
             _activeRules = _mappingService.LoadRules();
 
-            // Initialize Collections Empty to prevent binding errors on load
+            // Initialize Empty
             ReasonSeries = new SeriesCollection();
             MachineSeries = new SeriesCollection();
             ShiftSeries = new SeriesCollection();
 
-            LoadDataCommand = new ViewModelCommand(p => ExecuteLoadDataAsync());
+            LoadDataCommand = new ViewModelCommand(p => _ = LoadDataWithDebounce());
             ChartClickCommand = new ViewModelCommand(ExecuteChartClick);
             MoveDateCommand = new ViewModelCommand(ExecuteMoveDate);
             ConfigureCategoriesCommand = new ViewModelCommand(ExecuteConfigureCategories);
 
-            NumberFormatter = value => $"{value:N0} {Resources.Unit_Minutes}";
+            NumberFormatter = value => $"{value:N0} min";
 
-            // Start Initialization
             InitializeAsync();
         }
 
         private async void InitializeAsync()
         {
-            // 1. Get Tables
             var tables = await _repository.GetTableNamesAsync();
             TableNames.Clear();
             foreach (var t in tables) TableNames.Add(t);
 
-            // 2. Load Settings (Selected Table, Dates)
             LoadState();
 
-            // 3. Set Default if nothing selected
             if (string.IsNullOrEmpty(SelectedTable) && TableNames.Count > 0)
-            {
-                SelectedTable = TableNames[0];
-            }
-            // 4. If table is selected (from state or default), Load Data
+                SelectedTable = TableNames[0]; // Triggers LoadDataWithDebounce via setter
             else if (!string.IsNullOrEmpty(SelectedTable))
-            {
-                // We must manually trigger this because PropertyChanged in Constructor might not fire logic if value didn't change
-                await OnTableChangedAsync();
-            }
+                await UpdateDateRangeFromDbAsync();
         }
 
-        private void ExecuteConfigureCategories(object obj)
+        private async Task LoadDataWithDebounce()
         {
-            var win = new CategoryConfigWindow();
-            if (Application.Current.MainWindow != null) win.Owner = Application.Current.MainWindow;
+            // 1. Cancel existing request
+            _cts?.Cancel();
+            _cts = new CancellationTokenSource();
+            var token = _cts.Token;
 
-            if (win.ShowDialog() == true)
-            {
-                _activeRules = _mappingService.LoadRules();
-                _ = ExecuteLoadDataAsync();
-            }
-        }
-
-        private async Task OnTableChangedAsync()
-        {
-            await UpdateDateRangeFromDbAsync();
-            await ExecuteLoadDataAsync();
-        }
-
-        private async Task UpdateDateRangeFromDbAsync()
-        {
             try
             {
-                var result = await _repository.GetTableDataAsync(SelectedTable, 1);
-                if (result.Data == null || result.Data.Columns.Count == 0) return;
+                // 2. Wait 300ms (Debounce) to see if user moves slider again
+                await Task.Delay(300, token);
+                if (token.IsCancellationRequested) return;
 
-                string dateColName = result.Data.Columns.Cast<DataColumn>().FirstOrDefault(c =>
-                    c.ColumnName.ToLower().Contains("date") || c.ColumnName.ToLower().Contains("tarih"))?.ColumnName;
-
-                if (string.IsNullOrEmpty(dateColName)) return;
-
-                var (min, max) = await _repository.GetDateRangeAsync(SelectedTable, dateColName);
-                if (min == DateTime.MinValue || max == DateTime.MinValue) { min = DateTime.Today.AddMonths(-1); max = DateTime.Today; }
-
-                _absoluteMinDate = min;
-                SliderMinimum = 0;
-                SliderMaximum = (max - min).TotalDays;
-                if (SliderMaximum < 1) SliderMaximum = 1;
-
-                // Only override if current dates are wildly out of range (fresh start)
-                if (StartDate < min) StartDate = min;
-                if (EndDate > max) EndDate = max;
-
-                RecalculateSliderValues();
-                OnPropertyChanged(nameof(SliderMinimum));
-                OnPropertyChanged(nameof(SliderMaximum));
+                await ExecuteLoadDataAsync(token);
             }
-            catch { }
+            catch (TaskCanceledException) { /* Expected */ }
         }
 
-        private void RecalculateSliderValues()
-        {
-            _isUpdatingFromSlider = true;
-            SliderLowValue = (StartDate - _absoluteMinDate).TotalDays;
-            SliderHighValue = (EndDate - _absoluteMinDate).TotalDays;
-            if (SliderLowValue < SliderMinimum) SliderLowValue = SliderMinimum;
-            if (SliderHighValue > SliderMaximum) SliderHighValue = SliderMaximum;
-            _isUpdatingFromSlider = false;
-        }
-
-        private void UpdateDatesFromSlider()
-        {
-            _isUpdatingFromSlider = true;
-            StartDate = _absoluteMinDate.AddDays(SliderLowValue);
-            EndDate = _absoluteMinDate.AddDays(SliderHighValue);
-            _isUpdatingFromSlider = false;
-            _ = ExecuteLoadDataAsync();
-        }
-
-        private void ExecuteMoveDate(object parameter)
-        {
-            if (parameter is string s)
-            {
-                var p = s.Split('|');
-                if (p.Length == 2 && int.TryParse(p[1], out int d))
-                {
-                    if (p[0] == "Start") StartDate = StartDate.AddDays(d);
-                    else if (p[0] == "End") EndDate = EndDate.AddDays(d);
-                    if (StartDate > EndDate) { if (p[0] == "Start") EndDate = StartDate; else StartDate = EndDate; }
-                }
-            }
-        }
-
-        // --- MAIN DATA LOADING ---
-        private async Task ExecuteLoadDataAsync()
+        private async Task ExecuteLoadDataAsync(CancellationToken token)
         {
             if (string.IsNullOrEmpty(SelectedTable)) return;
 
             try
             {
-                // Background Thread
+                // Background Fetch
                 var rawData = await _repository.GetErrorDataAsync(StartDate, EndDate, SelectedTable);
 
-                // UI Thread Update
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    _cachedRawData = rawData;
-                    RefreshCharts();
-                });
+                if (token.IsCancellationRequested) return;
+
+                // Background Processing of Charts
+                await ProcessChartsAsync(rawData, token);
             }
             catch (Exception ex)
             {
@@ -306,85 +208,97 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        private void RefreshCharts()
+        private async Task ProcessChartsAsync(List<ErrorEventModel> rawData, CancellationToken token)
         {
-            if (_cachedRawData == null || !_cachedRawData.Any())
+            await Task.Run(() =>
             {
-                ReasonSeries.Clear();
-                MachineSeries.Clear();
-                ShiftSeries.Clear();
-                ErrorCategories.Clear();
-                return;
-            }
+                if (token.IsCancellationRequested) return;
 
-            // Filtering
-            var baseFiltered = _cachedRawData.Where(x => !string.IsNullOrWhiteSpace(x.ErrorDescription));
-            if (IsMachine00Excluded)
-            {
-                baseFiltered = baseFiltered.Where(x => x.MachineCode != "00" && x.MachineCode != "0" && x.MachineCode != "MA-00" && !(x.SectionCode == "MA" && x.MachineCode == "00"));
-            }
-            var filteredList = baseFiltered.ToList();
+                _cachedRawData = rawData;
 
-            // Refresh Category Dropdown
-            var uniqueCategories = filteredList
-                .Select(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules))
-                .Distinct().OrderBy(x => x).ToList();
-
-            string prevCat = SelectedErrorCategory;
-            ErrorCategories.Clear();
-            foreach (var cat in uniqueCategories) ErrorCategories.Add(cat);
-
-            if (!string.IsNullOrEmpty(prevCat) && ErrorCategories.Contains(prevCat))
-                _selectedErrorCategory = prevCat;
-            else if (ErrorCategories.Any())
-                _selectedErrorCategory = ErrorCategories[0];
-
-            OnPropertyChanged(nameof(SelectedErrorCategory));
-
-            if (!filteredList.Any()) return;
-
-            // 1. REASON CHART (Column)
-            var reasonStats = filteredList
-                .GroupBy(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules))
-                .Select(g => new { Reason = g.Key, MaxDuration = g.Max(x => x.DurationMinutes) })
-                .OrderByDescending(x => x.MaxDuration)
-                .Take(5)
-                .ToList();
-
-            _fullReasonNames = reasonStats.Select(x => x.Reason).ToList();
-            ReasonLabels = reasonStats.Select((x, index) => (index % 2 != 0) ? "\n" + x.Reason : x.Reason).ToArray();
-
-            // Create NEW collection to force redraw
-            ReasonSeries = new SeriesCollection
-            {
-                new ColumnSeries
+                // 1. Filter Data
+                var baseFiltered = rawData.Where(x => !string.IsNullOrWhiteSpace(x.ErrorDescription));
+                if (IsMachine00Excluded)
                 {
-                    Title = Resources.Chart_LongestIncident,
-                    Values = new ChartValues<int>(reasonStats.Select(x => x.MaxDuration)),
-                    DataLabels = true,
-                    Fill = Brushes.DodgerBlue
+                    baseFiltered = baseFiltered.Where(x => x.MachineCode != "00" && x.MachineCode != "0" && x.MachineCode != "MA-00");
                 }
-            };
+                var filteredList = baseFiltered.ToList();
 
-            // 2. MACHINE CHART (Total)
-            var machineStats = filteredList.GroupBy(x => x.MachineCode)
-                .Select(g => new { Machine = g.Key, TotalTime = g.Sum(x => x.DurationMinutes) })
-                .OrderByDescending(x => x.TotalTime).Take(9).ToList();
+                // 2. Prepare Categories (UI Thread needed for ObservableCollection usually, but we prep data here)
+                var uniqueCategories = filteredList
+                    .Select(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules))
+                    .Distinct().OrderBy(x => x).ToList();
 
-            var machineColl = new SeriesCollection();
-            foreach (var item in machineStats)
-                machineColl.Add(new PieSeries { Title = $"MA-{item.Machine}", Values = new ChartValues<int> { item.TotalTime }, PushOut = 2 });
-            MachineSeries = machineColl;
+                // 3. REASON CHART (Pareto-ish: Top 5 + Others)
+                var reasonStats = filteredList
+                    .GroupBy(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules))
+                    .Select(g => new { Reason = g.Key, MaxDuration = g.Max(x => x.DurationMinutes) })
+                    .OrderByDescending(x => x.MaxDuration)
+                    .ToList();
 
-            UpdateCategoryMachineChart();
+                var topReasons = reasonStats.Take(5).ToList();
+                var othersCount = reasonStats.Skip(5).Sum(x => x.MaxDuration); // Sum or Max depending on KPI. Using Max of the rest is weird, maybe Sum? Let's stick to Max for consistency of "Longest Incident"
+                // Actually for "Longest Incident", grouping "Others" is tricky. Let's just show Top 8.
+                topReasons = reasonStats.Take(8).ToList();
+
+                var reasonValues = new ChartValues<int>(topReasons.Select(x => x.MaxDuration));
+                var reasonNames = topReasons.Select(x => x.Reason).ToList();
+                var reasonLabels = topReasons.Select((x, index) => (index % 2 != 0) ? "\n" + x.Reason : x.Reason).ToArray();
+
+                // 4. MACHINE CHART
+                var machineStats = filteredList.GroupBy(x => x.MachineCode)
+                    .Select(g => new { Machine = g.Key, TotalTime = g.Sum(x => x.DurationMinutes) })
+                    .OrderByDescending(x => x.TotalTime).Take(9).ToList();
+
+                // Build Series Collections (Must happen on UI thread or constructed here and assigned there)
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (token.IsCancellationRequested) return;
+
+                    // Update Categories Dropdown
+                    string prevCat = SelectedErrorCategory;
+                    ErrorCategories.Clear();
+                    foreach (var cat in uniqueCategories) ErrorCategories.Add(cat);
+
+                    if (!string.IsNullOrEmpty(prevCat) && ErrorCategories.Contains(prevCat))
+                        _selectedErrorCategory = prevCat; // Bypass setter to avoid loop
+                    else if (ErrorCategories.Any())
+                        _selectedErrorCategory = ErrorCategories[0];
+                    OnPropertyChanged(nameof(SelectedErrorCategory));
+
+                    // Update Reason Chart
+                    _fullReasonNames = reasonNames;
+                    ReasonLabels = reasonLabels;
+                    ReasonSeries = new SeriesCollection
+                    {
+                        new ColumnSeries
+                        {
+                            Title = Resources.Chart_LongestIncident,
+                            Values = reasonValues,
+                            DataLabels = true,
+                            Fill = Brushes.DodgerBlue
+                        }
+                    };
+
+                    // Update Machine Chart
+                    var machineColl = new SeriesCollection();
+                    foreach (var item in machineStats)
+                        machineColl.Add(new PieSeries { Title = $"MA-{item.Machine}", Values = new ChartValues<int> { item.TotalTime }, PushOut = 2 });
+                    MachineSeries = machineColl;
+
+                    // Update Shift/Category Chart
+                    UpdateCategoryMachineChart(); // This runs on filtered data
+                });
+            });
         }
 
         private void UpdateCategoryMachineChart()
         {
             if (string.IsNullOrEmpty(SelectedErrorCategory) || _cachedRawData == null) return;
 
+            // Reuse the existing cached data, no DB call needed
             var baseFiltered = _cachedRawData.Where(x => !string.IsNullOrWhiteSpace(x.ErrorDescription));
-            if (IsMachine00Excluded) baseFiltered = baseFiltered.Where(x => x.MachineCode != "00" && x.MachineCode != "0" && x.MachineCode != "MA-00");
+            if (IsMachine00Excluded) baseFiltered = baseFiltered.Where(x => x.MachineCode != "00" && x.MachineCode != "MA-00");
 
             var categoryStats = baseFiltered
                 .Where(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules)
@@ -401,7 +315,7 @@ namespace WPF_LoginForm.ViewModels
                     Title = $"MA-{item.Machine}",
                     Values = new ChartValues<int> { item.TotalTime },
                     DataLabels = true,
-                    LabelPoint = p => $"{p.Y} {Resources.Unit_Minutes} ({p.Participation:P0})"
+                    LabelPoint = p => $"{p.Y} min ({p.Participation:P0})"
                 });
             }
             ShiftSeries = catColl;
@@ -411,35 +325,93 @@ namespace WPF_LoginForm.ViewModels
         {
             if (obj is ChartPoint point)
             {
-                var seriesView = point.SeriesView;
-                string filterText = seriesView.Title;
-
-                if (filterText == "Others" || string.IsNullOrEmpty(SelectedTable)) return;
-
-                bool isCategoryChart = ShiftSeries != null && ShiftSeries.Cast<object>().Any(s => s == seriesView);
-
-                if (isCategoryChart && !string.IsNullOrEmpty(SelectedErrorCategory))
+                string filterText = point.SeriesView.Title;
+                // If it's a Column Series (Reason), get text from list
+                if (point.SeriesView is ColumnSeries && _fullReasonNames != null)
                 {
-                    filterText = $"{filterText}-{SelectedErrorCategory}";
+                    int idx = (int)point.X;
+                    if (idx >= 0 && idx < _fullReasonNames.Count) filterText = _fullReasonNames[idx];
                 }
-                else if (seriesView is ColumnSeries)
+
+                // If it's the Category-Machine Pie Chart, append Context
+                bool isCategoryChart = ShiftSeries != null && ShiftSeries.Cast<object>().Any(s => s == point.SeriesView);
+                if (isCategoryChart)
                 {
-                    int index = (int)point.X;
-                    if (_fullReasonNames != null && index >= 0 && index < _fullReasonNames.Count)
-                        filterText = _fullReasonNames[index];
+                    // Format: "MA-01-CategoryName"
+                    filterText = $"{filterText}-{SelectedErrorCategory}";
                 }
 
                 DrillDownRequested?.Invoke(SelectedTable, StartDate, EndDate, filterText);
             }
         }
 
+        // ... (ExecuteMoveDate, ExecuteConfigureCategories, SaveState, LoadState, RecalculateSliderValues, UpdateDatesFromSlider, UpdateDateRangeFromDbAsync remain mostly same as previous version but call LoadDataWithDebounce)
+
+        private async Task UpdateDateRangeFromDbAsync()
+        {
+            try
+            {
+                var result = await _repository.GetTableDataAsync(SelectedTable, 1);
+                if (result.Data == null) return;
+                string dateCol = result.Data.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.ToLower().Contains("date"))?.ColumnName;
+                if (dateCol == null) return;
+
+                var (min, max) = await _repository.GetDateRangeAsync(SelectedTable, dateCol);
+                if (min == DateTime.MinValue) { min = DateTime.Today.AddDays(-30); max = DateTime.Today; }
+
+                _absoluteMinDate = min;
+                SliderMinimum = 0;
+                SliderMaximum = (max - min).TotalDays;
+                if (SliderMaximum < 1) SliderMaximum = 1;
+
+                StartDate = min; EndDate = max; // Will trigger slider recalc
+            }
+            catch { }
+        }
+
+        private void RecalculateSliderValues()
+        {
+            _isUpdatingFromSlider = true;
+            SliderLowValue = Math.Max(0, (StartDate - _absoluteMinDate).TotalDays);
+            SliderHighValue = Math.Min(SliderMaximum, (EndDate - _absoluteMinDate).TotalDays);
+            _isUpdatingFromSlider = false;
+        }
+
+        private void UpdateDatesFromSlider()
+        {
+            _isUpdatingFromSlider = true;
+            StartDate = _absoluteMinDate.AddDays(SliderLowValue);
+            EndDate = _absoluteMinDate.AddDays(SliderHighValue);
+            _isUpdatingFromSlider = false;
+            _ = LoadDataWithDebounce();
+        }
+
+        private void ExecuteMoveDate(object parameter)
+        {
+            // Simple Logic: Move window by X days
+            if (parameter is string s && int.TryParse(s.Split('|')[1], out int d))
+            {
+                if (s.StartsWith("Start")) StartDate = StartDate.AddDays(d);
+                else EndDate = EndDate.AddDays(d);
+                if (StartDate > EndDate) { if (s.StartsWith("Start")) EndDate = StartDate; else StartDate = EndDate; }
+            }
+        }
+
+        private void ExecuteConfigureCategories(object obj)
+        {
+            var win = new CategoryConfigWindow();
+            if (Application.Current.MainWindow != null) win.Owner = Application.Current.MainWindow;
+            if (win.ShowDialog() == true)
+            {
+                _activeRules = _mappingService.LoadRules();
+                _ = LoadDataWithDebounce();
+            }
+        }
+
         private void SaveState()
-        { try { var state = new AnalyticsState { SelectedTable = SelectedTable, StartDate = StartDate, EndDate = EndDate, ExcludeMachine00 = IsMachine00Excluded, SelectedCategory = SelectedErrorCategory }; File.WriteAllText(StateFileName, JsonConvert.SerializeObject(state)); } catch { } }
+        { try { File.WriteAllText(StateFileName, JsonConvert.SerializeObject(new { SelectedTable, StartDate, EndDate, IsMachine00Excluded, SelectedErrorCategory })); } catch { } }
 
         private void LoadState()
-        { try { if (File.Exists(StateFileName)) { var state = JsonConvert.DeserializeObject<AnalyticsState>(File.ReadAllText(StateFileName)); if (state != null) { _startDate = state.StartDate; _endDate = state.EndDate; _isMachine00Excluded = state.ExcludeMachine00; _selectedErrorCategory = state.SelectedCategory; _selectedTable = state.SelectedTable; OnPropertyChanged(nameof(IsMachine00Excluded)); } } } catch { } }
-
-        private class AnalyticsState
-        { public string SelectedTable { get; set; } public DateTime StartDate { get; set; } public DateTime EndDate { get; set; } public bool ExcludeMachine00 { get; set; } public string SelectedCategory { get; set; } }
+        { try { if (File.Exists(StateFileName)) { dynamic state = JsonConvert.DeserializeObject(File.ReadAllText(StateFileName)); if (state != null) { _selectedTable = state.SelectedTable; _startDate = state.StartDate; _endDate = state.EndDate; _isMachine00Excluded = state.IsMachine00Excluded; _selectedErrorCategory = state.SelectedErrorCategory; } } } catch { } }
     }
 }

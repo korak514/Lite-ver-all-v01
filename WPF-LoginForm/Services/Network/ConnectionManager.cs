@@ -15,19 +15,27 @@ namespace WPF_LoginForm.Services.Network
             string primaryIp = Settings.Default.DbHost;
             string backupName = Settings.Default.DbServerName;
 
+            // If no backup set, just return primary.
             if (string.IsNullOrWhiteSpace(backupName)) return primaryIp;
 
+            // 1. Try Backup (Computer Name) first if it's set
+            // Rationale: In a dynamic DHCP environment, name is often more reliable than static IP config.
+            if (await PingHostAsync(backupName))
+            {
+                if (backupName != primaryIp)
+                {
+                    UpdateConnectionStrings(backupName);
+                }
+                return backupName;
+            }
+
+            // 2. Fallback to Primary IP
             if (await PingHostAsync(primaryIp))
             {
                 return primaryIp;
             }
 
-            if (await PingHostAsync(backupName))
-            {
-                UpdateConnectionStrings(backupName);
-                return backupName;
-            }
-
+            // If neither works, default to primary logic and let the DB driver throw the specific timeout error
             return primaryIp;
         }
 
@@ -40,9 +48,9 @@ namespace WPF_LoginForm.Services.Network
                 string port = Settings.Default.DbPort;
                 string user = Settings.Default.DbUser;
                 bool useWindowsAuth = false;
-
                 string currentPass = "";
 
+                // Retrieve current password/auth method securely from builder if possible
                 try
                 {
                     if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer)
@@ -59,13 +67,14 @@ namespace WPF_LoginForm.Services.Network
                 }
                 catch
                 {
+                    // Fallback to settings if connection string parsing fails
                     currentPass = Settings.Default.DbPassword;
                 }
 
-                // --- SQL SERVER BUILDER ---
+                // --- SQL SERVER REBUILD ---
                 var sqlBuilder = new SqlConnectionStringBuilder();
 
-                // FIX: Better Port Handling (Avoid trailing comma)
+                // Handle non-standard ports for SQL Server (Format: "Host,Port")
                 if (!string.IsNullOrWhiteSpace(port) && port != "1433")
                     sqlBuilder.DataSource = $"{newHost},{port}";
                 else
@@ -76,6 +85,7 @@ namespace WPF_LoginForm.Services.Network
                 sqlBuilder.IntegratedSecurity = useWindowsAuth;
                 sqlBuilder.TrustServerCertificate = Settings.Default.TrustServerCertificate;
                 sqlBuilder.ConnectTimeout = Settings.Default.ConnectionTimeout;
+                sqlBuilder.PersistSecurityInfo = true;
 
                 sqlBuilder.InitialCatalog = "LoginDb";
                 Settings.Default.SqlAuthConnString = sqlBuilder.ConnectionString;
@@ -83,7 +93,7 @@ namespace WPF_LoginForm.Services.Network
                 sqlBuilder.InitialCatalog = "MainDataDb";
                 Settings.Default.SqlDataConnString = sqlBuilder.ConnectionString;
 
-                // --- POSTGRES BUILDER ---
+                // --- POSTGRES REBUILD ---
                 var pgBuilder = new NpgsqlConnectionStringBuilder();
                 pgBuilder.Host = newHost;
                 if (int.TryParse(port, out int portNum)) pgBuilder.Port = portNum;
@@ -91,6 +101,7 @@ namespace WPF_LoginForm.Services.Network
                 pgBuilder.Password = currentPass;
                 pgBuilder.TrustServerCertificate = Settings.Default.TrustServerCertificate;
                 pgBuilder.Timeout = Settings.Default.ConnectionTimeout;
+                pgBuilder.PersistSecurityInfo = true;
 
                 pgBuilder.Database = "LoginDb";
                 Settings.Default.PostgresAuthConnString = pgBuilder.ConnectionString;
@@ -109,17 +120,23 @@ namespace WPF_LoginForm.Services.Network
         private static async Task<bool> PingHostAsync(string hostOrIp)
         {
             if (string.IsNullOrWhiteSpace(hostOrIp)) return false;
-            if (hostOrIp == "." || hostOrIp.ToLower() == "localhost" || hostOrIp == "(local)") return true;
+
+            // Bypass Ping for localhost shortcuts
+            if (hostOrIp == "." || hostOrIp.ToLower() == "localhost" || hostOrIp == "(local)" || hostOrIp == "127.0.0.1") return true;
 
             try
             {
                 using (var ping = new Ping())
                 {
+                    // Reduced timeout to 1000ms (1 second) to prevent long startup delays
                     PingReply reply = await ping.SendPingAsync(hostOrIp, 1000);
                     return reply.Status == IPStatus.Success;
                 }
             }
-            catch { return false; }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

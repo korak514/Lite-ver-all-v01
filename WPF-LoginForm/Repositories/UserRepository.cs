@@ -21,40 +21,20 @@ namespace WPF_LoginForm.Repositories
         private string ColEmail => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Email\"" : "[Email]";
         private string ColRole => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Role\"" : "[Role]";
 
+        // Kept for interface compatibility, but forwards to Async version internally if needed
         public bool AuthenticateUser(NetworkCredential credential)
         {
-            bool validUser;
-            using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
-            {
-                try
-                {
-                    connection.Open();
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandText = $"SELECT COUNT(*) FROM {TableName} WHERE {ColUser}=@username AND {ColPass}=@password";
-                        AddParameter(command, "@username", credential.UserName);
-                        AddParameter(command, "@password", credential.Password);
-
-                        var result = command.ExecuteScalar();
-                        validUser = result != null && Convert.ToInt32(result) > 0;
-                    }
-                }
-                catch (Exception)
-                {
-                    validUser = false;
-                }
-            }
-            return validUser;
+            // Blocking call for legacy support
+            return AuthenticateUserAsync(credential).Result;
         }
 
         public async Task<bool> AuthenticateUserAsync(NetworkCredential credential)
         {
             bool validUser = false;
-            var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth);
 
             try
             {
-                using (connection)
+                using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
                 {
                     if (connection is SqlConnection sqlConn) await sqlConn.OpenAsync();
                     else if (connection is NpgsqlConnection pgConn) await pgConn.OpenAsync();
@@ -62,7 +42,12 @@ namespace WPF_LoginForm.Repositories
 
                     using (var command = connection.CreateCommand())
                     {
-                        command.CommandText = $"SELECT COUNT(*) FROM {TableName} WHERE {ColUser}=@username AND {ColPass}=@password";
+                        // Case-insensitive username match
+                        string query = DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer
+                            ? $"SELECT COUNT(*) FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username) AND {ColPass} = @password"
+                            : $"SELECT COUNT(*) FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username) AND {ColPass} = @password";
+
+                        command.CommandText = query;
                         AddParameter(command, "@username", credential.UserName);
                         AddParameter(command, "@password", credential.Password);
 
@@ -78,8 +63,8 @@ namespace WPF_LoginForm.Repositories
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Auth Async Failed: {ex.Message}");
+                // In production, you might want to log this specifically
                 validUser = false;
-                throw;
             }
             return validUser;
         }
@@ -96,9 +81,9 @@ namespace WPF_LoginForm.Repositories
 
                     AddParameter(command, "@username", userModel.Username);
                     AddParameter(command, "@password", userModel.Password);
-                    AddParameter(command, "@name", userModel.Name);
-                    AddParameter(command, "@lastname", userModel.LastName);
-                    AddParameter(command, "@email", userModel.Email);
+                    AddParameter(command, "@name", userModel.Name ?? DBNull.Value.ToString());
+                    AddParameter(command, "@lastname", userModel.LastName ?? DBNull.Value.ToString());
+                    AddParameter(command, "@email", userModel.Email ?? DBNull.Value.ToString());
                     AddParameter(command, "@role", userModel.Role ?? "User");
 
                     command.ExecuteNonQuery();
@@ -124,10 +109,21 @@ namespace WPF_LoginForm.Repositories
                     AddParameter(command, "@email", userModel.Email);
                     AddParameter(command, "@role", userModel.Role ?? "User");
 
+                    // SAFE GUID PARSING
                     var paramId = command.CreateParameter();
                     paramId.ParameterName = "@id";
-                    // FIX: Parse String ID to Guid
-                    paramId.Value = Guid.Parse(userModel.Id);
+                    if (int.TryParse(userModel.Id, out int intId))
+                    {
+                        paramId.Value = intId; // Support legacy Integer IDs
+                    }
+                    else if (Guid.TryParse(userModel.Id, out Guid guidId))
+                    {
+                        paramId.Value = guidId; // Support new GUID IDs
+                    }
+                    else
+                    {
+                        throw new ArgumentException("Invalid User ID format");
+                    }
                     command.Parameters.Add(paramId);
 
                     command.ExecuteNonQuery();
@@ -146,10 +142,12 @@ namespace WPF_LoginForm.Repositories
 
                     var paramId = command.CreateParameter();
                     paramId.ParameterName = "@id";
-                    // FIX: Parse String ID to Guid
-                    paramId.Value = Guid.Parse(id);
-                    command.Parameters.Add(paramId);
 
+                    if (int.TryParse(id, out int intId)) paramId.Value = intId;
+                    else if (Guid.TryParse(id, out Guid guidId)) paramId.Value = guidId;
+                    else return; // Fail silently or throw if ID is invalid
+
+                    command.Parameters.Add(paramId);
                     command.ExecuteNonQuery();
                 }
             }
@@ -167,24 +165,18 @@ namespace WPF_LoginForm.Repositories
 
                     var paramId = command.CreateParameter();
                     paramId.ParameterName = "@id";
-                    // FIX: Parse String ID to Guid
-                    paramId.Value = Guid.Parse(id);
+
+                    if (int.TryParse(id, out int intId)) paramId.Value = intId;
+                    else if (Guid.TryParse(id, out Guid guidId)) paramId.Value = guidId;
+                    else return null;
+
                     command.Parameters.Add(paramId);
 
                     using (var reader = command.ExecuteReader())
                     {
                         if (reader.Read())
                         {
-                            user = new UserModel
-                            {
-                                Id = reader["Id"].ToString(),
-                                Username = reader["Username"].ToString(),
-                                Name = reader["Name"].ToString(),
-                                LastName = reader["LastName"].ToString(),
-                                Email = reader["Email"].ToString(),
-                                Password = reader["Password"].ToString(),
-                                Role = reader["Role"] != DBNull.Value ? reader["Role"].ToString() : "User"
-                            };
+                            user = MapReaderToUser(reader);
                         }
                     }
                 }
@@ -200,23 +192,14 @@ namespace WPF_LoginForm.Repositories
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = $"SELECT * FROM {TableName} WHERE {ColUser}=@username";
+                    command.CommandText = $"SELECT * FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username)";
                     AddParameter(command, "@username", username);
 
                     using (var reader = command.ExecuteReader())
                     {
                         if (reader.Read())
                         {
-                            user = new UserModel
-                            {
-                                Id = reader["Id"].ToString(),
-                                Username = reader["Username"].ToString(),
-                                Name = reader["Name"].ToString(),
-                                LastName = reader["LastName"].ToString(),
-                                Email = reader["Email"].ToString(),
-                                Password = reader["Password"].ToString(),
-                                Role = reader["Role"] != DBNull.Value ? reader["Role"].ToString() : "User"
-                            };
+                            user = MapReaderToUser(reader);
                         }
                     }
                 }
@@ -238,22 +221,27 @@ namespace WPF_LoginForm.Repositories
                     {
                         while (reader.Read())
                         {
-                            var user = new UserModel
-                            {
-                                Id = reader["Id"].ToString(),
-                                Username = reader["Username"].ToString(),
-                                Name = reader["Name"].ToString(),
-                                LastName = reader["LastName"].ToString(),
-                                Email = reader["Email"].ToString(),
-                                Password = reader["Password"].ToString(),
-                                Role = reader["Role"] != DBNull.Value ? reader["Role"].ToString() : "Guest"
-                            };
-                            userList.Add(user);
+                            userList.Add(MapReaderToUser(reader));
                         }
                     }
                 }
             }
             return userList;
+        }
+
+        // Helper to avoid repeated mapping code
+        private UserModel MapReaderToUser(IDataReader reader)
+        {
+            return new UserModel
+            {
+                Id = reader["Id"].ToString(),
+                Username = reader["Username"].ToString(),
+                Name = reader["Name"] != DBNull.Value ? reader["Name"].ToString() : string.Empty,
+                LastName = reader["LastName"] != DBNull.Value ? reader["LastName"].ToString() : string.Empty,
+                Email = reader["Email"] != DBNull.Value ? reader["Email"].ToString() : string.Empty,
+                Password = reader["Password"].ToString(),
+                Role = reader["Role"] != DBNull.Value ? reader["Role"].ToString() : "User"
+            };
         }
 
         private void AddParameter(IDbCommand command, string name, object value)
