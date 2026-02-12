@@ -70,6 +70,27 @@
                     <Separator Margin="4,0" />
                     <Button Content="{x:Static p:Resources.Edit}" ToolTip="{x:Static p:Resources.Edit}" Margin="4,0" Command="{Binding EditSelectedRowsCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" />
                     <Button Content="{x:Static p:Resources.SelectAll}" ToolTip="{x:Static p:Resources.SelectAll}" Margin="4,0,0,0" Click="SelectAllButton_Click" />
+
+                    <!-- Find & Replace Button -->
+                    <Button Command="{Binding ShowFindReplaceCommand}"
+                        ToolTip="{x:Static p:Resources.Str_Find}"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Margin="5,0,5,0">
+                        <StackPanel Orientation="Horizontal">
+                            <!-- Using FontAwesome.WPF control -->
+                            <fa:ImageAwesome Icon="Search"
+                         Width="15"
+                         Height="15"
+                         Foreground="{DynamicResource color1}"
+                         VerticalAlignment="Center" />
+
+                            <TextBlock Text="{x:Static p:Resources.Str_Find}"
+                         Margin="5,0,0,0"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource Brush2}" />
+                        </StackPanel>
+                    </Button>
                 </ToolBar>
 
                 <!-- Toolbar 2: Filtering and Display -->

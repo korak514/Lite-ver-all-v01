@@ -1,14 +1,16 @@
 ﻿using FontAwesome.Sharp;
-using System.Threading;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
 using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
-using System;
-using System.Windows;
-using WPF_LoginForm.Views;
-using System.Threading.Tasks;
+using WPF_LoginForm.Views; // Ensure you have created ErrorDrillDownWindow in Views
 using WPF_LoginForm.Properties;
 
 namespace WPF_LoginForm.ViewModels
@@ -18,19 +20,23 @@ namespace WPF_LoginForm.ViewModels
 
     public class MainViewModel : ViewModelBase
     {
+        // --- Core Fields ---
         private UserAccountModel _currentUserAccount;
+
         private ViewModelBase _currentChildView;
         private string _caption;
         private IconChar _icon;
         private bool _isNavigationVisible = true;
         private bool _isOfflineMode = false;
 
+        // --- Services ---
         private readonly IUserRepository _userRepository;
+
         private readonly IDialogService _dialogService;
         private readonly IDataRepository _dataRepository;
         private readonly ILogger _logger;
 
-        // Cached Views
+        // --- Cached ViewModels (State Preservation) ---
         private HomeViewModel _homeViewModel;
 
         private CustomerViewModel _customerViewModel;
@@ -38,8 +44,9 @@ namespace WPF_LoginForm.ViewModels
         private InventoryViewModel _inventoryViewModel;
         private SettingsViewModel _settingsViewModel;
         private HelpViewModel _helpViewModel;
-        private ErrorManagementViewModel _errorViewModel; // Added Field
+        private ErrorManagementViewModel _errorViewModel;
 
+        // --- Properties ---
         public UserAccountModel CurrentUserAccount
         { get => _currentUserAccount; set { _currentUserAccount = value; OnPropertyChanged(); } }
 
@@ -58,7 +65,7 @@ namespace WPF_LoginForm.ViewModels
         public bool IsOfflineMode
         { get => _isOfflineMode; set { _isOfflineMode = value; OnPropertyChanged(); } }
 
-        // Commands
+        // --- Commands ---
         public ICommand ShowHomeViewCommand { get; }
 
         public ICommand ShowCustomerViewCommand { get; }
@@ -67,8 +74,9 @@ namespace WPF_LoginForm.ViewModels
         public ICommand ShowSettingsViewCommand { get; }
         public ICommand ShowHelpViewCommand { get; }
         public ICommand ReturnToLoginCommand { get; }
-        public ICommand ShowErrorViewCommand { get; } // Added Property
+        public ICommand ShowErrorViewCommand { get; }
 
+        // --- Constructor ---
         public MainViewModel()
         {
             _logger = App.GlobalLogger ?? new FileLogger("Fallback_Log");
@@ -86,10 +94,8 @@ namespace WPF_LoginForm.ViewModels
             ShowInventoryViewCommand = new ViewModelCommand(ExecuteShowInventoryViewCommand);
             ShowSettingsViewCommand = new ViewModelCommand(ExecuteShowSettingsViewCommand);
             ShowHelpViewCommand = new ViewModelCommand(ExecuteShowHelpViewCommand);
-            ReturnToLoginCommand = new ViewModelCommand(ExecuteReturnToLogin);
-
-            // FIX: Initialize the new command properly here
             ShowErrorViewCommand = new ViewModelCommand(ExecuteShowErrorViewCommand);
+            ReturnToLoginCommand = new ViewModelCommand(ExecuteReturnToLogin);
 
             Task.Run(() => LoadCurrentUserDataAsync());
 
@@ -122,53 +128,7 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        private void ExecuteReturnToLogin(object obj)
-        {
-            UserSessionService.Logout();
-            _logger.LogInfo("User Logged Out.");
-
-            // FIX 29: Clear cached views to prevent data leaking to the next user
-            _homeViewModel = null;
-            _customerViewModel = null;
-            _datarepViewModel = null;
-            _inventoryViewModel = null;
-            _settingsViewModel = null;
-            _helpViewModel = null;
-            _errorViewModel = null; // Clear new view
-            CurrentChildView = null;
-
-            var loginView = new LoginView();
-
-            loginView.IsVisibleChanged += (s, ev) =>
-            {
-                if (loginView.IsVisible == false && loginView.IsLoaded && loginView.WindowState != WindowState.Minimized)
-                {
-                    var loginVM = loginView.DataContext as LoginViewModel;
-                    if (loginVM != null && !loginVM.IsViewVisible)
-                    {
-                        var newMain = new MainView();
-                        if (newMain.DataContext is MainViewModel mainVM)
-                        {
-                            if (loginVM.IsSettingsModeOnly) mainVM.Initialize(AppMode.SettingsOnly);
-                            else mainVM.Initialize(loginVM.IsReportModeOnly ? AppMode.ReportOnly : AppMode.Normal);
-                        }
-                        newMain.Show();
-                        loginView.Close();
-                    }
-                }
-            };
-
-            loginView.Show();
-
-            foreach (Window win in Application.Current.Windows)
-            {
-                if (win.DataContext == this)
-                {
-                    win.Close();
-                    break;
-                }
-            }
-        }
+        // --- Navigation Logic ---
 
         private void DeactivateCurrentView()
         { if (_currentChildView is HomeViewModel homeViewModel) homeViewModel.Deactivate(); }
@@ -181,6 +141,7 @@ namespace WPF_LoginForm.ViewModels
             if (_homeViewModel == null)
             {
                 _homeViewModel = new HomeViewModel(_dataRepository, _dialogService, _logger);
+                // Hook up legacy drill down if needed, or remove if using new system
                 _homeViewModel.DrillDownRequested += OnDashboardDrillDown;
             }
             CurrentChildView = _homeViewModel;
@@ -188,6 +149,7 @@ namespace WPF_LoginForm.ViewModels
             Icon = IconChar.Home;
         }
 
+        // Legacy Drill Down (Home -> Reports)
         private void OnDashboardDrillDown(string tableName, DateTime start, DateTime end)
         {
             ExecuteShowReportsViewCommand(null);
@@ -237,36 +199,189 @@ namespace WPF_LoginForm.ViewModels
             Icon = IconChar.QuestionCircle;
         }
 
-        // New Logic for Error Analytics
-        // ... (inside MainViewModel)
+        // --- NEW: Error Analytics Navigation & Drill Down ---
 
         private void ExecuteShowErrorViewCommand(object obj)
         {
-            // FIX: Always create a NEW instance to refresh data and fix click state
-            if (_errorViewModel != null)
+            // FIX: Reuse the existing instance to preserve state (Bug Fix A)
+            if (_errorViewModel == null)
             {
-                _errorViewModel.DrillDownRequested -= OnErrorDrillDown; // Unsubscribe old
-                _errorViewModel = null;
+                _errorViewModel = new ErrorManagementViewModel(_dataRepository);
+                _errorViewModel.DrillDownRequested += OnErrorDrillDown;
             }
-
-            _errorViewModel = new ErrorManagementViewModel(_dataRepository);
-            _errorViewModel.DrillDownRequested += OnErrorDrillDown;
 
             CurrentChildView = _errorViewModel;
             Caption = "Error Analytics";
             Icon = IconChar.PieChart;
         }
 
-        // This runs when you click a chart slice
-        private void OnErrorDrillDown(string tableName, DateTime start, DateTime end, string filterText)
+        // This runs when you click a chart slice in Error Analytics
+        private async void OnErrorDrillDown(string tableName, DateTime start, DateTime end, string filterText)
         {
-            // 1. Switch View to Reports
-            ExecuteShowReportsViewCommand(null);
-
-            // 2. Pass the data to the Reports View
-            if (_datarepViewModel != null)
+            try
             {
-                _datarepViewModel.LoadTableWithFilter(tableName, start, end, filterText);
+                // 1. Fetch Raw Data
+                var rawData = await _dataRepository.GetErrorDataAsync(start, end, tableName);
+
+                IEnumerable<ErrorEventModel> filteredData;
+
+                // 2. Determine Filter Logic
+                if (filterText.StartsWith("MA-"))
+                {
+                    var parts = filterText.Split('-');
+
+                    // Expected formats:
+                    // "MA-01" -> Length 2
+                    // "MA-01-ELECTRICAL" -> Length 3
+                    // "MA-01-HIGH-VOLTAGE" -> Length 4
+
+                    if (parts.Length >= 2)
+                    {
+                        string machineCode = parts[1]; // "01"
+
+                        // Base Filter: Machine Code matches "01"
+                        var query = rawData.Where(x => x.MachineCode == machineCode);
+
+                        // Secondary Filter: If we have extra parts, it's a Category filter
+                        if (parts.Length > 2)
+                        {
+                            // Rejoin the rest (e.g., "ELECTRICAL" or "HIGH-VOLTAGE")
+                            string categoryFilter = string.Join("-", parts.Skip(2));
+
+                            // Apply Contains check (Case Insensitive)
+                            query = query.Where(x => x.ErrorDescription != null &&
+                                                     x.ErrorDescription.IndexOf(categoryFilter, StringComparison.OrdinalIgnoreCase) >= 0);
+                        }
+
+                        filteredData = query;
+                    }
+                    else
+                    {
+                        // Fallback for weird formats
+                        filteredData = rawData.Where(x => x.MachineCode == filterText);
+                    }
+                }
+                else
+                {
+                    // Bar Chart Click (Reason text)
+                    filteredData = rawData.Where(x => x.ErrorDescription != null &&
+                                                      x.ErrorDescription.IndexOf(filterText, StringComparison.OrdinalIgnoreCase) >= 0);
+                }
+
+                // 3. Convert to UI List
+                var uiList = new ObservableCollection<ErrorLogItem>();
+
+                foreach (var item in filteredData)
+                {
+                    var logItem = new ErrorLogItem
+                    {
+                        Date = item.Date,
+                        Shift = item.Shift,
+                        StartTime = FormatTime(item.StartTime),
+                        DurationMinutes = item.DurationMinutes,
+                        MachineCode = "MA-" + item.MachineCode,
+                        ErrorMessage = item.ErrorDescription,
+                        EndTime = CalculateEndTime(item.StartTime, item.DurationMinutes)
+                    };
+                    uiList.Add(logItem);
+                }
+
+                // 4. Open Window
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    string title = $"{filterText} ({uiList.Count})";
+                    var drillDownVM = new ErrorDrillDownViewModel(uiList, title);
+                    var drillDownWindow = new ErrorDrillDownWindow { DataContext = drillDownVM };
+
+                    if (Application.Current.MainWindow != null)
+                        drillDownWindow.Owner = Application.Current.MainWindow;
+
+                    drillDownWindow.ShowDialog();
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error DrillDown Failed: {ex.Message}", ex);
+                MessageBox.Show($"Could not open details: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // Helper to format "0435" to "04:35"
+        private string FormatTime(string raw)
+        {
+            if (string.IsNullOrEmpty(raw) || raw.Length < 4) return raw;
+            if (raw.Contains(":")) return raw; // Already formatted
+            return raw.Insert(2, ":");
+        }
+
+        private string CalculateEndTime(string start, int duration)
+        {
+            try
+            {
+                string formattedStart = FormatTime(start);
+                if (TimeSpan.TryParse(formattedStart, out TimeSpan ts))
+                {
+                    return ts.Add(TimeSpan.FromMinutes(duration)).ToString(@"hh\:mm");
+                }
+            }
+            catch { }
+            return "?";
+        }
+
+        // --- Logout & Cleanup ---
+
+        private void ExecuteReturnToLogin(object obj)
+        {
+            UserSessionService.Logout();
+            _logger.LogInfo("User Logged Out.");
+
+            // Clear cached views to prevent data leaking
+            _homeViewModel = null;
+            _customerViewModel = null;
+            _datarepViewModel = null;
+            _inventoryViewModel = null;
+            _settingsViewModel = null;
+            _helpViewModel = null;
+
+            if (_errorViewModel != null)
+            {
+                _errorViewModel.DrillDownRequested -= OnErrorDrillDown;
+                _errorViewModel = null;
+            }
+
+            CurrentChildView = null;
+
+            // Handle Window Switching
+            var loginView = new LoginView();
+
+            loginView.IsVisibleChanged += (s, ev) =>
+            {
+                if (loginView.IsVisible == false && loginView.IsLoaded && loginView.WindowState != WindowState.Minimized)
+                {
+                    var loginVM = loginView.DataContext as LoginViewModel;
+                    if (loginVM != null && !loginVM.IsViewVisible)
+                    {
+                        var newMain = new MainView();
+                        if (newMain.DataContext is MainViewModel mainVM)
+                        {
+                            if (loginVM.IsSettingsModeOnly) mainVM.Initialize(AppMode.SettingsOnly);
+                            else mainVM.Initialize(loginVM.IsReportModeOnly ? AppMode.ReportOnly : AppMode.Normal);
+                        }
+                        newMain.Show();
+                        loginView.Close();
+                    }
+                }
+            };
+
+            loginView.Show();
+
+            foreach (Window win in Application.Current.Windows)
+            {
+                if (win.DataContext == this)
+                {
+                    win.Close();
+                    break;
+                }
             }
         }
 
@@ -274,12 +389,11 @@ namespace WPF_LoginForm.ViewModels
         {
             string username = UserSessionService.CurrentUsername;
 
+            if (Application.Current == null) return;
+
             if (!string.IsNullOrEmpty(username))
             {
-                var user = _userRepository.GetByUsername(username);
-
-                // FIX 27: Shutdown Safety Check
-                if (Application.Current == null) return;
+                var user = await Task.Run(() => _userRepository.GetByUsername(username));
 
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
@@ -301,7 +415,6 @@ namespace WPF_LoginForm.ViewModels
             }
             else
             {
-                if (Application.Current == null) return;
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                     CurrentUserAccount = new UserAccountModel { DisplayName = "Not logged in" });
             }

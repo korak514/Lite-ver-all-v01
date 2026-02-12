@@ -18,6 +18,7 @@ using WPF_LoginForm.Properties;
 using WPF_LoginForm.Repositories;
 using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
+using WPF_LoginForm.Views;
 
 namespace WPF_LoginForm.ViewModels
 {
@@ -347,6 +348,8 @@ namespace WPF_LoginForm.ViewModels
         public ICommand ShowHierarchyImportCommand { get; }
         public ICommand RenameColumnCommand { get; }
 
+        public ICommand ShowFindReplaceCommand { get; }
+
         public DatarepViewModel(ILogger logger, IDialogService dialogService, IDataRepository dataRepository)
         {
             _logger = logger;
@@ -367,6 +370,7 @@ namespace WPF_LoginForm.ViewModels
             ShowCreateTableCommand = new ViewModelCommand(ExecuteShowCreateTableCommand);
             ExportDataCommand = new ViewModelCommand(ExecuteExportData, CanExecuteExportData);
             AddIdColumnCommand = new ViewModelCommand(ExecuteAddIdColumn, CanExecuteAddIdColumn);
+            ShowFindReplaceCommand = new ViewModelCommand(ExecuteShowFindReplace, p => _currentDataTable != null && !IsBusy);
 
             // Rename Column: Admin Only
             RenameColumnCommand = new ViewModelCommand(ExecuteRenameColumn, p => !IsBusy && IsAdmin && !string.IsNullOrEmpty(SelectedSearchColumn));
@@ -440,6 +444,7 @@ namespace WPF_LoginForm.ViewModels
             (ImportDataCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             (ExportDataCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             (RenameColumnCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+            (ShowFindReplaceCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
         }
 
         // Explicit CanExecute Methods (Restored for Verbose Style)
@@ -472,6 +477,23 @@ namespace WPF_LoginForm.ViewModels
 
         private bool CanExecuteDeleteTableCommand(object p)
         { return !string.IsNullOrEmpty(SelectedTable) && !IsBusy && IsAdmin; }
+
+        //Find and Rep
+
+        private void ExecuteShowFindReplace(object obj)
+        {
+            var win = new FindReplaceWindow();
+
+            // Subscribe to events from the View's code-behind
+            win.FindRequested += (s, e) => PerformFind(win.FindText, win.MatchCase);
+            win.ReplaceRequested += (s, e) => PerformReplace(win.FindText, win.ReplaceText, win.MatchCase);
+
+            if (Application.Current.MainWindow != null)
+                win.Owner = Application.Current.MainWindow;
+
+            // Show non-modal so user can interact with the grid/see results
+            win.Show();
+        }
 
         // --- RENAME COLUMN FEATURE ---
         private async void ExecuteRenameColumn(object p)
@@ -1381,6 +1403,82 @@ namespace WPF_LoginForm.ViewModels
         {
             IsDirty = _currentDataTable?.GetChanges() != null;
             (SaveChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+        }
+
+        private void PerformFind(string text, bool matchCase)
+        {
+            if (string.IsNullOrEmpty(text) || DataTableView == null) return;
+
+            // Use existing global search functionality to filter rows
+            // Note: Simple 'Find' usually just filters visual rows in this context
+            SearchText = text;
+            IsGlobalSearchActive = true;
+        }
+
+        private void PerformReplace(string find, string replace, bool matchCase)
+        {
+            if (string.IsNullOrEmpty(find) || _currentDataTable == null) return;
+
+            int count = 0;
+            try
+            {
+                foreach (DataRow row in _currentDataTable.Rows)
+                {
+                    if (row.RowState == DataRowState.Deleted) continue;
+
+                    foreach (DataColumn col in _currentDataTable.Columns)
+                    {
+                        // Skip ReadOnly, AutoIncrement, and ID columns
+                        if (col.ReadOnly || col.AutoIncrement || col.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase)) continue;
+
+                        string original = row[col].ToString();
+                        if (string.IsNullOrEmpty(original)) continue;
+
+                        StringComparison sc = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+
+                        if (original.IndexOf(find, sc) >= 0)
+                        {
+                            string newVal;
+                            if (matchCase)
+                            {
+                                newVal = original.Replace(find, replace);
+                            }
+                            else
+                            {
+                                // Case-insensitive replace using Regex
+                                newVal = Regex.Replace(original, Regex.Escape(find), replace.Replace("$", "$$"), RegexOptions.IgnoreCase);
+                            }
+
+                            if (original != newVal)
+                            {
+                                try
+                                {
+                                    row[col] = Convert.ChangeType(newVal, col.DataType);
+                                    count++;
+                                }
+                                catch
+                                {
+                                    // Ignore type conversion errors (e.g., trying to put text into a number column)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during replace: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
+            if (count > 0)
+            {
+                CheckIfDirty(); // Mark as unsaved
+                MessageBox.Show($"Replaced {count} occurrences.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show("No matches found to replace.", "Result", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
     }
 }

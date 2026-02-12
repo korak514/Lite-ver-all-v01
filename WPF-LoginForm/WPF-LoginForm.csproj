@@ -102,24 +102,37 @@
     <Compile Include="CustomControls\BindablePasswordBox.xaml.cs">
       <DependentUpon>BindablePasswordBox.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Models\CategoryRule.cs" />
+    <Compile Include="Models\ErrorLogItem.cs" />
     <Compile Include="Properties\Resources.tr.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.tr.resx</DependentUpon>
     </Compile>
+    <Compile Include="Services\CategoryMappingService.cs" />
     <Compile Include="Services\DashboardStorageService.cs" />
     <Compile Include="Services\Database\CacheService.cs" />
     <Compile Include="Services\Database\DatabaseBootstrapper.cs" />
     <Compile Include="Services\Database\DatabaseRetryPolicy.cs" />
     <Compile Include="Services\Network\ConnectionManager.cs" />
     <Compile Include="Services\UserSessionService.cs" />
+    <Compile Include="ViewModels\ErrorDrillDownViewModel.cs" />
     <Compile Include="ViewModels\ErrorEventModel.cs" />
     <Compile Include="ViewModels\ErrorManagementViewModel.cs" />
     <Compile Include="ViewModels\HelpTopic.cs" />
     <Compile Include="ViewModels\HelpViewModel.cs" />
     <Compile Include="ViewModels\HierarchyImportViewModel.cs" />
+    <Compile Include="Views\CategoryConfigWindow.xaml.cs">
+      <DependentUpon>CategoryConfigWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\ErrorDrillDownWindow.xaml.cs">
+      <DependentUpon>ErrorDrillDownWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\ErrorManagementView.xaml.cs">
       <DependentUpon>ErrorManagementView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\FindReplaceWindow.xaml.cs">
+      <DependentUpon>FindReplaceWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\HelpView.xaml.cs">
       <DependentUpon>HelpView.xaml</DependentUpon>
@@ -248,6 +261,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Views\CategoryConfigWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Views\ConfigurationView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -288,7 +305,15 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Views\ErrorDrillDownWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Views\ErrorManagementView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\FindReplaceWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

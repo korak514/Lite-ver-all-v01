@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:p="clr-namespace:WPF_LoginForm.Properties"
              mc:Ignorable="d"
              d:DesignHeight="650" d:DesignWidth="1100">
 
@@ -12,7 +13,8 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="2*" />
             <ColumnDefinition Width="3*" />
-            <ColumnDefinition Width="240" />
+            <ColumnDefinition Width="260" />
+            <!-- Slightly wider for better control spacing -->
         </Grid.ColumnDefinitions>
 
         <!-- COL 0: Left Column Charts -->
@@ -25,9 +27,11 @@
             <!-- Top Pie: Overall Machine Distribution -->
             <Border Grid.Row="0" Margin="0,0,5,10" Background="#181838" CornerRadius="10" Padding="10">
                 <Grid>
-                    <TextBlock Text="Total Errors (By Machine)" Foreground="LightGray" FontWeight="Bold" VerticalAlignment="Top" />
+                    <TextBlock Text="{x:Static p:Resources.Chart_MachineDist}"
+                               Foreground="LightGray" FontWeight="Bold" VerticalAlignment="Top" />
+
                     <lvc:PieChart Series="{Binding MachineSeries}" LegendLocation="Right" InnerRadius="0" Hoverable="True"
-                                  DataClickCommand="{Binding ChartClickCommand}" Margin="0,20,0,0">
+                                  DataClickCommand="{Binding ChartClickCommand}" Margin="0,25,0,0">
                         <lvc:PieChart.DataTooltip>
                             <lvc:DefaultTooltip SelectionMode="OnlySender" />
                         </lvc:PieChart.DataTooltip>
@@ -41,18 +45,18 @@
             <!-- Bottom Pie: Specific Error Machine Distribution -->
             <Border Grid.Row="1" Margin="0,0,5,0" Background="#181838" CornerRadius="10" Padding="10">
                 <Grid>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
-                        <TextBlock Text="Machines Responsible for: " Foreground="LightGray" FontWeight="Bold" />
-                        <TextBlock Text="{Binding SelectedErrorCategory}" Foreground="#FFC047" FontWeight="Bold" Margin="5,0,0,0" />
+                    <StackPanel Orientation="Vertical" VerticalAlignment="Top">
+                        <TextBlock Text="{x:Static p:Resources.Chart_ShiftDist}" Foreground="LightGray" FontWeight="Bold" />
+                        <TextBlock Text="{Binding SelectedErrorCategory}" Foreground="#FFC047" FontWeight="Bold" Margin="0,2,0,0" FontSize="11" />
                     </StackPanel>
 
                     <lvc:PieChart Series="{Binding ShiftSeries}" LegendLocation="Bottom" InnerRadius="40" Hoverable="True"
-                                  DataClickCommand="{Binding ChartClickCommand}" Margin="0,20,0,0">
+                                  DataClickCommand="{Binding ChartClickCommand}" Margin="0,35,0,0">
                         <lvc:PieChart.DataTooltip>
                             <lvc:DefaultTooltip SelectionMode="OnlySender" />
                         </lvc:PieChart.DataTooltip>
                         <lvc:PieChart.ChartLegend>
-                            <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="12" />
+                            <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="11" />
                         </lvc:PieChart.ChartLegend>
                     </lvc:PieChart>
                 </Grid>
@@ -62,7 +66,8 @@
         <!-- COL 1: Main Bar Chart -->
         <Border Grid.Column="1" Margin="5,10,5,10" Background="#181838" CornerRadius="10" Padding="15">
             <Grid>
-                <TextBlock Text="Longest Single Downtime Events (Max Minutes)" Foreground="White" FontSize="16" FontWeight="SemiBold" />
+                <TextBlock Text="{x:Static p:Resources.Chart_LongestIncident}"
+                           Foreground="White" FontSize="16" FontWeight="SemiBold" />
 
                 <lvc:CartesianChart Series="{Binding ReasonSeries}" LegendLocation="None" DataClickCommand="{Binding ChartClickCommand}" Margin="10,35,10,25">
                     <lvc:CartesianChart.AxisX>
@@ -86,26 +91,46 @@
         <!-- COL 2: Controls Panel (Right Side) -->
         <Border Grid.Column="2" Background="#101030" BorderBrush="#333" BorderThickness="1,0,0,0" Padding="15">
             <StackPanel>
-                <TextBlock Text="Data Controls" Foreground="#0078D7" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" />
+                <TextBlock Text="{x:Static p:Resources.Ana_Title}"
+                           Foreground="#0078D7" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" TextWrapping="Wrap" />
 
-                <TextBlock Text="Select Table:" Foreground="Gray" Margin="0,0,0,5" />
-                <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable}" Height="30" Margin="0,0,0,15" VerticalContentAlignment="Center" Padding="5" />
+                <!-- 1. Table Selector -->
+                <TextBlock Text="{x:Static p:Resources.Ana_Table}" Foreground="Gray" Margin="0,0,0,5" />
+                <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable}"
+                          Height="30" Margin="0,0,0,15" VerticalContentAlignment="Center" Padding="5" />
 
-                <!-- NEW: Error Category Selector -->
-                <TextBlock Text="Filter Machine Distribution By:" Foreground="#FFC047" FontWeight="SemiBold" Margin="0,0,0,5" />
-                <ComboBox ItemsSource="{Binding ErrorCategories}"
-                          SelectedItem="{Binding SelectedErrorCategory}"
-                          Height="30" Margin="0,0,0,15"
-                          VerticalContentAlignment="Center" Padding="5"
-                          ToolTip="Select an error type (e.g. TIKANMA) to see machine distribution below." />
+                <!-- 2. Error Category & Config Button -->
+                <TextBlock Text="{x:Static p:Resources.Ana_Category}" Foreground="#FFC047" FontWeight="SemiBold" Margin="0,0,0,5" />
 
-                <CheckBox Content="Exclude MA-00 (Lunch/Breaks)"
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="35" />
+                    </Grid.ColumnDefinitions>
+
+                    <ComboBox Grid.Column="0"
+                              ItemsSource="{Binding ErrorCategories}"
+                              SelectedItem="{Binding SelectedErrorCategory}"
+                              Height="30" VerticalContentAlignment="Center" Padding="5"
+                              ToolTip="Filter breakdown by this category." />
+
+                    <!-- NEW CONFIG BUTTON -->
+                    <Button Grid.Column="1"
+                            Command="{Binding ConfigureCategoriesCommand}"
+                            Content="⚙"
+                            FontSize="16" Foreground="#AAA" Background="Transparent" BorderThickness="0"
+                            ToolTip="{x:Static p:Resources.Str_CategoryConfig}"
+                            Cursor="Hand" Margin="5,0,0,0" />
+                </Grid>
+
+                <CheckBox Content="{x:Static p:Resources.Ana_ExcludeMachine00}"
                           IsChecked="{Binding IsMachine00Excluded}"
                           Foreground="WhiteSmoke"
-                          Margin="0,0,0,20"
-                          ToolTip="Hides generic stops from charts" />
+                          Margin="0,5,0,20"
+                          ToolTip="Hides generic stops (MA-00)" />
 
-                <TextBlock Text="Start Date:" Foreground="Gray" Margin="0,0,0,5" />
+                <!-- 3. Start Date Picker -->
+                <TextBlock Text="{x:Static p:Resources.Ana_StartDate}" Foreground="Gray" Margin="0,0,0,5" />
                 <Grid Margin="0,0,0,15">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="25" />
@@ -121,7 +146,8 @@
                     <Button Grid.Column="4" Content="&gt;&gt;" Command="{Binding MoveDateCommand}" CommandParameter="Start|7" Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" />
                 </Grid>
 
-                <TextBlock Text="End Date:" Foreground="Gray" Margin="0,0,0,5" />
+                <!-- 4. End Date Picker -->
+                <TextBlock Text="{x:Static p:Resources.Ana_EndDate}" Foreground="Gray" Margin="0,0,0,5" />
                 <Grid Margin="0,0,0,20">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="25" />
@@ -137,12 +163,16 @@
                     <Button Grid.Column="4" Content="&gt;&gt;" Command="{Binding MoveDateCommand}" CommandParameter="End|7" Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" />
                 </Grid>
 
-                <TextBlock Text="Time Range (Days):" Foreground="Gray" Margin="0,0,0,10" />
+                <TextBlock Text="Range Slider:" Foreground="Gray" Margin="0,0,0,10" />
                 <xctk:RangeSlider Minimum="{Binding SliderMinimum}" Maximum="{Binding SliderMaximum}"
                                   LowerValue="{Binding SliderLowValue}" HigherValue="{Binding SliderHighValue}"
                                   Height="30" Margin="0,0,0,25" />
 
-                <Button Content="REFRESH DATA" Command="{Binding LoadDataCommand}" Height="45" Background="#FF0078D7" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand">
+                <!-- 5. Refresh Button -->
+                <Button Content="{x:Static p:Resources.Ana_LoadData}"
+                        Command="{Binding LoadDataCommand}"
+                        Height="45" Background="#FF0078D7" Foreground="White"
+                        FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand">
                     <Button.Resources>
                         <Style TargetType="Border">
                             <Setter Property="CornerRadius" Value="5" />
@@ -150,7 +180,7 @@
                     </Button.Resources>
                 </Button>
 
-                <TextBlock Text="* Drill-down on bottom pie searches Machine + Error Type." Foreground="#666" FontSize="11" TextWrapping="Wrap" Margin="0,20,0,0" FontStyle="Italic" />
+                <TextBlock Text="* Drill-down enabled on charts." Foreground="#666" FontSize="11" TextWrapping="Wrap" Margin="0,20,0,0" FontStyle="Italic" HorizontalAlignment="Center" />
             </StackPanel>
         </Border>
     </Grid>

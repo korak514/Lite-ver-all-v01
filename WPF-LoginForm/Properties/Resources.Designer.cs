@@ -88,6 +88,69 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Error Category:.
+        /// </summary>
+        public static string Ana_Category {
+            get {
+                return ResourceManager.GetString("Ana_Category", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to End Date.
+        /// </summary>
+        public static string Ana_EndDate {
+            get {
+                return ResourceManager.GetString("Ana_EndDate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Exclude Machine 00.
+        /// </summary>
+        public static string Ana_ExcludeMachine00 {
+            get {
+                return ResourceManager.GetString("Ana_ExcludeMachine00", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Load Data.
+        /// </summary>
+        public static string Ana_LoadData {
+            get {
+                return ResourceManager.GetString("Ana_LoadData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Start Date.
+        /// </summary>
+        public static string Ana_StartDate {
+            get {
+                return ResourceManager.GetString("Ana_StartDate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Table:.
+        /// </summary>
+        public static string Ana_Table {
+            get {
+                return ResourceManager.GetString("Ana_Table", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error Analytics Dashboard.
+        /// </summary>
+        public static string Ana_Title {
+            get {
+                return ResourceManager.GetString("Ana_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Application Settings.
         /// </summary>
         public static string AppSettings {
@@ -106,11 +169,92 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Longest Incident Duration.
+        /// </summary>
+        public static string Chart_LongestIncident {
+            get {
+                return ResourceManager.GetString("Chart_LongestIncident", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Machine Breakdown (Total).
+        /// </summary>
+        public static string Chart_MachineDist {
+            get {
+                return ResourceManager.GetString("Chart_MachineDist", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Breakdown by Category.
+        /// </summary>
+        public static string Chart_ShiftDist {
+            get {
+                return ResourceManager.GetString("Chart_ShiftDist", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Clear.
         /// </summary>
         public static string Clear {
             get {
                 return ResourceManager.GetString("Clear", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Date / Context.
+        /// </summary>
+        public static string Col_DateContext {
+            get {
+                return ResourceManager.GetString("Col_DateContext", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Description.
+        /// </summary>
+        public static string Col_Description {
+            get {
+                return ResourceManager.GetString("Col_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Duration.
+        /// </summary>
+        public static string Col_Duration {
+            get {
+                return ResourceManager.GetString("Col_Duration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Machine.
+        /// </summary>
+        public static string Col_Machine {
+            get {
+                return ResourceManager.GetString("Col_Machine", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shift:.
+        /// </summary>
+        public static string Col_Shift {
+            get {
+                return ResourceManager.GetString("Col_Shift", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Timeline.
+        /// </summary>
+        public static string Col_Timeline {
+            get {
+                return ResourceManager.GetString("Col_Timeline", resourceCulture);
             }
         }
         
@@ -156,6 +300,42 @@ namespace WPF_LoginForm.Properties {
         public static string Delete {
             get {
                 return ResourceManager.GetString("Delete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Record Count.
+        /// </summary>
+        public static string Drill_Count {
+            get {
+                return ResourceManager.GetString("Drill_Count", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Detailed Analysis.
+        /// </summary>
+        public static string Drill_Title {
+            get {
+                return ResourceManager.GetString("Drill_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Total Duration.
+        /// </summary>
+        public static string Drill_TotalDuration {
+            get {
+                return ResourceManager.GetString("Drill_TotalDuration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to min.
+        /// </summary>
+        public static string DurationText {
+            get {
+                return ResourceManager.GetString("DurationText", resourceCulture);
             }
         }
         
@@ -466,7 +646,7 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to RenameColumn.
+        ///   Looks up a localized string similar to Rename Column.
         /// </summary>
         public static string RenameColumn {
             get {
@@ -547,6 +727,78 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Configure Categories.
+        /// </summary>
+        public static string Str_CategoryConfig {
+            get {
+                return ResourceManager.GetString("Str_CategoryConfig", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Find.
+        /// </summary>
+        public static string Str_Find {
+            get {
+                return ResourceManager.GetString("Str_Find", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Find what:.
+        /// </summary>
+        public static string Str_FindWhat {
+            get {
+                return ResourceManager.GetString("Str_FindWhat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Starts With....
+        /// </summary>
+        public static string Str_MappingRule {
+            get {
+                return ResourceManager.GetString("Str_MappingRule", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Group As....
+        /// </summary>
+        public static string Str_MapTo {
+            get {
+                return ResourceManager.GetString("Str_MapTo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Match Case.
+        /// </summary>
+        public static string Str_MatchCase {
+            get {
+                return ResourceManager.GetString("Str_MatchCase", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Replace.
+        /// </summary>
+        public static string Str_Replace {
+            get {
+                return ResourceManager.GetString("Str_Replace", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Replace with:.
+        /// </summary>
+        public static string Str_ReplaceWith {
+            get {
+                return ResourceManager.GetString("Str_ReplaceWith", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Table:.
         /// </summary>
         public static string Table {
@@ -583,7 +835,7 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Tip_RenameColumn.
+        ///   Looks up a localized string similar to Rename selected column.
         /// </summary>
         public static string Tip_RenameColumn {
             get {
@@ -606,6 +858,15 @@ namespace WPF_LoginForm.Properties {
         public static string Undo {
             get {
                 return ResourceManager.GetString("Undo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to min.
+        /// </summary>
+        public static string Unit_Minutes {
+            get {
+                return ResourceManager.GetString("Unit_Minutes", resourceCulture);
             }
         }
         
