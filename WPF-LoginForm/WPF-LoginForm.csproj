@@ -110,7 +110,6 @@
       <DependentUpon>Resources.tr.resx</DependentUpon>
     </Compile>
     <Compile Include="Services\CategoryMappingService.cs" />
-    <Compile Include="Services\DashboardChartBuilder.cs" />
     <Compile Include="Services\DashboardStorageService.cs" />
     <Compile Include="Services\Database\CacheService.cs" />
     <Compile Include="Services\Database\DatabaseBootstrapper.cs" />
