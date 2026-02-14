@@ -1,0 +1,10 @@
+<!-- Removed left padding/margins from DataGrid --><DataGrid VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="0" Background="White" BorderBrush="Black" BorderThickness="1">
+    <!-- applied dark blue window title bar color -->
+    <DataGrid.Style>
+        <Style TargetType="Window">
+            <Setter Property="Background" Value="#00008B"/>
+        </Style>
+    </DataGrid.Style>
+    <!-- changed scrollbar to blue color -->
+    <ScrollBar Background="Blue"/> 
+</DataGrid>
