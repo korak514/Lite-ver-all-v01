@@ -1,0 +1,41 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- 1. MAIN WINDOW & BACKGROUNDS -->
+    <!-- Soft light gray for the overall window -->
+    <SolidColorBrush x:Key="Theme.Background" Color="#F0F2F5" />
+
+    <!-- Professional Dark Slate for the Title Bar (keeps it distinct) -->
+    <SolidColorBrush x:Key="Theme.TitleBar" Color="#2C3E50" />
+
+    <!-- Pure white for the main Header/Stats panel -->
+    <SolidColorBrush x:Key="Theme.Panel" Color="#FFFFFF" />
+
+    <!-- 2. TEXT COLORS -->
+    <!-- Deep charcoal for maximum readability -->
+    <SolidColorBrush x:Key="Theme.Text.Primary" Color="#1C1E21" />
+
+    <!-- Medium gray for subtitles and labels -->
+    <SolidColorBrush x:Key="Theme.Text.Secondary" Color="#606770" />
+
+    <!-- 3. DATAGRID & LISTS -->
+    <!-- Light gray for headers -->
+    <SolidColorBrush x:Key="Theme.Grid.Header" Color="#E9ECEF" />
+
+    <!-- White for the rows -->
+    <SolidColorBrush x:Key="Theme.Grid.Row" Color="#FFFFFF" />
+
+    <!-- Subtle light gray for grid lines -->
+    <SolidColorBrush x:Key="Theme.Grid.Lines" Color="#DEE2E6" />
+
+    <!-- 4. ACCENTS & ACTIONS -->
+    <!-- Standard Business Blue for buttons and highlights -->
+    <SolidColorBrush x:Key="Theme.Accent" Color="#0056B3" />
+
+    <!-- 5. FOOTER & INPUTS -->
+    <!-- Very light gray for the footer area -->
+    <SolidColorBrush x:Key="Theme.Footer" Color="#F8F9FA" />
+
+    <SolidColorBrush x:Key="Theme.Combo.Background" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="Theme.Combo.Foreground" Color="#1C1E21" />
+</ResourceDictionary>

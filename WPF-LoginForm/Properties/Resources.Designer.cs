@@ -205,11 +205,11 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Date / Context.
+        ///   Looks up a localized string similar to Date.
         /// </summary>
-        public static string Col_DateContext {
+        public static string Col_Date {
             get {
-                return ResourceManager.GetString("Col_DateContext", resourceCulture);
+                return ResourceManager.GetString("Col_Date", resourceCulture);
             }
         }
         
@@ -241,7 +241,7 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Shift:.
+        ///   Looks up a localized string similar to Shift.
         /// </summary>
         public static string Col_Shift {
             get {
@@ -304,7 +304,7 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Record Count.
+        ///   Looks up a localized string similar to COUNT.
         /// </summary>
         public static string Drill_Count {
             get {
@@ -313,7 +313,7 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Detailed Analysis.
+        ///   Looks up a localized string similar to Detailed Error Analysis.
         /// </summary>
         public static string Drill_Title {
             get {
@@ -322,7 +322,7 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Total Duration.
+        ///   Looks up a localized string similar to TOTAL DURATION.
         /// </summary>
         public static string Drill_TotalDuration {
             get {
@@ -367,11 +367,29 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Detailed Error Analysis.
+        /// </summary>
+        public static string Error_Analysis {
+            get {
+                return ResourceManager.GetString("Error_Analysis", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Export.
         /// </summary>
         public static string Export {
             get {
                 return ResourceManager.GetString("Export", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter.
+        /// </summary>
+        public static string Filter {
+            get {
+                return ResourceManager.GetString("Filter", resourceCulture);
             }
         }
         
@@ -480,6 +498,15 @@ namespace WPF_LoginForm.Properties {
         public static string Logs {
             get {
                 return ResourceManager.GetString("Logs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Machine Selected.
+        /// </summary>
+        public static string Machine_Selected {
+            get {
+                return ResourceManager.GetString("Machine_Selected", resourceCulture);
             }
         }
         

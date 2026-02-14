@@ -340,13 +340,10 @@
     <value>Detaylı Arıza Analizi</value>
   </data>
   <data name="Drill_Count" xml:space="preserve">
-    <value>Kayıt Sayısı</value>
+    <value>ADET</value>
   </data>
   <data name="Drill_TotalDuration" xml:space="preserve">
-    <value>Toplam Süre</value>
-  </data>
-  <data name="Col_DateContext" xml:space="preserve">
-    <value>Tarih / Bağlam</value>
+    <value>TOPLAM SÜRE</value>
   </data>
   <data name="Col_Timeline" xml:space="preserve">
     <value>Zaman Çizelgesi</value>
@@ -361,7 +358,7 @@
     <value>Açıklama</value>
   </data>
   <data name="Col_Shift" xml:space="preserve">
-    <value>Vardiya:</value>
+    <value>Vardiya</value>
   </data>
   <data name="Str_Find" xml:space="preserve">
     <value>Bul</value>
@@ -389,5 +386,17 @@
   </data>
   <data name="Unit_Minutes" xml:space="preserve">
     <value>dk</value>
+  </data>
+  <data name="Col_Date" xml:space="preserve">
+    <value>Tarih</value>
+  </data>
+  <data name="Machine_Selected" xml:space="preserve">
+    <value>Seçili Makine</value>
+  </data>
+  <data name="Error_Analysis" xml:space="preserve">
+    <value>Detaylı Hata Analizi</value>
+  </data>
+  <data name="Filter" xml:space="preserve">
+    <value> Filtrele</value>
   </data>
 </root>

@@ -4,106 +4,176 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:fa="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
+        xmlns:p="clr-namespace:WPF_LoginForm.Properties"
+        xmlns:local="clr-namespace:WPF_LoginForm.ViewModels"
         mc:Ignorable="d"
         Title="{Binding WindowTitle}"
-        Height="650" Width="950"
+        Height="700" Width="1100"
         WindowStartupLocation="CenterOwner"
-        Background="{StaticResource AppBackgroundBrush}">
+        Background="{DynamicResource Theme.Background}">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="30" GlassFrameThickness="0" CornerRadius="0" ResizeBorderThickness="5" />
+    </WindowChrome.WindowChrome>
 
     <Window.Resources>
-        <!-- SCROLLBAR STYLE -->
-        <Style TargetType="ScrollBar">
-            <Setter Property="Background" Value="{StaticResource InputBackgroundBrush}" />
-        </Style>
+        <ResourceDictionary>
+            <!-- 1. TITLE BAR BUTTON STYLE -->
+            <Style x:Key="TitleBarButtonStyle" TargetType="Button">
+                <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Width" Value="45" />
+                <Setter Property="Height" Value="30" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#44FFFFFF" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
-        <!-- DATAGRID HEADER -->
-        <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="{StaticResource PrimaryAccentBrush}" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="Padding" Value="10,8" />
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
-            <Setter Property="BorderBrush" Value="{StaticResource HighlightBrush}" />
-            <Setter Property="BorderThickness" Value="0,0,1,0" />
-        </Style>
+            <!-- 2. GENERAL ACTION BUTTON STYLE (Apply/Add) -->
+            <Style TargetType="Button">
+                <Setter Property="Background" Value="{DynamicResource Theme.Accent}" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Padding" Value="18,8" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Opacity" Value="0.9" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
 
-        <!-- DATAGRID ROW -->
-        <Style TargetType="DataGridRow">
-            <Setter Property="Background" Value="{StaticResource RowBackgroundBrush}" />
-            <Setter Property="Foreground" Value="#E0E0E0" />
-            <Setter Property="BorderThickness" Value="0,0,0,1" />
-            <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}" />
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource InputBackgroundBrush}" />
-                </Trigger>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{StaticResource HighlightBrush}" />
-                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-                </Trigger>
-            </Style.Triggers>
-        </Style>
+            <!-- 3. CHIP STYLE -->
+            <Style x:Key="FilterChipStyle" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource Theme.Accent}" />
+                <Setter Property="CornerRadius" Value="4" />
+                <Setter Property="Padding" Value="10,5" />
+                <Setter Property="Margin" Value="0,0,10,0" />
+            </Style>
 
-        <!-- BUTTON STYLE -->
-        <Style TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryAccentBrush}" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="Padding" Value="15,6" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource PrimaryHoverBrush}" />
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- CHIP STYLE (The Filter Boxes) -->
-        <Style x:Key="FilterChipStyle" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource SecondaryAccentBrush}" />
-            <Setter Property="CornerRadius" Value="15" />
-            <Setter Property="Padding" Value="10,4,10,4" />
-            <Setter Property="Margin" Value="0,0,8,0" />
-        </Style>
+            <!-- 4. REDESIGNED FOOTER CLOSE BUTTON -->
+            <Style x:Key="FooterCloseButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Primary}" />
+                <Setter Property="FontWeight" Value="Bold" />
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Theme.Text.Primary}" />
+                <Setter Property="BorderThickness" Value="2" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="35,10" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource Theme.Text.Primary}" />
+                        <Setter Property="Foreground" Value="{DynamicResource Theme.Background}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </ResourceDictionary>
     </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="30" />
+            <!-- TitleBar -->
             <RowDefinition Height="Auto" />
-            <!-- Title -->
+            <!-- Header/Stats -->
             <RowDefinition Height="Auto" />
-            <!-- Active Filters (Chips) -->
+            <!-- Active Chips -->
             <RowDefinition Height="Auto" />
-            <!-- Combo Selector -->
+            <!-- Selector -->
             <RowDefinition Height="*" />
-            <!-- Grid -->
+            <!-- Data Grid -->
             <RowDefinition Height="Auto" />
             <!-- Footer -->
         </Grid.RowDefinitions>
 
-        <!-- 1. HEADER -->
-        <Border Grid.Row="0" Background="{StaticResource PanelBackgroundBrush}" Padding="20,15">
-            <DockPanel>
-                <fa:IconImage Icon="Filter" Foreground="{StaticResource PrimaryAccentBrush}" Height="24" Margin="0,0,10,0" />
-                <StackPanel>
-                    <TextBlock Text="{Binding WindowTitle}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
-                    <TextBlock Text="Detailed Error Analysis" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+        <!-- ROW 0: TITLE BAR (Custom) -->
+        <Border Grid.Row="0" Background="{DynamicResource Theme.TitleBar}">
+            <Grid>
+                <TextBlock Text="{Binding WindowTitle}" Foreground="White"
+                           VerticalAlignment="Center" Margin="15,0" FontSize="11" FontWeight="SemiBold" Opacity="0.8" />
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <!-- Theme Toggle Button -->
+                    <Button Click="ThemeToggle_Click" Background="Transparent" BorderThickness="0" Width="40" WindowChrome.IsHitTestVisibleInChrome="True">
+                        <fa:IconImage Icon="Adjust" Foreground="White" Width="14" Height="14" />
+                    </Button>
+
+                    <Button Style="{StaticResource TitleBarButtonStyle}" Click="MinimizeButton_Click">
+                        <TextBlock Text="—" VerticalAlignment="Center" />
+                    </Button>
+                    <Button Style="{StaticResource TitleBarButtonStyle}" Click="CloseButton_Click">
+                        <TextBlock Text="✕" FontSize="14" VerticalAlignment="Center" />
+                    </Button>
                 </StackPanel>
-            </DockPanel>
+            </Grid>
         </Border>
 
-        <!-- 2. ACTIVE FILTERS (CHIPS) -->
-        <ItemsControl Grid.Row="1" ItemsSource="{Binding ActiveFilters}" Margin="20,15,20,5">
+        <!-- ROW 1: HEADER & STATS -->
+        <Border Grid.Row="1" Background="{DynamicResource Theme.Panel}" Padding="25,20">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding WindowTitle}" FontSize="24" FontWeight="ExtraBold" Foreground="{DynamicResource Theme.Text.Primary}" />
+                    <TextBlock Text="{x:Static p:Resources.Drill_Title}" FontSize="13" Foreground="{DynamicResource Theme.Text.Secondary}" Margin="0,5,0,0" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Border Background="{DynamicResource Theme.Grid.Header}" CornerRadius="4" Padding="20,10" Margin="0,0,15,0">
+                        <StackPanel>
+                            <TextBlock Text="{x:Static p:Resources.Drill_Count}" Foreground="{DynamicResource Theme.Text.Secondary}" FontSize="11" FontWeight="Bold" />
+                            <TextBlock Text="{Binding RecordCount}" Foreground="{DynamicResource Theme.Text.Primary}" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    <!-- Duration Box stays high contrast Red -->
+                    <Border Background="#C0392B" CornerRadius="4" Padding="20,10">
+                        <StackPanel>
+                            <TextBlock Text="{x:Static p:Resources.Drill_TotalDuration}" Foreground="#FADBD8" FontSize="11" FontWeight="Bold" />
+                            <TextBlock Text="{Binding TotalDurationText}" Foreground="White" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ROW 2: ACTIVE FILTERS (Chips) -->
+        <ItemsControl Grid.Row="2" ItemsSource="{Binding ActiveFilters}" Margin="25,15,25,5">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <WrapPanel Orientation="Horizontal" />
@@ -113,23 +183,10 @@
                 <DataTemplate>
                     <Border Style="{StaticResource FilterChipStyle}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Label}" Foreground="{StaticResource TextPrimaryBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-
-                            <!-- X Button to Remove -->
+                            <TextBlock Text="{Binding Label}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" FontSize="13" />
                             <Button Command="{Binding DataContext.RemoveFilterChipCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CommandParameter="{Binding}"
-                                    Margin="8,0,0,0"
-                                    Background="Transparent"
-                                    Foreground="{StaticResource TextPrimaryBrush}"
-                                    Padding="2"
-                                    Cursor="Hand">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="Transparent">
-                                            <fa:IconImage Icon="TimesCircle" Width="14" Height="14" Foreground="{StaticResource TextPrimaryBrush}" Opacity="0.8" />
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
+                                    CommandParameter="{Binding}" Margin="10,0,0,0" Background="Transparent" BorderThickness="0">
+                                <TextBlock Text="✕" Foreground="White" FontSize="12" />
                             </Button>
                         </StackPanel>
                     </Border>
@@ -137,97 +194,92 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <!-- 3. ADDITIONAL SELECTOR -->
-        <Border Grid.Row="2" Padding="20,5,20,15">
+        <!-- ROW 3: SELECTOR -->
+        <Border Grid.Row="3" Padding="25,10,25,15">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Add Machine:" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                <TextBlock Text="{x:Static p:Resources.Col_Machine}" Foreground="{DynamicResource Theme.Text.Primary}"
+                           VerticalAlignment="Center" Margin="0,0,15,0" FontSize="15" FontWeight="SemiBold" />
 
-                <ComboBox Width="200"
+                <ComboBox Width="200" Height="38"
                           ItemsSource="{Binding MachineFilterList}"
-                          StaysOpenOnEdit="True"
-                          IsEditable="True"
-                          IsReadOnly="True"
-                          Text="-- Select --"
-                          Background="{StaticResource InputBackgroundBrush}"
-                          Foreground="Black">
+                          IsEditable="True" IsReadOnly="True"
+                          Text="{x:Static p:Resources.PleaseSelect}"
+                          Background="{DynamicResource Theme.Combo.Background}"
+                          Foreground="{DynamicResource Theme.Combo.Foreground}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
-                            <CheckBox Content="{Binding Name}" IsChecked="{Binding IsChecked}" Margin="5" />
+                            <CheckBox Content="{Binding Name}" IsChecked="{Binding IsChecked}" Margin="5" FontSize="15" />
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
 
-                <Button Content="Add to Filter" Command="{Binding ApplyFilterCommand}" Margin="10,0,0,0"
-                        Background="{StaticResource PanelBackgroundBrush}"
-                        BorderBrush="{StaticResource TextMutedBrush}"
-                        BorderThickness="1" />
+                <Button Content="{x:Static p:Resources.Add}" Command="{Binding ApplyFilterCommand}" Margin="15,0,0,0" Height="38" />
             </StackPanel>
         </Border>
 
-        <!-- 4. DATA GRID -->
-        <DataGrid Grid.Row="3"
+        <!-- ROW 4: DATA GRID (20% Size Increase & Theme Support) -->
+        <DataGrid Grid.Row="4"
                   ItemsSource="{Binding DisplayedItems}"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   IsReadOnly="True"
+                  HeadersVisibility="Column"
                   GridLinesVisibility="Horizontal"
-                  HorizontalGridLinesBrush="{StaticResource InputBackgroundBrush}"
+                  HorizontalGridLinesBrush="{DynamicResource Theme.Grid.Lines}"
                   VerticalGridLinesBrush="Transparent"
-                  RowHeight="35"
-                  Background="{StaticResource AppBackgroundBrush}"
+                  RowHeight="45"
+                  FontSize="15"
+                  Background="Transparent"
                   BorderThickness="0"
-                  Margin="20,0,20,10">
+                  Margin="25,0,25,10">
+
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="{DynamicResource Theme.Grid.Header}" />
+                    <Setter Property="Foreground" Value="{DynamicResource Theme.Accent}" />
+                    <Setter Property="Padding" Value="12,12" />
+                    <Setter Property="FontWeight" Value="Bold" />
+                    <Setter Property="FontSize" Value="14" />
+                    <Setter Property="BorderThickness" Value="0,0,0,2" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
+
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="Background" Value="{DynamicResource Theme.Grid.Row}" />
+                    <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Primary}" />
+                    <Setter Property="BorderThickness" Value="0,0,0,1" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Grid.Lines}" />
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource Theme.Accent}" />
+                            <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource Theme.Grid.Header}" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
 
             <DataGrid.Columns>
-                <!-- Date -->
-                <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd.MM.yyyy}" Width="100" Foreground="{StaticResource TextPrimaryBrush}" />
-
-                <!-- Shift -->
-                <DataGridTextColumn Header="Shift" Binding="{Binding Shift}" Width="60" Foreground="{StaticResource TextSecondaryBrush}" />
-
-                <!-- Machine -->
-                <DataGridTextColumn Header="Machine" Binding="{Binding MachineCode}" Width="90" FontWeight="Bold" Foreground="{StaticResource HighlightBrush}" />
-
-                <!-- Timeline -->
-                <DataGridTextColumn Header="Timeline"
-                                    Binding="{Binding TimeRange}"
-                                    SortMemberPath="StartTime"
-                                    Width="120"
-                                    Foreground="{StaticResource TextPrimaryBrush}" />
-
-                <!-- Duration -->
-                <DataGridTextColumn Header="Duration"
-                                    Binding="{Binding DurationText}"
-                                    SortMemberPath="DurationMinutes"
-                                    Width="90"
-                                    Foreground="{StaticResource SuccessBrush}"
-                                    FontWeight="Bold">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="HorizontalAlignment" Value="Right" />
-                            <Setter Property="Padding" Value="0,0,15,0" />
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-
-                <!-- Error -->
-                <DataGridTextColumn Header="Description" Binding="{Binding ErrorMessage}" Width="*" Foreground="#DDD" />
+                <DataGridTextColumn Header="{x:Static p:Resources.Col_Date}" Binding="{Binding Date, StringFormat=dd.MM.yyyy}" Width="130" />
+                <DataGridTextColumn Header="{x:Static p:Resources.Col_Machine}" Binding="{Binding MachineCode}" Width="130" FontWeight="Bold" />
+                <DataGridTextColumn Header="{x:Static p:Resources.Col_Timeline}" Binding="{Binding TimeRange}" Width="180" />
+                <DataGridTextColumn Header="{x:Static p:Resources.Col_Duration}" Binding="{Binding DurationText}" Width="110" FontWeight="Bold" />
+                <DataGridTextColumn Header="{x:Static p:Resources.Col_Description}" Binding="{Binding ErrorMessage}" Width="*" />
             </DataGrid.Columns>
         </DataGrid>
 
-        <!-- 5. FOOTER -->
-        <Border Grid.Row="4" Background="{StaticResource SuccessBrush}" Padding="15">
+        <!-- ROW 5: FOOTER -->
+        <Border Grid.Row="5" Background="{DynamicResource Theme.Footer}" Padding="20">
             <Grid>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                    <TextBlock Text="Total Records:" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
-                    <TextBlock Text="{Binding RecordCount}" Margin="5,0,20,0" Foreground="{StaticResource TextPrimaryBrush}" />
-
-                    <TextBlock Text="Total Downtime:" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
-                    <TextBlock Text="{Binding TotalDurationText}" Margin="5,0,0,0" Foreground="{StaticResource TextPrimaryBrush}" FontWeight="Bold" />
-                </StackPanel>
-
-                <Button Content="Close" Click="CloseButton_Click" HorizontalAlignment="Right" Width="100"
-                        Background="Transparent" BorderBrush="White" BorderThickness="1" />
+                <!-- Redesigned CLOSE Button -->
+                <Button Content="{x:Static p:Resources.Cancel}"
+                        Style="{StaticResource FooterCloseButtonStyle}"
+                        Click="CloseButton_Click"
+                        HorizontalAlignment="Right" />
             </Grid>
         </Border>
     </Grid>

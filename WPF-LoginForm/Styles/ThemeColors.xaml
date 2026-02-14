@@ -4,7 +4,7 @@
     <!-- 1. BACKGROUNDS -->
     <SolidColorBrush x:Key="AppBackgroundBrush" Color="#050348" />
     <!-- Main Window Background -->
-    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#140B85" />
+    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#1E177A" />
     <!-- Headers/Panels -->
     <SolidColorBrush x:Key="InputBackgroundBrush" Color="#1F2125" />
     <!-- TextBoxes/Combos -->
@@ -22,19 +22,37 @@
 
     <!-- 4. SELECTION & HIGHLIGHTS -->
     <!-- Your Color: #0077ba -->
-    <SolidColorBrush x:Key="HighlightBrush" Color="#80256A90" />
+    <SolidColorBrush x:Key="HighlightBrush" Color="#8096D2F3" />
 
     <!-- 5. STATUS / FOOTER -->
     <!-- Your Color: #24852d (Green) -->
-    <SolidColorBrush x:Key="SuccessBrush" Color="#24852d" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="#26A732" />
 
     <!-- 6. TEXT COLORS -->
     <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#AAAAAA" />
-    <SolidColorBrush x:Key="TextMutedBrush" Color="#888888" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#E6E7ED" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#DFE2F9" />
 
     <!-- 7. DATAGRID SPECIFIC -->
-    <SolidColorBrush x:Key="RowBackgroundBrush" Color="#252525" />
-    <SolidColorBrush x:Key="AltRowBackgroundBrush" Color="#2A2A2A" />
-    <SolidColorBrush x:Key="GridLineBrush" Color="#444444" />
+    <SolidColorBrush x:Key="RowBackgroundBrush" Color="#383839" />
+    <SolidColorBrush x:Key="AltRowBackgroundBrush" Color="#464648" />
+    <SolidColorBrush x:Key="GridLineBrush" Color="#303030" />
+
+    <!-- === CUSTOM THEME ADDITIONS === -->
+    <!-- Dark Blue for the Window Title Bar -->
+    <SolidColorBrush x:Key="TitleBarDarkBlueBrush" Color="#001B3D" />
+
+    <!-- Independent Blue for Scrollbars -->
+    <SolidColorBrush x:Key="ScrollBarThumbBlueBrush" Color="#0078D7" />
+    <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#1A1A1A" />
+
+    <!-- === NEW: CUSTOM COLORS FOR ERROR WINDOW === -->
+    <!-- 1. Dark Blue for Top Title Bar -->
+    <SolidColorBrush x:Key="TitleBarDarkBlue" Color="#00008B" />
+
+    <!-- 2. Blue for Scrollbar Thumb -->
+    <SolidColorBrush x:Key="ScrollBarBlueBrush" Color="#007ACC" />
+
+    <!-- 3. White Brush for specific columns -->
+    <SolidColorBrush x:Key="TextWhiteBrush" Color="#FFFFFF" />
 </ResourceDictionary>

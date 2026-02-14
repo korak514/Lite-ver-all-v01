@@ -14,6 +14,7 @@
                 <ResourceDictionary Source="/Styles/ButtonStyles.xaml" />
                 <!-- 2. Theme Second (uses Colors) -->
                 <ResourceDictionary Source="/Styles/ThemeColors.xaml" />
+                <ResourceDictionary Source="/Styles/Themes/DarkTheme.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Global Converters -->
