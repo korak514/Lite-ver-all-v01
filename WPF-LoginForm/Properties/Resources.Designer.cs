@@ -106,7 +106,7 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Exclude Machine 00.
+        ///   Looks up a localized string similar to Meal and Breaks Excluded.
         /// </summary>
         public static string Ana_ExcludeMachine00 {
             get {

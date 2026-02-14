@@ -12,6 +12,8 @@
                 <ResourceDictionary Source="/Styles/UIColors.xaml" />
                 <!-- 2. Styles Second (uses Colors) -->
                 <ResourceDictionary Source="/Styles/ButtonStyles.xaml" />
+                <!-- 2. Theme Second (uses Colors) -->
+                <ResourceDictionary Source="/Styles/ThemeColors.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Global Converters -->

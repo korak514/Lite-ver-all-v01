@@ -131,10 +131,30 @@ namespace WPF_LoginForm.ViewModels
         // --- Navigation Logic ---
 
         private void DeactivateCurrentView()
-        { if (_currentChildView is HomeViewModel homeViewModel) homeViewModel.Deactivate(); }
+        {
+            if (_currentChildView is HomeViewModel homeViewModel)
+            {
+                homeViewModel.Deactivate();
+            }
+            else if (_currentChildView is ErrorManagementViewModel errorViewModel)
+            {
+                // We notify it's inactive, but we WON'T stop the data timer (per your request)
+                errorViewModel.IsActiveView = false;
+            }
+        }
 
         private void ActivateCurrentView()
-        { if (_currentChildView is HomeViewModel homeViewModel) homeViewModel.Activate(); }
+        {
+            if (_currentChildView is HomeViewModel homeViewModel)
+            {
+                homeViewModel.Activate();
+            }
+            else if (_currentChildView is ErrorManagementViewModel errorViewModel)
+            {
+                // This wakes up the charts "like the dashboard page"
+                errorViewModel.Activate();
+            }
+        }
 
         private void ExecuteShowHomeViewCommand(object obj)
         {
@@ -203,14 +223,13 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteShowErrorViewCommand(object obj)
         {
-            // FIX: Reuse the existing instance to preserve state (Bug Fix A)
             if (_errorViewModel == null)
             {
                 _errorViewModel = new ErrorManagementViewModel(_dataRepository);
                 _errorViewModel.DrillDownRequested += OnErrorDrillDown;
             }
 
-            CurrentChildView = _errorViewModel;
+            CurrentChildView = _errorViewModel; // This triggers Deactivate old -> Activate new
             Caption = "Error Analytics";
             Icon = IconChar.PieChart;
         }
@@ -220,58 +239,13 @@ namespace WPF_LoginForm.ViewModels
         {
             try
             {
-                // 1. Fetch Raw Data
+                // 1. Fetch Raw Data (All errors for this table and date range)
                 var rawData = await _dataRepository.GetErrorDataAsync(start, end, tableName);
 
-                IEnumerable<ErrorEventModel> filteredData;
-
-                // 2. Determine Filter Logic
-                if (filterText.StartsWith("MA-"))
-                {
-                    var parts = filterText.Split('-');
-
-                    // Expected formats:
-                    // "MA-01" -> Length 2
-                    // "MA-01-ELECTRICAL" -> Length 3
-                    // "MA-01-HIGH-VOLTAGE" -> Length 4
-
-                    if (parts.Length >= 2)
-                    {
-                        string machineCode = parts[1]; // "01"
-
-                        // Base Filter: Machine Code matches "01"
-                        var query = rawData.Where(x => x.MachineCode == machineCode);
-
-                        // Secondary Filter: If we have extra parts, it's a Category filter
-                        if (parts.Length > 2)
-                        {
-                            // Rejoin the rest (e.g., "ELECTRICAL" or "HIGH-VOLTAGE")
-                            string categoryFilter = string.Join("-", parts.Skip(2));
-
-                            // Apply Contains check (Case Insensitive)
-                            query = query.Where(x => x.ErrorDescription != null &&
-                                                     x.ErrorDescription.IndexOf(categoryFilter, StringComparison.OrdinalIgnoreCase) >= 0);
-                        }
-
-                        filteredData = query;
-                    }
-                    else
-                    {
-                        // Fallback for weird formats
-                        filteredData = rawData.Where(x => x.MachineCode == filterText);
-                    }
-                }
-                else
-                {
-                    // Bar Chart Click (Reason text)
-                    filteredData = rawData.Where(x => x.ErrorDescription != null &&
-                                                      x.ErrorDescription.IndexOf(filterText, StringComparison.OrdinalIgnoreCase) >= 0);
-                }
-
-                // 3. Convert to UI List
+                // 2. Convert ALL to UI models (Do not filter here!)
                 var uiList = new ObservableCollection<ErrorLogItem>();
 
-                foreach (var item in filteredData)
+                foreach (var item in rawData)
                 {
                     var logItem = new ErrorLogItem
                     {
@@ -279,18 +253,18 @@ namespace WPF_LoginForm.ViewModels
                         Shift = item.Shift,
                         StartTime = FormatTime(item.StartTime),
                         DurationMinutes = item.DurationMinutes,
-                        MachineCode = "MA-" + item.MachineCode,
+                        MachineCode = "MA-" + item.MachineCode, // Ensure prefix consistency
                         ErrorMessage = item.ErrorDescription,
                         EndTime = CalculateEndTime(item.StartTime, item.DurationMinutes)
                     };
                     uiList.Add(logItem);
                 }
 
-                // 4. Open Window
+                // 3. Open Window (Pass the FULL list and the FILTER TEXT)
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    string title = $"{filterText} ({uiList.Count})";
-                    var drillDownVM = new ErrorDrillDownViewModel(uiList, title);
+                    // We pass 'filterText' so the ViewModel knows what chip to create initially
+                    var drillDownVM = new ErrorDrillDownViewModel(uiList, tableName, filterText);
                     var drillDownWindow = new ErrorDrillDownWindow { DataContext = drillDownVM };
 
                     if (Application.Current.MainWindow != null)

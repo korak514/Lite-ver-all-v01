@@ -3,181 +3,232 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:p="clr-namespace:WPF_LoginForm.Properties"
+        xmlns:fa="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
         mc:Ignorable="d"
         Title="{Binding WindowTitle}"
-        Height="600" Width="1000"
+        Height="650" Width="950"
         WindowStartupLocation="CenterOwner"
-        Background="#F4F6F9">
+        Background="{StaticResource AppBackgroundBrush}">
 
     <Window.Resources>
-        <Style TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="Segoe UI" />
+        <!-- SCROLLBAR STYLE -->
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="{StaticResource InputBackgroundBrush}" />
+        </Style>
+
+        <!-- DATAGRID HEADER -->
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="{StaticResource PrimaryAccentBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="BorderBrush" Value="{StaticResource HighlightBrush}" />
+            <Setter Property="BorderThickness" Value="0,0,1,0" />
+        </Style>
+
+        <!-- DATAGRID ROW -->
+        <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="{StaticResource RowBackgroundBrush}" />
+            <Setter Property="Foreground" Value="#E0E0E0" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource InputBackgroundBrush}" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource HighlightBrush}" />
+                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- BUTTON STYLE -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryAccentBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Padding" Value="15,6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource PrimaryHoverBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- CHIP STYLE (The Filter Boxes) -->
+        <Style x:Key="FilterChipStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SecondaryAccentBrush}" />
+            <Setter Property="CornerRadius" Value="15" />
+            <Setter Property="Padding" Value="10,4,10,4" />
+            <Setter Property="Margin" Value="0,0,8,0" />
         </Style>
     </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <!-- Header Stats -->
+            <!-- Title -->
+            <RowDefinition Height="Auto" />
+            <!-- Active Filters (Chips) -->
+            <RowDefinition Height="Auto" />
+            <!-- Combo Selector -->
             <RowDefinition Height="*" />
-            <!-- Data Grid -->
+            <!-- Grid -->
             <RowDefinition Height="Auto" />
             <!-- Footer -->
         </Grid.RowDefinitions>
 
-        <!-- 1. HEADER & STATS -->
-        <Border Background="#2C3E50" Padding="20">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <!-- Title Section -->
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="{x:Static p:Resources.Drill_Title}"
-                               FontSize="14" Foreground="#BDC3C7" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding WindowTitle}"
-                               FontSize="22" FontWeight="Bold" Foreground="White"
-                               TextTrimming="CharacterEllipsis" Margin="0,5,0,0" />
+        <!-- 1. HEADER -->
+        <Border Grid.Row="0" Background="{StaticResource PanelBackgroundBrush}" Padding="20,15">
+            <DockPanel>
+                <fa:IconImage Icon="Filter" Foreground="{StaticResource PrimaryAccentBrush}" Height="24" Margin="0,0,10,0" />
+                <StackPanel>
+                    <TextBlock Text="{Binding WindowTitle}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                    <TextBlock Text="Detailed Error Analysis" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
                 </StackPanel>
-
-                <!-- Stats Cards -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <!-- Record Count Card -->
-                    <Border Background="#34495E" CornerRadius="6" Padding="15,8" Margin="0,0,15,0">
-                        <StackPanel>
-                            <TextBlock Text="{x:Static p:Resources.Drill_Count}"
-                                       Foreground="#BDC3C7" FontSize="11" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding RecordCount}"
-                                       Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Duration Card -->
-                    <Border Background="#E74C3C" CornerRadius="6" Padding="15,8">
-                        <StackPanel>
-                            <TextBlock Text="{x:Static p:Resources.Drill_TotalDuration}"
-                                       Foreground="White" Opacity="0.9" FontSize="11" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding TotalDurationText}"
-                                       Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </Grid>
+            </DockPanel>
         </Border>
 
-        <!-- 2. MODERN DATA GRID -->
-        <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding ErrorList}"
+        <!-- 2. ACTIVE FILTERS (CHIPS) -->
+        <ItemsControl Grid.Row="1" ItemsSource="{Binding ActiveFilters}" Margin="20,15,20,5">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource FilterChipStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Label}" Foreground="{StaticResource TextPrimaryBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+
+                            <!-- X Button to Remove -->
+                            <Button Command="{Binding DataContext.RemoveFilterChipCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    Margin="8,0,0,0"
+                                    Background="Transparent"
+                                    Foreground="{StaticResource TextPrimaryBrush}"
+                                    Padding="2"
+                                    Cursor="Hand">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="Transparent">
+                                            <fa:IconImage Icon="TimesCircle" Width="14" Height="14" Foreground="{StaticResource TextPrimaryBrush}" Opacity="0.8" />
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- 3. ADDITIONAL SELECTOR -->
+        <Border Grid.Row="2" Padding="20,5,20,15">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Add Machine:" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+
+                <ComboBox Width="200"
+                          ItemsSource="{Binding MachineFilterList}"
+                          StaysOpenOnEdit="True"
+                          IsEditable="True"
+                          IsReadOnly="True"
+                          Text="-- Select --"
+                          Background="{StaticResource InputBackgroundBrush}"
+                          Foreground="Black">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Content="{Binding Name}" IsChecked="{Binding IsChecked}" Margin="5" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <Button Content="Add to Filter" Command="{Binding ApplyFilterCommand}" Margin="10,0,0,0"
+                        Background="{StaticResource PanelBackgroundBrush}"
+                        BorderBrush="{StaticResource TextMutedBrush}"
+                        BorderThickness="1" />
+            </StackPanel>
+        </Border>
+
+        <!-- 4. DATA GRID -->
+        <DataGrid Grid.Row="3"
+                  ItemsSource="{Binding DisplayedItems}"
                   AutoGenerateColumns="False"
+                  CanUserAddRows="False"
                   IsReadOnly="True"
-                  HeadersVisibility="Column"
                   GridLinesVisibility="Horizontal"
-                  Background="White"
+                  HorizontalGridLinesBrush="{StaticResource InputBackgroundBrush}"
+                  VerticalGridLinesBrush="Transparent"
+                  RowHeight="35"
+                  Background="{StaticResource AppBackgroundBrush}"
                   BorderThickness="0"
-                  RowHeight="50"
-                  HorizontalGridLinesBrush="#EEEEEE"
-                  VerticalGridLinesBrush="Transparent">
-
-            <DataGrid.Resources>
-                <!-- Column Header Style -->
-                <Style TargetType="DataGridColumnHeader">
-                    <Setter Property="Background" Value="White" />
-                    <Setter Property="Foreground" Value="#7F8C8D" />
-                    <Setter Property="FontWeight" Value="Bold" />
-                    <Setter Property="Padding" Value="10,15" />
-                    <Setter Property="BorderBrush" Value="#EEEEEE" />
-                    <Setter Property="BorderThickness" Value="0,0,0,2" />
-                </Style>
-
-                <!-- Cell Style -->
-                <Style TargetType="DataGridCell">
-                    <Setter Property="Padding" Value="12,0" />
-                    <Setter Property="BorderThickness" Value="0" />
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="DataGridCell">
-                                <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
-                                    <ContentPresenter VerticalAlignment="Center" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
-                                </Border>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-            </DataGrid.Resources>
+                  Margin="20,0,20,10">
 
             <DataGrid.Columns>
-                <!-- Date & Shift -->
-                <DataGridTemplateColumn Header="{x:Static p:Resources.Col_DateContext}" Width="140">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <StackPanel>
-                                <TextBlock Text="{Binding Date, StringFormat=dd.MMM.yyyy}"
-                                           FontWeight="Bold" Foreground="#2C3E50" />
-                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                    <TextBlock Text="{x:Static p:Resources.Col_Shift}" FontSize="11" Foreground="#95A5A6" />
-                                    <TextBlock Text="{Binding Shift}" FontSize="11" Foreground="#7F8C8D" Margin="4,0,0,0" FontWeight="SemiBold" />
-                                </StackPanel>
-                            </StackPanel>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                <!-- Date -->
+                <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd.MM.yyyy}" Width="100" Foreground="{StaticResource TextPrimaryBrush}" />
 
-                <!-- Timeline Visual -->
-                <DataGridTemplateColumn Header="{x:Static p:Resources.Col_Timeline}" Width="160">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Border Background="#ECF0F1" CornerRadius="4" Padding="8,4" HorizontalAlignment="Left">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding StartTime}" FontWeight="Bold" Foreground="#2980B9" />
-                                    <TextBlock Text=" ➝ " Foreground="#BDC3C7" Margin="5,0" />
-                                    <TextBlock Text="{Binding EndTime}" FontWeight="Bold" Foreground="#2980B9" />
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                <!-- Shift -->
+                <DataGridTextColumn Header="Shift" Binding="{Binding Shift}" Width="60" Foreground="{StaticResource TextSecondaryBrush}" />
+
+                <!-- Machine -->
+                <DataGridTextColumn Header="Machine" Binding="{Binding MachineCode}" Width="90" FontWeight="Bold" Foreground="{StaticResource HighlightBrush}" />
+
+                <!-- Timeline -->
+                <DataGridTextColumn Header="Timeline"
+                                    Binding="{Binding TimeRange}"
+                                    SortMemberPath="StartTime"
+                                    Width="120"
+                                    Foreground="{StaticResource TextPrimaryBrush}" />
 
                 <!-- Duration -->
-                <DataGridTextColumn Header="{x:Static p:Resources.Col_Duration}"
+                <DataGridTextColumn Header="Duration"
                                     Binding="{Binding DurationText}"
-                                    Width="100" FontWeight="SemiBold" Foreground="#34495E" />
+                                    SortMemberPath="DurationMinutes"
+                                    Width="90"
+                                    Foreground="{StaticResource SuccessBrush}"
+                                    FontWeight="Bold">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right" />
+                            <Setter Property="Padding" Value="0,0,15,0" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
 
-                <!-- Machine Code -->
-                <DataGridTemplateColumn Header="{x:Static p:Resources.Col_Machine}" Width="110">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Border BorderBrush="#BDC3C7" BorderThickness="1" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left">
-                                <TextBlock Text="{Binding MachineCode}" FontWeight="Bold" Foreground="#2C3E50" />
-                            </Border>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-
-                <!-- Error Description -->
-                <DataGridTemplateColumn Header="{x:Static p:Resources.Col_Description}" Width="*">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding ErrorMessage}"
-                                       Foreground="#C0392B" FontWeight="Medium"
-                                       TextTrimming="CharacterEllipsis"
-                                       ToolTip="{Binding ErrorMessage}" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                <!-- Error -->
+                <DataGridTextColumn Header="Description" Binding="{Binding ErrorMessage}" Width="*" Foreground="#DDD" />
             </DataGrid.Columns>
         </DataGrid>
 
-        <!-- 3. FOOTER -->
-        <Border Grid.Row="2" Background="White" Padding="15" BorderBrush="#EEEEEE" BorderThickness="0,1,0,0">
-            <Button Content="{x:Static p:Resources.Ok}"
-                    Width="100" Height="35"
-                    HorizontalAlignment="Right"
-                    Click="CloseButton_Click"
-                    Background="#ECF0F1" Foreground="#2C3E50" FontWeight="Bold"
-                    BorderThickness="0" />
+        <!-- 5. FOOTER -->
+        <Border Grid.Row="4" Background="{StaticResource SuccessBrush}" Padding="15">
+            <Grid>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                    <TextBlock Text="Total Records:" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                    <TextBlock Text="{Binding RecordCount}" Margin="5,0,20,0" Foreground="{StaticResource TextPrimaryBrush}" />
+
+                    <TextBlock Text="Total Downtime:" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                    <TextBlock Text="{Binding TotalDurationText}" Margin="5,0,0,0" Foreground="{StaticResource TextPrimaryBrush}" FontWeight="Bold" />
+                </StackPanel>
+
+                <Button Content="Close" Click="CloseButton_Click" HorizontalAlignment="Right" Width="100"
+                        Background="Transparent" BorderBrush="White" BorderThickness="1" />
+            </Grid>
         </Border>
     </Grid>
 </Window>

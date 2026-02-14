@@ -24,5 +24,10 @@ namespace WPF_LoginForm.Views
         {
             InitializeComponent();
         }
+
+        private void DataGrid_SelectionChanged()
+        {
+
+        }
     }
 }

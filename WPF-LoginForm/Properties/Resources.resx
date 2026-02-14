@@ -1,397 +1,393 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
-	Microsoft ResX Schema 
-	
-	Version 2.0
-	
-	The primary goals of this format is to allow a simple XML format 
-	that is mostly human readable. The generation and parsing of the 
-	various data types are done through the TypeConverter classes 
-	associated with the data types.
-	
-	Example:
-	
-	... ado.net/XML headers & schema ...
-	<resheader name="resmimetype">text/microsoft-resx</resheader>
-	<resheader name="version">2.0</resheader>
-	<resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
-	<resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
-	<data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
-	<data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
-	<data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
-		<value>[base64 mime encoded serialized .NET Framework object]</value>
-	</data>
-	<data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-		<value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
-		<comment>This is a comment</comment>
-	</data>
-				
-	There are any number of "resheader" rows that contain simple 
-	name/value pairs.
-	
-	Each data row contains a name, and value. The row also contains a 
-	type or mimetype. Type corresponds to a .NET class that support 
-	text/value conversion through the TypeConverter architecture. 
-	Classes that don't support this are serialized and stored with the 
-	mimetype set.
-	
-	The mimetype is used for serialized objects, and tells the 
-	ResXResourceReader how to depersist the object. This is currently not 
-	extensible. For a given mimetype the value must be set accordingly:
-	
-	Note - application/x-microsoft.net.object.binary.base64 is the format 
-	that the ResXResourceWriter will generate, however the reader can 
-	read any of the formats listed below.
-	
-	mimetype: application/x-microsoft.net.object.binary.base64
-	value   : The object must be serialized with 
-			: System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
-			: and then encoded with base64 encoding.
-	
-	mimetype: application/x-microsoft.net.object.soap.base64
-	value   : The object must be serialized with 
-			: System.Runtime.Serialization.Formatters.Soap.SoapFormatter
-			: and then encoded with base64 encoding.
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
 
-	mimetype: application/x-microsoft.net.object.bytearray.base64
-	value   : The object must be serialized into a byte array 
-			: using a System.ComponentModel.TypeConverter
-			: and then encoded with base64 encoding.
-	-->
-	<xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
-			<xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
-			<xsd:element name="root" msdata:IsDataSet="true">
-				<xsd:complexType>
-					<xsd:choice maxOccurs="unbounded">
-						<xsd:element name="metadata">
-							<xsd:complexType>
-								<xsd:sequence>
-									<xsd:element name="value" type="xsd:string" minOccurs="0" />
-								</xsd:sequence>
-								<xsd:attribute name="name" use="required" type="xsd:string" />
-								<xsd:attribute name="type" type="xsd:string" />
-								<xsd:attribute name="mimetype" type="xsd:string" />
-								<xsd:attribute ref="xml:space" />
-							</xsd:complexType>
-						</xsd:element>
-						<xsd:element name="assembly">
-							<xsd:complexType>
-								<xsd:attribute name="alias" type="xsd:string" />
-								<xsd:attribute name="name" type="xsd:string" />
-							</xsd:complexType>
-						</xsd:element>
-						<xsd:element name="data">
-							<xsd:complexType>
-								<xsd:sequence>
-									<xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
-									<xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
-								</xsd:sequence>
-								<xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
-								<xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
-								<xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
-								<xsd:attribute ref="xml:space" />
-							</xsd:complexType>
-						</xsd:element>
-						<xsd:element name="resheader">
-							<xsd:complexType>
-								<xsd:sequence>
-									<xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
-								</xsd:sequence>
-								<xsd:attribute name="name" type="xsd:string" use="required" />
-							</xsd:complexType>
-						</xsd:element>
-					</xsd:choice>
-				</xsd:complexType>
-			</xsd:element>
-		</xsd:schema>
-		<resheader name="resmimetype">
-			<value>text/microsoft-resx</value>
-		</resheader>
-		<resheader name="version">
-			<value>2.0</value>
-		</resheader>
-		<resheader name="reader">
-			<value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-		</resheader>
-		<resheader name="writer">
-			<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-		</resheader>
-		<!-- CRITICAL: Add this line to make the Resources class public -->
-		<resheader name="codegen">
-			<value>PublicResXFileCodeGenerator</value>
-		</resheader>
-		<data name="Add" xml:space="preserve">
-	<value>Add</value>
-  </data>
-		<data name="AddDataLine" xml:space="preserve">
-	<value>Add Data Entry Line</value>
-  </data>
-		<data name="AddId" xml:space="preserve">
-	<value>Add ID Column</value>
-  </data>
-		<data name="AppSettings" xml:space="preserve">
-	<value>Application Settings</value>
-  </data>
-		<data name="Cancel" xml:space="preserve">
-	<value>Cancel</value>
-  </data>
-		<data name="Clear" xml:space="preserve">
-	<value>Clear</value>
-  </data>
-		<data name="CreateNewTable" xml:space="preserve">
-	<value>Create Table...</value>
-  </data>
-		<data name="Customers" xml:space="preserve">
-	<value>Customers</value>
-  </data>
-		<data name="Dashboard" xml:space="preserve">
-	<value>Dashboard</value>
-  </data>
-		<data name="DbProvider" xml:space="preserve">
-	<value>Database Provider:</value>
-  </data>
-		<data name="Delete" xml:space="preserve">
-	<value>Delete</value>
-  </data>
-		<data name="Edit" xml:space="preserve">
-	<value>Edit</value>
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="AddDataLine" xml:space="preserve">
+    <value>Add Data Entry Line</value>
+  </data>
+  <data name="AddId" xml:space="preserve">
+    <value>Add ID Column</value>
+  </data>
+  <data name="AppSettings" xml:space="preserve">
+    <value>Application Settings</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="CreateNewTable" xml:space="preserve">
+    <value>Create Table...</value>
+  </data>
+  <data name="Customers" xml:space="preserve">
+    <value>Customers</value>
+  </data>
+  <data name="Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="DbProvider" xml:space="preserve">
+    <value>Database Provider:</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="EditId" xml:space="preserve">
+    <value>Edit ID</value>
   </data>
-		<data name="EditId" xml:space="preserve">
-	<value>Edit ID</value>
+  <data name="EntryDate" xml:space="preserve">
+    <value>Entry Date:</value>
   </data>
-		<data name="EntryDate" xml:space="preserve">
-	<value>Entry Date:</value>
+  <data name="Export" xml:space="preserve">
+    <value>Export</value>
   </data>
-		<data name="Export" xml:space="preserve">
-	<value>Export</value>
+  <data name="FilterbyDate" xml:space="preserve">
+    <value>Filter by Date:</value>
   </data>
-		<data name="FilterbyDate" xml:space="preserve">
-	<value>Filter by Date:</value>
+  <data name="ForgotPassword" xml:space="preserve">
+    <value>Forgot Password?</value>
   </data>
-		<data name="ForgotPassword" xml:space="preserve">
-	<value>Forgot Password?</value>
+  <data name="GeneralSettings" xml:space="preserve">
+    <value>General Settings</value>
   </data>
-		<data name="GeneralSettings" xml:space="preserve">
-	<value>General Settings</value>
+  <data name="Help" xml:space="preserve">
+    <value>Help</value>
   </data>
-		<data name="Help" xml:space="preserve">
-	<value>Help</value>
+  <data name="HideId" xml:space="preserve">
+    <value>Hide ID</value>
   </data>
-		<data name="HideId" xml:space="preserve">
-	<value>Hide ID</value>
+  <data name="Import" xml:space="preserve">
+    <value>Import</value>
   </data>
-		<data name="Import" xml:space="preserve">
-	<value>Import</value>
+  <data name="Language" xml:space="preserve">
+    <value>Application Language:</value>
   </data>
-		<data name="Language" xml:space="preserve">
-	<value>Application Language:</value>
+  <data name="LoadFullHistory" xml:space="preserve">
+    <value>Load Full History</value>
   </data>
-		<data name="LoadFullHistory" xml:space="preserve">
-	<value>Load Full History</value>
+  <data name="LoginButton" xml:space="preserve">
+    <value>LOG IN</value>
   </data>
-		<data name="LoginButton" xml:space="preserve">
-	<value>LOG IN</value>
+  <data name="LoginTitle" xml:space="preserve">
+    <value>LOG IN</value>
   </data>
-		<data name="LoginTitle" xml:space="preserve">
-	<value>LOG IN</value>
+  <data name="LogOut" xml:space="preserve">
+    <value>Log Out</value>
   </data>
-		<data name="LogOut" xml:space="preserve">
-	<value>Log Out</value>
+  <data name="Logs" xml:space="preserve">
+    <value>System Logs</value>
   </data>
-		<data name="Logs" xml:space="preserve">
-	<value>System Logs</value>
+  <data name="Msg_AccessDeniedRole" xml:space="preserve">
+    <value>* Error: Access Denied (Role Verification Failed).</value>
   </data>
-		<data name="Msg_AccessDeniedRole" xml:space="preserve">
-	<value>* Error: Access Denied (Role Verification Failed).</value>
+  <data name="Msg_DbInitFailed" xml:space="preserve">
+    <value>Database initialization failed. Check credentials.</value>
   </data>
-		<data name="Msg_DbInitFailed" xml:space="preserve">
-	<value>Database initialization failed. Check credentials.</value>
+  <data name="Msg_InvalidCredentials" xml:space="preserve">
+    <value>* Invalid username or password</value>
   </data>
-		<data name="Msg_InvalidCredentials" xml:space="preserve">
-	<value>* Invalid username or password</value>
+  <data name="Msg_NetworkUnreachable" xml:space="preserve">
+    <value>Network unreachable.</value>
   </data>
-		<data name="Msg_NetworkUnreachable" xml:space="preserve">
-	<value>Network unreachable.</value>
+  <data name="Msg_SettingsSavedRestart" xml:space="preserve">
+    <value>Settings saved. Please RESTART the app to apply changes.</value>
   </data>
-		<data name="Msg_SettingsSavedRestart" xml:space="preserve">
-	<value>Settings saved. Please RESTART the app to apply changes.</value>
+  <data name="Msg_UserAdded" xml:space="preserve">
+    <value>User added successfully.</value>
   </data>
-		<data name="Msg_UserAdded" xml:space="preserve">
-	<value>User added successfully.</value>
+  <data name="Msg_UserDeleted" xml:space="preserve">
+    <value>User deleted successfully.</value>
   </data>
-		<data name="Msg_UserDeleted" xml:space="preserve">
-	<value>User deleted successfully.</value>
+  <data name="Nav_Customers" xml:space="preserve">
+    <value>Customers</value>
   </data>
-		<data name="Nav_Customers" xml:space="preserve">
-	<value>Customers</value>
+  <data name="Nav_Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
   </data>
-		<data name="Nav_Dashboard" xml:space="preserve">
-	<value>Dashboard</value>
+  <data name="Nav_Help" xml:space="preserve">
+    <value>Help</value>
   </data>
-		<data name="Nav_Help" xml:space="preserve">
-	<value>Help</value>
+  <data name="Nav_Logs" xml:space="preserve">
+    <value>System Logs</value>
   </data>
-		<data name="Nav_Logs" xml:space="preserve">
-	<value>System Logs</value>
+  <data name="Nav_Reports" xml:space="preserve">
+    <value>Reports</value>
   </data>
-		<data name="Nav_Reports" xml:space="preserve">
-	<value>Reports</value>
+  <data name="Nav_Settings" xml:space="preserve">
+    <value>Settings</value>
   </data>
-		<data name="Nav_Settings" xml:space="preserve">
-	<value>Settings</value>
+  <data name="Ok" xml:space="preserve">
+    <value>OK</value>
   </data>
-		<data name="Ok" xml:space="preserve">
-	<value>OK</value>
+  <data name="Password" xml:space="preserve">
+    <value>Password</value>
   </data>
-		<data name="Password" xml:space="preserve">
-	<value>Password</value>
+  <data name="PleaseSelect" xml:space="preserve">
+    <value>Please Select</value>
   </data>
-		<data name="PleaseSelect" xml:space="preserve">
-	<value>Please Select</value>
+  <data name="QuickSearch" xml:space="preserve">
+    <value>Quick Search:</value>
   </data>
-		<data name="QuickSearch" xml:space="preserve">
-	<value>Quick Search:</value>
+  <data name="Reload" xml:space="preserve">
+    <value>Reload</value>
   </data>
-		<data name="Reload" xml:space="preserve">
-	<value>Reload</value>
+  <data name="RenameColumn" xml:space="preserve">
+    <value>Rename Column</value>
   </data>
-		<data name="RenameColumn" xml:space="preserve">
-	<value>Rename Column</value>
+  <data name="ReportMode" xml:space="preserve">
+    <value>Only Report Mode</value>
   </data>
-		<data name="ReportMode" xml:space="preserve">
-	<value>Only Report Mode</value>
+  <data name="Reports" xml:space="preserve">
+    <value>Reports</value>
   </data>
-		<data name="Reports" xml:space="preserve">
-	<value>Reports</value>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
   </data>
-		<data name="Save" xml:space="preserve">
-	<value>Save</value>
+  <data name="SaveSettings" xml:space="preserve">
+    <value>Save All Changes</value>
   </data>
-		<data name="SaveSettings" xml:space="preserve">
-	<value>Save All Changes</value>
+  <data name="SelectAll" xml:space="preserve">
+    <value>Select All</value>
   </data>
-		<data name="SelectAll" xml:space="preserve">
-	<value>Select All</value>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
   </data>
-		<data name="Settings" xml:space="preserve">
-	<value>Settings</value>
+  <data name="Status_Loading" xml:space="preserve">
+    <value>Loading...</value>
   </data>
-		<data name="Status_Loading" xml:space="preserve">
-	<value>Loading...</value>
+  <data name="Status_Ready" xml:space="preserve">
+    <value>Ready</value>
   </data>
-		<data name="Status_Ready" xml:space="preserve">
-	<value>Ready</value>
+  <data name="Table" xml:space="preserve">
+    <value>Table:</value>
   </data>
-		<data name="Table" xml:space="preserve">
-	<value>Table:</value>
+  <data name="TestConnection" xml:space="preserve">
+    <value>Test Connection</value>
   </data>
-		<data name="TestConnection" xml:space="preserve">
-	<value>Test Connection</value>
+  <data name="Tip_CreateNewTable" xml:space="preserve">
+    <value>Create a new database table from Excel</value>
   </data>
-		<data name="Tip_CreateNewTable" xml:space="preserve">
-	<value>Create a new database table from Excel</value>
+  <data name="Tip_LoadFullHistory" xml:space="preserve">
+    <value>Uncheck for speed (Last 500 rows). Check to see everything.</value>
   </data>
-		<data name="Tip_LoadFullHistory" xml:space="preserve">
-	<value>Uncheck for speed (Last 500 rows). Check to see everything.</value>
+  <data name="Tip_RenameColumn" xml:space="preserve">
+    <value>Rename selected column</value>
   </data>
-		<data name="Tip_RenameColumn" xml:space="preserve">
-	<value>Rename selected column</value>
+  <data name="Today" xml:space="preserve">
+    <value>Today</value>
   </data>
-		<data name="Today" xml:space="preserve">
-	<value>Today</value>
+  <data name="Undo" xml:space="preserve">
+    <value>Undo</value>
   </data>
-		<data name="Undo" xml:space="preserve">
-	<value>Undo</value>
+  <data name="Username" xml:space="preserve">
+    <value>Username</value>
   </data>
-		<data name="Username" xml:space="preserve">
-	<value>Username</value>
+  <data name="Ana_Title" xml:space="preserve">
+    <value>Error Analytics Dashboard</value>
   </data>
-		<data name="Ana_Title" xml:space="preserve">
-	<value>Error Analytics Dashboard</value>
+  <data name="Ana_Table" xml:space="preserve">
+    <value>Table:</value>
   </data>
-		<data name="Ana_Table" xml:space="preserve">
-	<value>Table:</value>
+  <data name="Ana_Category" xml:space="preserve">
+    <value>Error Category:</value>
   </data>
-		<data name="Ana_Category" xml:space="preserve">
-	<value>Error Category:</value>
+  <data name="Ana_ExcludeMachine00" xml:space="preserve">
+    <value>Meal and Breaks Excluded</value>
   </data>
-		<data name="Ana_ExcludeMachine00" xml:space="preserve">
-	<value>Exclude Machine 00</value>
+  <data name="Ana_LoadData" xml:space="preserve">
+    <value>Load Data</value>
   </data>
-		<data name="Ana_LoadData" xml:space="preserve">
-	<value>Load Data</value>
+  <data name="Ana_StartDate" xml:space="preserve">
+    <value>Start Date</value>
   </data>
-		<data name="Ana_StartDate" xml:space="preserve">
-	<value>Start Date</value>
+  <data name="Ana_EndDate" xml:space="preserve">
+    <value>End Date</value>
   </data>
-		<data name="Ana_EndDate" xml:space="preserve">
-	<value>End Date</value>
+  <data name="Chart_LongestIncident" xml:space="preserve">
+    <value>Longest Incident Duration</value>
   </data>
-		<data name="Chart_LongestIncident" xml:space="preserve">
-	<value>Longest Incident Duration</value>
+  <data name="Chart_MachineDist" xml:space="preserve">
+    <value>Machine Breakdown (Total)</value>
   </data>
-		<data name="Chart_MachineDist" xml:space="preserve">
-	<value>Machine Breakdown (Total)</value>
+  <data name="Chart_ShiftDist" xml:space="preserve">
+    <value>Breakdown by Category</value>
   </data>
-		<data name="Chart_ShiftDist" xml:space="preserve">
-	<value>Breakdown by Category</value>
+  <data name="DurationText" xml:space="preserve">
+    <value>min</value>
   </data>
-		<data name="DurationText" xml:space="preserve">
-	<value>min</value>
+  <data name="Drill_Title" xml:space="preserve">
+    <value>Detailed Analysis</value>
   </data>
-		<data name="Drill_Title" xml:space="preserve">
-	<value>Detailed Analysis</value>
+  <data name="Drill_Count" xml:space="preserve">
+    <value>Record Count</value>
   </data>
-		<data name="Drill_Count" xml:space="preserve">
-	<value>Record Count</value>
+  <data name="Drill_TotalDuration" xml:space="preserve">
+    <value>Total Duration</value>
   </data>
-		<data name="Drill_TotalDuration" xml:space="preserve">
-	<value>Total Duration</value>
+  <data name="Col_DateContext" xml:space="preserve">
+    <value>Date / Context</value>
   </data>
-		<data name="Col_DateContext" xml:space="preserve">
-	<value>Date / Context</value>
+  <data name="Col_Timeline" xml:space="preserve">
+    <value>Timeline</value>
   </data>
-		<data name="Col_Timeline" xml:space="preserve">
-	<value>Timeline</value>
+  <data name="Col_Duration" xml:space="preserve">
+    <value>Duration</value>
   </data>
-		<data name="Col_Duration" xml:space="preserve">
-	<value>Duration</value>
+  <data name="Col_Machine" xml:space="preserve">
+    <value>Machine</value>
   </data>
-		<data name="Col_Machine" xml:space="preserve">
-	<value>Machine</value>
+  <data name="Col_Description" xml:space="preserve">
+    <value>Description</value>
   </data>
-		<data name="Col_Description" xml:space="preserve">
-	<value>Description</value>
+  <data name="Col_Shift" xml:space="preserve">
+    <value>Shift:</value>
   </data>
-		<data name="Col_Shift" xml:space="preserve">
-	<value>Shift:</value>
+  <data name="Str_Find" xml:space="preserve">
+    <value>Find</value>
   </data>
-		<data name="Str_Find" xml:space="preserve">
-	<value>Find</value>
+  <data name="Str_Replace" xml:space="preserve">
+    <value>Replace</value>
   </data>
-		<data name="Str_Replace" xml:space="preserve">
-	<value>Replace</value>
+  <data name="Str_FindWhat" xml:space="preserve">
+    <value>Find what:</value>
   </data>
-		<data name="Str_FindWhat" xml:space="preserve">
-	<value>Find what:</value>
+  <data name="Str_ReplaceWith" xml:space="preserve">
+    <value>Replace with:</value>
   </data>
-		<data name="Str_ReplaceWith" xml:space="preserve">
-	<value>Replace with:</value>
+  <data name="Str_MatchCase" xml:space="preserve">
+    <value>Match Case</value>
   </data>
-		<data name="Str_MatchCase" xml:space="preserve">
-	<value>Match Case</value>
+  <data name="Str_CategoryConfig" xml:space="preserve">
+    <value>Configure Categories</value>
   </data>
-		<data name="Str_CategoryConfig" xml:space="preserve">
-	<value>Configure Categories</value>
+  <data name="Str_MappingRule" xml:space="preserve">
+    <value>Starts With...</value>
   </data>
-		<data name="Str_MappingRule" xml:space="preserve">
-	<value>Starts With...</value>
+  <data name="Str_MapTo" xml:space="preserve">
+    <value>Group As...</value>
   </data>
-		<data name="Str_MapTo" xml:space="preserve">
-	<value>Group As...</value>
+  <data name="Unit_Minutes" xml:space="preserve">
+    <value>min</value>
   </data>
-		<data name="Unit_Minutes" xml:space="preserve">
-	<value>min</value>
-  </data>
-	</root>
+</root>

@@ -35,6 +35,36 @@
             </Trigger>
         </Style.Triggers>
     </Style>
+    <!-- Standard Action Button -->
+    <Style x:Key="StandardButtonStyle" TargetType="Button">
+        <Setter Property="Height" Value="40" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="{StaticResource panelColor}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource HoverLightBlueBrush}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{StaticResource PressedBlueBrush}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.5" />
+                <Setter Property="Cursor" Value="No" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 
     <!-- Sidebar Icon Style (Matches fa:ImageAwesome) -->
     <Style x:Key="menuButtonIcon" TargetType="{x:Type fa:ImageAwesome}">
