@@ -1,3 +1,0 @@
-<!-- Adding UI colors for better visibility in dark mode -->
-<Color x:Key="TitleBarColor">#00008B</Color> <!-- Dark Blue for Window Title Bar -->
-<Color x:Key="ScrollbarColor">#0000FF</Color> <!-- Blue for Scrollbars -->
