@@ -6,130 +6,379 @@
              xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              xmlns:p="clr-namespace:WPF_LoginForm.Properties"
+             xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
              mc:Ignorable="d"
              d:DesignHeight="650" d:DesignWidth="1100">
 
+    <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:InverseBooleanConverter x:Key="InverseBool" />
+        <BooleanToVisibilityConverter x:Key="SystemBoolToVis" />
+
+        <!-- Styles for Page 2 -->
+        <Style x:Key="StatCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="#181838" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="Padding" Value="15" />
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="Black" BlurRadius="5" Opacity="0.3" ShadowDepth="2" />
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="StatTitleStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="Gray" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+
+        <Style x:Key="StatValueStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,5,0,0" />
+        </Style>
+
+        <Style x:Key="ChartTitleStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="LightGray" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Margin" Value="10,10,0,0" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+    </UserControl.Resources>
+
     <Grid Background="#09092B">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="2*" />
-            <ColumnDefinition Width="3*" />
+            <ColumnDefinition Width="*" />
+            <!-- Main Content -->
             <ColumnDefinition Width="260" />
-            <!-- Slightly wider for better control spacing -->
+            <!-- Sidebar -->
         </Grid.ColumnDefinitions>
 
-        <!-- COL 0: Left Column Charts -->
+        <!-- ================================================================= -->
+        <!-- MAIN CONTENT AREA -->
+        <!-- ================================================================= -->
         <Grid Grid.Column="0" Margin="10">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
 
-            <!-- Top Pie: Overall Machine Distribution -->
-            <Border Grid.Row="0" Margin="0,0,5,10" Background="#181838" CornerRadius="10" Padding="10">
-                <Grid>
-                    <TextBlock Text="{x:Static p:Resources.Chart_MachineDist}"
-                               Foreground="LightGray" FontWeight="Bold" VerticalAlignment="Top" />
+            <!-- PAGE 1: Original Charts -->
+            <Grid x:Name="Page1" RenderTransformOrigin="0.5,0.5">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSecondPageActive}" Value="True">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.4" />
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility" BeginTime="0:0:0.4">
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.4" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
 
-                    <lvc:PieChart Series="{Binding MachineSeries}" LegendLocation="Right" InnerRadius="0" Hoverable="True"
-                                  DataClickCommand="{Binding ChartClickCommand}" Margin="0,25,0,0">
-                        <lvc:PieChart.DataTooltip>
-                            <lvc:DefaultTooltip SelectionMode="OnlySender" />
-                        </lvc:PieChart.DataTooltip>
-                        <lvc:PieChart.ChartLegend>
-                            <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="11" />
-                        </lvc:PieChart.ChartLegend>
-                    </lvc:PieChart>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="3*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- P1 Left -->
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Margin="0,0,5,10" Background="#181838" CornerRadius="10" Padding="10">
+                        <Grid>
+                            <TextBlock Text="{x:Static p:Resources.Chart_MachineDist}" Foreground="LightGray" FontWeight="Bold" VerticalAlignment="Top" />
+                            <lvc:PieChart Series="{Binding MachineSeries}" LegendLocation="Right" InnerRadius="0" Hoverable="True"
+                                          DataClickCommand="{Binding ChartClickCommand}" Margin="0,25,0,0">
+                                <lvc:PieChart.ChartLegend>
+                                    <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="11" />
+                                </lvc:PieChart.ChartLegend>
+                                <lvc:PieChart.DataTooltip>
+                                    <lvc:DefaultTooltip SelectionMode="OnlySender" />
+                                </lvc:PieChart.DataTooltip>
+                            </lvc:PieChart>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="1" Margin="0,0,5,0" Background="#181838" CornerRadius="10" Padding="10">
+                        <Grid>
+                            <StackPanel Orientation="Vertical" VerticalAlignment="Top">
+                                <TextBlock Text="{x:Static p:Resources.Chart_ShiftDist}" Foreground="LightGray" FontWeight="Bold" />
+                                <TextBlock Text="{Binding SelectedErrorCategory}" Foreground="#FFC047" FontWeight="Bold" Margin="0,2,0,0" FontSize="11" />
+                            </StackPanel>
+                            <lvc:PieChart Series="{Binding ShiftSeries}" LegendLocation="Bottom" InnerRadius="40" Hoverable="True"
+                                          DataClickCommand="{Binding ChartClickCommand}" Margin="0,35,0,0">
+                                <lvc:PieChart.ChartLegend>
+                                    <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="11" />
+                                </lvc:PieChart.ChartLegend>
+                                <lvc:PieChart.DataTooltip>
+                                    <lvc:DefaultTooltip SelectionMode="OnlySender" />
+                                </lvc:PieChart.DataTooltip>
+                            </lvc:PieChart>
+                        </Grid>
+                    </Border>
                 </Grid>
-            </Border>
 
-            <!-- Bottom Pie: Specific Error Machine Distribution -->
-            <Border Grid.Row="1" Margin="0,0,5,0" Background="#181838" CornerRadius="10" Padding="10">
-                <Grid>
-                    <StackPanel Orientation="Vertical" VerticalAlignment="Top">
-                        <TextBlock Text="{x:Static p:Resources.Chart_ShiftDist}" Foreground="LightGray" FontWeight="Bold" />
-                        <TextBlock Text="{Binding SelectedErrorCategory}" Foreground="#FFC047" FontWeight="Bold" Margin="0,2,0,0" FontSize="11" />
+                <!-- P1 Right -->
+                <Border Grid.Column="1" Margin="5,0,0,0" Background="#181838" CornerRadius="10" Padding="15">
+                    <Grid>
+                        <TextBlock Text="{x:Static p:Resources.Chart_LongestIncident}" Foreground="White" FontSize="16" FontWeight="SemiBold" />
+                        <lvc:CartesianChart Series="{Binding ReasonSeries}" LegendLocation="None" DataClickCommand="{Binding ChartClickCommand}" Margin="10,35,10,25">
+                            <lvc:CartesianChart.AxisX>
+                                <lvc:Axis Labels="{Binding ReasonLabels}" Foreground="White" FontSize="11">
+                                    <lvc:Axis.Separator>
+                                        <lvc:Separator Step="1" StrokeThickness="0" />
+                                    </lvc:Axis.Separator>
+                                </lvc:Axis>
+                            </lvc:CartesianChart.AxisX>
+                            <lvc:CartesianChart.AxisY>
+                                <lvc:Axis LabelFormatter="{Binding NumberFormatter}" Foreground="White">
+                                    <lvc:Axis.Separator>
+                                        <lvc:Separator Stroke="#303030" />
+                                    </lvc:Axis.Separator>
+                                </lvc:Axis>
+                            </lvc:CartesianChart.AxisY>
+                        </lvc:CartesianChart>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- PAGE 2: ADVANCED ANALYTICS -->
+            <Grid x:Name="Page2" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSecondPageActive}" Value="True">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.5" />
+                                            <ThicknessAnimation Storyboard.TargetProperty="Margin" From="50,0,0,0" To="0" Duration="0:0:0.4" DecelerationRatio="0.9" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.2" />
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility" BeginTime="0:0:0.2">
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*" />
+                    <!-- Left: Charts Area -->
+                    <ColumnDefinition Width="1.2*" />
+                    <!-- Right: Stats Panel -->
+                </Grid.ColumnDefinitions>
+
+                <!-- Left Column: Chart Grid -->
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="2*" />
+                        <!-- Top Row: 2 Pies -->
+                        <RowDefinition Height="1.2*" />
+                        <!-- Bottom Row: 1 Bar -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Top Row Container -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Chart 1: Efficiency -->
+                        <Border Grid.Column="0" Background="#181838" CornerRadius="10" Margin="0,0,5,5">
+                            <Grid>
+                                <TextBlock Text="Error vs Stop" Style="{StaticResource ChartTitleStyle}" />
+                                <lvc:PieChart Series="{Binding EfficiencySeries}" LegendLocation="Bottom" InnerRadius="50" Hoverable="True" Margin="0,30,0,0">
+                                    <lvc:PieChart.ChartLegend>
+                                        <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="11" />
+                                    </lvc:PieChart.ChartLegend>
+                                    <lvc:PieChart.DataTooltip>
+                                        <lvc:DefaultTooltip SelectionMode="OnlySender" />
+                                    </lvc:PieChart.DataTooltip>
+                                </lvc:PieChart>
+                            </Grid>
+                        </Border>
+
+                        <!-- Chart 2: Shift Impact -->
+                        <Border Grid.Column="1" Background="#181838" CornerRadius="10" Margin="5,0,0,5">
+                            <Grid>
+                                <TextBlock Text="Shift Impact" Style="{StaticResource ChartTitleStyle}" />
+                                <lvc:PieChart Series="{Binding ShiftImpactSeries}" LegendLocation="Bottom" InnerRadius="0" Hoverable="True" Margin="0,30,0,0">
+                                    <lvc:PieChart.ChartLegend>
+                                        <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="11" />
+                                    </lvc:PieChart.ChartLegend>
+                                    <lvc:PieChart.DataTooltip>
+                                        <lvc:DefaultTooltip SelectionMode="OnlySender" />
+                                    </lvc:PieChart.DataTooltip>
+                                </lvc:PieChart>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- Bottom Row: Severity Bar Chart -->
+                    <Border Grid.Row="1" Background="#181838" CornerRadius="10" Margin="0,5,0,0">
+                        <Grid>
+                            <TextBlock Text="Severity Breakdown (Duration)" Style="{StaticResource ChartTitleStyle}" />
+                            <lvc:CartesianChart Series="{Binding SeveritySeries}" LegendLocation="Right" Margin="10,35,10,10">
+                                <lvc:CartesianChart.AxisX>
+                                    <lvc:Axis Labels="{Binding SeverityLabels}" ShowLabels="False">
+                                        <lvc:Axis.Separator>
+                                            <lvc:Separator Step="1" StrokeThickness="0" />
+                                        </lvc:Axis.Separator>
+                                    </lvc:Axis>
+                                </lvc:CartesianChart.AxisX>
+                                <lvc:CartesianChart.AxisY>
+                                    <lvc:Axis LabelFormatter="{Binding NumberFormatter}" Foreground="White">
+                                        <lvc:Axis.Separator>
+                                            <lvc:Separator Stroke="#303030" />
+                                        </lvc:Axis.Separator>
+                                    </lvc:Axis>
+                                </lvc:CartesianChart.AxisY>
+                                <lvc:CartesianChart.ChartLegend>
+                                    <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="11" />
+                                </lvc:CartesianChart.ChartLegend>
+                            </lvc:CartesianChart>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- Right Column: Vertical Stats (7 Cards) -->
+                <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="10,0,0,0">
+                    <StackPanel>
+                        <!-- Existing -->
+                        <Border Style="{StaticResource StatCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Avg Stop / Day" Style="{StaticResource StatTitleStyle}" />
+                                <TextBlock Text="{Binding DailyAvgStop}" Style="{StaticResource StatValueStyle}" Foreground="#3498DB" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource StatCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Avg Error / Day" Style="{StaticResource StatTitleStyle}" />
+                                <TextBlock Text="{Binding DailyAvgError}" Style="{StaticResource StatValueStyle}" Foreground="#FF6B6B" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource StatCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Saved (Break)" Style="{StaticResource StatTitleStyle}" />
+                                <TextBlock Text="{Binding TimeSavedBreak}" Style="{StaticResource StatValueStyle}" Foreground="#4CAF50" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource StatCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Saved (Maint.)" Style="{StaticResource StatTitleStyle}" />
+                                <TextBlock Text="{Binding TimeSavedMaintenance}" Style="{StaticResource StatValueStyle}" Foreground="#F39C12" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Placeholders -->
+                        <Border Style="{StaticResource StatCardStyle}" Opacity="0.5">
+                            <StackPanel>
+                                <TextBlock Text="Placeholder 1" Style="{StaticResource StatTitleStyle}" />
+                                <TextBlock Text="{Binding ExtraStat1}" Style="{StaticResource StatValueStyle}" Foreground="Gray" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource StatCardStyle}" Opacity="0.5">
+                            <StackPanel>
+                                <TextBlock Text="Placeholder 2" Style="{StaticResource StatTitleStyle}" />
+                                <TextBlock Text="{Binding ExtraStat2}" Style="{StaticResource StatValueStyle}" Foreground="Gray" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource StatCardStyle}" Opacity="0.5">
+                            <StackPanel>
+                                <TextBlock Text="Placeholder 3" Style="{StaticResource StatTitleStyle}" />
+                                <TextBlock Text="{Binding ExtraStat3}" Style="{StaticResource StatValueStyle}" Foreground="Gray" />
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
-
-                    <lvc:PieChart Series="{Binding ShiftSeries}" LegendLocation="Bottom" InnerRadius="40" Hoverable="True"
-                                  DataClickCommand="{Binding ChartClickCommand}" Margin="0,35,0,0">
-                        <lvc:PieChart.DataTooltip>
-                            <lvc:DefaultTooltip SelectionMode="OnlySender" />
-                        </lvc:PieChart.DataTooltip>
-                        <lvc:PieChart.ChartLegend>
-                            <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="11" />
-                        </lvc:PieChart.ChartLegend>
-                    </lvc:PieChart>
-                </Grid>
-            </Border>
+                </ScrollViewer>
+            </Grid>
         </Grid>
 
-        <!-- COL 1: Main Bar Chart -->
-        <Border Grid.Column="1" Margin="5,10,5,10" Background="#181838" CornerRadius="10" Padding="15">
-            <Grid>
-                <TextBlock Text="{x:Static p:Resources.Chart_LongestIncident}"
-                           Foreground="White" FontSize="16" FontWeight="SemiBold" />
-
-                <lvc:CartesianChart Series="{Binding ReasonSeries}" LegendLocation="None" DataClickCommand="{Binding ChartClickCommand}" Margin="10,35,10,25">
-                    <lvc:CartesianChart.AxisX>
-                        <lvc:Axis Labels="{Binding ReasonLabels}" Foreground="White" FontSize="11">
-                            <lvc:Axis.Separator>
-                                <lvc:Separator Step="1" StrokeThickness="0" />
-                            </lvc:Axis.Separator>
-                        </lvc:Axis>
-                    </lvc:CartesianChart.AxisX>
-                    <lvc:CartesianChart.AxisY>
-                        <lvc:Axis LabelFormatter="{Binding NumberFormatter}" Foreground="White">
-                            <lvc:Axis.Separator>
-                                <lvc:Separator Stroke="#303030" />
-                            </lvc:Axis.Separator>
-                        </lvc:Axis>
-                    </lvc:CartesianChart.AxisY>
-                </lvc:CartesianChart>
-            </Grid>
-        </Border>
-
-        <!-- COL 2: Controls Panel (Right Side) -->
-        <Border Grid.Column="2" Background="#101030" BorderBrush="#333" BorderThickness="1,0,0,0" Padding="15">
+        <!-- ================================================================= -->
+        <!-- SIDEBAR -->
+        <!-- ================================================================= -->
+        <Border Grid.Column="1" Background="#101030" BorderBrush="#333" BorderThickness="1,0,0,0" Padding="15">
             <StackPanel>
-                <TextBlock Text="{x:Static p:Resources.Ana_Title}"
-                           Foreground="#0078D7" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" TextWrapping="Wrap" />
+                <!-- Title & Toggle -->
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{x:Static p:Resources.Ana_Title}" Foreground="#0078D7" FontSize="18" FontWeight="Bold" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Command="{Binding TogglePageCommand}" Width="35" Height="35" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Switch View">
+                        <Grid>
+                            <Path Fill="#FFC047" Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.59,12L15,13.41L12,10.41L9,13.41L7.41,12L12,7.41L16.59,12Z">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSecondPageActive}" Value="True">
+                                                <Setter Property="RenderTransform">
+                                                    <Setter.Value>
+                                                        <RotateTransform Angle="180" CenterX="12" CenterY="12" />
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                        </Grid>
+                    </Button>
+                </Grid>
 
-                <!-- 1. Table Selector -->
+                <!-- Filters -->
                 <TextBlock Text="{x:Static p:Resources.Ana_Table}" Foreground="Gray" Margin="0,0,0,5" />
-                <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable}"
-                          Height="30" Margin="0,0,0,15" VerticalContentAlignment="Center" Padding="5" />
+                <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable}" Height="30" Margin="0,0,0,15" VerticalContentAlignment="Center" Padding="5" />
 
-                <!-- 2. Error Category & Config Button -->
                 <TextBlock Text="{x:Static p:Resources.Ana_Category}" Foreground="#FFC047" FontWeight="SemiBold" Margin="0,0,0,5" />
-
                 <Grid Margin="0,0,0,10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="35" />
                     </Grid.ColumnDefinitions>
-
-                    <ComboBox Grid.Column="0"
-                              ItemsSource="{Binding ErrorCategories}"
-                              SelectedItem="{Binding SelectedErrorCategory}"
-                              Height="30" VerticalContentAlignment="Center" Padding="5"
-                              ToolTip="Filter breakdown by this category." />
-
-                    <!-- NEW CONFIG BUTTON -->
-                    <Button Grid.Column="1"
-                            Command="{Binding ConfigureCategoriesCommand}"
-                            Content="⚙"
-                            FontSize="16" Foreground="#AAA" Background="Transparent" BorderThickness="0"
-                            ToolTip="{x:Static p:Resources.Str_CategoryConfig}"
-                            Cursor="Hand" Margin="5,0,0,0" />
+                    <ComboBox Grid.Column="0" ItemsSource="{Binding ErrorCategories}" SelectedItem="{Binding SelectedErrorCategory}" Height="30" VerticalContentAlignment="Center" Padding="5" />
+                    <Button Grid.Column="1" Command="{Binding ConfigureCategoriesCommand}" Content="⚙" FontSize="16" Foreground="#AAA" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="5,0,0,0" />
                 </Grid>
 
-                <CheckBox Content="{x:Static p:Resources.Ana_ExcludeMachine00}"
-                          IsChecked="{Binding IsMachine00Excluded}"
-                          Foreground="WhiteSmoke"
-                          Margin="0,5,0,20"
-                          ToolTip="Hides generic stops (MA-00)" />
+                <CheckBox Content="{x:Static p:Resources.Ana_ExcludeMachine00}" IsChecked="{Binding IsMachine00Excluded}" Foreground="WhiteSmoke" Margin="0,5,0,20" />
 
-                <!-- 3. Start Date Picker -->
                 <TextBlock Text="{x:Static p:Resources.Ana_StartDate}" Foreground="Gray" Margin="0,0,0,5" />
                 <Grid Margin="0,0,0,15">
                     <Grid.ColumnDefinitions>
@@ -146,7 +395,6 @@
                     <Button Grid.Column="4" Content="&gt;&gt;" Command="{Binding MoveDateCommand}" CommandParameter="Start|7" Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" />
                 </Grid>
 
-                <!-- 4. End Date Picker -->
                 <TextBlock Text="{x:Static p:Resources.Ana_EndDate}" Foreground="Gray" Margin="0,0,0,5" />
                 <Grid Margin="0,0,0,20">
                     <Grid.ColumnDefinitions>
@@ -164,23 +412,15 @@
                 </Grid>
 
                 <TextBlock Text="Range Slider:" Foreground="Gray" Margin="0,0,0,10" />
-                <xctk:RangeSlider Minimum="{Binding SliderMinimum}" Maximum="{Binding SliderMaximum}"
-                                  LowerValue="{Binding SliderLowValue}" HigherValue="{Binding SliderHighValue}"
-                                  Height="30" Margin="0,0,0,25" />
+                <xctk:RangeSlider Minimum="{Binding SliderMinimum}" Maximum="{Binding SliderMaximum}" LowerValue="{Binding SliderLowValue}" HigherValue="{Binding SliderHighValue}" Height="30" Margin="0,0,0,25" />
 
-                <!-- 5. Refresh Button -->
-                <Button Content="{x:Static p:Resources.Ana_LoadData}"
-                        Command="{Binding LoadDataCommand}"
-                        Height="45" Background="#FF0078D7" Foreground="White"
-                        FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand">
+                <Button Content="{x:Static p:Resources.Ana_LoadData}" Command="{Binding LoadDataCommand}" Height="45" Background="#FF0078D7" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand">
                     <Button.Resources>
                         <Style TargetType="Border">
                             <Setter Property="CornerRadius" Value="5" />
                         </Style>
                     </Button.Resources>
                 </Button>
-
-                <TextBlock Text="* Drill-down enabled on charts." Foreground="#666" FontSize="11" TextWrapping="Wrap" Margin="0,20,0,0" FontStyle="Italic" HorizontalAlignment="Center" />
             </StackPanel>
         </Border>
     </Grid>

@@ -96,6 +96,7 @@
     <Compile Include="Converters\BooleanToVisibilityConverter.cs" />
     <Compile Include="Converters\BoolToTextConverter.cs" />
     <Compile Include="Converters\EqualityConverter.cs" />
+    <Compile Include="Converters\InverseBooleanConverter.cs" />
     <Compile Include="Converters\IsItemInCollectionConverter.cs" />
     <Compile Include="Converters\IsNullOrEmptyConverter.cs" />
     <Compile Include="Converters\IsRowEditableConverter.cs" />
@@ -120,6 +121,7 @@
     <Compile Include="Services\Database\DatabaseBootstrapper.cs" />
     <Compile Include="Services\Database\DatabaseRetryPolicy.cs" />
     <Compile Include="Services\DataImportExportHelper.cs" />
+    <Compile Include="Services\InputHelper.cs" />
     <Compile Include="Services\Network\ConnectionManager.cs" />
     <Compile Include="Services\UserSessionService.cs" />
     <Compile Include="ViewModels\ErrorDrillDownViewModel.cs" />

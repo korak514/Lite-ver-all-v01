@@ -26,7 +26,7 @@
 
     <!-- 5. STATUS / FOOTER -->
     <!-- Your Color: #24852d (Green) -->
-    <SolidColorBrush x:Key="SuccessBrush" Color="#26A732" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="#093A0E" />
 
     <!-- 6. TEXT COLORS -->
     <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF" />

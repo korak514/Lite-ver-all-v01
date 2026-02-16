@@ -230,6 +230,8 @@ namespace WPF_LoginForm.ViewModels
             if (dialog.ShowDialog() == true) ImportAbsolutePath = Path.GetDirectoryName(dialog.FileName);
         }
 
+        // In WPF_LoginForm/ViewModels/SettingsViewModel.cs
+
         private void ExecuteSaveCommand(object obj)
         {
             if (!int.TryParse(DbPort, out int portNum) || portNum < 0 || portNum > 65535)
@@ -272,6 +274,14 @@ namespace WPF_LoginForm.ViewModels
                 // It is embedded in the Connection Strings.
 
                 Settings.Default.Save();
+
+                // --- FIX STARTS HERE ---
+                // Clear the cache immediately.
+                // This deletes 'app_cache.json' so the app stops seeing SQL Server tables
+                // and fetches the fresh table list from PostgreSQL next time it loads.
+                var cacheService = new CacheService();
+                cacheService.Clear();
+                // --- FIX ENDS HERE ---
 
                 StatusMessage = Resources.Msg_SettingsSavedRestart;
                 MessageBox.Show(Resources.Msg_SettingsSavedRestart, "Restart Required", MessageBoxButton.OK, MessageBoxImage.Information);

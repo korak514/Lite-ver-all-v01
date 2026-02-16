@@ -13,7 +13,7 @@
 
     <!-- 2. TEXT COLORS -->
     <!-- Pure White for maximum contrast -->
-    <SolidColorBrush x:Key="Theme.Text.Primary" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="Theme.Text.Primary" Color="#BFD6BF" />
 
     <!-- Light Gray/Blue for subtitles and secondary info -->
     <SolidColorBrush x:Key="Theme.Text.Secondary" Color="#BDC3C7" />
@@ -34,7 +34,7 @@
 
     <!-- 5. FOOTER & INPUTS -->
     <!-- Dark navy for the footer background -->
-    <SolidColorBrush x:Key="Theme.Footer" Color="#10BB60" />
+    <SolidColorBrush x:Key="Theme.Footer" Color="#49497A" />
 
     <!-- Modern slate blue for ComboBox and Input backgrounds -->
     <SolidColorBrush x:Key="Theme.Combo.Background" Color="#1E2A47" />
