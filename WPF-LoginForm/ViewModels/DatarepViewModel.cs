@@ -211,48 +211,32 @@ namespace WPF_LoginForm.ViewModels
             LoadInitialDataAsync();
         }
 
+        // LOCATE this method inside ViewModels/DatarepViewModel.cs and REPLACE it with this:
+
         private void ExecuteEditRows(object parameter)
         {
-            // DIAGNOSTIC 1: Check if command fires at all
-            // MessageBox.Show($"ExecuteEditRows Fired. Parameter Type: {parameter?.GetType().Name ?? "NULL"}");
-
-            if (parameter == null)
+            if (parameter is System.Collections.IList items)
             {
-                MessageBox.Show("Error: Edit parameter is NULL. \nCheck XAML CommandParameter binding.");
-                return;
-            }
+                // 1. Safety check
+                if (items.Count == 0) return;
 
-            if (parameter is IList items)
-            {
-                if (items.Count == 0)
-                {
-                    MessageBox.Show("Warning: No rows selected.");
-                    return;
-                }
-
+                // 2. Refresh the list of allowed rows
                 EditableRows.Clear();
-                int successCount = 0;
-
                 foreach (var item in items)
                 {
-                    if (item is DataRowView drv)
+                    if (item is System.Data.DataRowView drv)
                     {
                         EditableRows.Add(drv);
-                        successCount++;
-                    }
-                    else
-                    {
-                        MessageBox.Show($"Error: Selected item is not DataRowView. It is: {item.GetType().Name}");
                     }
                 }
 
-                // If we get here, the rows are in the list.
-                // The binding on IsReadOnly should now update to False.
-                // MessageBox.Show($"Success: {successCount} rows unlocked for editing.");
-            }
-            else
-            {
-                MessageBox.Show($"Error: Parameter is not IList. It is {parameter.GetType().Name}");
+                // 3. CRITICAL FIX:
+                // Force the UI to re-evaluate the "IsReadOnly" binding.
+                // Without this, the Converter never runs again, and the grid stays locked.
+                OnPropertyChanged(nameof(EditableRows));
+
+                // Optional: Force the command to re-evaluate its status
+                (EditSelectedRowsCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             }
         }
 

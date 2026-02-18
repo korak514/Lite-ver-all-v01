@@ -9,18 +9,19 @@ namespace WPF_LoginForm.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            // Value is the 'EditableRows' collection from the ViewModel.
-            // We are binding to 'DataGrid.IsReadOnly'.
+            // The Binding is: IsReadOnly="{Binding EditableRows, Converter=...}"
 
-            // Logic:
-            // If the collection has items, IsReadOnly = false (so we can edit).
-            // If the collection is empty, IsReadOnly = true (locked).
-
-            if (value is ICollection collection && collection.Count > 0)
+            // value is the 'EditableRows' collection.
+            if (value is ICollection collection)
             {
-                return false;
+                // If we have items in the list, IsReadOnly should be FALSE (Editable).
+                if (collection.Count > 0)
+                {
+                    return false;
+                }
             }
 
+            // If list is null or empty, IsReadOnly is TRUE (Locked).
             return true;
         }
 
