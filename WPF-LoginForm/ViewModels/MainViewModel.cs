@@ -239,12 +239,11 @@ namespace WPF_LoginForm.ViewModels
         {
             try
             {
-                // 1. Fetch Raw Data (All errors for this table and date range)
+                // 1. Fetch RAW Data from Database
                 var rawData = await _dataRepository.GetErrorDataAsync(start, end, tableName);
 
-                // 2. Convert ALL to UI models (Do not filter here!)
+                // 2. Prepare UI Models (No filtering yet)
                 var uiList = new ObservableCollection<ErrorLogItem>();
-
                 foreach (var item in rawData)
                 {
                     var logItem = new ErrorLogItem
@@ -260,11 +259,44 @@ namespace WPF_LoginForm.ViewModels
                     uiList.Add(logItem);
                 }
 
-                // 3. Open Window (Pass the FULL list and the FILTER TEXT)
+                // 3. Determine Settings from the active Error View Model
+                bool useClock = false;
+                bool exclude00 = false; // Task 2: Default false
+
+                if (_errorViewModel != null)
+                {
+                    useClock = _errorViewModel.IsMinToClockFormat;
+                    exclude00 = _errorViewModel.IsMachine00Excluded; // Task 2: Get Flag
+                }
+
+                // 4. Parse "Others" Payload
+                // Format expected: "MACHINE_OTHERS|01,02,03,04"
+                List<string> excludedMachines = new List<string>();
+                string effectiveFilter = filterText;
+
+                if (filterText.StartsWith("MACHINE_OTHERS|"))
+                {
+                    var parts = filterText.Split('|');
+                    effectiveFilter = "MACHINE_OTHERS"; // Clean tag for the ViewModel to recognize
+                    if (parts.Length > 1)
+                    {
+                        var codes = parts[1].Split(',');
+                        foreach (var c in codes) excludedMachines.Add(c.StartsWith("MA-") ? c : "MA-" + c);
+                    }
+                }
+
+                // 5. Open the Window on UI Thread
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    // We pass 'filterText' so the ViewModel knows what chip to create initially
-                    var drillDownVM = new ErrorDrillDownViewModel(uiList, tableName, filterText);
+                    var drillDownVM = new ErrorDrillDownViewModel(
+                        uiList,
+                        tableName,
+                        effectiveFilter,
+                        excludedMachines,
+                        useClock, // Pass the setting here
+                        exclude00 // Task 2: Pass Flag
+                    );
+
                     var drillDownWindow = new ErrorDrillDownWindow { DataContext = drillDownVM };
 
                     if (Application.Current.MainWindow != null)

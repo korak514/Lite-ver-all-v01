@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
-using WPF_LoginForm.Models; // Ensure you have this namespace
+using WPF_LoginForm.Models;
+using WPF_LoginForm.Services; // For TimeFormatHelper
 
 namespace WPF_LoginForm.ViewModels
 {
+    // --- Helper Classes ---
     public class CheckableItem : ViewModelBase
     {
         private bool _isChecked;
@@ -22,201 +24,197 @@ namespace WPF_LoginForm.ViewModels
     public class FilterChip : ViewModelBase
     {
         public string Label { get; set; }
-        public string FilterType { get; set; } // "Machine" or "Reason"
+        public string FilterType { get; set; } // "Machine", "Reason"
         public string Value { get; set; }
     }
 
+    // --- Main ViewModel ---
     public class ErrorDrillDownViewModel : ViewModelBase
     {
         private readonly List<ErrorLogItem> _allItemsSource;
+        private readonly List<string> _excludedMachines; // Machines to HIDE if in "Others" mode
+        private readonly bool _useClockFormat;
+        private readonly bool _excludeMachine00;
+
         private string _windowTitle;
-        private ObservableCollection<ErrorLogItem> _displayedItems;
-        private ObservableCollection<CheckableItem> _machineFilterList;
-        private ObservableCollection<FilterChip> _activeFilters;
+        public string WindowTitle { get => _windowTitle; set => SetProperty(ref _windowTitle, value); }
 
-        public string WindowTitle
-        {
-            get => _windowTitle;
-            set => SetProperty(ref _windowTitle, value);
-        }
-
-        public ObservableCollection<ErrorLogItem> DisplayedItems
-        {
-            get => _displayedItems;
-            set
-            {
-                if (SetProperty(ref _displayedItems, value))
-                {
-                    OnPropertyChanged("RecordCount");
-                    OnPropertyChanged("TotalDurationText");
-                }
-            }
-        }
-
-        public ObservableCollection<CheckableItem> MachineFilterList
-        {
-            get => _machineFilterList;
-            set => SetProperty(ref _machineFilterList, value);
-        }
-
-        public ObservableCollection<FilterChip> ActiveFilters
-        {
-            get => _activeFilters;
-            set => SetProperty(ref _activeFilters, value);
-        }
+        public ObservableCollection<ErrorLogItem> DisplayedItems { get; set; }
+        public ObservableCollection<CheckableItem> MachineFilterList { get; set; }
+        public ObservableCollection<FilterChip> ActiveFilters { get; set; }
 
         public int RecordCount => DisplayedItems?.Count ?? 0;
-        public string TotalDurationText => string.Format("{0} min", DisplayedItems?.Sum(x => x.DurationMinutes) ?? 0);
+
+        // Dynamic Total Duration using Helper
+        public string TotalDurationText => GetTotalDuration();
 
         // Commands
-        public ICommand CloseCommand { get; private set; }
-
         public ICommand ApplyFilterCommand { get; private set; }
+
         public ICommand RemoveFilterChipCommand { get; private set; }
 
-        public ErrorDrillDownViewModel(IEnumerable<ErrorLogItem> items, string title, string initialFilter)
+        // Constructor
+        public ErrorDrillDownViewModel(IEnumerable<ErrorLogItem> items, string title, string initialFilter, List<string> excludedMachines, bool useClockFormat, bool excludeMachine00)
         {
             WindowTitle = title;
             _allItemsSource = items.ToList();
-            ActiveFilters = new ObservableCollection<FilterChip>();
-            DisplayedItems = new ObservableCollection<ErrorLogItem>(_allItemsSource);
+            _excludedMachines = excludedMachines ?? new List<string>();
+            _useClockFormat = useClockFormat;
+            _excludeMachine00 = excludeMachine00;
 
-            // 1. Initialize Machine Combo List
+            ActiveFilters = new ObservableCollection<FilterChip>();
+
+            // 1. Format items immediately based on the setting passed from MainViewModel
+            foreach (var item in _allItemsSource)
+            {
+                item.DisplayDuration = TimeFormatHelper.FormatDuration(item.DurationMinutes, _useClockFormat);
+            }
+
+            // 2. Initialize Machine Combobox
+            // Filter out MA-00 if global exclude is on
             var uniqueMachines = _allItemsSource
-                .Where(x => !string.IsNullOrEmpty(x.MachineCode))
                 .Select(x => x.MachineCode)
                 .Distinct()
+                .Where(m => !_excludeMachine00 || (m != "MA-00" && m != "MA-0"))
                 .OrderBy(m => m)
                 .Select(m => new CheckableItem { Name = m, IsChecked = false })
                 .ToList();
 
             MachineFilterList = new ObservableCollection<CheckableItem>(uniqueMachines);
 
-            // 2. Initialize Commands
             ApplyFilterCommand = new ViewModelCommand(ExecuteApplyComboFilter);
             RemoveFilterChipCommand = new ViewModelCommand(ExecuteRemoveFilterChip);
-            // CloseCommand needs to be handled by the View's CodeBehind or a WindowService usually,
-            // but for MVVM purity usually we use an event or Action.
-            // The XAML uses "Click" handlers, so we can leave this null here if using Click events.
 
-            // 3. Apply Initial Filter
-            if (!string.IsNullOrEmpty(initialFilter))
-            {
-                AddInitialFilter(initialFilter);
-            }
+            // 3. Apply Initial Filter (Handles "Others" logic)
+            ApplyInitialFilter(initialFilter);
         }
 
-        private void AddInitialFilter(string filterText)
+        private void ApplyInitialFilter(string filterText)
         {
-            // Logic to handle "MA-01-Reason" or just "MA-01"
-            string machineName = null;
-            string reasonName = null;
-
-            if (filterText.StartsWith("MA-"))
+            // Base Query
+            var baseQuery = _allItemsSource.AsEnumerable();
+            if (_excludeMachine00)
             {
-                var parts = filterText.Split('-');
-                // Assuming format MA-01 (parts[0]-parts[1])
-                if (parts.Length >= 2)
-                {
-                    machineName = parts[0] + "-" + parts[1];
-                    AddChip("Machine", machineName);
+                baseQuery = baseQuery.Where(x => x.MachineCode != "MA-00" && x.MachineCode != "MA-0");
+            }
 
-                    // Sync with the ComboBox
-                    var item = MachineFilterList.FirstOrDefault(m => m.Name == machineName);
-                    if (item != null) item.IsChecked = true;
+            if (string.IsNullOrEmpty(filterText))
+            {
+                // No filter, just show base query
+            }
+            else if (filterText == "MACHINE_OTHERS")
+            {
+                // TASK 1: Visual Selection Logic for "Others"
+                foreach (var m in MachineFilterList)
+                {
+                    // If this machine is NOT in the excluded (Top 9) list, check it.
+                    if (!_excludedMachines.Contains(m.Name))
+                    {
+                        m.IsChecked = true;
+                        AddChip("Machine", m.Name); // Add visual chips too
+                    }
                 }
 
-                if (parts.Length > 2)
+                // Filter data based on "Not in Top 9"
+                if (_excludedMachines.Any())
                 {
-                    reasonName = string.Join("-", parts.Skip(2));
-                    AddChip("Reason", reasonName);
+                    baseQuery = baseQuery.Where(x => !_excludedMachines.Contains(x.MachineCode));
                 }
+            }
+            else if (filterText.StartsWith("MA-"))
+            {
+                // Specific Machine Clicked
+                AddChip("Machine", filterText);
+                var item = MachineFilterList.FirstOrDefault(m => m.Name == filterText);
+                if (item != null) item.IsChecked = true;
+
+                baseQuery = baseQuery.Where(x => x.MachineCode == filterText);
             }
             else
             {
-                // Pure Reason filter
+                // Reason Clicked
                 AddChip("Reason", filterText);
+                baseQuery = baseQuery.Where(x =>
+                    !string.IsNullOrEmpty(x.ErrorMessage) &&
+                    x.ErrorMessage.IndexOf(filterText, StringComparison.OrdinalIgnoreCase) >= 0);
             }
 
-            RefreshData();
-        }
+            // Execute Query
+            DisplayedItems = new ObservableCollection<ErrorLogItem>(baseQuery);
 
-        private void AddChip(string type, string value)
-        {
-            // Prevent duplicates
-            if (!ActiveFilters.Any(x => x.Value == value && x.FilterType == type))
-            {
-                ActiveFilters.Add(new FilterChip { Label = value, FilterType = type, Value = value });
-            }
-        }
-
-        private void ExecuteApplyComboFilter(object obj)
-        {
-            // 1. Remove existing "Machine" chips (we are refreshing the machine selection)
-            var machinesToRemove = ActiveFilters.Where(x => x.FilterType == "Machine").ToList();
-            foreach (var chip in machinesToRemove)
-            {
-                ActiveFilters.Remove(chip);
-            }
-
-            // 2. Add chips for every Checked item in the ComboBox
-            foreach (var m in MachineFilterList.Where(x => x.IsChecked))
-            {
-                AddChip("Machine", m.Name);
-            }
-
-            RefreshData();
-        }
-
-        private void ExecuteRemoveFilterChip(object obj)
-        {
-            var chip = obj as FilterChip;
-            if (chip != null)
-            {
-                ActiveFilters.Remove(chip);
-
-                // If it was a machine, uncheck it in the ComboBox
-                if (chip.FilterType == "Machine")
-                {
-                    var comboItem = MachineFilterList.FirstOrDefault(m => m.Name == chip.Value);
-                    if (comboItem != null) comboItem.IsChecked = false;
-                }
-
-                RefreshData();
-            }
+            OnPropertyChanged(nameof(DisplayedItems));
+            OnPropertyChanged(nameof(RecordCount));
+            OnPropertyChanged(nameof(TotalDurationText));
         }
 
         private void RefreshData()
         {
-            IEnumerable<ErrorLogItem> query = _allItemsSource;
+            var query = _allItemsSource.AsEnumerable();
 
-            // 1. Machine Filters
-            var machineFilters = ActiveFilters
-                .Where(x => x.FilterType == "Machine")
-                .Select(x => x.Value)
-                .ToList();
+            // Always apply global exclusion first
+            if (_excludeMachine00)
+            {
+                query = query.Where(x => x.MachineCode != "MA-00" && x.MachineCode != "MA-0");
+            }
+
+            var machineFilters = ActiveFilters.Where(x => x.FilterType == "Machine").Select(x => x.Value).ToList();
+            var reasonFilters = ActiveFilters.Where(x => x.FilterType == "Reason").Select(x => x.Value).ToList();
 
             if (machineFilters.Any())
             {
-                // Show record if it matches ANY of the selected machines
                 query = query.Where(x => machineFilters.Contains(x.MachineCode));
             }
 
-            // 2. Reason Filters
-            var reasonFilters = ActiveFilters
-                .Where(x => x.FilterType == "Reason")
-                .Select(x => x.Value)
-                .ToList();
-
             if (reasonFilters.Any())
             {
-                // Show record if it matches ANY of the selected reasons (Partial text match)
                 query = query.Where(x => reasonFilters.Any(r =>
                     !string.IsNullOrEmpty(x.ErrorMessage) &&
                     x.ErrorMessage.IndexOf(r, StringComparison.OrdinalIgnoreCase) >= 0));
             }
 
             DisplayedItems = new ObservableCollection<ErrorLogItem>(query);
+
+            OnPropertyChanged(nameof(RecordCount));
+            OnPropertyChanged(nameof(TotalDurationText));
+        }
+
+        private void ExecuteApplyComboFilter(object obj)
+        {
+            // Clear existing machine chips to rebuild from checkboxes
+            var remove = ActiveFilters.Where(x => x.FilterType == "Machine").ToList();
+            foreach (var r in remove) ActiveFilters.Remove(r);
+
+            foreach (var m in MachineFilterList.Where(x => x.IsChecked))
+            {
+                AddChip("Machine", m.Name);
+            }
+            RefreshData();
+        }
+
+        private void ExecuteRemoveFilterChip(object obj)
+        {
+            if (obj is FilterChip chip)
+            {
+                ActiveFilters.Remove(chip);
+                if (chip.FilterType == "Machine")
+                {
+                    var item = MachineFilterList.FirstOrDefault(m => m.Name == chip.Value);
+                    if (item != null) item.IsChecked = false;
+                }
+                RefreshData();
+            }
+        }
+
+        private void AddChip(string type, string value)
+        {
+            if (!ActiveFilters.Any(x => x.Value == value && x.FilterType == type))
+                ActiveFilters.Add(new FilterChip { Label = value, FilterType = type, Value = value });
+        }
+
+        private string GetTotalDuration()
+        {
+            double total = DisplayedItems?.Sum(x => x.DurationMinutes) ?? 0;
+            return TimeFormatHelper.FormatDuration(total, _useClockFormat);
         }
     }
 }

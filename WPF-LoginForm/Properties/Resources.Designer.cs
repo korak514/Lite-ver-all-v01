@@ -511,6 +511,15 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Hours Representation.
+        /// </summary>
+        public static string Min2clock {
+            get {
+                return ResourceManager.GetString("Min2clock", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to * Error: Access Denied (Role Verification Failed)..
         /// </summary>
         public static string Msg_AccessDeniedRole {

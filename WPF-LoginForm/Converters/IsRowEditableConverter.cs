@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.ObjectModel; // For ObservableCollection
-using System.Data;                   // For DataRowView
+using System.Collections;
 using System.Globalization;
-using System.Linq;                   // For Any()
-using System.Windows.Data;           // For IValueConverter
-using System.Diagnostics;
+using System.Windows.Data;
 
 namespace WPF_LoginForm.Converters
 {
@@ -12,24 +9,24 @@ namespace WPF_LoginForm.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            // 'value' should be the ObservableCollection<DataRowView> of editable rows from the ViewModel
-            if (!(value is ObservableCollection<DataRowView> editableRowsCollection))
+            // Value is the 'EditableRows' collection from the ViewModel.
+            // We are binding to 'DataGrid.IsReadOnly'.
+
+            // Logic:
+            // If the collection has items, IsReadOnly = false (so we can edit).
+            // If the collection is empty, IsReadOnly = true (locked).
+
+            if (value is ICollection collection && collection.Count > 0)
             {
-                //Debug.WriteLine("IsRowEditableConverter (Grid IsReadOnly): Invalid binding value, defaulting to ReadOnly (true).");
-                return true; // Default to DataGrid being ReadOnly if the binding is incorrect
+                return false;
             }
 
-            // DataGrid is ReadOnly if the editableRowsCollection is empty.
-            // If it has items, DataGrid is NOT ReadOnly, allowing individual cells to potentially be edited.
-            bool gridIsReadOnly = !editableRowsCollection.Any();
-            //Debug.WriteLine($"IsRowEditableConverter (Grid IsReadOnly): Grid IsReadOnly = {gridIsReadOnly}");
-            return gridIsReadOnly;
+            return true;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            // Not needed for one-way IsReadOnly binding
-            throw new NotSupportedException();
+            throw new NotImplementedException();
         }
     }
 }

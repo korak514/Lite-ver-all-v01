@@ -267,7 +267,7 @@
                 <DataGridTextColumn Header="{x:Static p:Resources.Col_Date}" Binding="{Binding Date, StringFormat=dd.MM.yyyy}" Width="130" />
                 <DataGridTextColumn Header="{x:Static p:Resources.Col_Machine}" Binding="{Binding MachineCode}" Width="130" FontWeight="Bold" />
                 <DataGridTextColumn Header="{x:Static p:Resources.Col_Timeline}" Binding="{Binding TimeRange}" Width="180" />
-                <DataGridTextColumn Header="{x:Static p:Resources.Col_Duration}" Binding="{Binding DurationText}" Width="110" FontWeight="Bold" />
+                <DataGridTextColumn Header="{x:Static p:Resources.Col_Duration}" Binding="{Binding DisplayDuration}" Width="110" FontWeight="Bold" />
                 <DataGridTextColumn Header="{x:Static p:Resources.Col_Description}" Binding="{Binding ErrorMessage}" Width="*" />
             </DataGrid.Columns>
         </DataGrid>

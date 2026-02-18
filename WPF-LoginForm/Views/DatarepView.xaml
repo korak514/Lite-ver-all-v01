@@ -68,7 +68,17 @@
                     <Button Content="{x:Static p:Resources.Reload}" ToolTip="{x:Static p:Resources.Reload}" Margin="4,0" Command="{Binding ReloadDataCommand}" />
 
                     <Separator Margin="4,0" />
-                    <Button Content="{x:Static p:Resources.Edit}" ToolTip="{x:Static p:Resources.Edit}" Margin="4,0" Command="{Binding EditSelectedRowsCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" />
+                    <Button Command="{Binding EditSelectedRowsCommand}"
+        CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}"
+        Content="{x:Static p:Resources.Edit}"
+        Height="30" Width="100" Margin="5,0,0,0"
+        Background="#5899B8" Foreground="Black" FontWeight="Bold" BorderThickness="0">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="5" />
+                            </Style>
+                        </Button.Resources>
+                    </Button>
                     <Button Content="{x:Static p:Resources.SelectAll}" ToolTip="{x:Static p:Resources.SelectAll}" Margin="4,0,0,0" Click="SelectAllButton_Click" />
 
                     <!-- Find & Replace Button -->

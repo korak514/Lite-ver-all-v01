@@ -143,6 +143,8 @@ namespace WPF_LoginForm.Repositories
 
         // ... inside DataRepository class
 
+        // Inside DataRepository.cs
+
         public async Task<List<ErrorEventModel>> GetErrorDataAsync(DateTime startDate, DateTime endDate, string tableName)
         {
             var errorList = new List<ErrorEventModel>();
@@ -155,90 +157,78 @@ namespace WPF_LoginForm.Repositories
                     conn.Open();
                     using (var cmd = conn.CreateCommand())
                     {
-                        string qTbl = DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer ? $"[{tableName}]" : $"\"{tableName}\"";
+                        string qTbl = IsPostgres ? $"\"{tableName}\"" : $"[{tableName}]";
+                        // Select everything to ensure we get all Hata_Kodu_X columns
                         cmd.CommandText = $"SELECT * FROM {qTbl}";
-                        using (var reader = cmd.ExecuteReader()) dt.Load(reader);
+                        FillDataTable(cmd, dt);
                     }
                 }
 
                 await Task.Run(() =>
                 {
-                    DataColumn dateCol = null, shiftCol = null, stopTimeCol = null;
+                    // 1. Column Mapping (Case Insensitive)
+                    DataColumn colDate = null, colShift = null, colStopDuration = null;
+                    DataColumn colSavedBreak = null, colSavedMaint = null;
+                    var errorCols = new List<DataColumn>();
 
-                    // 1. Find Date
                     foreach (DataColumn c in dt.Columns)
                     {
-                        var n = c.ColumnName.ToLower();
-                        if (n.Contains("date") || n.Contains("tarih")) { dateCol = c; break; }
+                        string n = c.ColumnName.ToLower();
+                        if (n.Contains("tarih") || n == "date") colDate = c;
+                        else if (n.Contains("vardiya") || n == "shift") colShift = c;
+                        // "Duraklama_Süresi"
+                        else if (n.Contains("duraklama") || n.Contains("stop")) colStopDuration = c;
+                        // "Duruşu Engelemeyen..." (Column G)
+                        else if (n.Contains("engelemeyen") || n.Contains("kazanımı")) colSavedBreak = c;
+                        // "Mola-Bakım..." (Column H)
+                        else if (n.Contains("mola") && n.Contains("bakım")) colSavedMaint = c;
+                        // Hata_Kodu_1 ... 11
+                        else if (n.StartsWith("hata_kodu") || n.StartsWith("error_code") || n.StartsWith("code")) errorCols.Add(c);
                     }
 
-                    // 2. Find Shift
-                    foreach (DataColumn c in dt.Columns)
-                    {
-                        var n = c.ColumnName.ToLower();
-                        if (n.Contains("shift") || n.Contains("vardiye") || n.Contains("vardiya")) { shiftCol = c; break; }
-                    }
-
-                    // 3. Find Stop Time (Duraklama Süresi) - ROBUST MATCHING
-                    foreach (DataColumn c in dt.Columns)
-                    {
-                        var n = c.ColumnName.ToLower();
-                        // Matches "Duraklama Süresi", "DuraklamaSuresi", "Durus", etc.
-                        if (n.Contains("duraklama") || n.Contains("stop") || n.Contains("durus"))
-                        {
-                            stopTimeCol = c;
-                            break;
-                        }
-                    }
-
-                    // 4. FALLBACK: Use Column Index 4 (5th column) if name match fails
-                    // Based on your screenshot: Date(0), Shift(1), Start(2), End(3), Duration(4)
-                    if (stopTimeCol == null && dt.Columns.Count > 4)
-                    {
-                        // Check if Col 4 looks like a time/duration (simple check)
-                        stopTimeCol = dt.Columns[4];
-                        _logger.LogInfo($"Warning: 'Duraklama Süresi' column not found by name. Using column index 4: '{stopTimeCol.ColumnName}'");
-                    }
-
-                    if (dateCol == null) return;
+                    if (colDate == null) return;
 
                     foreach (DataRow row in dt.Rows)
                     {
-                        if (row[dateCol] == DBNull.Value) continue;
-                        DateTime date = Convert.ToDateTime(row[dateCol]);
+                        if (row[colDate] == DBNull.Value) continue;
+                        DateTime date = Convert.ToDateTime(row[colDate]);
                         if (date < startDate || date > endDate) continue;
 
-                        string shift = shiftCol != null ? row[shiftCol].ToString() : "Unknown";
+                        // 2. Parse Shared Row Metrics
+                        string shift = colShift != null ? row[colShift].ToString() : "Unknown";
+                        string rowId = Guid.NewGuid().ToString(); // Unique ID for this row to avoid double counting totals
 
-                        // --- TIME PARSING ---
-                        int rowTotalMinutes = 0;
-                        if (stopTimeCol != null && row[stopTimeCol] != DBNull.Value)
+                        // A. Parse Total Stop Duration (HH:mm:ss -> Total Minutes)
+                        double rowStopMin = 0;
+                        if (colStopDuration != null && row[colStopDuration] != DBNull.Value)
                         {
-                            var val = row[stopTimeCol];
-                            if (val is DateTime dVal)
-                                rowTotalMinutes = (int)dVal.TimeOfDay.TotalMinutes;
-                            else if (val is TimeSpan tsVal)
-                                rowTotalMinutes = (int)tsVal.TotalMinutes;
-                            else
-                            {
-                                string sVal = val.ToString();
-                                // Handle "04:19" string format
-                                if (TimeSpan.TryParse(sVal, out TimeSpan ts))
-                                    rowTotalMinutes = (int)ts.TotalMinutes;
-                                else if (DateTime.TryParse(sVal, out DateTime dtParsed))
-                                    rowTotalMinutes = (int)dtParsed.TimeOfDay.TotalMinutes;
-                            }
+                            string val = row[colStopDuration].ToString();
+                            if (TimeSpan.TryParse(val, out TimeSpan ts)) rowStopMin = ts.TotalMinutes;
+                            else if (DateTime.TryParse(val, out DateTime dVal)) rowStopMin = dVal.TimeOfDay.TotalMinutes;
                         }
 
-                        // Parse Codes
-                        foreach (DataColumn col in dt.Columns)
+                        // B. Parse Saved Time (Integers)
+                        double savedBreak = 0;
+                        if (colSavedBreak != null && row[colSavedBreak] != DBNull.Value)
+                            double.TryParse(row[colSavedBreak].ToString(), out savedBreak);
+
+                        double savedMaint = 0;
+                        if (colSavedMaint != null && row[colSavedMaint] != DBNull.Value)
+                            double.TryParse(row[colSavedMaint].ToString(), out savedMaint);
+
+                        // 3. Loop through ALL Error Code Columns (1 to 11)
+                        foreach (var errCol in errorCols)
                         {
-                            string h = col.ColumnName.ToLower();
-                            if (h.StartsWith("code") || h.StartsWith("kod"))
+                            if (row[errCol] != DBNull.Value)
                             {
-                                string cellValue = row[col]?.ToString();
-                                var errorEvent = ErrorEventModel.Parse(cellValue, date, shift, rowTotalMinutes);
-                                if (errorEvent != null) errorList.Add(errorEvent);
+                                string cellData = row[errCol].ToString();
+                                if (string.IsNullOrWhiteSpace(cellData)) continue;
+
+                                var model = ErrorEventModel.Parse(cellData, date, shift, rowStopMin, savedBreak, savedMaint, rowId);
+                                if (model != null)
+                                {
+                                    errorList.Add(model);
+                                }
                             }
                         }
                     }
@@ -365,19 +355,20 @@ namespace WPF_LoginForm.Repositories
 
         // Partial change in WPF-LoginForm/Repositories/DataRepository.cs, method SaveChangesAsync
 
+        // In WPF_LoginForm/Repositories/DataRepository.cs
+
         public async Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName)
         {
             try
             {
                 if (changes == null) return (true, "");
 
-                // --- FIX: Detect exact ID column name (ID, id, Id) ---
+                // 1. Detect ID Column safely
                 string idColName = changes.Columns.Cast<DataColumn>()
                     .FirstOrDefault(c => c.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase))?.ColumnName;
 
                 if (string.IsNullOrEmpty(idColName))
-                    return (false, "ID column missing in DataTable changes.");
-                // -----------------------------------------------------
+                    return (false, "ID column missing in DataTable changes. Cannot save.");
 
                 using (var conn = GetConnection())
                 {
@@ -386,12 +377,11 @@ namespace WPF_LoginForm.Repositories
                     {
                         if (row.RowState == DataRowState.Deleted)
                         {
-                            // FIX: Use parameter for ID (Handles GUIDs/Strings correctly)
+                            // DELETE
                             object idValue = row[idColName, DataRowVersion.Original];
-
-                            string q = DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer
-                                ? $"DELETE FROM [{tableName}] WHERE [{idColName}] = @targetId"
-                                : $"DELETE FROM \"{tableName}\" WHERE \"{idColName}\" = @targetId";
+                            string q = IsPostgres
+                                ? $"DELETE FROM \"{tableName}\" WHERE \"{idColName}\" = @targetId"
+                                : $"DELETE FROM [{tableName}] WHERE [{idColName}] = @targetId";
 
                             using (var cmd = conn.CreateCommand())
                             {
@@ -402,43 +392,49 @@ namespace WPF_LoginForm.Repositories
                         }
                         else if (row.RowState == DataRowState.Added)
                         {
-                            // FIX: Exclude ID column (Case Insensitive)
+                            // INSERT
+                            // Filter out ID (Auto-Increment) and ReadOnly cols
                             var cols = changes.Columns.Cast<DataColumn>()
-                                .Where(c => !c.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase) && !c.ReadOnly).ToList();
+                                .Where(c => !c.ColumnName.Equals(idColName, StringComparison.OrdinalIgnoreCase) && !c.ReadOnly).ToList();
 
-                            string colNames = string.Join(",", cols.Select(c => DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer ? $"[{c.ColumnName}]" : $"\"{c.ColumnName}\""));
-                            string vals = string.Join(",", cols.Select(c => $"@p{c.Ordinal}"));
+                            string colNames = string.Join(",", cols.Select(c => IsPostgres ? $"\"{c.ColumnName}\"" : $"[{c.ColumnName}]"));
+                            // Use safe parameter names based on column names
+                            string vals = string.Join(",", cols.Select(c => $"@val_{c.ColumnName}"));
 
-                            string q = DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer
-                                ? $"INSERT INTO [{tableName}] ({colNames}) VALUES ({vals})"
-                                : $"INSERT INTO \"{tableName}\" ({colNames}) VALUES ({vals})";
+                            string q = IsPostgres
+                                ? $"INSERT INTO \"{tableName}\" ({colNames}) VALUES ({vals})"
+                                : $"INSERT INTO [{tableName}] ({colNames}) VALUES ({vals})";
 
                             using (var cmd = conn.CreateCommand())
                             {
                                 cmd.CommandText = q;
-                                foreach (var c in cols) AddParameter(cmd, $"@p{c.Ordinal}", row[c]);
+                                foreach (var c in cols)
+                                    AddParameter(cmd, $"@val_{c.ColumnName}", row[c]);
                                 cmd.ExecuteNonQuery();
                             }
                         }
                         else if (row.RowState == DataRowState.Modified)
                         {
-                            // FIX: Use parameter for ID
-                            object idValue = row[idColName];
+                            // UPDATE
+                            object idValue = row[idColName, DataRowVersion.Original]; // Use Original ID to find row
 
-                            // FIX: Exclude ID column
                             var cols = changes.Columns.Cast<DataColumn>()
-                                .Where(c => !c.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase) && !c.ReadOnly).ToList();
+                                .Where(c => !c.ColumnName.Equals(idColName, StringComparison.OrdinalIgnoreCase) && !c.ReadOnly).ToList();
 
-                            string sets = string.Join(",", cols.Select(c => (DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer ? $"[{c.ColumnName}]" : $"\"{c.ColumnName}\"") + $"=@p{c.Ordinal}"));
+                            // Generate SET clause with named parameters
+                            string sets = string.Join(",", cols.Select(c =>
+                                (IsPostgres ? $"\"{c.ColumnName}\"" : $"[{c.ColumnName}]") + $"=@val_{c.ColumnName}"));
 
-                            string q = DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer
-                                ? $"UPDATE [{tableName}] SET {sets} WHERE [{idColName}] = @targetId"
-                                : $"UPDATE \"{tableName}\" SET {sets} WHERE \"{idColName}\" = @targetId";
+                            string q = IsPostgres
+                                ? $"UPDATE \"{tableName}\" SET {sets} WHERE \"{idColName}\" = @targetId"
+                                : $"UPDATE [{tableName}] SET {sets} WHERE [{idColName}] = @targetId";
 
                             using (var cmd = conn.CreateCommand())
                             {
                                 cmd.CommandText = q;
-                                foreach (var c in cols) AddParameter(cmd, $"@p{c.Ordinal}", row[c]);
+                                foreach (var c in cols)
+                                    AddParameter(cmd, $"@val_{c.ColumnName}", row[c]); // row[c] gets Current value
+
                                 AddParameter(cmd, "@targetId", idValue);
                                 cmd.ExecuteNonQuery();
                             }
@@ -447,7 +443,10 @@ namespace WPF_LoginForm.Repositories
                 }
                 return (true, "");
             }
-            catch (Exception ex) { return (false, ex.Message); }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
         }
 
         public async Task<bool> DeleteTableAsync(string tableName)

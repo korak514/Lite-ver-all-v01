@@ -1,53 +1,98 @@
 ﻿<Window x:Class="WPF_LoginForm.Views.CategoryConfigWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:p="clr-namespace:WPF_LoginForm.Properties"
-        Title="{x:Static p:Resources.Str_CategoryConfig}"
-        Height="450" Width="600"
-        WindowStartupLocation="CenterOwner"
-        Background="#F5F5F5">
+        Title="Category Configuration" Height="500" Width="650"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#09092B">
+
+    <Window.Resources>
+        <!-- Dark Theme Button Style -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#333" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="Margin" Value="5" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#555" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
 
     <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <!-- Header -->
             <RowDefinition Height="*" />
+            <!-- Grid -->
             <RowDefinition Height="Auto" />
+            <!-- Buttons -->
         </Grid.RowDefinitions>
 
-        <!-- Instructions -->
-        <TextBlock Text="Define rules to group specific error codes into categories."
-                   Foreground="#666" Margin="0,0,0,10" />
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="Category Mapping Rules" Foreground="White" FontSize="18" FontWeight="Bold" />
+            <TextBlock Text="Define rules to group raw error codes into categories." Foreground="Gray" FontSize="12" />
+            <TextBlock Text="Format: StartsWith (e.g. 'MOTOR') -> MapTo (e.g. 'Electrical')" Foreground="Gray" FontSize="12" FontStyle="Italic" />
+        </StackPanel>
 
-        <!-- Rules Grid -->
-        <DataGrid x:Name="RulesGrid"
-                  Grid.Row="1"
-                  AutoGenerateColumns="False"
-                  CanUserAddRows="True"
-                  CanUserDeleteRows="True"
-                  Background="White"
-                  BorderBrush="#DDD"
-                  BorderThickness="1"
-                  RowHeight="30"
-                  HeadersVisibility="Column">
+        <!-- Data Grid -->
+        <DataGrid Grid.Row="1" ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule}"
+                  AutoGenerateColumns="False" CanUserAddRows="False"
+                  Background="#181838" RowBackground="#181838" AlternatingRowBackground="#222244"
+                  Foreground="White" BorderThickness="0" HeadersVisibility="Column" GridLinesVisibility="None">
+
+            <DataGrid.Resources>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="#333" />
+                    <Setter Property="Foreground" Value="White" />
+                    <Setter Property="Padding" Value="5" />
+                    <Setter Property="BorderThickness" Value="0,0,1,0" />
+                    <Setter Property="BorderBrush" Value="#444" />
+                </Style>
+            </DataGrid.Resources>
 
             <DataGrid.Columns>
-                <!-- Input Column (e.g., ACIL-STOP) -->
-                <DataGridTextColumn Header="{x:Static p:Resources.Str_MappingRule}"
-                                    Binding="{Binding StartsWith}"
-                                    Width="*" />
-
-                <!-- Output Column (e.g., ACIL STOP) -->
-                <DataGridTextColumn Header="{x:Static p:Resources.Str_MapTo}"
-                                    Binding="{Binding MapTo}"
-                                    Width="*" />
+                <DataGridTextColumn Header="Starts With (Raw Text)" Binding="{Binding StartsWith}" Width="*" />
+                <DataGridTextColumn Header="Group As (Category)" Binding="{Binding MapTo}" Width="*" />
             </DataGrid.Columns>
         </DataGrid>
 
-        <!-- Footer / Save -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
-            <Button Content="{x:Static p:Resources.Save}"
-                    Width="100" Height="30"
-                    Click="Save_Click" />
-        </StackPanel>
+        <!-- Bottom Buttons -->
+        <Grid Grid.Row="2" Margin="0,15,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Edit Controls -->
+            <StackPanel Orientation="Horizontal" Grid.Column="0">
+                <Button Content="+ Add Rule" Command="{Binding AddCommand}" Background="#2E7D32" />
+                <Button Content="- Delete" Command="{Binding DeleteCommand}" Background="#C62828" />
+            </StackPanel>
+
+            <!-- I/O Controls -->
+            <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Center">
+                <Button Content="Import Excel" Command="{Binding ImportCommand}" Background="#D84315" />
+                <Button Content="Export Excel" Command="{Binding ExportCommand}" Background="#00695C" />
+            </StackPanel>
+
+            <!-- Final Action -->
+            <StackPanel Orientation="Horizontal" Grid.Column="2">
+                <Button Content="Save &amp; Close" Command="{Binding SaveCommand}" Background="#0078D7" FontWeight="Bold" />
+                <Button Content="Cancel" Command="{Binding CloseCommand}" Background="#444" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

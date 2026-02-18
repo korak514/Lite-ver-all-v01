@@ -123,7 +123,9 @@
     <Compile Include="Services\DataImportExportHelper.cs" />
     <Compile Include="Services\InputHelper.cs" />
     <Compile Include="Services\Network\ConnectionManager.cs" />
+    <Compile Include="Services\TimeFormatHelper.cs" />
     <Compile Include="Services\UserSessionService.cs" />
+    <Compile Include="ViewModels\CategoryConfigViewModel.cs" />
     <Compile Include="ViewModels\ErrorDrillDownViewModel.cs" />
     <Compile Include="ViewModels\ErrorEventModel.cs" />
     <Compile Include="ViewModels\ErrorManagementViewModel.cs" />

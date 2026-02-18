@@ -47,8 +47,7 @@ namespace WPF_LoginForm.ViewModels
         public string SelectedErrorCategory
         { get => _selectedErrorCategory; set { if (SetProperty(ref _selectedErrorCategory, value)) { SaveState(); UpdateCategoryMachineChart(); } } }
         private bool _isMachine00Excluded = false;
-        public bool IsMachine00Excluded
-        { get => _isMachine00Excluded; set { if (SetProperty(ref _isMachine00Excluded, value)) { SaveState(); _ = LoadDataWithDebounce(); } } }
+        public bool IsMachine00Excluded { get => _isMachine00Excluded; set { if (SetProperty(ref _isMachine00Excluded, value)) { SaveState(); _ = LoadDataWithDebounce(); } } }
 
         // --- Date ---
         private DateTime _startDate = DateTime.Today.AddDays(-7);
@@ -68,13 +67,24 @@ namespace WPF_LoginForm.ViewModels
         public double SliderHighValue
         { get => _sliderHigh; set { if (SetProperty(ref _sliderHigh, value) && !_isUpdatingFromSlider) UpdateDatesFromSlider(); } }
 
+        // --- Formatting Setting ---
+        private bool _isMinToClockFormat;
+
+        public bool IsMinToClockFormat
+        {
+            get => _isMinToClockFormat;
+            set { if (SetProperty(ref _isMinToClockFormat, value)) { SaveState(); UpdateFormatterLogic(); _ = LoadDataWithDebounce(); } }
+        }
+
         // --- PAGE 1 CHARTS ---
         private SeriesCollection _reasonSeries; public SeriesCollection ReasonSeries { get => _reasonSeries; set => SetProperty(ref _reasonSeries, value); }
 
         private string[] _reasonLabels; public string[] ReasonLabels { get => _reasonLabels; set => SetProperty(ref _reasonLabels, value); }
         private SeriesCollection _machineSeries; public SeriesCollection MachineSeries { get => _machineSeries; set => SetProperty(ref _machineSeries, value); }
         private SeriesCollection _shiftSeries; public SeriesCollection ShiftSeries { get => _shiftSeries; set => SetProperty(ref _shiftSeries, value); }
-        public Func<double, string> NumberFormatter { get; set; }
+
+        private Func<double, string> _numberFormatter;
+        public Func<double, string> NumberFormatter { get => _numberFormatter; set => SetProperty(ref _numberFormatter, value); }
 
         // --- PAGE 2 CHARTS ---
         private bool _isSecondPageActive;
@@ -83,10 +93,7 @@ namespace WPF_LoginForm.ViewModels
 
         private SeriesCollection _efficiencySeries; public SeriesCollection EfficiencySeries { get => _efficiencySeries; set => SetProperty(ref _efficiencySeries, value); }
         private SeriesCollection _shiftImpactSeries; public SeriesCollection ShiftImpactSeries { get => _shiftImpactSeries; set => SetProperty(ref _shiftImpactSeries, value); }
-
-        // Severity is now a Bar Chart, so we generally use SeriesCollection + Labels
         private SeriesCollection _severitySeries; public SeriesCollection SeveritySeries { get => _severitySeries; set => SetProperty(ref _severitySeries, value); }
-
         private string[] _severityLabels; public string[] SeverityLabels { get => _severityLabels; set => SetProperty(ref _severityLabels, value); }
 
         // --- PAGE 2 STATS ---
@@ -113,10 +120,10 @@ namespace WPF_LoginForm.ViewModels
             _mappingService = new CategoryMappingService();
             _activeRules = _mappingService.LoadRules();
 
+            // Init Collections
             ReasonSeries = new SeriesCollection();
             MachineSeries = new SeriesCollection();
             ShiftSeries = new SeriesCollection();
-
             EfficiencySeries = new SeriesCollection();
             ShiftImpactSeries = new SeriesCollection();
             SeveritySeries = new SeriesCollection();
@@ -127,7 +134,7 @@ namespace WPF_LoginForm.ViewModels
             ConfigureCategoriesCommand = new ViewModelCommand(ExecuteConfigureCategories);
             TogglePageCommand = new ViewModelCommand(p => IsSecondPageActive = !IsSecondPageActive);
 
-            NumberFormatter = value => $"{value:N0} min";
+            UpdateFormatterLogic();
             InitializeAsync();
         }
 
@@ -145,6 +152,12 @@ namespace WPF_LoginForm.ViewModels
         {
             IsActiveView = true;
             if (_cachedRawData != null && _cachedRawData.Any()) { OnPropertyChanged(nameof(ReasonSeries)); _ = LoadDataWithDebounce(); }
+        }
+
+        private void UpdateFormatterLogic()
+        {
+            // Update the axis formatter based on the checkbox
+            NumberFormatter = (val) => TimeFormatHelper.FormatDuration(val, IsMinToClockFormat);
         }
 
         private async Task LoadDataWithDebounce()
@@ -169,15 +182,16 @@ namespace WPF_LoginForm.ViewModels
 
                 var filteredList = InputHelper.PreProcessData(rawData, IsMachine00Excluded);
 
-                // --- Page 1 Data ---
+                // --- Page 1 Calculations ---
                 var reasonStats = InputHelper.GetTopReasons(filteredList, _mappingService, _activeRules, 5);
                 var reasonValues = new ChartValues<double>(reasonStats.Select(x => x.Value));
                 var reasonLabels = reasonStats.Select((x, index) => { string l = x.Label; if (l.Length > 15) l = l.Substring(0, 12) + "..."; return (index % 2 != 0) ? "\n" + l : l; }).ToArray();
                 var reasonFullNames = reasonStats.Select(x => x.Label).ToList();
                 var machineStats = InputHelper.GetMachineStats(filteredList);
 
-                // --- Page 2 Data ---
-                var page2Stats = InputHelper.CalculatePage2Stats(filteredList, StartDate, EndDate);
+                // --- Page 2 Calculations ---
+                // Pass NumberFormatter to helper for text stats
+                var page2Stats = InputHelper.CalculatePage2Stats(filteredList, StartDate, EndDate, NumberFormatter);
                 var shiftStats = InputHelper.GetShiftStats(filteredList);
                 var severityStats = InputHelper.GetSeverityStats(filteredList);
 
@@ -194,7 +208,7 @@ namespace WPF_LoginForm.ViewModels
                     else if (ErrorCategories.Any()) _selectedErrorCategory = ErrorCategories[0];
                     OnPropertyChanged(nameof(SelectedErrorCategory));
 
-                    // Update P1
+                    // P1
                     _fullReasonNames = reasonFullNames;
                     ReasonLabels = reasonLabels;
                     ReasonSeries = new SeriesCollection { new ColumnSeries { Title = WPF_LoginForm.Properties.Resources.Chart_LongestIncident, Values = reasonValues, DataLabels = true, Fill = Brushes.DodgerBlue } };
@@ -204,53 +218,31 @@ namespace WPF_LoginForm.ViewModels
                     MachineSeries = machineColl;
                     UpdateCategoryMachineChart();
 
-                    // Update P2 - Text
+                    // P2 Text
                     DailyAvgStop = page2Stats.DailyAvgStop;
                     DailyAvgError = page2Stats.DailyAvgError;
                     TimeSavedBreak = page2Stats.SavedBreakTime;
                     TimeSavedMaintenance = page2Stats.SavedMaintenanceTime;
-                    ExtraStat1 = page2Stats.ExtraStat1;
-                    ExtraStat2 = page2Stats.ExtraStat2;
-                    ExtraStat3 = page2Stats.ExtraStat3;
+                    ExtraStat1 = page2Stats.ExtraStat1; ExtraStat2 = page2Stats.ExtraStat2; ExtraStat3 = page2Stats.ExtraStat3;
 
-                    // Update P2 - Efficiency
+                    // P2 Charts
                     EfficiencySeries = new SeriesCollection {
                         new PieSeries { Title = "Errors", Values = new ChartValues<double> { page2Stats.TotalErrorDuration }, DataLabels = true, Fill = Brushes.OrangeRed, LabelPoint = p => $"{p.Y:N0}m" },
                         new PieSeries { Title = "Stops", Values = new ChartValues<double> { page2Stats.TotalStopDuration }, DataLabels = true, Fill = Brushes.DodgerBlue, LabelPoint = p => $"{p.Y:N0}m" }
                     };
 
-                    // Update P2 - Shift Impact
                     var shiftColl = new SeriesCollection();
                     foreach (var s in shiftStats) shiftColl.Add(new PieSeries { Title = s.Label, Values = new ChartValues<double> { s.Value }, DataLabels = true, LabelPoint = p => $"{p.Y:N0}m ({p.Participation:P0})" });
                     ShiftImpactSeries = shiftColl;
 
-                    // Update P2 - Severity (As Bar Chart)
                     var sevColl = new SeriesCollection();
-                    var labels = new List<string>();
-
                     foreach (var s in severityStats)
                     {
                         Brush fill = Brushes.Gray;
-                        if (s.Label.Contains("Micro")) fill = Brushes.MediumSeaGreen;
-                        else if (s.Label.Contains("Minor")) fill = Brushes.Orange;
-                        else if (s.Label.Contains("Major")) fill = Brushes.Crimson;
-
-                        // For a multi-colored bar chart in LiveCharts without custom mappers,
-                        // we add one ColumnSeries per category.
-                        sevColl.Add(new ColumnSeries
-                        {
-                            Title = s.Label,
-                            Values = new ChartValues<double> { s.Value },
-                            DataLabels = true,
-                            Fill = fill
-                        });
-                        labels.Add(s.Label); // X-Axis Label isn't strictly needed if we use Legend, but good for structure
+                        if (s.Label.Contains("Micro")) fill = Brushes.MediumSeaGreen; else if (s.Label.Contains("Minor")) fill = Brushes.Orange; else if (s.Label.Contains("Major")) fill = Brushes.Crimson;
+                        sevColl.Add(new ColumnSeries { Title = s.Label, Values = new ChartValues<double> { s.Value }, DataLabels = true, Fill = fill });
                     }
                     SeveritySeries = sevColl;
-                    // We only have 1 column per series (Value), so X-Axis is just "0".
-                    // To make it look like a categorical bar chart, we usually hide X-axis labels
-                    // and use the Legend, OR we structure data differently.
-                    // Given the request for "Small Bar Chart", Series-based coloring is visually best.
                     SeverityLabels = new string[] { "" };
                 });
             });
@@ -266,7 +258,56 @@ namespace WPF_LoginForm.ViewModels
             ShiftSeries = catColl;
         }
 
-        // --- Helpers ---
+        // TASK 4: Active Update Fix
+        private void ExecuteConfigureCategories(object obj)
+        {
+            var win = new WPF_LoginForm.Views.CategoryConfigWindow();
+            if (Application.Current.MainWindow != null) win.Owner = Application.Current.MainWindow;
+
+            if (win.ShowDialog() == true)
+            {
+                // 1. Reload Rules
+                _activeRules = _mappingService.LoadRules();
+
+                // 2. Trigger Reload to re-map using new rules
+                _ = LoadDataWithDebounce();
+            }
+        }
+
+        // TASK 1: "Others" Click Fix
+        private void ExecuteChartClick(object obj)
+        {
+            if (obj is ChartPoint point)
+            {
+                string filterText = point.SeriesView.Title;
+
+                // Handle "Others"
+                if (filterText == "MA-Others") // Title format is "MA-" + label from ProcessChartsAsync
+                {
+                    // Collect visible machine names to exclude
+                    var visible = MachineSeries.Cast<PieSeries>()
+                        .Select(s => s.Title.Replace("MA-", "")) // Remove prefix to match raw DB code
+                        .Where(t => t != "Others")
+                        .ToList();
+
+                    // Send special payload
+                    DrillDownRequested?.Invoke(SelectedTable, StartDate, EndDate, "MACHINE_OTHERS|" + string.Join(",", visible));
+                    return;
+                }
+
+                // Handle Bar Chart
+                if (point.SeriesView is ColumnSeries && _fullReasonNames.Count > (int)point.X)
+                    filterText = _fullReasonNames[(int)point.X];
+
+                // Handle Bottom-Left Pie
+                if (ShiftSeries != null && ShiftSeries.Cast<object>().Any(s => s == point.SeriesView))
+                    filterText += $"-{SelectedErrorCategory}";
+
+                DrillDownRequested?.Invoke(SelectedTable, StartDate, EndDate, filterText);
+            }
+        }
+
+        // Helpers
         private async Task UpdateDateRangeFromDbAsync()
         {
             if (string.IsNullOrEmpty(SelectedTable)) return;
@@ -291,19 +332,13 @@ namespace WPF_LoginForm.ViewModels
         private void UpdateDatesFromSlider()
         { _isUpdatingFromSlider = true; StartDate = _absoluteMinDate.AddDays(SliderLowValue); EndDate = _absoluteMinDate.AddDays(SliderHighValue); _isUpdatingFromSlider = false; _ = LoadDataWithDebounce(); }
 
-        private void ExecuteChartClick(object obj)
-        { if (obj is ChartPoint point) { string t = point.SeriesView.Title; if (point.SeriesView is ColumnSeries && _fullReasonNames.Count > (int)point.X) t = _fullReasonNames[(int)point.X]; if (ShiftSeries != null && ShiftSeries.Cast<object>().Any(s => s == point.SeriesView)) t += $"-{SelectedErrorCategory}"; DrillDownRequested?.Invoke(SelectedTable, StartDate, EndDate, t); } }
-
         private void ExecuteMoveDate(object p)
         { if (p is string s && s.Contains("|")) { var parts = s.Split('|'); if (int.TryParse(parts[1], out int d)) { if (parts[0] == "Start") StartDate = StartDate.AddDays(d); else EndDate = EndDate.AddDays(d); if (StartDate > EndDate) { if (parts[0] == "Start") EndDate = StartDate; else StartDate = EndDate; } } } }
 
-        private void ExecuteConfigureCategories(object obj)
-        { var win = new WPF_LoginForm.Views.CategoryConfigWindow(); if (Application.Current.MainWindow != null) win.Owner = Application.Current.MainWindow; if (win.ShowDialog() == true) { _activeRules = _mappingService.LoadRules(); _ = LoadDataWithDebounce(); } }
-
         private void SaveState()
-        { try { string dir = Path.GetDirectoryName(StateFilePath); if (!Directory.Exists(dir)) Directory.CreateDirectory(dir); var state = new { SelectedTable, StartDate, EndDate, IsMachine00Excluded, SelectedErrorCategory }; File.WriteAllText(StateFilePath, JsonConvert.SerializeObject(state)); } catch { } }
+        { try { string dir = Path.GetDirectoryName(StateFilePath); if (!Directory.Exists(dir)) Directory.CreateDirectory(dir); var state = new { SelectedTable, StartDate, EndDate, IsMachine00Excluded, SelectedErrorCategory, IsMinToClockFormat }; File.WriteAllText(StateFilePath, JsonConvert.SerializeObject(state)); } catch { } }
 
         private void LoadState()
-        { try { if (File.Exists(StateFilePath)) { dynamic state = JsonConvert.DeserializeObject(File.ReadAllText(StateFilePath)); if (state != null) { _selectedTable = state.SelectedTable; _startDate = state.StartDate; _endDate = state.EndDate; _isMachine00Excluded = state.IsMachine00Excluded; _selectedErrorCategory = state.SelectedErrorCategory; OnPropertyChanged(nameof(SelectedTable)); OnPropertyChanged(nameof(StartDate)); OnPropertyChanged(nameof(EndDate)); OnPropertyChanged(nameof(IsMachine00Excluded)); OnPropertyChanged(nameof(SelectedErrorCategory)); } } } catch { } }
+        { try { if (File.Exists(StateFilePath)) { dynamic state = JsonConvert.DeserializeObject(File.ReadAllText(StateFilePath)); if (state != null) { _selectedTable = state.SelectedTable; _startDate = state.StartDate; _endDate = state.EndDate; _isMachine00Excluded = state.IsMachine00Excluded; _selectedErrorCategory = state.SelectedErrorCategory; _isMinToClockFormat = state.IsMinToClockFormat ?? false; OnPropertyChanged(nameof(SelectedTable)); OnPropertyChanged(nameof(StartDate)); OnPropertyChanged(nameof(EndDate)); OnPropertyChanged(nameof(IsMachine00Excluded)); OnPropertyChanged(nameof(SelectedErrorCategory)); OnPropertyChanged(nameof(IsMinToClockFormat)); } } } catch { } }
     }
 }

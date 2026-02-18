@@ -399,4 +399,7 @@
   <data name="Filter" xml:space="preserve">
     <value>Filter</value>
   </data>
+  <data name="Min2clock" xml:space="preserve">
+    <value>Hours Representation</value>
+  </data>
 </root>
