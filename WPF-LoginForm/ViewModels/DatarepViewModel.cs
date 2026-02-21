@@ -54,6 +54,12 @@ namespace WPF_LoginForm.ViewModels
         public ObservableCollection<DataRowView> EditableRows { get; } = new ObservableCollection<DataRowView>();
         public ObservableCollection<string> SearchableColumns { get; } = new ObservableCollection<string>();
 
+        // --- Offline Mode Properties ---
+        public bool IsOfflineMode => _dataRepository is OfflineDataRepository;
+
+        public bool IsOnlineMode => !IsOfflineMode;
+        public bool IsAdminAndOnline => IsAdmin && IsOnlineMode;
+
         // --- Properties ---
         public bool IsAdmin => UserSessionService.IsAdmin;
 
@@ -124,18 +130,13 @@ namespace WPF_LoginForm.ViewModels
 
         public bool IsDateFilterVisible { get => _isDateFilterVisible; private set => SetProperty(ref _isDateFilterVisible, value); }
         public bool IsDateFilterPanelVisible { get; set; }
-
         public DateTime? FilterStartDate
         { get => _filterStartDate; set { if (SetProperty(ref _filterStartDate, value)) { ApplyCombinedFiltersAsync(); UpdateSlidersFromDates(); } } }
-
         public DateTime? FilterEndDate
         { get => _filterEndDate; set { if (SetProperty(ref _filterEndDate, value)) { ApplyCombinedFiltersAsync(); UpdateSlidersFromDates(); } } }
-
         public double SliderMaximum { get => _sliderMax; set => SetProperty(ref _sliderMax, value); }
-
         public double StartMonthSliderValue
         { get => _sliderStart; set { if (SetProperty(ref _sliderStart, value)) UpdateDatesFromSliders(); } }
-
         public double EndMonthSliderValue
         { get => _sliderEnd; set { if (SetProperty(ref _sliderEnd, value)) UpdateDatesFromSliders(); } }
 
@@ -180,62 +181,49 @@ namespace WPF_LoginForm.ViewModels
             _dialogService = dialogService;
             _dataRepository = dataRepository;
 
-            AddNewRowCommand = new ViewModelCommand(ExecuteAddNewRow, p => _currentDataTable != null && !IsBusy);
-            SaveChangesCommand = new ViewModelCommand(ExecuteSaveChanges, p => IsDirty && !IsBusy);
-            UndoChangesCommand = new ViewModelCommand(ExecuteUndo, p => _rowChangeHistory.Any() && !IsBusy);
+            // Updated commands to block actions if Offline
+            AddNewRowCommand = new ViewModelCommand(ExecuteAddNewRow, p => _currentDataTable != null && !IsBusy && IsOnlineMode);
+            SaveChangesCommand = new ViewModelCommand(ExecuteSaveChanges, p => IsDirty && !IsBusy && IsOnlineMode);
+            UndoChangesCommand = new ViewModelCommand(ExecuteUndo, p => _rowChangeHistory.Any() && !IsBusy && IsOnlineMode);
+            EditSelectedRowsCommand = new ViewModelCommand(ExecuteEditRows, p => IsOnlineMode);
+            DeleteSelectedRowCommand = new ViewModelCommand(ExecuteDeleteRow, p => p is IList i && i.Count > 0 && !IsBusy && IsOnlineMode);
+            DeleteTableCommand = new ViewModelCommand(ExecuteDeleteTable, p => !string.IsNullOrEmpty(SelectedTable) && IsAdminAndOnline && !IsBusy);
 
-            // DIAGNOSTIC CHANGE: Remove CanExecute check to debug binding
-            EditSelectedRowsCommand = new ViewModelCommand(ExecuteEditRows);
+            ImportDataCommand = new ViewModelCommand(ExecuteImportData, p => _currentDataTable != null && !IsBusy && IsOnlineMode);
+            ShowAdvancedImportCommand = new ViewModelCommand(p => { var vm = new ImportTableViewModel(SelectedTable, _dialogService); if (_dialogService.ShowImportTableDialog(vm, out ImportSettings s)) ExecuteImportData(s); }, p => _currentDataTable != null && !IsBusy && IsOnlineMode);
+            AddIdColumnCommand = new ViewModelCommand(async p => await ExecuteLongRunning(async t => { var r = await _dataRepository.AddPrimaryKeyAsync(SelectedTable); if (r.Success) LoadDataForSelectedTableAsync(); }), p => _currentDataTable != null && !_currentDataTable.Columns.Contains("ID") && IsOnlineMode);
+            ShowCreateTableCommand = new ViewModelCommand(p => { _dialogService.ShowCreateTableDialog(new CreateTableViewModel(_dialogService, _logger, _dataRepository)); LoadInitialDataAsync(); }, p => IsOnlineMode);
+            RenameColumnCommand = new ViewModelCommand(ExecuteRenameColumn, p => !IsBusy && IsAdminAndOnline && !string.IsNullOrEmpty(SelectedSearchColumn));
+            ShowHierarchyImportCommand = new ViewModelCommand(p => _dialogService.ShowHierarchyImportDialog(new HierarchyImportViewModel(_dataRepository, _dialogService, _logger) { SelectedTableName = SelectedTable }), p => IsOnlineMode);
 
             ReloadDataCommand = new ViewModelCommand(p => LoadDataForSelectedTableAsync(), p => !string.IsNullOrEmpty(SelectedTable) && !IsBusy);
-            DeleteSelectedRowCommand = new ViewModelCommand(ExecuteDeleteRow, p => p is IList i && i.Count > 0 && !IsBusy);
-            DeleteTableCommand = new ViewModelCommand(ExecuteDeleteTable, p => !string.IsNullOrEmpty(SelectedTable) && IsAdmin && !IsBusy);
-
-            ImportDataCommand = new ViewModelCommand(ExecuteImportData, p => _currentDataTable != null && !IsBusy);
-            ShowAdvancedImportCommand = new ViewModelCommand(p => { var vm = new ImportTableViewModel(SelectedTable, _dialogService); if (_dialogService.ShowImportTableDialog(vm, out ImportSettings s)) ExecuteImportData(s); }, p => _currentDataTable != null && !IsBusy);
             ExportDataCommand = new ViewModelCommand(ExecuteExportData, p => _currentDataTable?.Rows.Count > 0 && !IsBusy);
-
-            AddIdColumnCommand = new ViewModelCommand(async p => await ExecuteLongRunning(async t => { var r = await _dataRepository.AddPrimaryKeyAsync(SelectedTable); if (r.Success) LoadDataForSelectedTableAsync(); }), p => _currentDataTable != null && !_currentDataTable.Columns.Contains("ID"));
-            ShowCreateTableCommand = new ViewModelCommand(p => { _dialogService.ShowCreateTableDialog(new CreateTableViewModel(_dialogService, _logger, _dataRepository)); LoadInitialDataAsync(); });
-            RenameColumnCommand = new ViewModelCommand(ExecuteRenameColumn, p => !IsBusy && IsAdmin && !string.IsNullOrEmpty(SelectedSearchColumn));
             ShowFindReplaceCommand = new ViewModelCommand(ExecuteShowFindReplace, p => _currentDataTable != null && !IsBusy);
-            ShowHierarchyImportCommand = new ViewModelCommand(p => _dialogService.ShowHierarchyImportDialog(new HierarchyImportViewModel(_dataRepository, _dialogService, _logger) { SelectedTableName = SelectedTable }));
-
             DecreaseFontSizeCommand = new ViewModelCommand(p => DataGridFontSize--, p => DataGridFontSize > 8);
             IncreaseFontSizeCommand = new ViewModelCommand(p => DataGridFontSize++, p => DataGridFontSize < 24);
-
             ClearSearchCommand = new ViewModelCommand(p => { SearchText = ""; IsGlobalSearchActive = false; });
             ClearDateFilterCommand = new ViewModelCommand(p => { FilterStartDate = null; FilterEndDate = null; IsDateFilterPanelVisible = false; ApplyCombinedFiltersAsync(); });
 
-            DatabaseRetryPolicy.OnRetryStatus += msg => Application.Current?.Dispatcher.Invoke(() => SetErrorMessage(msg));
+            // FIX: Prevent duplicate event handlers on Re-Instantiations (Bug #6)
+            DatabaseRetryPolicy.OnRetryStatus -= OnRetryStatusReceived;
+            DatabaseRetryPolicy.OnRetryStatus += OnRetryStatusReceived;
+
             LoadInitialDataAsync();
         }
 
-        // LOCATE this method inside ViewModels/DatarepViewModel.cs and REPLACE it with this:
+        private void OnRetryStatusReceived(string msg) => Application.Current?.Dispatcher.Invoke(() => SetErrorMessage(msg));
 
         private void ExecuteEditRows(object parameter)
         {
             if (parameter is System.Collections.IList items)
             {
-                // 1. Safety check
                 if (items.Count == 0) return;
-
-                // 2. Refresh the list of allowed rows
                 EditableRows.Clear();
                 foreach (var item in items)
                 {
-                    if (item is System.Data.DataRowView drv)
-                    {
-                        EditableRows.Add(drv);
-                    }
+                    if (item is System.Data.DataRowView drv) EditableRows.Add(drv);
                 }
-
-                // 3. CRITICAL FIX:
-                // Force the UI to re-evaluate the "IsReadOnly" binding.
-                // Without this, the Converter never runs again, and the grid stays locked.
                 OnPropertyChanged(nameof(EditableRows));
-
-                // Optional: Force the command to re-evaluate its status
                 (EditSelectedRowsCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             }
         }
@@ -261,20 +249,11 @@ namespace WPF_LoginForm.ViewModels
             IsBusy = true;
             SetErrorMessage(null);
 
-            try
-            {
-                await op(token);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("[Op]", ex);
-                SetErrorMessage($"Error: {ex.Message}");
-            }
+            try { await op(token); }
+            catch (Exception ex) { _logger.LogError("[Op]", ex); SetErrorMessage($"Error: {ex.Message}"); }
             finally
             {
-                if (Interlocked.Decrement(ref _longRunningOperationCount) == 0)
-                    IsBusy = false;
-
+                if (Interlocked.Decrement(ref _longRunningOperationCount) == 0) IsBusy = false;
                 CommandManager.InvalidateRequerySuggested();
             }
         }
@@ -335,7 +314,6 @@ namespace WPF_LoginForm.ViewModels
         {
             var changes = _currentDataTable?.GetChanges();
             if (changes == null) return;
-            if (!_currentDataTable.Columns.Contains("ID")) { MessageBox.Show("Table needs ID column.", "Error"); return; }
             if (!_dialogService.ShowConfirmationDialog(Resources.Save, $"Save {changes.Rows.Count} changes?")) return;
 
             bool newRows = changes.AsEnumerable().Any(r => r.RowState == DataRowState.Added);
@@ -353,10 +331,7 @@ namespace WPF_LoginForm.ViewModels
                         if (newRows) LoadDataForSelectedTableAsync();
                         SetErrorMessage("Changes Saved Successfully.");
                     }
-                    else
-                    {
-                        SetErrorMessage(r.ErrorMessage);
-                    }
+                    else SetErrorMessage(r.ErrorMessage);
                 });
             });
         }
@@ -453,9 +428,8 @@ namespace WPF_LoginForm.ViewModels
                     foreach (var k in data.Values.Keys) if (_currentDataTable.Columns.Contains(k)) r[k] = data.Values[k] ?? DBNull.Value;
                     if (_currentDataTable.Columns.Contains("ID") && (r["ID"] == DBNull.Value || r["ID"] == null))
                     {
-                        // Handle auto-increment gap or Guid
                         if (_currentDataTable.Columns["ID"].DataType == typeof(Guid)) r["ID"] = Guid.NewGuid();
-                        else r["ID"] = -1; // Placeholder
+                        else r["ID"] = -1;
                     }
                     _currentDataTable.Rows.Add(r);
                     CheckIfDirty();
@@ -476,11 +450,17 @@ namespace WPF_LoginForm.ViewModels
         private void ExecuteShowFindReplace(object p)
         { var w = new FindReplaceWindow(); w.FindRequested += (s, e) => { SearchText = w.FindText; IsGlobalSearchActive = true; }; if (Application.Current.MainWindow != null) w.Owner = Application.Current.MainWindow; w.Show(); }
 
+        // FIX: Memory leak on Table Events (Bug #9)
+        private void CurrentDataTable_RowChanged(object sender, DataRowChangeEventArgs e)
+        {
+            if (e.Action != DataRowAction.Commit) { _rowChangeHistory.Add(e.Row); CheckIfDirty(); }
+        }
+
         private void SubscribeToTableEvents()
-        { if (_currentDataTable != null) { _currentDataTable.RowChanged += (s, e) => { if (e.Action != DataRowAction.Commit) { _rowChangeHistory.Add(e.Row); CheckIfDirty(); } }; } }
+        { if (_currentDataTable != null) _currentDataTable.RowChanged += CurrentDataTable_RowChanged; }
 
         private void UnsubscribeFromTableEvents()
-        { if (_currentDataTable != null) _currentDataTable.RowChanged -= null; }
+        { if (_currentDataTable != null) _currentDataTable.RowChanged -= CurrentDataTable_RowChanged; }
 
         private void CheckIfDirty() => IsDirty = _currentDataTable?.GetChanges() != null;
 

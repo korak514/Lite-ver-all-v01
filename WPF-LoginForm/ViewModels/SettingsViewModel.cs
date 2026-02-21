@@ -1,4 +1,5 @@
-﻿using System;
+﻿// ViewModels/SettingsViewModel.cs
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
@@ -22,6 +23,8 @@ namespace WPF_LoginForm.ViewModels
 {
     public class SettingsViewModel : ViewModelBase
     {
+        private readonly IDataRepository _dataRepository;
+
         // --- Fields ---
         private DatabaseType _selectedDatabaseType;
 
@@ -59,6 +62,11 @@ namespace WPF_LoginForm.ViewModels
 
         private int _dashboardDateTickSize;
         private int _defaultRowLimit;
+
+        // Offline Settings
+        private string _offlineFolderPath;
+
+        private ObservableCollection<SelectableTable> _backupTables;
 
         // User Management
         private ObservableCollection<UserModel> _users;
@@ -107,6 +115,8 @@ namespace WPF_LoginForm.ViewModels
                     OnPropertyChanged(nameof(CanManageUsers));
                     (SaveCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
                     (TestConnectionCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+                    (LoadBackupTablesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+                    (CreateOfflineBackupCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
                 }
             }
         }
@@ -114,21 +124,12 @@ namespace WPF_LoginForm.ViewModels
         public string DbHost { get => _dbHost; set => SetProperty(ref _dbHost, value); }
         public string DbPort { get => _dbPort; set => SetProperty(ref _dbPort, value); }
         public string DbUser { get => _dbUser; set => SetProperty(ref _dbUser, value); }
-
-        public SecureString DbPassword
-        {
-            get => _dbPassword;
-            set => SetProperty(ref _dbPassword, value);
-        }
+        public SecureString DbPassword { get => _dbPassword; set => SetProperty(ref _dbPassword, value); }
 
         public bool UseWindowsAuth
         {
             get => _useWindowsAuth;
-            set
-            {
-                SetProperty(ref _useWindowsAuth, value);
-                OnPropertyChanged(nameof(IsCredentialsEnabled));
-            }
+            set { SetProperty(ref _useWindowsAuth, value); OnPropertyChanged(nameof(IsCredentialsEnabled)); }
         }
 
         public int ConnectionTimeout { get => _connectionTimeout; set => SetProperty(ref _connectionTimeout, value); }
@@ -141,15 +142,11 @@ namespace WPF_LoginForm.ViewModels
 
         public bool AutoImportEnabled
         { get => _autoImportEnabled; set { SetProperty(ref _autoImportEnabled, value); OnPropertyChanged(nameof(IsImportConfigEnabled)); } }
-
         public bool IsImportConfigEnabled => AutoImportEnabled;
-
         public bool ImportIsRelative
         { get => _importIsRelative; set { SetProperty(ref _importIsRelative, value); OnPropertyChanged(nameof(IsRelativeInputVisible)); OnPropertyChanged(nameof(IsAbsoluteInputVisible)); } }
-
         public bool ImportIsAbsolute
         { get => !ImportIsRelative; set { ImportIsRelative = !value; } }
-
         public bool IsRelativeInputVisible => ImportIsRelative;
         public bool IsAbsoluteInputVisible => !ImportIsRelative;
         public string ImportFileName { get => _importFileName; set => SetProperty(ref _importFileName, value); }
@@ -158,11 +155,13 @@ namespace WPF_LoginForm.ViewModels
         public int DashboardDateTickSize { get => _dashboardDateTickSize; set => SetProperty(ref _dashboardDateTickSize, value); }
         public int DefaultRowLimit { get => _defaultRowLimit; set => SetProperty(ref _defaultRowLimit, value); }
 
+        public string OfflineFolderPath { get => _offlineFolderPath; set => SetProperty(ref _offlineFolderPath, value); }
+        public ObservableCollection<SelectableTable> BackupTables { get => _backupTables; set => SetProperty(ref _backupTables, value); }
+        public bool IsOnlineMode => !(_dataRepository is OfflineDataRepository);
+
         public ObservableCollection<UserModel> Users { get => _users; set => SetProperty(ref _users, value); }
 
-        // New User Properties
         public string NewUserUsername { get => _newUserUsername; set => SetProperty(ref _newUserUsername, value); }
-
         public string NewUserName { get => _newUserName; set => SetProperty(ref _newUserName, value); }
         public string NewUserLastName { get => _newUserLastName; set => SetProperty(ref _newUserLastName, value); }
         public string NewUserEmail { get => _newUserEmail; set => SetProperty(ref _newUserEmail, value); }
@@ -171,23 +170,32 @@ namespace WPF_LoginForm.ViewModels
 
         public List<string> AvailableRoles { get; } = new List<string> { "User", "Admin" };
 
-        public bool CanManageUsers => UserSessionService.IsAdmin || IsBusy; // Allow viewing if busy, logic handled in commands
+        // FIX: Hide User Management tab completely if in Offline Mode
+        public bool CanManageUsers => (UserSessionService.IsAdmin && IsOnlineMode) || IsBusy;
 
         // Commands
         public ICommand SaveCommand { get; }
 
         public ICommand TestConnectionCommand { get; }
         public ICommand BrowseImportFileCommand { get; }
+        public ICommand BrowseOfflineFolderCommand { get; }
+        public ICommand LoadBackupTablesCommand { get; }
+        public ICommand CreateOfflineBackupCommand { get; }
         public ICommand LoadUsersCommand { get; }
         public ICommand AddUserCommand { get; }
         public ICommand DeleteUserCommand { get; }
 
-        public SettingsViewModel()
+        public SettingsViewModel() : this(null)
         {
+        }
+
+        public SettingsViewModel(IDataRepository dataRepository)
+        {
+            _dataRepository = dataRepository;
             _userRepository = new UserRepository();
             Users = new ObservableCollection<UserModel>();
+            BackupTables = new ObservableCollection<SelectableTable>();
 
-            // Load raw strings from Settings
             _sqlAuthString = Settings.Default.SqlAuthConnString;
             _sqlDataString = Settings.Default.SqlDataConnString;
             _postgresAuthString = Settings.Default.PostgresAuthConnString;
@@ -213,12 +221,20 @@ namespace WPF_LoginForm.ViewModels
 
             NewUserRole = "User";
 
-            // Populate UI fields from connection strings
             LoadFromCurrentProvider();
+
+            string offlineConfig = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "offline_path.txt");
+            if (File.Exists(offlineConfig)) OfflineFolderPath = File.ReadAllText(offlineConfig).Trim();
+            else OfflineFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "OfflineData");
 
             SaveCommand = new ViewModelCommand(ExecuteSaveCommand, (o) => !IsBusy);
             TestConnectionCommand = new ViewModelCommand(ExecuteTestConnection, (o) => !IsBusy);
             BrowseImportFileCommand = new ViewModelCommand(ExecuteBrowseImportFile);
+            BrowseOfflineFolderCommand = new ViewModelCommand(ExecuteBrowseOfflineFolder);
+
+            LoadBackupTablesCommand = new ViewModelCommand(ExecuteLoadBackupTables, (o) => !IsBusy && IsOnlineMode);
+            CreateOfflineBackupCommand = new ViewModelCommand(ExecuteCreateOfflineBackup, (o) => !IsBusy && IsOnlineMode && BackupTables.Any(t => t.IsSelected));
+
             LoadUsersCommand = new ViewModelCommand(ExecuteLoadUsers);
             AddUserCommand = new ViewModelCommand(ExecuteAddUser);
             DeleteUserCommand = new ViewModelCommand(ExecuteDeleteUser);
@@ -230,7 +246,84 @@ namespace WPF_LoginForm.ViewModels
             if (dialog.ShowDialog() == true) ImportAbsolutePath = Path.GetDirectoryName(dialog.FileName);
         }
 
-        // In WPF_LoginForm/ViewModels/SettingsViewModel.cs
+        private void ExecuteBrowseOfflineFolder(object obj)
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Select any file inside the target Offline Data folder", Filter = "All files|*.*", CheckFileExists = true };
+            if (dialog.ShowDialog() == true) OfflineFolderPath = Path.GetDirectoryName(dialog.FileName);
+        }
+
+        private async void ExecuteLoadBackupTables(object obj)
+        {
+            if (_dataRepository == null) return;
+            IsBusy = true;
+            StatusMessage = "Fetching available tables...";
+            try
+            {
+                var tables = await _dataRepository.GetTableNamesAsync();
+                BackupTables.Clear();
+                foreach (var t in tables)
+                {
+                    var st = new SelectableTable { Name = t, IsSelected = true };
+                    st.PropertyChanged += (s, e) => { (CreateOfflineBackupCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); };
+                    BackupTables.Add(st);
+                }
+                StatusMessage = "Ready to create backup.";
+                (CreateOfflineBackupCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error fetching tables: {ex.Message}";
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private async void ExecuteCreateOfflineBackup(object obj)
+        {
+            var selected = BackupTables.Where(t => t.IsSelected).ToList();
+            if (!selected.Any()) return;
+
+            if (string.IsNullOrWhiteSpace(OfflineFolderPath))
+            {
+                MessageBox.Show("Please specify an Offline Data Folder first.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            IsBusy = true;
+            try
+            {
+                if (!Directory.Exists(OfflineFolderPath)) Directory.CreateDirectory(OfflineFolderPath);
+
+                int count = 0;
+                foreach (var tbl in selected)
+                {
+                    StatusMessage = $"Downloading {tbl.Name}...";
+
+                    var result = await _dataRepository.GetTableDataAsync(tbl.Name, 0);
+
+                    if (result.Data != null)
+                    {
+                        string filePath = Path.Combine(OfflineFolderPath, $"{tbl.Name}.csv");
+                        await Task.Run(() => DataImportExportHelper.ExportTable(filePath, result.Data, tbl.Name));
+                        count++;
+                    }
+                }
+
+                StatusMessage = $"Offline image created. {count} tables backed up.";
+                MessageBox.Show($"Successfully exported {count} tables to:\n{OfflineFolderPath}", "Backup Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Backup failed: {ex.Message}";
+                MessageBox.Show($"Failed to create backup.\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
 
         private void ExecuteSaveCommand(object obj)
         {
@@ -242,9 +335,7 @@ namespace WPF_LoginForm.ViewModels
 
             try
             {
-                // Generates strings using the current SecureString password
                 RebuildConnectionStrings();
-
                 DbConnectionFactory.CurrentDatabaseType = SelectedDatabaseType;
 
                 Settings.Default.SqlAuthConnString = _sqlAuthString;
@@ -270,18 +361,13 @@ namespace WPF_LoginForm.ViewModels
                 Settings.Default.DbHost = DbHost;
                 Settings.Default.DbPort = DbPort;
                 Settings.Default.DbUser = DbUser;
-                // Note: We do NOT save DbPassword to simple settings if we can avoid it.
-                // It is embedded in the Connection Strings.
-
                 Settings.Default.Save();
 
-                // --- FIX STARTS HERE ---
-                // Clear the cache immediately.
-                // This deletes 'app_cache.json' so the app stops seeing SQL Server tables
-                // and fetches the fresh table list from PostgreSQL next time it loads.
+                string offlineConfig = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "offline_path.txt");
+                File.WriteAllText(offlineConfig, OfflineFolderPath);
+
                 var cacheService = new CacheService();
                 cacheService.Clear();
-                // --- FIX ENDS HERE ---
 
                 StatusMessage = Resources.Msg_SettingsSavedRestart;
                 MessageBox.Show(Resources.Msg_SettingsSavedRestart, "Restart Required", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -308,9 +394,7 @@ namespace WPF_LoginForm.ViewModels
                     else DbPort = "1433";
 
                     DbUser = builder.UserID;
-                    if (!string.IsNullOrEmpty(builder.Password))
-                        DbPassword = new NetworkCredential("", builder.Password).SecurePassword;
-
+                    if (!string.IsNullOrEmpty(builder.Password)) DbPassword = new NetworkCredential("", builder.Password).SecurePassword;
                     UseWindowsAuth = builder.IntegratedSecurity;
                     ConnectionTimeout = builder.ConnectTimeout;
                     TrustServerCertificate = builder.TrustServerCertificate;
@@ -321,24 +405,17 @@ namespace WPF_LoginForm.ViewModels
                     DbHost = builder.Host;
                     DbPort = builder.Port.ToString();
                     DbUser = builder.Username;
-                    if (!string.IsNullOrEmpty(builder.Password))
-                        DbPassword = new NetworkCredential("", builder.Password).SecurePassword;
-
+                    if (!string.IsNullOrEmpty(builder.Password)) DbPassword = new NetworkCredential("", builder.Password).SecurePassword;
                     UseWindowsAuth = false;
                     ConnectionTimeout = builder.Timeout;
                     TrustServerCertificate = builder.TrustServerCertificate;
                 }
             }
-            catch
-            {
-                DbHost = "localhost";
-                DbUser = "admin";
-            }
+            catch { DbHost = "localhost"; DbUser = "admin"; }
         }
 
         private void RebuildConnectionStrings()
         {
-            // Secure Extraction
             string password = (DbPassword != null) ? new NetworkCredential("", DbPassword).Password : "";
 
             if (SelectedDatabaseType == DatabaseType.SqlServer)
@@ -396,33 +473,15 @@ namespace WPF_LoginForm.ViewModels
             IsBusy = true;
             try
             {
-                // Securely extract password for the operation then discard
                 string safePass = new NetworkCredential("", NewUserPassword).Password;
-
-                var newUser = new UserModel
-                {
-                    Username = NewUserUsername,
-                    Name = NewUserName ?? "",
-                    LastName = NewUserLastName ?? "",
-                    Email = NewUserEmail ?? "",
-                    Role = NewUserRole ?? "User",
-                    Password = safePass
-                };
-
+                var newUser = new UserModel { Username = NewUserUsername, Name = NewUserName ?? "", LastName = NewUserLastName ?? "", Email = NewUserEmail ?? "", Role = NewUserRole ?? "User", Password = safePass };
                 await Task.Run(() => _userRepository.Add(newUser));
-
-                NewUserUsername = ""; NewUserName = ""; NewUserLastName = ""; NewUserEmail = "";
-                NewUserPassword = null; NewUserRole = "User";
+                NewUserUsername = ""; NewUserName = ""; NewUserLastName = ""; NewUserEmail = ""; NewUserPassword = null; NewUserRole = "User";
                 OnPropertyChanged(nameof(NewUserPassword));
-
                 StatusMessage = Resources.Msg_UserAdded;
                 ExecuteLoadUsers(null);
             }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Error: {ex.Message}";
-                MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            catch (Exception ex) { StatusMessage = $"Error: {ex.Message}"; MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error); }
             finally { IsBusy = false; }
         }
 
@@ -435,19 +494,10 @@ namespace WPF_LoginForm.ViewModels
                     MessageBox.Show("Cannot delete 'admin'.", "Stop", MessageBoxButton.OK, MessageBoxImage.Stop);
                     return;
                 }
-
                 if (MessageBox.Show($"Delete user '{user.Username}'?", "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                 {
                     IsBusy = true;
-                    try
-                    {
-                        if (!string.IsNullOrEmpty(user.Id))
-                        {
-                            await Task.Run(() => _userRepository.Remove(user.Id));
-                            StatusMessage = Resources.Msg_UserDeleted;
-                            ExecuteLoadUsers(null);
-                        }
-                    }
+                    try { if (!string.IsNullOrEmpty(user.Id)) { await Task.Run(() => _userRepository.Remove(user.Id)); StatusMessage = Resources.Msg_UserDeleted; ExecuteLoadUsers(null); } }
                     catch (Exception ex) { StatusMessage = $"Error: {ex.Message}"; }
                     finally { IsBusy = false; }
                 }
@@ -540,6 +590,18 @@ namespace WPF_LoginForm.ViewModels
                 if (isMissing) return (true, "Database missing");
                 return (false, ex.Message);
             }
+        }
+    }
+
+    public class SelectableTable : ViewModelBase
+    {
+        private bool _isSelected;
+        public string Name { get; set; }
+
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set => SetProperty(ref _isSelected, value);
         }
     }
 }

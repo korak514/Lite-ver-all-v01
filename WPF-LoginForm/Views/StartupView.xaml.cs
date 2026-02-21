@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Views/StartupView.xaml.cs
+using System;
 using System.Threading.Tasks;
 using System.Windows;
 using WPF_LoginForm.Services.Database;
@@ -26,7 +27,6 @@ namespace WPF_LoginForm.Views
             try
             {
                 UpdateStatus("Locating Server...", 10);
-
                 string bestHost = await ConnectionManager.ResolveBestHostAsync();
 
                 UpdateStatus($"Pinging {bestHost}...", 20);
@@ -41,7 +41,7 @@ namespace WPF_LoginForm.Views
 
                     if (!pingSuccess)
                     {
-                        ShowError($"Cannot reach server: {bestHost}\nCheck your VPN or Wi-Fi.");
+                        HandleConnectionFailure($"Cannot reach server: {bestHost}\nCheck your VPN or Wi-Fi.");
                         return;
                     }
                 }
@@ -53,7 +53,7 @@ namespace WPF_LoginForm.Views
 
                 if (!dbConnected)
                 {
-                    ShowError("Database initialization failed. Check credentials.");
+                    HandleConnectionFailure("Database initialization failed. Check credentials.");
                     return;
                 }
 
@@ -64,7 +64,32 @@ namespace WPF_LoginForm.Views
             }
             catch (Exception ex)
             {
-                ShowError($"Startup Error: {ex.Message}");
+                HandleConnectionFailure($"Startup Error: {ex.Message}");
+            }
+        }
+
+        private void HandleConnectionFailure(string errorMessage)
+        {
+            UpdateStatus("Connection Failed.", 0);
+
+            var result = MessageBox.Show($"{errorMessage}\n\nWould you like to start the application in Offline Mode? (Read-Only access to local files)",
+                                         "Connection Failed",
+                                         MessageBoxButton.YesNo,
+                                         MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                var mainView = new MainView();
+                if (mainView.DataContext is MainViewModel mainVM)
+                {
+                    mainVM.Initialize(AppMode.OfflineReadOnly);
+                }
+                mainView.Show();
+                this.Close();
+            }
+            else
+            {
+                ShowError(errorMessage);
             }
         }
 
@@ -74,16 +99,13 @@ namespace WPF_LoginForm.Views
 
             loginView.IsVisibleChanged += (s, ev) =>
             {
-                // FIX: Added WindowState check
                 if (loginView.IsVisible == false && loginView.IsLoaded)
                 {
-                    // If user minimized the window, do NOT launch main app
                     if (loginView.WindowState == WindowState.Minimized)
                         return;
 
                     var loginVM = loginView.DataContext as LoginViewModel;
 
-                    // Check if ViewModel actually signaled a successful login
                     if (loginVM != null && !loginVM.IsViewVisible)
                     {
                         var mainView = new MainView();
@@ -91,6 +113,9 @@ namespace WPF_LoginForm.Views
                         {
                             if (loginVM.IsSettingsModeOnly)
                                 mainVM.Initialize(AppMode.SettingsOnly);
+                            // --- FIX: Respect the Offline Toggle even if DB is online! ---
+                            else if (loginVM.IsOfflineModeOnly)
+                                mainVM.Initialize(AppMode.OfflineReadOnly);
                             else
                             {
                                 bool isReport = loginVM.IsReportModeOnly;

@@ -49,14 +49,19 @@
                     <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable, Mode=TwoWay}" DisplayMemberPath="." MinWidth="150" VerticalAlignment="Center" Margin="0,0,5,0" />
 
                     <Button Content="{x:Static p:Resources.Delete}" ToolTip="Permanently delete table" Margin="0,0,10,0" Command="{Binding DeleteTableCommand}" Foreground="Red"
-                            Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            Visibility="{Binding IsAdminAndOnline, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                    <Button Content="{x:Static p:Resources.Add}" ToolTip="{x:Static p:Resources.Add}" Margin="4,0" Command="{Binding AddNewRowCommand}" />
-                    <Button Content="{x:Static p:Resources.Delete}" ToolTip="{x:Static p:Resources.Delete}" Margin="4,0" Command="{Binding DeleteSelectedRowCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" />
-                    <Separator Margin="4,0" />
+                    <!-- Offline Mode Protection -->
+                    <Button Content="{x:Static p:Resources.Add}" ToolTip="{x:Static p:Resources.Add}" Margin="4,0" Command="{Binding AddNewRowCommand}"
+                            Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <Button Content="{x:Static p:Resources.Delete}" ToolTip="{x:Static p:Resources.Delete}" Margin="4,0" Command="{Binding DeleteSelectedRowCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}"
+                            Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <Separator Margin="4,0" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                    <Button Content="{x:Static p:Resources.Save}" ToolTip="{x:Static p:Resources.Save}" Margin="4,0" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDirty}" />
-                    <Button Content="{x:Static p:Resources.Undo}" ToolTip="{x:Static p:Resources.Undo}" Margin="4,0" Command="{Binding UndoChangesCommand}" IsEnabled="{Binding UndoChangesCommand.CanExecute, Mode=OneWay}" />
+                    <Button Content="{x:Static p:Resources.Save}" ToolTip="{x:Static p:Resources.Save}" Margin="4,0" Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDirty}"
+                            Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <Button Content="{x:Static p:Resources.Undo}" ToolTip="{x:Static p:Resources.Undo}" Margin="4,0" Command="{Binding UndoChangesCommand}" IsEnabled="{Binding UndoChangesCommand.CanExecute, Mode=OneWay}"
+                            Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                     <Separator Margin="4,0" />
 
@@ -69,10 +74,11 @@
 
                     <Separator Margin="4,0" />
                     <Button Command="{Binding EditSelectedRowsCommand}"
-        CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}"
-        Content="{x:Static p:Resources.Edit}"
-        Height="30" Width="100" Margin="5,0,0,0"
-        Background="#5899B8" Foreground="Black" FontWeight="Bold" BorderThickness="0">
+                            CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}"
+                            Content="{x:Static p:Resources.Edit}"
+                            Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Height="30" Width="100" Margin="5,0,0,0"
+                            Background="#5899B8" Foreground="Black" FontWeight="Bold" BorderThickness="0">
                         <Button.Resources>
                             <Style TargetType="Border">
                                 <Setter Property="CornerRadius" Value="5" />
@@ -88,7 +94,6 @@
                         BorderThickness="0"
                         Margin="5,0,5,0">
                         <StackPanel Orientation="Horizontal">
-                            <!-- Using FontAwesome.WPF control -->
                             <fa:ImageAwesome Icon="Search"
                          Width="15"
                          Height="15"
@@ -107,7 +112,6 @@
                 <ToolBar Band="2" BandIndex="1" ToolBar.OverflowMode="Never">
                     <Label Content="{x:Static p:Resources.QuickSearch}" VerticalAlignment="Center" />
                     <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" MinWidth="170" VerticalAlignment="Center" />
-                    <!-- NEW CHECKBOX -->
                     <CheckBox Content="Global"
                               IsChecked="{Binding IsGlobalSearchActive}"
                               ToolTip="Search in ALL columns"
@@ -120,16 +124,15 @@
                     <ComboBox ItemsSource="{Binding SearchableColumns}" SelectedItem="{Binding SelectedSearchColumn, Mode=TwoWay}" MinWidth="140" VerticalAlignment="Center" Margin="2,0,5,0"
                               Visibility="{Binding IsColumnSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                    <!-- NEW: Options Panel with Rename Button -->
+                    <!-- Options Panel -->
                     <StackPanel Orientation="Horizontal" Visibility="{Binding IsColumnSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Button Content="{x:Static p:Resources.AddId}" Command="{Binding AddIdColumnCommand}" Margin="5,0" Background="#FFF0F0F0" BorderBrush="Gray" />
+                        <Button Content="{x:Static p:Resources.AddId}" Command="{Binding AddIdColumnCommand}" Margin="5,0" Background="#FFF0F0F0" BorderBrush="Gray"
+                                Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                        <!-- RENAME BUTTON -->
                         <Button Command="{Binding RenameColumnCommand}"
-            ToolTip="{x:Static p:Resources.Tip_RenameColumn}"
-            Margin="5,0"
-            Background="#FFF0F0F0"
-            BorderBrush="Gray">
+                                ToolTip="{x:Static p:Resources.Tip_RenameColumn}"
+                                Margin="5,0" Background="#FFF0F0F0" BorderBrush="Gray"
+                                Visibility="{Binding IsAdminAndOnline, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <StackPanel Orientation="Horizontal">
                                 <fa:ImageAwesome Icon="Pencil" Height="12" Foreground="DimGray" Margin="0,0,5,0" />
                                 <TextBlock Text="{x:Static p:Resources.RenameColumn}" VerticalAlignment="Center" />
@@ -140,7 +143,7 @@
                         <CheckBox Content="{x:Static p:Resources.EditId}" IsChecked="{Binding IsIdEditable, Mode=TwoWay}" VerticalAlignment="Center" Margin="5,0" />
 
                         <CheckBox Content="Show Adv. Import" IsChecked="{Binding IsAdvancedImportVisible, Mode=TwoWay}" VerticalAlignment="Center" Margin="10,0,5,0"
-                                  ToolTip="Show Import Table/Map buttons" />
+                                  ToolTip="Show Import Table/Map buttons" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     </StackPanel>
 
                     <Button Content="{x:Static p:Resources.Clear}" ToolTip="{x:Static p:Resources.Clear}" Margin="4,0" Command="{Binding ClearSearchCommand}" />
@@ -153,7 +156,8 @@
                     </ToggleButton>
 
                     <Separator Margin="4,0" />
-                    <Button Content="{x:Static p:Resources.Import}" ToolTip="{x:Static p:Resources.Import}" Margin="4,0" Command="{Binding ImportDataCommand}" />
+                    <Button Content="{x:Static p:Resources.Import}" ToolTip="{x:Static p:Resources.Import}" Margin="4,0" Command="{Binding ImportDataCommand}"
+                            Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                     <Button Content="Import Table" ToolTip="Advanced Import" Margin="4,0"
                             Command="{Binding ShowAdvancedImportCommand}"
@@ -171,7 +175,8 @@
                     <Button Content="{x:Static p:Resources.CreateNewTable}"
                             ToolTip="{x:Static p:Resources.Tip_CreateNewTable}"
                             Margin="4,0"
-                            Command="{Binding ShowCreateTableCommand}" />
+                            Command="{Binding ShowCreateTableCommand}"
+                            Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                     <Button Content="{x:Static p:Resources.Export}" ToolTip="{x:Static p:Resources.Export}" Margin="4,0" Command="{Binding ExportDataCommand}" />
                     <Separator Margin="4,0" />
@@ -213,7 +218,9 @@
             <TextBox Grid.Column="1" Text="{Binding ErrorMessage, Mode=OneWay}" Style="{StaticResource ErrorMessageTextBoxStyle}" Margin="10,0,0,0"
                      Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-            <TextBlock Grid.Column="2" Text="{Binding FilterStatus}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FF5555" />
+            <!-- Offline Mode Tag -->
+            <TextBlock Grid.Column="2" Text="READ-ONLY OFFLINE MODE" VerticalAlignment="Center" FontWeight="ExtraBold" Foreground="#FFA500"
+                       Visibility="{Binding IsOfflineMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
         </Grid>
 
         <!-- Data Grid -->

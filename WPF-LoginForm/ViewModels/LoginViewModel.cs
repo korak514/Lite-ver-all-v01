@@ -1,4 +1,5 @@
-﻿using System;
+﻿// ViewModels/LoginViewModel.cs
+using System;
 using System.Net;
 using System.Security;
 using System.Security.Principal;
@@ -8,25 +9,28 @@ using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
 using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
-using WPF_LoginForm.Properties; // Required for Resources
+using WPF_LoginForm.Properties;
 
 namespace WPF_LoginForm.ViewModels
 {
     public class LoginViewModel : ViewModelBase
     {
         private string _username;
-        private SecureString _password; // This is the backing field that was missing/not found
+        private SecureString _password;
         private string _errorMessage;
         private bool _isViewVisible = true;
+
         private bool _isReportModeOnly;
         private bool _isSettingsModeOnly;
+        private bool _isOfflineModeOnly; // --- NEW: Offline Mode Flag ---
+
         private bool _isBusy;
 
         private IUserRepository userRepository;
         private readonly ILogger _logger;
 
         public string Username
-        { get => _username; set { _username = value; OnPropertyChanged(); } }
+        { get => _username; set { _username = value; OnPropertyChanged(); (LoginCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); } }
 
         public SecureString Password
         {
@@ -35,10 +39,10 @@ namespace WPF_LoginForm.ViewModels
             {
                 if (_password != value)
                 {
-                    // FIX: Explicitly dispose the old SecureString to prevent memory leaks
                     _password?.Dispose();
                     _password = value;
                     OnPropertyChanged();
+                    (LoginCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
                 }
             }
         }
@@ -54,6 +58,18 @@ namespace WPF_LoginForm.ViewModels
 
         public bool IsSettingsModeOnly
         { get => _isSettingsModeOnly; set { _isSettingsModeOnly = value; OnPropertyChanged(); } }
+
+        // --- NEW: Property to bind to the switch in LoginView.xaml ---
+        public bool IsOfflineModeOnly
+        {
+            get => _isOfflineModeOnly;
+            set
+            {
+                _isOfflineModeOnly = value;
+                OnPropertyChanged();
+                (LoginCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+            }
+        }
 
         public bool IsBusy
         {
@@ -81,6 +97,9 @@ namespace WPF_LoginForm.ViewModels
 
         private bool CanExecuteLoginCommand(object obj)
         {
+            // NEW: If Offline mode is toggled, allow login without typing user/pass
+            if (IsOfflineModeOnly) return !IsBusy;
+
             return !IsBusy && !string.IsNullOrWhiteSpace(Username) && Username.Length >= 3 && Password != null && Password.Length >= 3;
         }
 
@@ -92,6 +111,14 @@ namespace WPF_LoginForm.ViewModels
 
             try
             {
+                // NEW: Bypass database check entirely if Offline Mode is selected
+                if (IsOfflineModeOnly)
+                {
+                    _logger.LogInfo("User requested Offline Mode Login.");
+                    IsViewVisible = false; // Close window to trigger MainView launch
+                    return;
+                }
+
                 UserSessionService.Logout();
 
                 var isValidUser = await userRepository.AuthenticateUserAsync(new NetworkCredential(Username, Password));

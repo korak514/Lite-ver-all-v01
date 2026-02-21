@@ -8,7 +8,8 @@
              xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
              xmlns:customcontrols="clr-namespace:WPF_LoginForm.CustomControls"
              mc:Ignorable="d"
-             d:DesignHeight="800" d:DesignWidth="900">
+             d:DataContext="{d:DesignInstance Type=viewModels:SettingsViewModel, IsDesignTimeCreatable=False}"
+             d:DesignHeight="1100" d:DesignWidth="900">
 
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
@@ -36,10 +37,6 @@
             </Setter>
         </Style>
     </UserControl.Resources>
-
-    <UserControl.DataContext>
-        <viewModels:SettingsViewModel />
-    </UserControl.DataContext>
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -106,11 +103,8 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
-                                        <!-- User/Pass -->
                                         <RowDefinition Height="Auto" />
-                                        <!-- User/Pass -->
                                         <RowDefinition Height="Auto" />
-                                        <!-- Network Settings -->
                                     </Grid.RowDefinitions>
 
                                     <!-- Host & Port -->
@@ -120,12 +114,11 @@
                                     <TextBlock Grid.Row="0" Grid.Column="1" Text="Port:" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
                                     <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DbPort, UpdateSourceTrigger=PropertyChanged}" Height="28" Margin="0,0,0,10" Padding="2" ToolTip="Default: 1433" />
 
-                                    <!-- NEW: Server Name Backup -->
                                     <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="Server Computer Name (Backup):" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
                                     <TextBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
                                              Text="{Binding DbServerName, UpdateSourceTrigger=PropertyChanged}"
                                              Height="28" Margin="0,0,0,10" Padding="2"
-                                             ToolTip="If the IP Address changes, the app will try to connect using this name (e.g. DESKTOP-ABC1234)." />
+                                             ToolTip="If the IP Address changes, the app will try to connect using this name." />
 
                                     <!-- Auth -->
                                     <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Margin="0,5,0,5">
@@ -155,7 +148,6 @@
                                             </StackPanel>
 
                                             <CheckBox Grid.Column="1" Content="Trust Server Certificate (SSL/TLS)" IsChecked="{Binding TrustServerCertificate, Mode=TwoWay}"
-                                                      ToolTip="Required for self-signed certificates on local networks"
                                                       Foreground="White" VerticalAlignment="Center" />
                                         </Grid>
                                     </StackPanel>
@@ -199,7 +191,47 @@
                                     </Grid>
                                 </StackPanel>
 
-                                <!-- NEW: Global Data Limit Settings -->
+                                <!-- NEW: Offline Folders & Backup Image Maker -->
+                                <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,15" />
+                                <TextBlock Text="Offline Mode Configuration" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
+
+                                <Grid Margin="0,5,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Offline Data Folder:" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <TextBox Grid.Column="1" Text="{Binding OfflineFolderPath, UpdateSourceTrigger=PropertyChanged}" Height="26" Padding="2" ToolTip="Path containing fallback .csv files." />
+                                    <Button Grid.Column="2" Content="..." Command="{Binding BrowseOfflineFolderCommand}" Width="30" Height="26" Margin="5,0,0,0" ToolTip="Select offline folder" />
+                                </Grid>
+
+                                <!-- NEW: Offline Image Creation UI -->
+                                <StackPanel Margin="0,0,0,15" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <TextBlock Text="Create Offline Data Image (Backup)" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,5" />
+                                    <TextBlock Text="Select tables to download to your offline folder. This allows the app to function when the network is down." Foreground="Gray" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10" />
+
+                                    <Button Content="Load Available Tables" Command="{Binding LoadBackupTablesCommand}" Style="{StaticResource StandardButtonStyle}" Width="150" HorizontalAlignment="Left" Margin="0,0,0,10" />
+
+                                    <ItemsControl ItemsSource="{Binding BackupTables}" MaxHeight="150" Margin="0,0,0,10">
+                                        <ItemsControl.Template>
+                                            <ControlTemplate>
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                    <ItemsPresenter />
+                                                </ScrollViewer>
+                                            </ControlTemplate>
+                                        </ItemsControl.Template>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" Foreground="WhiteSmoke" Margin="5,2" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <Button Content="Create Offline Backup" Command="{Binding CreateOfflineBackupCommand}" Style="{StaticResource StandardButtonStyle}" Background="#FFD14545" Width="180" HorizontalAlignment="Left" />
+                                </StackPanel>
+
+                                <!-- Global Data Limit Settings -->
                                 <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,15" />
                                 <TextBlock Text="Performance Optimization" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
@@ -215,6 +247,7 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- Save Actions -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,15" VerticalAlignment="Center">
                             <Button Content="{x:Static p:Resources.SaveSettings}" Command="{Binding SaveCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource BooleanInverter}}" Width="150" Margin="0,0,15,0" Style="{StaticResource StandardButtonStyle}" />
                             <Button Content="{x:Static p:Resources.TestConnection}" Command="{Binding TestConnectionCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource BooleanInverter}}" Width="180" Background="#444444" Style="{StaticResource StandardButtonStyle}" />

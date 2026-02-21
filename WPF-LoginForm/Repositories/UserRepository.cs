@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Repositories/UserRepository.cs
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -6,6 +7,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Npgsql;
 using WPF_LoginForm.Models;
+using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
 
 namespace WPF_LoginForm.Repositories
@@ -21,17 +23,14 @@ namespace WPF_LoginForm.Repositories
         private string ColEmail => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Email\"" : "[Email]";
         private string ColRole => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Role\"" : "[Role]";
 
-        // Kept for interface compatibility, but forwards to Async version internally if needed
         public bool AuthenticateUser(NetworkCredential credential)
         {
-            // Blocking call for legacy support
             return AuthenticateUserAsync(credential).Result;
         }
 
         public async Task<bool> AuthenticateUserAsync(NetworkCredential credential)
         {
             bool validUser = false;
-
             try
             {
                 using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
@@ -42,31 +41,69 @@ namespace WPF_LoginForm.Repositories
 
                     using (var command = connection.CreateCommand())
                     {
-                        // Case-insensitive username match
-                        string query = DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer
-                            ? $"SELECT COUNT(*) FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username) AND {ColPass} = @password"
-                            : $"SELECT COUNT(*) FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username) AND {ColPass} = @password";
-
+                        // 1. Fetch the stored password (Hash or Plain text)
+                        string query = $"SELECT {ColPass} FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username)";
                         command.CommandText = query;
                         AddParameter(command, "@username", credential.UserName);
-                        AddParameter(command, "@password", credential.Password);
 
                         object result;
                         if (command is SqlCommand sqlCmd) result = await sqlCmd.ExecuteScalarAsync();
                         else if (command is NpgsqlCommand pgCmd) result = await pgCmd.ExecuteScalarAsync();
                         else result = command.ExecuteScalar();
 
-                        validUser = result != null && Convert.ToInt32(result) > 0;
+                        if (result != null && result != DBNull.Value)
+                        {
+                            string storedPass = result.ToString();
+
+                            // CHECK 1: Is it a valid Hash match? (New Standard)
+                            if (PasswordHelper.VerifyPassword(credential.Password, storedPass))
+                            {
+                                validUser = true;
+                            }
+                            // CHECK 2: Is it a Legacy Plain-Text match? (Migration)
+                            else if (storedPass == credential.Password)
+                            {
+                                validUser = true;
+                                // Auto-upgrade database to Hash so next time it's secure
+                                await UpgradeUserPasswordAsync(credential.UserName, credential.Password);
+                            }
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Auth Async Failed: {ex.Message}");
-                // In production, you might want to log this specifically
                 validUser = false;
             }
             return validUser;
+        }
+
+        // Helper to update legacy passwords to hash
+        private async Task UpgradeUserPasswordAsync(string username, string plainPassword)
+        {
+            try
+            {
+                using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
+                {
+                    if (connection is SqlConnection sqlConn) await sqlConn.OpenAsync();
+                    else if (connection is NpgsqlConnection pgConn) await pgConn.OpenAsync();
+                    else connection.Open();
+
+                    using (var command = connection.CreateCommand())
+                    {
+                        string newHash = PasswordHelper.HashPassword(plainPassword);
+                        command.CommandText = $"UPDATE {TableName} SET {ColPass} = @hash WHERE LOWER({ColUser}) = LOWER(@username)";
+                        AddParameter(command, "@hash", newHash);
+                        AddParameter(command, "@username", username);
+
+                        if (command is SqlCommand sqlCmd) await sqlCmd.ExecuteNonQueryAsync();
+                        else if (command is NpgsqlCommand pgCmd) await pgCmd.ExecuteNonQueryAsync();
+                        else command.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch { /* Fail silently, will try again next login */ }
         }
 
         public void Add(UserModel userModel)
@@ -80,7 +117,8 @@ namespace WPF_LoginForm.Repositories
                                           "VALUES (@username, @password, @name, @lastname, @email, @role)";
 
                     AddParameter(command, "@username", userModel.Username);
-                    AddParameter(command, "@password", userModel.Password);
+                    // Ensure we hash before adding new users
+                    AddParameter(command, "@password", PasswordHelper.HashPassword(userModel.Password));
                     AddParameter(command, "@name", userModel.Name ?? DBNull.Value.ToString());
                     AddParameter(command, "@lastname", userModel.LastName ?? DBNull.Value.ToString());
                     AddParameter(command, "@email", userModel.Email ?? DBNull.Value.ToString());
@@ -98,32 +136,27 @@ namespace WPF_LoginForm.Repositories
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = $"UPDATE {TableName} SET {ColUser}=@username, {ColPass}=@password, " +
+                    string passClause = string.IsNullOrEmpty(userModel.Password) ? "" : $", {ColPass}=@password";
+
+                    command.CommandText = $"UPDATE {TableName} SET {ColUser}=@username, " +
                                           $"{ColName}=@name, {ColLast}=@lastname, {ColEmail}=@email, {ColRole}=@role " +
-                                          $"WHERE {ColId}=@id";
+                                          $"{passClause} WHERE {ColId}=@id";
 
                     AddParameter(command, "@username", userModel.Username);
-                    AddParameter(command, "@password", userModel.Password);
+                    if (!string.IsNullOrEmpty(userModel.Password))
+                    {
+                        AddParameter(command, "@password", PasswordHelper.HashPassword(userModel.Password));
+                    }
                     AddParameter(command, "@name", userModel.Name);
                     AddParameter(command, "@lastname", userModel.LastName);
                     AddParameter(command, "@email", userModel.Email);
                     AddParameter(command, "@role", userModel.Role ?? "User");
 
-                    // SAFE GUID PARSING
                     var paramId = command.CreateParameter();
                     paramId.ParameterName = "@id";
-                    if (int.TryParse(userModel.Id, out int intId))
-                    {
-                        paramId.Value = intId; // Support legacy Integer IDs
-                    }
-                    else if (Guid.TryParse(userModel.Id, out Guid guidId))
-                    {
-                        paramId.Value = guidId; // Support new GUID IDs
-                    }
-                    else
-                    {
-                        throw new ArgumentException("Invalid User ID format");
-                    }
+                    if (int.TryParse(userModel.Id, out int intId)) paramId.Value = intId;
+                    else if (Guid.TryParse(userModel.Id, out Guid guidId)) paramId.Value = guidId;
+                    else throw new ArgumentException("Invalid User ID format");
                     command.Parameters.Add(paramId);
 
                     command.ExecuteNonQuery();
@@ -139,14 +172,11 @@ namespace WPF_LoginForm.Repositories
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = $"DELETE FROM {TableName} WHERE {ColId}=@id";
-
                     var paramId = command.CreateParameter();
                     paramId.ParameterName = "@id";
-
                     if (int.TryParse(id, out int intId)) paramId.Value = intId;
                     else if (Guid.TryParse(id, out Guid guidId)) paramId.Value = guidId;
-                    else return; // Fail silently or throw if ID is invalid
-
+                    else return;
                     command.Parameters.Add(paramId);
                     command.ExecuteNonQuery();
                 }
@@ -162,22 +192,16 @@ namespace WPF_LoginForm.Repositories
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = $"SELECT * FROM {TableName} WHERE {ColId}=@id";
-
                     var paramId = command.CreateParameter();
                     paramId.ParameterName = "@id";
-
                     if (int.TryParse(id, out int intId)) paramId.Value = intId;
                     else if (Guid.TryParse(id, out Guid guidId)) paramId.Value = guidId;
                     else return null;
-
                     command.Parameters.Add(paramId);
 
                     using (var reader = command.ExecuteReader())
                     {
-                        if (reader.Read())
-                        {
-                            user = MapReaderToUser(reader);
-                        }
+                        if (reader.Read()) user = MapReaderToUser(reader);
                     }
                 }
             }
@@ -194,13 +218,9 @@ namespace WPF_LoginForm.Repositories
                 {
                     command.CommandText = $"SELECT * FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username)";
                     AddParameter(command, "@username", username);
-
                     using (var reader = command.ExecuteReader())
                     {
-                        if (reader.Read())
-                        {
-                            user = MapReaderToUser(reader);
-                        }
+                        if (reader.Read()) user = MapReaderToUser(reader);
                     }
                 }
             }
@@ -216,20 +236,15 @@ namespace WPF_LoginForm.Repositories
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = $"SELECT * FROM {TableName} ORDER BY {ColUser}";
-
                     using (var reader = command.ExecuteReader())
                     {
-                        while (reader.Read())
-                        {
-                            userList.Add(MapReaderToUser(reader));
-                        }
+                        while (reader.Read()) userList.Add(MapReaderToUser(reader));
                     }
                 }
             }
             return userList;
         }
 
-        // Helper to avoid repeated mapping code
         private UserModel MapReaderToUser(IDataReader reader)
         {
             return new UserModel

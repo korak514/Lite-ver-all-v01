@@ -61,6 +61,8 @@
                 <Grid Grid.Row="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                        <!-- NEW: For Offline Toggle -->
                         <ColumnDefinition Width="30" />
                         <ColumnDefinition Width="30" />
                         <ColumnDefinition Width="5" />
@@ -70,8 +72,14 @@
                                Foreground="DarkGray" FontSize="10" FontFamily="Montserrat"
                                Grid.Column="0" VerticalAlignment="Center" Margin="10,0,0,0" />
 
-                    <Button x:Name="btnMinimize" Content="-" Style="{StaticResource WindowControlButtonStyle}" Grid.Column="1" Click="btnMinimize_Click" />
-                    <Button x:Name="btnClose" Content="X" Style="{StaticResource WindowCloseButtonStyle}" Grid.Column="2" Click="btnClose_Click" />
+                    <!-- NEW: Offline Mode Toggle -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,15,0">
+                        <TextBlock Text="Offline Mode" Foreground="LightGray" FontSize="11" FontFamily="Montserrat" VerticalAlignment="Center" Margin="0,0,5,0" />
+                        <CheckBox IsChecked="{Binding IsOfflineModeOnly, Mode=TwoWay}" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <Button x:Name="btnMinimize" Content="-" Style="{StaticResource WindowControlButtonStyle}" Grid.Column="2" Click="btnMinimize_Click" />
+                    <Button x:Name="btnClose" Content="X" Style="{StaticResource WindowCloseButtonStyle}" Grid.Column="3" Click="btnClose_Click" />
                 </Grid>
 
                 <!-- Main Content -->
@@ -81,8 +89,24 @@
                     <TextBlock Text="Veri Giriş Ve Raporlama" Foreground="White" FontSize="18" FontWeight="Medium" FontFamily="Montserrat" HorizontalAlignment="Center" />
                     <TextBlock Foreground="LightGray" FontSize="12" FontWeight="Medium" FontFamily="Montserrat" TextWrapping="Wrap" TextAlignment="Center" Margin="0,5,0,0" />
 
-                    <!-- Inputs Panel (Disabled when Busy) -->
-                    <StackPanel IsEnabled="{Binding IsBusy, Converter={StaticResource BooleanInverter}}">
+                    <!-- Inputs Panel (Disabled when Busy or Offline) -->
+                    <StackPanel>
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="IsEnabled" Value="True" />
+                                <Setter Property="Opacity" Value="1.0" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                        <Setter Property="IsEnabled" Value="False" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsOfflineModeOnly}" Value="True">
+                                        <Setter Property="IsEnabled" Value="False" />
+                                        <Setter Property="Opacity" Value="0.3" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+
                         <!-- Username -->
                         <TextBlock Text="{x:Static p:Resources.Username}" Foreground="DarkGray" FontSize="12" FontWeight="Medium" FontFamily="Montserrat" Margin="0,35,0,0" />
                         <TextBox x:Name="txtUser" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
@@ -121,7 +145,6 @@
 
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
-                                    <!-- Explicit Border to ensure no white lines -->
                                     <Border x:Name="btnBorder"
                                             Width="150" Height="40"
                                             CornerRadius="20"
@@ -129,12 +152,10 @@
                                             SnapsToDevicePixels="True">
                                         <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
                                     </Border>
-
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter TargetName="btnBorder" Property="Background" Value="#0C5F11" />
                                         </Trigger>
-                                        <!-- Dim when disabled (IsBusy) -->
                                         <Trigger Property="IsEnabled" Value="False">
                                             <Setter TargetName="btnBorder" Property="Opacity" Value="0.5" />
                                         </Trigger>

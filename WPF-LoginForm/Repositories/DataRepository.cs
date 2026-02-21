@@ -1,13 +1,15 @@
-﻿using System;
+﻿// Repositories/DataRepository.cs
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Npgsql;
 using WPF_LoginForm.Models;
-using WPF_LoginForm.Properties; // FIX: Resolves 'Settings' error
+using WPF_LoginForm.Properties;
 using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
 using WPF_LoginForm.ViewModels;
@@ -25,21 +27,13 @@ namespace WPF_LoginForm.Repositories
             _cache = new CacheService();
         }
 
-        // Helper property for cleaner code
         private bool IsPostgres => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql;
 
-        private string Quote(string identifier)
-        {
-            return IsPostgres ? $"\"{identifier}\"" : $"[{identifier}]";
-        }
+        private string Quote(string identifier) => IsPostgres ? $"\"{identifier}\"" : $"[{identifier}]";
 
         private IDbConnection GetConnection() => DbConnectionFactory.GetConnection(ConnectionTarget.Data);
 
         private IDbConnection GetAuthConnection() => DbConnectionFactory.GetConnection(ConnectionTarget.Auth);
-
-        // =======================================================================
-        // 1. DATA RETRIEVAL (Smart Sort & Limit - From Old File)
-        // =======================================================================
 
         public async Task<(DataTable Data, bool IsSortable)> GetTableDataAsync(string tableName, int limit = 0)
         {
@@ -62,12 +56,7 @@ namespace WPF_LoginForm.Repositories
                         using (var cmd = conn.CreateCommand())
                         {
                             string query;
-                            string orderByClause = string.Empty;
-
-                            if (isSortable)
-                            {
-                                orderByClause = $" ORDER BY {Quote(sortColumn)} DESC";
-                            }
+                            string orderByClause = isSortable ? $" ORDER BY {Quote(sortColumn)} DESC" : "";
 
                             if (IsPostgres)
                             {
@@ -131,19 +120,10 @@ namespace WPF_LoginForm.Repositories
                 if (columns.Any(c => c.Equals("EntryDate", StringComparison.OrdinalIgnoreCase))) return "EntryDate";
                 if (columns.Any(c => c.Equals("Date", StringComparison.OrdinalIgnoreCase))) return "Date";
                 if (columns.Any(c => c.Equals("Tarih", StringComparison.OrdinalIgnoreCase))) return "Tarih";
-
                 return null;
             }
             catch { return null; }
         }
-
-        // =======================================================================
-        // 2. NEW FEATURE: ERROR ANALYTICS
-        // =======================================================================
-
-        // ... inside DataRepository class
-
-        // Inside DataRepository.cs
 
         public async Task<List<ErrorEventModel>> GetErrorDataAsync(DateTime startDate, DateTime endDate, string tableName)
         {
@@ -157,16 +137,13 @@ namespace WPF_LoginForm.Repositories
                     conn.Open();
                     using (var cmd = conn.CreateCommand())
                     {
-                        string qTbl = IsPostgres ? $"\"{tableName}\"" : $"[{tableName}]";
-                        // Select everything to ensure we get all Hata_Kodu_X columns
-                        cmd.CommandText = $"SELECT * FROM {qTbl}";
+                        cmd.CommandText = $"SELECT * FROM {Quote(tableName)}";
                         FillDataTable(cmd, dt);
                     }
                 }
 
                 await Task.Run(() =>
                 {
-                    // 1. Column Mapping (Case Insensitive)
                     DataColumn colDate = null, colShift = null, colStopDuration = null;
                     DataColumn colSavedBreak = null, colSavedMaint = null;
                     var errorCols = new List<DataColumn>();
@@ -176,13 +153,9 @@ namespace WPF_LoginForm.Repositories
                         string n = c.ColumnName.ToLower();
                         if (n.Contains("tarih") || n == "date") colDate = c;
                         else if (n.Contains("vardiya") || n == "shift") colShift = c;
-                        // "Duraklama_Süresi"
                         else if (n.Contains("duraklama") || n.Contains("stop")) colStopDuration = c;
-                        // "Duruşu Engelemeyen..." (Column G)
                         else if (n.Contains("engelemeyen") || n.Contains("kazanımı")) colSavedBreak = c;
-                        // "Mola-Bakım..." (Column H)
                         else if (n.Contains("mola") && n.Contains("bakım")) colSavedMaint = c;
-                        // Hata_Kodu_1 ... 11
                         else if (n.StartsWith("hata_kodu") || n.StartsWith("error_code") || n.StartsWith("code")) errorCols.Add(c);
                     }
 
@@ -194,11 +167,9 @@ namespace WPF_LoginForm.Repositories
                         DateTime date = Convert.ToDateTime(row[colDate]);
                         if (date < startDate || date > endDate) continue;
 
-                        // 2. Parse Shared Row Metrics
                         string shift = colShift != null ? row[colShift].ToString() : "Unknown";
-                        string rowId = Guid.NewGuid().ToString(); // Unique ID for this row to avoid double counting totals
+                        string rowId = Guid.NewGuid().ToString();
 
-                        // A. Parse Total Stop Duration (HH:mm:ss -> Total Minutes)
                         double rowStopMin = 0;
                         if (colStopDuration != null && row[colStopDuration] != DBNull.Value)
                         {
@@ -207,16 +178,12 @@ namespace WPF_LoginForm.Repositories
                             else if (DateTime.TryParse(val, out DateTime dVal)) rowStopMin = dVal.TimeOfDay.TotalMinutes;
                         }
 
-                        // B. Parse Saved Time (Integers)
                         double savedBreak = 0;
-                        if (colSavedBreak != null && row[colSavedBreak] != DBNull.Value)
-                            double.TryParse(row[colSavedBreak].ToString(), out savedBreak);
+                        if (colSavedBreak != null && row[colSavedBreak] != DBNull.Value) double.TryParse(row[colSavedBreak].ToString(), out savedBreak);
 
                         double savedMaint = 0;
-                        if (colSavedMaint != null && row[colSavedMaint] != DBNull.Value)
-                            double.TryParse(row[colSavedMaint].ToString(), out savedMaint);
+                        if (colSavedMaint != null && row[colSavedMaint] != DBNull.Value) double.TryParse(row[colSavedMaint].ToString(), out savedMaint);
 
-                        // 3. Loop through ALL Error Code Columns (1 to 11)
                         foreach (var errCol in errorCols)
                         {
                             if (row[errCol] != DBNull.Value)
@@ -225,25 +192,15 @@ namespace WPF_LoginForm.Repositories
                                 if (string.IsNullOrWhiteSpace(cellData)) continue;
 
                                 var model = ErrorEventModel.Parse(cellData, date, shift, rowStopMin, savedBreak, savedMaint, rowId);
-                                if (model != null)
-                                {
-                                    errorList.Add(model);
-                                }
+                                if (model != null) errorList.Add(model);
                             }
                         }
                     }
                 });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error fetching analytics data", ex);
-            }
+            catch (Exception ex) { _logger.LogError($"Error fetching analytics data", ex); }
             return errorList;
         }
-
-        // =======================================================================
-        // 3. NEW FEATURE: RENAME COLUMN
-        // =======================================================================
 
         public async Task<(bool Success, string ErrorMessage)> RenameColumnAsync(string tableName, string oldName, string newName)
         {
@@ -256,7 +213,6 @@ namespace WPF_LoginForm.Repositories
                     {
                         if (!IsPostgres)
                         {
-                            // SQL Server
                             command.CommandText = "sp_rename";
                             command.CommandType = CommandType.StoredProcedure;
                             AddParameter(command, "@objname", $"{tableName}.{oldName}");
@@ -266,21 +222,16 @@ namespace WPF_LoginForm.Repositories
                         }
                         else
                         {
-                            // PostgreSQL
                             command.CommandText = $"ALTER TABLE \"{tableName}\" RENAME COLUMN \"{oldName}\" TO \"{newName}\"";
                             if (command is NpgsqlCommand pgCmd) await pgCmd.ExecuteNonQueryAsync();
                         }
                     }
                 }
-                _cache.Clear(); // Clear cache as schema changed
+                _cache.Clear();
                 return (true, string.Empty);
             }
             catch (Exception ex) { return (false, ex.Message); }
         }
-
-        // =======================================================================
-        // 4. DATA MANIPULATION (Create, Import, Save, Delete)
-        // =======================================================================
 
         public async Task<(bool Success, string ErrorMessage)> CreateTableAsync(string tableName, List<ColumnSchemaViewModel> schema)
         {
@@ -316,8 +267,6 @@ namespace WPF_LoginForm.Repositories
             {
                 if (!IsPostgres)
                 {
-                    // SQL Server Bulk Copy (Fastest)
-                    // Ensure Settings namespace is imported
                     using (var conn = new SqlConnection(Settings.Default.SqlDataConnString))
                     {
                         await conn.OpenAsync();
@@ -331,7 +280,6 @@ namespace WPF_LoginForm.Repositories
                 }
                 else
                 {
-                    // PostgreSQL Binary Import (Fastest)
                     using (var conn = new NpgsqlConnection(Settings.Default.PostgresDataConnString))
                     {
                         conn.Open();
@@ -353,90 +301,77 @@ namespace WPF_LoginForm.Repositories
             catch (Exception ex) { return (false, ex.Message); }
         }
 
-        // Partial change in WPF-LoginForm/Repositories/DataRepository.cs, method SaveChangesAsync
-
-        // In WPF_LoginForm/Repositories/DataRepository.cs
-
+        // --- BUGS 3, 4, 5 FIXED: Async Save, Safe PK finding, Parameterized Insert/Updates ---
         public async Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName)
         {
             try
             {
                 if (changes == null) return (true, "");
 
-                // 1. Detect ID Column safely
-                string idColName = changes.Columns.Cast<DataColumn>()
-                    .FirstOrDefault(c => c.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase))?.ColumnName;
+                // FIX Bug 4: Look for explicit PrimaryKey, fallback to "ID"
+                string idColName = changes.PrimaryKey.FirstOrDefault()?.ColumnName;
+                if (string.IsNullOrEmpty(idColName))
+                    idColName = changes.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase))?.ColumnName;
 
                 if (string.IsNullOrEmpty(idColName))
-                    return (false, "ID column missing in DataTable changes. Cannot save.");
+                    return (false, "Primary Key or ID column missing in DataTable changes. Cannot save.");
 
                 using (var conn = GetConnection())
                 {
-                    conn.Open();
+                    // FIX Bug 3: Fully Asynchronous Database Connection
+                    if (conn is SqlConnection sqlConn) await sqlConn.OpenAsync();
+                    else if (conn is NpgsqlConnection pgConn) await pgConn.OpenAsync();
+                    else conn.Open();
+
                     foreach (DataRow row in changes.Rows)
                     {
                         if (row.RowState == DataRowState.Deleted)
                         {
-                            // DELETE
                             object idValue = row[idColName, DataRowVersion.Original];
-                            string q = IsPostgres
-                                ? $"DELETE FROM \"{tableName}\" WHERE \"{idColName}\" = @targetId"
-                                : $"DELETE FROM [{tableName}] WHERE [{idColName}] = @targetId";
-
+                            string q = $"DELETE FROM {Quote(tableName)} WHERE {Quote(idColName)} = @targetId";
                             using (var cmd = conn.CreateCommand())
                             {
                                 cmd.CommandText = q;
                                 AddParameter(cmd, "@targetId", idValue);
-                                cmd.ExecuteNonQuery();
+                                if (cmd is SqlCommand sqlCmd) await sqlCmd.ExecuteNonQueryAsync();
+                                else if (cmd is NpgsqlCommand pgCmd) await pgCmd.ExecuteNonQueryAsync();
+                                else cmd.ExecuteNonQuery();
                             }
                         }
                         else if (row.RowState == DataRowState.Added)
                         {
-                            // INSERT
-                            // Filter out ID (Auto-Increment) and ReadOnly cols
-                            var cols = changes.Columns.Cast<DataColumn>()
-                                .Where(c => !c.ColumnName.Equals(idColName, StringComparison.OrdinalIgnoreCase) && !c.ReadOnly).ToList();
+                            var cols = changes.Columns.Cast<DataColumn>().Where(c => !c.ColumnName.Equals(idColName, StringComparison.OrdinalIgnoreCase) && !c.ReadOnly).ToList();
+                            string colNames = string.Join(",", cols.Select(c => Quote(c.ColumnName)));
 
-                            string colNames = string.Join(",", cols.Select(c => IsPostgres ? $"\"{c.ColumnName}\"" : $"[{c.ColumnName}]"));
-                            // Use safe parameter names based on column names
-                            string vals = string.Join(",", cols.Select(c => $"@val_{c.ColumnName}"));
-
-                            string q = IsPostgres
-                                ? $"INSERT INTO \"{tableName}\" ({colNames}) VALUES ({vals})"
-                                : $"INSERT INTO [{tableName}] ({colNames}) VALUES ({vals})";
+                            // FIX Bug 5: Use index parameters (@p0, @p1) instead of column names to avoid Spaces-in-name crash
+                            string vals = string.Join(",", cols.Select((c, i) => $"@p{i}"));
+                            string q = $"INSERT INTO {Quote(tableName)} ({colNames}) VALUES ({vals})";
 
                             using (var cmd = conn.CreateCommand())
                             {
                                 cmd.CommandText = q;
-                                foreach (var c in cols)
-                                    AddParameter(cmd, $"@val_{c.ColumnName}", row[c]);
-                                cmd.ExecuteNonQuery();
+                                for (int i = 0; i < cols.Count; i++) AddParameter(cmd, $"@p{i}", row[cols[i]]);
+                                if (cmd is SqlCommand sqlCmd) await sqlCmd.ExecuteNonQueryAsync();
+                                else if (cmd is NpgsqlCommand pgCmd) await pgCmd.ExecuteNonQueryAsync();
+                                else cmd.ExecuteNonQuery();
                             }
                         }
                         else if (row.RowState == DataRowState.Modified)
                         {
-                            // UPDATE
-                            object idValue = row[idColName, DataRowVersion.Original]; // Use Original ID to find row
+                            object idValue = row[idColName, DataRowVersion.Original];
+                            var cols = changes.Columns.Cast<DataColumn>().Where(c => !c.ColumnName.Equals(idColName, StringComparison.OrdinalIgnoreCase) && !c.ReadOnly).ToList();
 
-                            var cols = changes.Columns.Cast<DataColumn>()
-                                .Where(c => !c.ColumnName.Equals(idColName, StringComparison.OrdinalIgnoreCase) && !c.ReadOnly).ToList();
-
-                            // Generate SET clause with named parameters
-                            string sets = string.Join(",", cols.Select(c =>
-                                (IsPostgres ? $"\"{c.ColumnName}\"" : $"[{c.ColumnName}]") + $"=@val_{c.ColumnName}"));
-
-                            string q = IsPostgres
-                                ? $"UPDATE \"{tableName}\" SET {sets} WHERE \"{idColName}\" = @targetId"
-                                : $"UPDATE [{tableName}] SET {sets} WHERE [{idColName}] = @targetId";
+                            string sets = string.Join(",", cols.Select((c, i) => $"{Quote(c.ColumnName)}=@p{i}"));
+                            string q = $"UPDATE {Quote(tableName)} SET {sets} WHERE {Quote(idColName)} = @targetId";
 
                             using (var cmd = conn.CreateCommand())
                             {
                                 cmd.CommandText = q;
-                                foreach (var c in cols)
-                                    AddParameter(cmd, $"@val_{c.ColumnName}", row[c]); // row[c] gets Current value
-
+                                for (int i = 0; i < cols.Count; i++) AddParameter(cmd, $"@p{i}", row[cols[i]]);
                                 AddParameter(cmd, "@targetId", idValue);
-                                cmd.ExecuteNonQuery();
+                                if (cmd is SqlCommand sqlCmd) await sqlCmd.ExecuteNonQueryAsync();
+                                else if (cmd is NpgsqlCommand pgCmd) await pgCmd.ExecuteNonQueryAsync();
+                                else cmd.ExecuteNonQuery();
                             }
                         }
                     }
@@ -457,14 +392,12 @@ namespace WPF_LoginForm.Repositories
                 using (var conn = GetConnection())
                 {
                     conn.Open();
-                    // Clean metadata first
                     using (var cmdClean = conn.CreateCommand())
                     {
                         cmdClean.CommandText = $"DELETE FROM {Quote("ColumnHierarchyMap")} WHERE {Quote("OwningDataTableName")} = @t";
                         AddParameter(cmdClean, "@t", tableName);
                         await Task.Run(() => cmdClean.ExecuteNonQuery());
                     }
-                    // Drop table
                     using (var cmdDrop = conn.CreateCommand())
                     {
                         cmdDrop.CommandText = $"DROP TABLE {Quote(tableName)}";
@@ -485,12 +418,10 @@ namespace WPF_LoginForm.Repositories
                     conn.Open();
                     using (var cmd = conn.CreateCommand())
                     {
-                        // Add ID column
                         if (IsPostgres) cmd.CommandText = $"ALTER TABLE \"{tableName}\" ADD COLUMN \"ID\" SERIAL";
                         else cmd.CommandText = $"ALTER TABLE [{tableName}] ADD [ID] INT IDENTITY(1,1) NOT NULL";
                         await Task.Run(() => cmd.ExecuteNonQuery());
 
-                        // Make it PK
                         if (IsPostgres) cmd.CommandText = $"ALTER TABLE \"{tableName}\" ADD CONSTRAINT \"PK_{tableName}\" PRIMARY KEY (\"ID\")";
                         else cmd.CommandText = $"ALTER TABLE [{tableName}] ADD CONSTRAINT [PK_{tableName}] PRIMARY KEY ([ID])";
                         await Task.Run(() => cmd.ExecuteNonQuery());
@@ -500,10 +431,6 @@ namespace WPF_LoginForm.Repositories
             }
             catch (Exception ex) { return (false, ex.Message); }
         }
-
-        // =======================================================================
-        // 5. EXISTING HELPERS & LOGS (From Old File)
-        // =======================================================================
 
         public async Task<DataTable> GetDataAsync(string tableName, List<string> columns, string dateColumn, DateTime? startDate, DateTime? endDate)
         {
@@ -634,8 +561,6 @@ namespace WPF_LoginForm.Repositories
             try { using (var c = GetAuthConnection()) { c.Open(); using (var cmd = c.CreateCommand()) { cmd.CommandText = $"DELETE FROM {Quote("Logs")}"; cmd.ExecuteNonQuery(); } } return true; } catch { return false; }
         }
 
-        // --- HIERARCHY HELPERS ---
-
         public async Task<List<string>> GetDistinctPart1ValuesAsync(string tableName) => await GetMapValuesAsync("Part1Value", tableName, null);
 
         public async Task<List<string>> GetDistinctPart2ValuesAsync(string tableName, string p1) => await GetMapValuesAsync("Part2Value", tableName, new Dictionary<string, string> { { "Part1Value", p1 } });
@@ -677,12 +602,45 @@ namespace WPF_LoginForm.Repositories
             return list;
         }
 
+        // FIX Bug 1: Actually implement GetActualColumnNameAsync to resolve target DB column for _Long_ tables
         public async Task<string> GetActualColumnNameAsync(string tableName, string p1, string p2, string p3, string p4, string coreItem)
         {
-            // Simplified lookup logic
-            // Implementation depends on exact schema of ColumnHierarchyMap, essentially a SELECT query
-            // Placeholder for now as this requires exact param mapping
-            return null;
+            try
+            {
+                using (var conn = GetConnection())
+                {
+                    if (conn is SqlConnection sql) await sql.OpenAsync();
+                    else if (conn is NpgsqlConnection pg) await pg.OpenAsync();
+                    else conn.Open();
+
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        var sb = new StringBuilder();
+                        sb.Append($"SELECT {Quote("ActualDataTableColumnName")} FROM {Quote("ColumnHierarchyMap")} WHERE {Quote("OwningDataTableName")} = @t AND {Quote("CoreItemDisplayName")} = @c");
+                        AddParameter(cmd, "@t", tableName);
+                        AddParameter(cmd, "@c", coreItem);
+
+                        if (!string.IsNullOrEmpty(p1)) { sb.Append($" AND {Quote("Part1Value")} = @p1"); AddParameter(cmd, "@p1", p1); }
+                        if (!string.IsNullOrEmpty(p2)) { sb.Append($" AND {Quote("Part2Value")} = @p2"); AddParameter(cmd, "@p2", p2); }
+                        if (!string.IsNullOrEmpty(p3)) { sb.Append($" AND {Quote("Part3Value")} = @p3"); AddParameter(cmd, "@p3", p3); }
+                        if (!string.IsNullOrEmpty(p4)) { sb.Append($" AND {Quote("Part4Value")} = @p4"); AddParameter(cmd, "@p4", p4); }
+
+                        cmd.CommandText = sb.ToString();
+
+                        object res = null;
+                        if (cmd is SqlCommand sqlCmd) res = await sqlCmd.ExecuteScalarAsync();
+                        else if (cmd is NpgsqlCommand pgCmd) res = await pgCmd.ExecuteScalarAsync();
+                        else res = cmd.ExecuteScalar();
+
+                        return res?.ToString();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to resolve ActualColumnName", ex);
+                return null;
+            }
         }
 
         public async Task<bool> ClearHierarchyMapForTableAsync(string tableName)
@@ -708,8 +666,6 @@ namespace WPF_LoginForm.Repositories
         {
             return await BulkImportDataAsync("ColumnHierarchyMap", mapData);
         }
-
-        // --- INTERNAL HELPERS ---
 
         private void FillDataTable(IDbCommand cmd, DataTable dt)
         {

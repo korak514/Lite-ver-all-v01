@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Services/Database/DatabaseBootstrapper.cs
+using System;
 using System.Data;
 using System.Data.SqlClient;
 using System.Windows;
@@ -10,40 +11,36 @@ namespace WPF_LoginForm.Services.Database
     public static class DatabaseBootstrapper
     {
         private enum DbStatus
-        { Unreachable, MissingDb, MissingSchema, Ready }
+        { Unreachable, MissingAuthDb, MissingDataDb, MissingSchema, Ready }
 
         private static string _sqlErrorDetails = "";
         private static string _pgErrorDetails = "";
 
         public static bool Run()
         {
-            // 1. Check Connection Status
             var sqlStatus = CheckStatus(DatabaseType.SqlServer, out _sqlErrorDetails);
             var pgStatus = CheckStatus(DatabaseType.PostgreSql, out _pgErrorDetails);
 
-            // 2. If already ready, run migrations to ensure latest schema updates (e.g. Role column)
             if (sqlStatus == DbStatus.Ready && pgStatus == DbStatus.Ready)
             {
                 PerformMigrations(DbConnectionFactory.CurrentDatabaseType);
                 return true;
             }
 
-            // 3. Handle Missing Database scenarios
-            if (sqlStatus == DbStatus.MissingDb || sqlStatus == DbStatus.MissingSchema)
+            if (sqlStatus == DbStatus.MissingAuthDb || sqlStatus == DbStatus.MissingDataDb || sqlStatus == DbStatus.MissingSchema)
             {
-                if (AskToInitialize("SQL Server", sqlStatus == DbStatus.MissingDb))
-                    return InitializeAndSet(DatabaseType.SqlServer, sqlStatus == DbStatus.MissingDb);
+                if (AskToInitialize("SQL Server", sqlStatus != DbStatus.MissingSchema))
+                    return InitializeAndSet(DatabaseType.SqlServer, true);
                 return false;
             }
 
-            if (pgStatus == DbStatus.MissingDb || pgStatus == DbStatus.MissingSchema)
+            if (pgStatus == DbStatus.MissingAuthDb || pgStatus == DbStatus.MissingDataDb || pgStatus == DbStatus.MissingSchema)
             {
-                if (AskToInitialize("PostgreSQL", pgStatus == DbStatus.MissingDb))
-                    return InitializeAndSet(DatabaseType.PostgreSql, pgStatus == DbStatus.MissingDb);
+                if (AskToInitialize("PostgreSQL", pgStatus != DbStatus.MissingSchema))
+                    return InitializeAndSet(DatabaseType.PostgreSql, true);
                 return false;
             }
 
-            // 4. Fallback if one provider is ready but not the current default
             if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer && sqlStatus == DbStatus.Ready)
             {
                 PerformMigrations(DatabaseType.SqlServer);
@@ -55,8 +52,6 @@ namespace WPF_LoginForm.Services.Database
                 return true;
             }
 
-            string msg = $"No valid database connection found.\n\nSQL Error: {_sqlErrorDetails}\nPG Error: {_pgErrorDetails}\n\nPlease check Settings.";
-            MessageBox.Show(msg, "Critical Connection Error", MessageBoxButton.OK, MessageBoxImage.Error);
             return false;
         }
 
@@ -67,51 +62,41 @@ namespace WPF_LoginForm.Services.Database
                 using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
                 {
                     conn.Open();
-                    if (type == DatabaseType.SqlServer)
+                    // 1. Ensure 'Role' column exists
+                    string roleQuery = type == DatabaseType.SqlServer
+                        ? "SELECT 1 FROM sys.columns WHERE Name = 'Role' AND Object_ID = Object_ID('User')"
+                        : "SELECT 1 FROM information_schema.columns WHERE table_name='User' AND column_name='Role'";
+
+                    if (ExecuteScalar(conn, roleQuery) == 0)
                     {
-                        // SQL Server Migration: Check for 'Role' column
-                        string checkColQuery = "SELECT 1 FROM sys.columns WHERE Name = N'Role' AND Object_ID = Object_ID(N'[User]')";
-                        int colExists = ExecuteScalar(conn, checkColQuery);
-
-                        if (colExists == 0)
-                        {
-                            string addColQuery = "ALTER TABLE [User] ADD [Role] NVARCHAR(50) DEFAULT 'User' WITH VALUES";
-                            ExecuteNonQuery(conn, addColQuery);
-                        }
-
-                        // Ensure Admin privileges
-                        ExecuteNonQuery(conn, "UPDATE [User] SET [Role] = 'Admin' WHERE LOWER([Username]) = 'admin'");
+                        string addCol = type == DatabaseType.SqlServer
+                            ? "ALTER TABLE [User] ADD [Role] NVARCHAR(50) DEFAULT 'User' WITH VALUES"
+                            : "ALTER TABLE \"User\" ADD COLUMN \"Role\" VARCHAR(50) DEFAULT 'User'";
+                        ExecuteNonQuery(conn, addCol);
                     }
-                    else
-                    {
-                        // PostgreSQL Migration: Check for 'Role' column using safe DO block
-                        string query = @"
-                            DO $$
-                            BEGIN
-                                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='User' AND column_name='Role') THEN
-                                    ALTER TABLE ""User"" ADD COLUMN ""Role"" VARCHAR(50) DEFAULT 'User';
-                                END IF;
-                            END
-                            $$;";
-                        ExecuteNonQuery(conn, query);
 
-                        // Ensure Admin privileges
-                        ExecuteNonQuery(conn, "UPDATE \"User\" SET \"Role\" = 'Admin' WHERE LOWER(\"Username\") = 'admin'");
-                    }
+                    // 2. Ensure Admin Role
+                    string updateRole = type == DatabaseType.SqlServer
+                        ? "UPDATE [User] SET [Role] = 'Admin' WHERE LOWER([Username]) = 'admin'"
+                        : "UPDATE \"User\" SET \"Role\" = 'Admin' WHERE LOWER(\"Username\") = 'admin'";
+                    ExecuteNonQuery(conn, updateRole);
+
+                    // 3. OPTIONAL: Force reset Admin password if you are completely locked out.
+                    // Uncommenting this line will reset admin password to 'admin' (Hashed) on every startup.
+                    // string adminHash = WPF_LoginForm.Services.PasswordHelper.HashPassword("admin");
+                    // string updatePass = type == DatabaseType.SqlServer
+                    //    ? $"UPDATE [User] SET [Password] = '{adminHash}' WHERE LOWER([Username]) = 'admin'"
+                    //    : $"UPDATE \"User\" SET \"Password\" = '{adminHash}' WHERE LOWER(\"Username\") = 'admin'";
+                    // ExecuteNonQuery(conn, updatePass);
                 }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Migration Warning: {ex.Message}");
-                // We do not throw here to allow the app to start even if migration fails,
-                // though functionality might be limited.
-            }
+            catch { }
         }
 
         private static bool AskToInitialize(string providerName, bool needsDbCreation)
         {
-            string task = needsDbCreation ? "Create Database & Tables" : "Create Missing Tables";
-            var result = MessageBox.Show($"{providerName} connection detected.\nStatus: {task} required.\n\nDo you want to proceed automatically?",
+            string task = needsDbCreation ? "Create Databases (LoginDb & MainDataDb)" : "Create Missing Tables";
+            var result = MessageBox.Show($"{providerName} connected.\nStatus: {task} required.\n\nProceed?",
                 "Database Initialization", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             return result == MessageBoxResult.Yes;
         }
@@ -140,10 +125,8 @@ namespace WPF_LoginForm.Services.Database
                     else InitializeDataPostgres(conn);
                 }
 
-                // Run migrations immediately after initialization
                 PerformMigrations(type);
-
-                MessageBox.Show("Database initialized successfully!\nDefault credentials: admin / admin", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Databases initialized successfully!\nDefault credentials: admin / admin", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                 return true;
             }
             catch (Exception ex)
@@ -158,7 +141,7 @@ namespace WPF_LoginForm.Services.Database
             if (type == DatabaseType.SqlServer)
             {
                 var builder = new SqlConnectionStringBuilder(Settings.Default.SqlAuthConnString);
-                builder.InitialCatalog = "master"; // Connect to master to create DB
+                builder.InitialCatalog = "master";
                 using (var conn = new SqlConnection(builder.ConnectionString))
                 {
                     conn.Open();
@@ -169,7 +152,7 @@ namespace WPF_LoginForm.Services.Database
             else
             {
                 var builder = new NpgsqlConnectionStringBuilder(Settings.Default.PostgresAuthConnString);
-                builder.Database = "postgres"; // Connect to default postgres DB
+                builder.Database = "postgres";
                 using (var conn = new NpgsqlConnection(builder.ConnectionString))
                 {
                     conn.Open();
@@ -182,82 +165,52 @@ namespace WPF_LoginForm.Services.Database
         private static DbStatus CheckStatus(DatabaseType type, out string errorMsg)
         {
             errorMsg = "OK";
-            string connStr = (type == DatabaseType.SqlServer) ? Settings.Default.SqlAuthConnString : Settings.Default.PostgresAuthConnString;
             try
             {
-                using (var conn = (type == DatabaseType.SqlServer) ? (IDbConnection)new SqlConnection(connStr) : new NpgsqlConnection(connStr))
+                using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
                 {
                     conn.Open();
-                    // Check if Schema exists by looking for 'User' table
                     string query = (type == DatabaseType.SqlServer)
                         ? "SELECT COUNT(*) FROM sys.tables WHERE name = 'User'"
                         : "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'User'";
-
-                    using (var cmd = conn.CreateCommand())
-                    {
-                        cmd.CommandText = query;
-                        var result = cmd.ExecuteScalar();
-                        return (result == null ? 0 : Convert.ToInt32(result)) > 0 ? DbStatus.Ready : DbStatus.MissingSchema;
-                    }
+                    if (ExecuteScalar(conn, query) == 0) return DbStatus.MissingSchema;
                 }
             }
             catch (Exception ex)
             {
-                bool isMissingDb = false;
-                if (ex is SqlException sqlEx && sqlEx.Number == 4060) isMissingDb = true; // Login failed (DB doesn't exist)
-                if (ex is PostgresException pgEx && pgEx.SqlState == "3D000") isMissingDb = true; // Invalid Catalog Name
-
-                if (!isMissingDb)
-                {
-                    // Fallback check: Try connecting to System DB to see if server is up but DB is missing
-                    try
-                    {
-                        string sysDb = (type == DatabaseType.SqlServer) ? "master" : "postgres";
-                        if (type == DatabaseType.SqlServer)
-                        {
-                            var b = new SqlConnectionStringBuilder(connStr); b.InitialCatalog = sysDb;
-                            using (var c = new SqlConnection(b.ConnectionString)) { c.Open(); }
-                        }
-                        else
-                        {
-                            var b = new NpgsqlConnectionStringBuilder(connStr); b.Database = sysDb;
-                            using (var c = new NpgsqlConnection(b.ConnectionString)) { c.Open(); }
-                        }
-                        // If we connected to system DB, then the specific DB is indeed missing
-                        isMissingDb = true;
-                    }
-                    catch
-                    {
-                        isMissingDb = false; // Server is genuinely unreachable
-                    }
-                }
-
-                if (isMissingDb)
-                {
-                    errorMsg = "Database 'LoginDb' does not exist.";
-                    return DbStatus.MissingDb;
-                }
-
-                errorMsg = ex.Message;
-                return DbStatus.Unreachable;
+                if (IsDbMissingException(ex)) { errorMsg = "LoginDb missing."; return DbStatus.MissingAuthDb; }
+                errorMsg = ex.Message; return DbStatus.Unreachable;
             }
+
+            try
+            {
+                using (var conn = DbConnectionFactory.GetConnection(ConnectionTarget.Data)) { conn.Open(); }
+            }
+            catch (Exception ex)
+            {
+                if (IsDbMissingException(ex)) { errorMsg = "MainDataDb missing."; return DbStatus.MissingDataDb; }
+            }
+
+            return DbStatus.Ready;
+        }
+
+        private static bool IsDbMissingException(Exception ex)
+        {
+            if (ex is SqlException sqlEx && sqlEx.Number == 4060) return true;
+            if (ex is PostgresException pgEx && pgEx.SqlState == "3D000") return true;
+            return false;
         }
 
         private static void InitializeAuthSqlServer(IDbConnection conn)
         {
             if (ExecuteScalar(conn, "SELECT COUNT(*) FROM sys.tables WHERE name = 'User'") == 0)
             {
-                string createUser = @"CREATE TABLE [User] (
-                    [Id] INT IDENTITY(1,1) PRIMARY KEY,
-                    [Username] NVARCHAR(50) NOT NULL UNIQUE,
-                    [Password] NVARCHAR(100) NOT NULL,
-                    [Name] NVARCHAR(50),
-                    [LastName] NVARCHAR(50),
-                    [Email] NVARCHAR(100),
-                    [Role] NVARCHAR(50) DEFAULT 'User'
-                )";
+                string createUser = @"CREATE TABLE [User] ([Id] INT IDENTITY(1,1) PRIMARY KEY, [Username] NVARCHAR(50) UNIQUE, [Password] NVARCHAR(100), [Name] NVARCHAR(50), [LastName] NVARCHAR(50), [Email] NVARCHAR(100), [Role] NVARCHAR(50) DEFAULT 'User')";
                 ExecuteNonQuery(conn, createUser);
-                ExecuteNonQuery(conn, "INSERT INTO [User] (Username, Password, Name, LastName, Email, Role) VALUES ('admin', 'admin', 'System', 'Admin', 'admin@biosun.com', 'Admin')");
+
+                // FIXED: Use Hash when inserting default admin
+                string hash = WPF_LoginForm.Services.PasswordHelper.HashPassword("admin");
+                ExecuteNonQuery(conn, $"INSERT INTO [User] (Username, Password, Name, LastName, Email, Role) VALUES ('admin', '{hash}', 'System', 'Admin', 'admin@biosun.com', 'Admin')");
             }
             if (ExecuteScalar(conn, "SELECT COUNT(*) FROM sys.tables WHERE name = 'Logs'") == 0)
             {
@@ -265,39 +218,16 @@ namespace WPF_LoginForm.Services.Database
             }
         }
 
-        private static void InitializeDataSqlServer(IDbConnection conn)
-        {
-            if (ExecuteScalar(conn, "SELECT COUNT(*) FROM sys.tables WHERE name = 'ColumnHierarchyMap'") == 0)
-            {
-                string createMap = @"CREATE TABLE [ColumnHierarchyMap] (
-                    [Id] INT IDENTITY(1,1) PRIMARY KEY,
-                    [OwningDataTableName] NVARCHAR(100),
-                    [Part1Value] NVARCHAR(200),
-                    [Part2Value] NVARCHAR(200),
-                    [Part3Value] NVARCHAR(200),
-                    [Part4Value] NVARCHAR(200),
-                    [CoreItemDisplayName] NVARCHAR(200),
-                    [ActualDataTableColumnName] NVARCHAR(200)
-                )";
-                ExecuteNonQuery(conn, createMap);
-            }
-        }
-
         private static void InitializeAuthPostgres(IDbConnection conn)
         {
             if (ExecuteScalar(conn, "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'User'") == 0)
             {
-                string createUser = @"CREATE TABLE ""User"" (
-                    ""Id"" SERIAL PRIMARY KEY,
-                    ""Username"" VARCHAR(50) NOT NULL UNIQUE,
-                    ""Password"" VARCHAR(100) NOT NULL,
-                    ""Name"" VARCHAR(50),
-                    ""LastName"" VARCHAR(50),
-                    ""Email"" VARCHAR(100),
-                    ""Role"" VARCHAR(50) DEFAULT 'User'
-                )";
+                string createUser = @"CREATE TABLE ""User"" (""Id"" SERIAL PRIMARY KEY, ""Username"" VARCHAR(50) UNIQUE, ""Password"" VARCHAR(100), ""Name"" VARCHAR(50), ""LastName"" VARCHAR(50), ""Email"" VARCHAR(100), ""Role"" VARCHAR(50) DEFAULT 'User')";
                 ExecuteNonQuery(conn, createUser);
-                ExecuteNonQuery(conn, "INSERT INTO \"User\" (\"Username\", \"Password\", \"Name\", \"LastName\", \"Email\", \"Role\") VALUES ('admin', 'admin', 'System', 'Admin', 'admin@biosun.com', 'Admin')");
+
+                // FIXED: Use Hash when inserting default admin
+                string hash = WPF_LoginForm.Services.PasswordHelper.HashPassword("admin");
+                ExecuteNonQuery(conn, $"INSERT INTO \"User\" (\"Username\", \"Password\", \"Name\", \"LastName\", \"Email\", \"Role\") VALUES ('admin', '{hash}', 'System', 'Admin', 'admin@biosun.com', 'Admin')");
             }
             if (ExecuteScalar(conn, "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'Logs'") == 0)
             {
@@ -305,41 +235,30 @@ namespace WPF_LoginForm.Services.Database
             }
         }
 
+        private static void InitializeDataSqlServer(IDbConnection conn)
+        {
+            if (ExecuteScalar(conn, "SELECT COUNT(*) FROM sys.tables WHERE name = 'ColumnHierarchyMap'") == 0)
+            {
+                ExecuteNonQuery(conn, @"CREATE TABLE [ColumnHierarchyMap] ([Id] INT IDENTITY(1,1) PRIMARY KEY, [OwningDataTableName] NVARCHAR(100), [Part1Value] NVARCHAR(200), [Part2Value] NVARCHAR(200), [Part3Value] NVARCHAR(200), [Part4Value] NVARCHAR(200), [CoreItemDisplayName] NVARCHAR(200), [ActualDataTableColumnName] NVARCHAR(200))");
+            }
+        }
+
         private static void InitializeDataPostgres(IDbConnection conn)
         {
             if (ExecuteScalar(conn, "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'ColumnHierarchyMap'") == 0)
             {
-                string createMap = @"CREATE TABLE ""ColumnHierarchyMap"" (
-                    ""Id"" SERIAL PRIMARY KEY,
-                    ""OwningDataTableName"" VARCHAR(100),
-                    ""Part1Value"" VARCHAR(200),
-                    ""Part2Value"" VARCHAR(200),
-                    ""Part3Value"" VARCHAR(200),
-                    ""Part4Value"" VARCHAR(200),
-                    ""CoreItemDisplayName"" VARCHAR(200),
-                    ""ActualDataTableColumnName"" VARCHAR(200)
-                )";
-                ExecuteNonQuery(conn, createMap);
+                ExecuteNonQuery(conn, @"CREATE TABLE ""ColumnHierarchyMap"" (""Id"" SERIAL PRIMARY KEY, ""OwningDataTableName"" VARCHAR(100), ""Part1Value"" VARCHAR(200), ""Part2Value"" VARCHAR(200), ""Part3Value"" VARCHAR(200), ""Part4Value"" VARCHAR(200), ""CoreItemDisplayName"" VARCHAR(200), ""ActualDataTableColumnName"" VARCHAR(200))");
             }
         }
 
         private static int ExecuteScalar(IDbConnection conn, string query)
         {
-            using (var cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = query;
-                var result = cmd.ExecuteScalar();
-                return result == null ? 0 : Convert.ToInt32(result);
-            }
+            using (var cmd = conn.CreateCommand()) { cmd.CommandText = query; var result = cmd.ExecuteScalar(); return result == null ? 0 : Convert.ToInt32(result); }
         }
 
         private static void ExecuteNonQuery(IDbConnection conn, string query)
         {
-            using (var cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = query;
-                cmd.ExecuteNonQuery();
-            }
+            using (var cmd = conn.CreateCommand()) { cmd.CommandText = query; cmd.ExecuteNonQuery(); }
         }
     }
 }
