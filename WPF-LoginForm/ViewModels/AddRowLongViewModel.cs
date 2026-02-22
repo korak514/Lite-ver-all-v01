@@ -19,6 +19,7 @@ namespace WPF_LoginForm.ViewModels
         private readonly IDataRepository _dataRepository;
         private readonly ILogger _logger;
         private readonly IDialogService _dialogService;
+        private string _resolvedDateColumnName;
 
         // --- Date Control Properties ---
         private bool _isDateToday = true;
@@ -106,22 +107,19 @@ namespace WPF_LoginForm.ViewModels
         private async Task FindLastEntryDateAsync()
         {
             _lastKnownEntryDate = DateTime.MinValue;
-            if (_targetTableSchema == null || !_targetTableSchema.Columns.Contains("EntryDate"))
+            if (_targetTableSchema == null || string.IsNullOrEmpty(_resolvedDateColumnName))
             {
-                _logger?.LogWarning($"[ARLVM] Cannot find last entry date: 'EntryDate' column not found in schema for {_owningTableName}.");
+                _logger?.LogWarning($"[ARLVM] Cannot find last entry date: valid date column not found in schema for {_owningTableName}.");
                 return;
             }
 
             try
             {
-                // FIX: Handle tuple return
-                // We ask for limit 1 to get the latest row efficiently since we only need the date
-                // Note: GetTableDataAsync uses 'limit' for 'TOP N' or 'LIMIT N', and it sorts DESC by default.
                 var result = await _dataRepository.GetTableDataAsync(_owningTableName, 1);
                 DataTable fullTable = result.Data;
 
                 var lastDate = fullTable.AsEnumerable()
-                                        .Select(row => row.Field<DateTime?>("EntryDate"))
+                                        .Select(row => row[_resolvedDateColumnName] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row[_resolvedDateColumnName]))
                                         .Where(d => d.HasValue)
                                         .OrderByDescending(d => d.Value)
                                         .FirstOrDefault();
@@ -145,12 +143,16 @@ namespace WPF_LoginForm.ViewModels
         {
             try
             {
-                // FIX: Handle tuple return. Limit 0 means fetch what logic dictates, usually 500 or all.
-                // Since we just need schema (columns), limit 1 is actually safer/faster, but 0 is fine.
                 var result = await _dataRepository.GetTableDataAsync(_owningTableName, 1);
                 _targetTableSchema = result.Data;
 
-                _logger?.LogInfo($"[ARLVM {_owningTableName}] Target table schema loaded.");
+                // FIX Bug 5: Dynamically detect the date column instead of hardcoding "EntryDate"
+                _resolvedDateColumnName = _targetTableSchema.Columns.Cast<DataColumn>()
+                    .FirstOrDefault(c => c.ColumnName.Equals("EntryDate", StringComparison.OrdinalIgnoreCase) ||
+                                         c.ColumnName.Equals("Date", StringComparison.OrdinalIgnoreCase) ||
+                                         c.ColumnName.Equals("Tarih", StringComparison.OrdinalIgnoreCase))?.ColumnName;
+
+                _logger?.LogInfo($"[ARLVM {_owningTableName}] Target table schema loaded. Date column resolved to: {_resolvedDateColumnName}");
             }
             catch (Exception ex)
             {
@@ -194,13 +196,13 @@ namespace WPF_LoginForm.ViewModels
             validationErrors = new List<string>();
             var newRowData = new NewRowData();
 
-            if (_targetTableSchema != null && _targetTableSchema.Columns.Contains("EntryDate"))
+            if (_targetTableSchema != null && !string.IsNullOrEmpty(_resolvedDateColumnName))
             {
-                newRowData.Values["EntryDate"] = this.EntryDate;
+                newRowData.Values[_resolvedDateColumnName] = this.EntryDate;
             }
             else
             {
-                _logger?.LogWarning($"[ARLVM GetEnteredData] 'EntryDate' column not found in schema for {_owningTableName}. Date will not be included in NewRowData.");
+                _logger?.LogWarning($"[ARLVM GetEnteredData] No valid date column found in schema for {_owningTableName}. Date will not be included in NewRowData.");
             }
 
             if (_targetTableSchema == null)
@@ -267,14 +269,6 @@ namespace WPF_LoginForm.ViewModels
             }
 
             return newRowData;
-        }
-
-        protected bool SetProperty<T>(ref T storage, T value, [System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
-        {
-            if (Equals(storage, value)) return false;
-            storage = value;
-            OnPropertyChanged(propertyName);
-            return true;
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿// ViewModels/DatarepViewModel.cs
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -39,6 +38,9 @@ namespace WPF_LoginForm.ViewModels
         private string _dateFilterColumnName;
         private readonly List<string> _dateColumnAliases = new List<string> { "Tarih", "Date", "EntryDate" };
         private readonly List<DataRow> _rowChangeHistory = new List<DataRow>();
+
+        // FIX Bug 1: Decrementing counter for local IDs to prevent PK Constraint crashes on multiple new rows
+        private int _nextNewRowId = -1;
 
         // --- Filter State ---
         private string _searchText;
@@ -130,13 +132,18 @@ namespace WPF_LoginForm.ViewModels
 
         public bool IsDateFilterVisible { get => _isDateFilterVisible; private set => SetProperty(ref _isDateFilterVisible, value); }
         public bool IsDateFilterPanelVisible { get; set; }
+
         public DateTime? FilterStartDate
         { get => _filterStartDate; set { if (SetProperty(ref _filterStartDate, value)) { ApplyCombinedFiltersAsync(); UpdateSlidersFromDates(); } } }
+
         public DateTime? FilterEndDate
         { get => _filterEndDate; set { if (SetProperty(ref _filterEndDate, value)) { ApplyCombinedFiltersAsync(); UpdateSlidersFromDates(); } } }
+
         public double SliderMaximum { get => _sliderMax; set => SetProperty(ref _sliderMax, value); }
+
         public double StartMonthSliderValue
         { get => _sliderStart; set { if (SetProperty(ref _sliderStart, value)) UpdateDatesFromSliders(); } }
+
         public double EndMonthSliderValue
         { get => _sliderEnd; set { if (SetProperty(ref _sliderEnd, value)) UpdateDatesFromSliders(); } }
 
@@ -181,7 +188,6 @@ namespace WPF_LoginForm.ViewModels
             _dialogService = dialogService;
             _dataRepository = dataRepository;
 
-            // Updated commands to block actions if Offline
             AddNewRowCommand = new ViewModelCommand(ExecuteAddNewRow, p => _currentDataTable != null && !IsBusy && IsOnlineMode);
             SaveChangesCommand = new ViewModelCommand(ExecuteSaveChanges, p => IsDirty && !IsBusy && IsOnlineMode);
             UndoChangesCommand = new ViewModelCommand(ExecuteUndo, p => _rowChangeHistory.Any() && !IsBusy && IsOnlineMode);
@@ -204,7 +210,6 @@ namespace WPF_LoginForm.ViewModels
             ClearSearchCommand = new ViewModelCommand(p => { SearchText = ""; IsGlobalSearchActive = false; });
             ClearDateFilterCommand = new ViewModelCommand(p => { FilterStartDate = null; FilterEndDate = null; IsDateFilterPanelVisible = false; ApplyCombinedFiltersAsync(); });
 
-            // FIX: Prevent duplicate event handlers on Re-Instantiations (Bug #6)
             DatabaseRetryPolicy.OnRetryStatus -= OnRetryStatusReceived;
             DatabaseRetryPolicy.OnRetryStatus += OnRetryStatusReceived;
 
@@ -287,6 +292,7 @@ namespace WPF_LoginForm.ViewModels
                         res.Data.PrimaryKey = new[] { res.Data.Columns["ID"] };
 
                     DataTableView = res.Data?.DefaultView;
+                    _nextNewRowId = -1; // Reset local ID counter on load
 
                     if (!res.IsSortable) SetErrorMessage("⚠️ No ID/Date column. Editing limited.");
 
@@ -366,7 +372,6 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        // --- Date Logic ---
         private void SetupDateFilter()
         {
             IsDateFilterVisible = false; _minSliderDate = default;
@@ -411,7 +416,6 @@ namespace WPF_LoginForm.ViewModels
             finally { _isUpdatingDates = false; }
         }
 
-        // --- Helpers ---
         private void ExecuteAddNewRow(object p)
         {
             NewRowData data; bool ok;
@@ -426,10 +430,17 @@ namespace WPF_LoginForm.ViewModels
                 {
                     var r = _currentDataTable.NewRow();
                     foreach (var k in data.Values.Keys) if (_currentDataTable.Columns.Contains(k)) r[k] = data.Values[k] ?? DBNull.Value;
+
+                    // FIX Bug 1: Use decrementing ID to avoid constraint clashes locally
                     if (_currentDataTable.Columns.Contains("ID") && (r["ID"] == DBNull.Value || r["ID"] == null))
                     {
-                        if (_currentDataTable.Columns["ID"].DataType == typeof(Guid)) r["ID"] = Guid.NewGuid();
-                        else r["ID"] = -1;
+                        var idCol = _currentDataTable.Columns["ID"];
+                        if (idCol.DataType == typeof(Guid)) r["ID"] = Guid.NewGuid();
+                        else
+                        {
+                            r["ID"] = Convert.ChangeType(_nextNewRowId, idCol.DataType);
+                            _nextNewRowId--;
+                        }
                     }
                     _currentDataTable.Rows.Add(r);
                     CheckIfDirty();
@@ -450,7 +461,6 @@ namespace WPF_LoginForm.ViewModels
         private void ExecuteShowFindReplace(object p)
         { var w = new FindReplaceWindow(); w.FindRequested += (s, e) => { SearchText = w.FindText; IsGlobalSearchActive = true; }; if (Application.Current.MainWindow != null) w.Owner = Application.Current.MainWindow; w.Show(); }
 
-        // FIX: Memory leak on Table Events (Bug #9)
         private void CurrentDataTable_RowChanged(object sender, DataRowChangeEventArgs e)
         {
             if (e.Action != DataRowAction.Commit) { _rowChangeHistory.Add(e.Row); CheckIfDirty(); }

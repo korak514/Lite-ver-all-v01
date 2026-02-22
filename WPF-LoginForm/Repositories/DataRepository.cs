@@ -1,5 +1,4 @@
-﻿// Repositories/DataRepository.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -301,14 +300,12 @@ namespace WPF_LoginForm.Repositories
             catch (Exception ex) { return (false, ex.Message); }
         }
 
-        // --- BUGS 3, 4, 5 FIXED: Async Save, Safe PK finding, Parameterized Insert/Updates ---
         public async Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName)
         {
             try
             {
                 if (changes == null) return (true, "");
 
-                // FIX Bug 4: Look for explicit PrimaryKey, fallback to "ID"
                 string idColName = changes.PrimaryKey.FirstOrDefault()?.ColumnName;
                 if (string.IsNullOrEmpty(idColName))
                     idColName = changes.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase))?.ColumnName;
@@ -318,7 +315,6 @@ namespace WPF_LoginForm.Repositories
 
                 using (var conn = GetConnection())
                 {
-                    // FIX Bug 3: Fully Asynchronous Database Connection
                     if (conn is SqlConnection sqlConn) await sqlConn.OpenAsync();
                     else if (conn is NpgsqlConnection pgConn) await pgConn.OpenAsync();
                     else conn.Open();
@@ -342,18 +338,46 @@ namespace WPF_LoginForm.Repositories
                         {
                             var cols = changes.Columns.Cast<DataColumn>().Where(c => !c.ColumnName.Equals(idColName, StringComparison.OrdinalIgnoreCase) && !c.ReadOnly).ToList();
                             string colNames = string.Join(",", cols.Select(c => Quote(c.ColumnName)));
-
-                            // FIX Bug 5: Use index parameters (@p0, @p1) instead of column names to avoid Spaces-in-name crash
                             string vals = string.Join(",", cols.Select((c, i) => $"@p{i}"));
-                            string q = $"INSERT INTO {Quote(tableName)} ({colNames}) VALUES ({vals})";
+
+                            // FIX Bug 2: Ask the database to return the generated Identity/Serial ID so the local table stays synced
+                            string q;
+                            bool hasIdCol = !string.IsNullOrEmpty(idColName) && changes.Columns.Contains(idColName);
+                            if (IsPostgres)
+                            {
+                                q = $"INSERT INTO {Quote(tableName)} ({colNames}) VALUES ({vals})";
+                                if (hasIdCol) q += $" RETURNING {Quote(idColName)}";
+                            }
+                            else
+                            {
+                                q = $"INSERT INTO {Quote(tableName)} ({colNames}) VALUES ({vals})";
+                                if (hasIdCol) q += "; SELECT SCOPE_IDENTITY();";
+                            }
 
                             using (var cmd = conn.CreateCommand())
                             {
                                 cmd.CommandText = q;
                                 for (int i = 0; i < cols.Count; i++) AddParameter(cmd, $"@p{i}", row[cols[i]]);
-                                if (cmd is SqlCommand sqlCmd) await sqlCmd.ExecuteNonQueryAsync();
-                                else if (cmd is NpgsqlCommand pgCmd) await pgCmd.ExecuteNonQueryAsync();
-                                else cmd.ExecuteNonQuery();
+
+                                if (hasIdCol)
+                                {
+                                    object newId = null;
+                                    if (cmd is SqlCommand sqlCmd) newId = await sqlCmd.ExecuteScalarAsync();
+                                    else if (cmd is NpgsqlCommand pgCmd) newId = await pgCmd.ExecuteScalarAsync();
+                                    else newId = cmd.ExecuteScalar();
+
+                                    if (newId != null && newId != DBNull.Value)
+                                    {
+                                        row.Table.Columns[idColName].ReadOnly = false;
+                                        row[idColName] = Convert.ChangeType(newId, row.Table.Columns[idColName].DataType);
+                                    }
+                                }
+                                else
+                                {
+                                    if (cmd is SqlCommand sqlCmd) await sqlCmd.ExecuteNonQueryAsync();
+                                    else if (cmd is NpgsqlCommand pgCmd) await pgCmd.ExecuteNonQueryAsync();
+                                    else cmd.ExecuteNonQuery();
+                                }
                             }
                         }
                         else if (row.RowState == DataRowState.Modified)
@@ -602,7 +626,6 @@ namespace WPF_LoginForm.Repositories
             return list;
         }
 
-        // FIX Bug 1: Actually implement GetActualColumnNameAsync to resolve target DB column for _Long_ tables
         public async Task<string> GetActualColumnNameAsync(string tableName, string p1, string p2, string p3, string p4, string coreItem)
         {
             try

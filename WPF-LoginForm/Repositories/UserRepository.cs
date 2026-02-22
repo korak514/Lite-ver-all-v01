@@ -1,5 +1,4 @@
-﻿// Repositories/UserRepository.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -25,7 +24,43 @@ namespace WPF_LoginForm.Repositories
 
         public bool AuthenticateUser(NetworkCredential credential)
         {
-            return AuthenticateUserAsync(credential).Result;
+            // FIX Bug 6: Use synchronous DB call to avoid UI Deadlocks caused by .Result
+            bool validUser = false;
+            try
+            {
+                using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
+                {
+                    connection.Open();
+                    using (var command = connection.CreateCommand())
+                    {
+                        string query = $"SELECT {ColPass} FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username)";
+                        command.CommandText = query;
+                        AddParameter(command, "@username", credential.UserName);
+
+                        object result = command.ExecuteScalar();
+
+                        if (result != null && result != DBNull.Value)
+                        {
+                            string storedPass = result.ToString();
+                            if (PasswordHelper.VerifyPassword(credential.Password, storedPass))
+                            {
+                                validUser = true;
+                            }
+                            else if (storedPass == credential.Password)
+                            {
+                                validUser = true;
+                                UpgradeUserPassword(credential.UserName, credential.Password);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Auth Sync Failed: {ex.Message}");
+                validUser = false;
+            }
+            return validUser;
         }
 
         public async Task<bool> AuthenticateUserAsync(NetworkCredential credential)
@@ -41,7 +76,6 @@ namespace WPF_LoginForm.Repositories
 
                     using (var command = connection.CreateCommand())
                     {
-                        // 1. Fetch the stored password (Hash or Plain text)
                         string query = $"SELECT {ColPass} FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username)";
                         command.CommandText = query;
                         AddParameter(command, "@username", credential.UserName);
@@ -55,16 +89,13 @@ namespace WPF_LoginForm.Repositories
                         {
                             string storedPass = result.ToString();
 
-                            // CHECK 1: Is it a valid Hash match? (New Standard)
                             if (PasswordHelper.VerifyPassword(credential.Password, storedPass))
                             {
                                 validUser = true;
                             }
-                            // CHECK 2: Is it a Legacy Plain-Text match? (Migration)
                             else if (storedPass == credential.Password)
                             {
                                 validUser = true;
-                                // Auto-upgrade database to Hash so next time it's secure
                                 await UpgradeUserPasswordAsync(credential.UserName, credential.Password);
                             }
                         }
@@ -79,7 +110,27 @@ namespace WPF_LoginForm.Repositories
             return validUser;
         }
 
-        // Helper to update legacy passwords to hash
+        // Synchronous upgrade for sync auth
+        private void UpgradeUserPassword(string username, string plainPassword)
+        {
+            try
+            {
+                using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
+                {
+                    connection.Open();
+                    using (var command = connection.CreateCommand())
+                    {
+                        string newHash = PasswordHelper.HashPassword(plainPassword);
+                        command.CommandText = $"UPDATE {TableName} SET {ColPass} = @hash WHERE LOWER({ColUser}) = LOWER(@username)";
+                        AddParameter(command, "@hash", newHash);
+                        AddParameter(command, "@username", username);
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch { }
+        }
+
         private async Task UpgradeUserPasswordAsync(string username, string plainPassword)
         {
             try
@@ -103,7 +154,7 @@ namespace WPF_LoginForm.Repositories
                     }
                 }
             }
-            catch { /* Fail silently, will try again next login */ }
+            catch { }
         }
 
         public void Add(UserModel userModel)
@@ -117,7 +168,6 @@ namespace WPF_LoginForm.Repositories
                                           "VALUES (@username, @password, @name, @lastname, @email, @role)";
 
                     AddParameter(command, "@username", userModel.Username);
-                    // Ensure we hash before adding new users
                     AddParameter(command, "@password", PasswordHelper.HashPassword(userModel.Password));
                     AddParameter(command, "@name", userModel.Name ?? DBNull.Value.ToString());
                     AddParameter(command, "@lastname", userModel.LastName ?? DBNull.Value.ToString());

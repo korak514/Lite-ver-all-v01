@@ -150,7 +150,10 @@ namespace WPF_LoginForm.Services
         {
             var dt = new DataTable();
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            using (var p = new ExcelPackage(new FileInfo(path)))
+
+            // FIX Bug 4: Open with FileShare.ReadWrite to prevent crash if file is open in Excel
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var p = new ExcelPackage(stream))
             {
                 var ws = p.Workbook.Worksheets.FirstOrDefault();
                 if (ws == null || ws.Dimension == null) return null;
@@ -179,18 +182,25 @@ namespace WPF_LoginForm.Services
         private static DataTable LoadCsv(string path, List<string> err, int skip)
         {
             var dt = new DataTable();
-            var lines = File.ReadAllLines(path, Encoding.UTF8).Skip(skip).ToList();
-            if (!lines.Any()) return dt;
-            string pattern = ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"; // CSV Split regex
-            var headers = Regex.Split(lines[0], pattern);
-            foreach (var h in headers) dt.Columns.Add(h.Trim('"'));
-            foreach (var line in lines.Skip(1))
+            // FIX Bug 4 (Bonus): Protect CSV read against file locks as well
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var reader = new StreamReader(stream, Encoding.UTF8))
             {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                var row = dt.NewRow();
-                var vals = Regex.Split(line, pattern);
-                for (int i = 0; i < Math.Min(vals.Length, dt.Columns.Count); i++) row[i] = vals[i].Trim('"');
-                dt.Rows.Add(row);
+                string allText = reader.ReadToEnd();
+                var lines = allText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).Skip(skip).ToList();
+                if (!lines.Any() || (lines.Count == 1 && string.IsNullOrWhiteSpace(lines[0]))) return dt;
+
+                string pattern = ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"; // CSV Split regex
+                var headers = Regex.Split(lines[0], pattern);
+                foreach (var h in headers) dt.Columns.Add(h.Trim('"'));
+                foreach (var line in lines.Skip(1))
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    var row = dt.NewRow();
+                    var vals = Regex.Split(line, pattern);
+                    for (int i = 0; i < Math.Min(vals.Length, dt.Columns.Count); i++) row[i] = vals[i].Trim('"');
+                    dt.Rows.Add(row);
+                }
             }
             return dt;
         }
