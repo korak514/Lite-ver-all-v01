@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Repositories/DataRepository.cs
+
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -28,7 +30,14 @@ namespace WPF_LoginForm.Repositories
 
         private bool IsPostgres => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql;
 
-        private string Quote(string identifier) => IsPostgres ? $"\"{identifier}\"" : $"[{identifier}]";
+        // FIX (Bug 2): Properly escape quotes and brackets to prevent SQL Injection in identifiers
+        private string Quote(string identifier)
+        {
+            if (IsPostgres)
+                return $"\"{identifier.Replace("\"", "\"\"")}\"";
+            else
+                return $"[{identifier.Replace("]", "]]")}]";
+        }
 
         private IDbConnection GetConnection() => DbConnectionFactory.GetConnection(ConnectionTarget.Data);
 
@@ -221,7 +230,8 @@ namespace WPF_LoginForm.Repositories
                         }
                         else
                         {
-                            command.CommandText = $"ALTER TABLE \"{tableName}\" RENAME COLUMN \"{oldName}\" TO \"{newName}\"";
+                            // FIX (Bug 2): Use the updated Quote method to prevent escape sequences in column names
+                            command.CommandText = $"ALTER TABLE {Quote(tableName)} RENAME COLUMN {Quote(oldName)} TO {Quote(newName)}";
                             if (command is NpgsqlCommand pgCmd) await pgCmd.ExecuteNonQueryAsync();
                         }
                     }
@@ -340,7 +350,6 @@ namespace WPF_LoginForm.Repositories
                             string colNames = string.Join(",", cols.Select(c => Quote(c.ColumnName)));
                             string vals = string.Join(",", cols.Select((c, i) => $"@p{i}"));
 
-                            // FIX Bug 2: Ask the database to return the generated Identity/Serial ID so the local table stays synced
                             string q;
                             bool hasIdCol = !string.IsNullOrEmpty(idColName) && changes.Columns.Contains(idColName);
                             if (IsPostgres)
@@ -442,12 +451,12 @@ namespace WPF_LoginForm.Repositories
                     conn.Open();
                     using (var cmd = conn.CreateCommand())
                     {
-                        if (IsPostgres) cmd.CommandText = $"ALTER TABLE \"{tableName}\" ADD COLUMN \"ID\" SERIAL";
-                        else cmd.CommandText = $"ALTER TABLE [{tableName}] ADD [ID] INT IDENTITY(1,1) NOT NULL";
+                        if (IsPostgres) cmd.CommandText = $"ALTER TABLE {Quote(tableName)} ADD COLUMN \"ID\" SERIAL";
+                        else cmd.CommandText = $"ALTER TABLE {Quote(tableName)} ADD [ID] INT IDENTITY(1,1) NOT NULL";
                         await Task.Run(() => cmd.ExecuteNonQuery());
 
-                        if (IsPostgres) cmd.CommandText = $"ALTER TABLE \"{tableName}\" ADD CONSTRAINT \"PK_{tableName}\" PRIMARY KEY (\"ID\")";
-                        else cmd.CommandText = $"ALTER TABLE [{tableName}] ADD CONSTRAINT [PK_{tableName}] PRIMARY KEY ([ID])";
+                        if (IsPostgres) cmd.CommandText = $"ALTER TABLE {Quote(tableName)} ADD CONSTRAINT \"PK_{tableName}\" PRIMARY KEY (\"ID\")";
+                        else cmd.CommandText = $"ALTER TABLE {Quote(tableName)} ADD CONSTRAINT [PK_{tableName}] PRIMARY KEY ([ID])";
                         await Task.Run(() => cmd.ExecuteNonQuery());
                     }
                 }

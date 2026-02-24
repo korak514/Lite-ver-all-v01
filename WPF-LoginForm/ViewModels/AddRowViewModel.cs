@@ -1,4 +1,6 @@
-﻿using System;
+﻿// ViewModels/AddRowViewModel.cs
+
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -175,11 +177,12 @@ namespace WPF_LoginForm.ViewModels
                     {
                         Guid.Parse(strVal);
                     }
-                    // FIX: Handle "1"/"yes" for boolean columns
                     else if (col.DataType == typeof(bool))
                     {
                         string v = strVal.ToLower();
-                        if (v == "1" || v == "yes" || v == "y" || v == "on") { /* valid */ }
+                        // FIX (Bug 5): Explicitly handle both truthy and falsy values without crashing
+                        if (v == "1" || v == "yes" || v == "y" || v == "on" || v == "true") { /* valid */ }
+                        else if (v == "0" || v == "no" || v == "n" || v == "off" || v == "false") { /* valid */ }
                         else Boolean.Parse(strVal);
                     }
                     else
@@ -202,12 +205,12 @@ namespace WPF_LoginForm.ViewModels
 
             foreach (var entry in ColumnEntries)
             {
-                // FIX: Apply the boolean parse logic here too
                 if (_sourceTable.Columns.Contains(entry.ColumnName) && _sourceTable.Columns[entry.ColumnName].DataType == typeof(bool))
                 {
                     string v = entry.Value?.ToString().ToLower() ?? "";
-                    if (v == "1" || v == "yes" || v == "y" || v == "on") newRowData.Values[entry.ColumnName] = true;
-                    else if (v == "0" || v == "no" || v == "n" || v == "off") newRowData.Values[entry.ColumnName] = false;
+                    // FIX (Bug 5): Ensure values correctly map to true/false
+                    if (v == "1" || v == "yes" || v == "y" || v == "on" || v == "true") newRowData.Values[entry.ColumnName] = true;
+                    else if (v == "0" || v == "no" || v == "n" || v == "off" || v == "false") newRowData.Values[entry.ColumnName] = false;
                     else newRowData.Values[entry.ColumnName] = entry.Value;
                 }
                 else

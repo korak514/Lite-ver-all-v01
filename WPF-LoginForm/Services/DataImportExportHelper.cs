@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Services/DataImportExportHelper.cs
+
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
@@ -151,7 +153,7 @@ namespace WPF_LoginForm.Services
             var dt = new DataTable();
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
-            // FIX Bug 4: Open with FileShare.ReadWrite to prevent crash if file is open in Excel
+            // Open with FileShare.ReadWrite to prevent crash if file is open in Excel
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var p = new ExcelPackage(stream))
             {
@@ -182,23 +184,35 @@ namespace WPF_LoginForm.Services
         private static DataTable LoadCsv(string path, List<string> err, int skip)
         {
             var dt = new DataTable();
-            // FIX Bug 4 (Bonus): Protect CSV read against file locks as well
+
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var reader = new StreamReader(stream, Encoding.UTF8))
             {
-                string allText = reader.ReadToEnd();
-                var lines = allText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).Skip(skip).ToList();
-                if (!lines.Any() || (lines.Count == 1 && string.IsNullOrWhiteSpace(lines[0]))) return dt;
-
+                // FIX (Bug 3): Prevent OutOfMemoryException by processing the file line-by-line instead of loading everything into memory at once
                 string pattern = ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"; // CSV Split regex
-                var headers = Regex.Split(lines[0], pattern);
+
+                // Skip requested lines
+                for (int i = 0; i < skip; i++)
+                {
+                    if (reader.ReadLine() == null) return dt;
+                }
+
+                string headerLine = reader.ReadLine();
+                if (string.IsNullOrWhiteSpace(headerLine)) return dt;
+
+                var headers = Regex.Split(headerLine, pattern);
                 foreach (var h in headers) dt.Columns.Add(h.Trim('"'));
-                foreach (var line in lines.Skip(1))
+
+                string line;
+                while ((line = reader.ReadLine()) != null)
                 {
                     if (string.IsNullOrWhiteSpace(line)) continue;
                     var row = dt.NewRow();
                     var vals = Regex.Split(line, pattern);
-                    for (int i = 0; i < Math.Min(vals.Length, dt.Columns.Count); i++) row[i] = vals[i].Trim('"');
+                    for (int i = 0; i < Math.Min(vals.Length, dt.Columns.Count); i++)
+                    {
+                        row[i] = vals[i].Trim('"');
+                    }
                     dt.Rows.Add(row);
                 }
             }

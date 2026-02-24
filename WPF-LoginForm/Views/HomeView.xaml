@@ -1,4 +1,5 @@
-﻿<UserControl x:Class="WPF_LoginForm.Views.HomeView"
+﻿<!-- Views/HomeView.xaml -->
+<UserControl x:Class="WPF_LoginForm.Views.HomeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -9,6 +10,7 @@
              xmlns:fa="http://schemas.fontawesome.io/icons/"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+             xmlns:p="clr-namespace:WPF_LoginForm.Properties"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="1000"
              d:DataContext="{d:DesignInstance Type=viewModels:HomeViewModel, IsDesignTimeCreatable=False}">
@@ -49,33 +51,72 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <Style x:Key="ManualMaximizeButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#AA000000" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ShowMaximizeButtons}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsAnyChartMaximized}" Value="True">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FFC047" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CloseMaximizeButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#D14545" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
 
         <!-- Top Control Bar -->
-        <Grid Grid.Row="0" Grid.ColumnSpan="3" Margin="5,5,10,5">
+        <Grid Grid.Row="0" Margin="5,5,10,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Filter Controls -->
-            <StackPanel Grid.Column="0" Orientation="Vertical"
-                        Visibility="{Binding IsDateFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-
-                <!-- Row 1: Date Pickers & Config Gear & Dashboard Selector -->
+            <StackPanel Grid.Column="0" Orientation="Vertical" Visibility="{Binding IsDateFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,10">
+                    <CheckBox Content="{x:Static p:Resources.Max_but}" IsChecked="{Binding ShowMaximizeButtons}" Foreground="#FFC047" VerticalAlignment="Center" Margin="0,0,15,0" ToolTip="Toggle Maximize Buttons" />
+
                     <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsFilterByDate}">
                         <TextBlock Text="Start:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke" />
                         <DatePicker SelectedDate="{Binding StartDate, Mode=TwoWay}" VerticalAlignment="Center" Width="100" />
@@ -87,12 +128,27 @@
                         <fa:ImageAwesome Icon="Gear" Height="16" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                     </ToggleButton>
 
-                    <!-- NEW: Dashboard File Selector -->
-                    <ComboBox ItemsSource="{Binding DashboardFiles}"
-                              SelectedItem="{Binding SelectedDashboardFile, Mode=TwoWay}"
-                              Width="150" Height="22" Margin="15,0,0,0"
-                              ToolTip="Switch Dashboard Layout"
-                              Visibility="{Binding IsDashboardSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <ComboBox ItemsSource="{Binding DashboardFiles}" SelectedItem="{Binding SelectedDashboardFile, Mode=TwoWay}" Width="150" Height="22" Margin="15,0,0,0" Visibility="{Binding IsDashboardSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                    <Button Command="{Binding TogglePageCommand}" Width="30" Height="22" Margin="15,0,0,0" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Switch to Advanced Summary">
+                        <Grid>
+                            <Path Fill="#FFC047" Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.59,12L15,13.41L12,10.41L9,13.41L7.41,12L12,7.41L16.59,12Z">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSecondPageActive}" Value="True">
+                                                <Setter Property="RenderTransform">
+                                                    <Setter.Value>
+                                                        <RotateTransform Angle="180" CenterX="12" CenterY="12" />
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                        </Grid>
+                    </Button>
 
                     <Popup IsOpen="{Binding IsChecked, ElementName=FilterConfigToggle}" StaysOpen="False" PlacementTarget="{Binding ElementName=FilterConfigToggle}" Placement="Bottom">
                         <Border Background="#030347" BorderBrush="#49A956" BorderThickness="1" CornerRadius="4" Padding="10">
@@ -110,27 +166,17 @@
                                 <Separator Background="#49A956" Margin="0,10,0,5" />
                                 <TextBlock Text="Slider Tick Step" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
                                 <ComboBox ItemsSource="{Binding TickOptions}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding SliderTickFrequency, Mode=TwoWay}" Height="26" Margin="0,0,0,5" />
-                                <TextBlock Text="* Uncheck 'Filter by Date' to filter by ID Percentage." Foreground="Gray" FontSize="9" FontStyle="Italic" TextWrapping="Wrap" Margin="0,5,0,0" />
                             </StackPanel>
                         </Border>
                     </Popup>
                 </StackPanel>
 
-                <!-- Row 2: Range Slider -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                     <TextBlock Text="Range:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke" />
-                    <xctk:RangeSlider MinWidth="450" VerticalAlignment="Center"
-                                      Minimum="0" Maximum="{Binding SliderMaximum}"
-                                      LowerValue="{Binding StartMonthSliderValue, Mode=TwoWay}"
-                                      HigherValue="{Binding EndMonthSliderValue, Mode=TwoWay}"
-                                      IsSnapToTickEnabled="True"
-                                      TickFrequency="{Binding SliderTickFrequency}"
-                                      AutoToolTipPlacement="TopLeft"
-                                      AutoToolTipPrecision="0" />
+                    <xctk:RangeSlider MinWidth="450" VerticalAlignment="Center" Minimum="0" Maximum="{Binding SliderMaximum}" LowerValue="{Binding StartMonthSliderValue, Mode=TwoWay}" HigherValue="{Binding EndMonthSliderValue, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="{Binding SliderTickFrequency}" AutoToolTipPlacement="TopLeft" AutoToolTipPrecision="0" />
                 </StackPanel>
             </StackPanel>
 
-            <!-- Action Buttons -->
             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <CheckBox Content="Include Data in Export" IsChecked="{Binding IsSnapshotExport, Mode=TwoWay}" Foreground="WhiteSmoke" VerticalAlignment="Center" Margin="0,0,15,0" />
                 <Button Content="Import" Margin="5,0,5,0" Padding="8,4" Command="{Binding ImportCommand}" />
@@ -142,30 +188,335 @@
             </StackPanel>
         </Grid>
 
-        <!-- Charts (Re-added DataClickCommand) -->
-        <lvc:CartesianChart Grid.Row="1" Grid.Column="0"
-                            Series="{Binding Chart1Series}"
-                            DataClickCommand="{Binding ChartClickCommand}"
-                            LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" />
+        <Grid Grid.Row="1">
+            <!-- Overlay for Focus -->
+            <Border Background="#D0050515" Panel.ZIndex="50" Grid.RowSpan="5" Grid.ColumnSpan="5" Visibility="{Binding IsAnyChartMaximized, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-        <lvc:CartesianChart Grid.Row="1" Grid.Column="1"
-                            Series="{Binding Chart2Series}"
-                            DataClickCommand="{Binding ChartClickCommand}"
-                            LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" />
+            <!-- PAGE 1 -->
+            <Grid x:Name="Page1" RenderTransformOrigin="0.5,0.5">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSecondPageActive}" Value="True">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.4" />
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility" BeginTime="0:0:0.4">
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.4" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
 
-        <lvc:CartesianChart Grid.Row="1" Grid.Column="2"
-                            Series="{Binding Chart3Series}"
-                            DataClickCommand="{Binding ChartClickCommand}"
-                            LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" />
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-        <lvc:PieChart Grid.Row="2" Grid.Column="0"
-                      Series="{Binding Chart4Series}"
-                      DataClickCommand="{Binding ChartClickCommand}"
-                      LegendLocation="Right" Foreground="WhiteSmoke" />
+                <!-- CHART 1 -->
+                <Grid Grid.Row="0" Grid.Column="0">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="1">
+                                    <Setter Property="Grid.RowSpan" Value="2" />
+                                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                                    <Setter Property="Panel.ZIndex" Value="100" />
+                                    <Setter Property="Margin" Value="20" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                            <Setter Property="Panel.ZIndex" Value="1" />
+                            <Setter Property="Margin" Value="5" />
+                        </Style>
+                    </Grid.Style>
+                    <Border Background="#181838" CornerRadius="10" Padding="10">
+                        <Grid>
+                            <lvc:CartesianChart Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" />
+                            <Button Content="🗖 Maximize" Command="{Binding MaximizeChartCommand}" CommandParameter="1" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource ManualMaximizeButtonStyle}" />
+                            <Button Content="✖ Close Fullscreen" Command="{Binding CloseMaximizeCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CloseMaximizeButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="1">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
 
-        <lvc:CartesianChart Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
-                            Series="{Binding Chart5Series}"
-                            DataClickCommand="{Binding ChartClickCommand}"
-                            LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" />
+                <!-- CHART 2 -->
+                <Grid Grid.Row="0" Grid.Column="1">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="2">
+                                    <Setter Property="Grid.RowSpan" Value="2" />
+                                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                                    <Setter Property="Grid.Column" Value="0" />
+                                    <Setter Property="Panel.ZIndex" Value="100" />
+                                    <Setter Property="Margin" Value="20" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                            <Setter Property="Panel.ZIndex" Value="1" />
+                            <Setter Property="Margin" Value="5" />
+                        </Style>
+                    </Grid.Style>
+                    <Border Background="#181838" CornerRadius="10" Padding="10">
+                        <Grid>
+                            <lvc:CartesianChart Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" />
+                            <Button Content="🗖 Maximize" Command="{Binding MaximizeChartCommand}" CommandParameter="2" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource ManualMaximizeButtonStyle}" />
+                            <Button Content="✖ Close Fullscreen" Command="{Binding CloseMaximizeCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CloseMaximizeButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="2">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- CHART 3 -->
+                <Grid Grid.Row="0" Grid.Column="2">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="3">
+                                    <Setter Property="Grid.RowSpan" Value="2" />
+                                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                                    <Setter Property="Grid.Column" Value="0" />
+                                    <Setter Property="Panel.ZIndex" Value="100" />
+                                    <Setter Property="Margin" Value="20" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                            <Setter Property="Panel.ZIndex" Value="1" />
+                            <Setter Property="Margin" Value="5" />
+                        </Style>
+                    </Grid.Style>
+                    <Border Background="#181838" CornerRadius="10" Padding="10">
+                        <Grid>
+                            <lvc:CartesianChart Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" />
+                            <Button Content="🗖 Maximize" Command="{Binding MaximizeChartCommand}" CommandParameter="3" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource ManualMaximizeButtonStyle}" />
+                            <Button Content="✖ Close Fullscreen" Command="{Binding CloseMaximizeCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CloseMaximizeButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="3">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- CHART 4 (PIE) -->
+                <Grid Grid.Row="1" Grid.Column="0">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="4">
+                                    <Setter Property="Grid.RowSpan" Value="2" />
+                                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                                    <Setter Property="Grid.Row" Value="0" />
+                                    <Setter Property="Panel.ZIndex" Value="100" />
+                                    <Setter Property="Margin" Value="20" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                            <Setter Property="Panel.ZIndex" Value="1" />
+                            <Setter Property="Margin" Value="5" />
+                        </Style>
+                    </Grid.Style>
+                    <Border Background="#181838" CornerRadius="10" Padding="10">
+                        <Grid>
+                            <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" />
+                            <Button Content="🗖 Maximize" Command="{Binding MaximizeChartCommand}" CommandParameter="4" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource ManualMaximizeButtonStyle}" />
+                            <Button Content="✖ Close Fullscreen" Command="{Binding CloseMaximizeCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CloseMaximizeButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="4">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- CHART 5 -->
+                <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="5">
+                                    <Setter Property="Grid.RowSpan" Value="2" />
+                                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                                    <Setter Property="Grid.Row" Value="0" />
+                                    <Setter Property="Grid.Column" Value="0" />
+                                    <Setter Property="Panel.ZIndex" Value="100" />
+                                    <Setter Property="Margin" Value="20" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                            <Setter Property="Panel.ZIndex" Value="1" />
+                            <Setter Property="Margin" Value="5" />
+                        </Style>
+                    </Grid.Style>
+                    <Border Background="#181838" CornerRadius="10" Padding="10">
+                        <Grid>
+                            <lvc:CartesianChart Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" />
+                            <Button Content="🗖 Maximize" Command="{Binding MaximizeChartCommand}" CommandParameter="5" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource ManualMaximizeButtonStyle}" />
+                            <Button Content="✖ Close Fullscreen" Command="{Binding CloseMaximizeCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CloseMaximizeButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="5">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- PAGE 2 -->
+            <Grid x:Name="Page2" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSecondPageActive}" Value="True">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.5" />
+                                            <ThicknessAnimation Storyboard.TargetProperty="Margin" From="50,0,0,0" To="0" Duration="0:0:0.4" DecelerationRatio="0.9" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.2" />
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility" BeginTime="0:0:0.2">
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2.5*" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- CHART 6 (BIG PIE) -->
+                <Grid Grid.Column="0">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <!-- FIX: Style.Triggers must come BEFORE Setters in XAML -->
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="6">
+                                    <Setter Property="Grid.ColumnSpan" Value="2" />
+                                    <Setter Property="Panel.ZIndex" Value="100" />
+                                    <Setter Property="Margin" Value="20" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                            <Setter Property="Panel.ZIndex" Value="1" />
+                        </Style>
+                    </Grid.Style>
+                    <Border Background="#10FFFFFF" CornerRadius="10" Margin="10">
+                        <Grid>
+                            <TextBlock Text="Summary Breakdown (Chart 6)" Foreground="Gray" FontWeight="Bold" Margin="15,10,0,0" />
+                            <lvc:PieChart Series="{Binding Chart6Series}" LegendLocation="Bottom" InnerRadius="80" Hoverable="True" Margin="20,40,20,20">
+                                <lvc:PieChart.ChartLegend>
+                                    <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="13" />
+                                </lvc:PieChart.ChartLegend>
+                                <lvc:PieChart.DataTooltip>
+                                    <lvc:DefaultTooltip SelectionMode="OnlySender" />
+                                </lvc:PieChart.DataTooltip>
+                            </lvc:PieChart>
+                            <Button Content="🗖 Maximize" Command="{Binding MaximizeChartCommand}" CommandParameter="6" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10" Style="{StaticResource ManualMaximizeButtonStyle}" />
+                            <Button Content="✖ Close Fullscreen" Command="{Binding CloseMaximizeCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CloseMaximizeButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="6">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Border Grid.Column="1" Margin="5,10,10,10" Background="Transparent">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding KpiCards}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#181838" CornerRadius="8" Margin="0,0,0,10" Padding="15">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="Black" BlurRadius="5" Opacity="0.3" ShadowDepth="2" />
+                                        </Border.Effect>
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Text="{Binding Title}" Foreground="Gray" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <TextBlock Grid.Row="1" Text="{Binding Value}" Foreground="{Binding ColorHex}" FontSize="24" FontWeight="Bold" Margin="0,5,0,0" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </Grid>
     </Grid>
 </UserControl>

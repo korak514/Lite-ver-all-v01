@@ -1,3 +1,4 @@
+// ViewModels/ConfigurationViewModel.cs
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -62,7 +63,8 @@ namespace WPF_LoginForm.ViewModels
             ChartConfigurations.Clear();
             var existingConfigs = configs ?? new List<DashboardConfiguration>();
 
-            for (int i = 1; i <= 5; i++)
+            // FIX: Expanded to 6 charts to support the new Big Pie Chart on Page 2
+            for (int i = 1; i <= 6; i++)
             {
                 var configForSlot = existingConfigs.FirstOrDefault(c => c.ChartPosition == i)
                                  ?? new DashboardConfiguration { ChartPosition = i, IsEnabled = false };
@@ -107,8 +109,6 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        // ... inside ConfigurationViewModel
-
         private async Task LoadColumnsForTable(string tableName)
         {
             if (string.IsNullOrEmpty(tableName))
@@ -119,14 +119,11 @@ namespace WPF_LoginForm.ViewModels
             {
                 try
                 {
-                    // Limit 1 is sufficient to get schema
                     var result = await _dataRepository.GetTableDataAsync(tableName, 1);
 
-                    // FIX: Check for null Data before accessing Columns
                     if (result.Data != null)
                     {
                         DataTable dataTable = result.Data;
-
                         AvailableColumns = dataTable.Columns
                             .Cast<DataColumn>()
                             .Select(c => c.ColumnName)
@@ -135,13 +132,11 @@ namespace WPF_LoginForm.ViewModels
                     }
                     else
                     {
-                        // Handle null case gracefully
                         AvailableColumns = new List<string>();
                     }
                 }
                 catch (Exception ex)
                 {
-                    // Log error but don't crash the window
                     System.Diagnostics.Debug.WriteLine($"Error loading columns: {ex.Message}");
                     AvailableColumns = new List<string>();
                 }
@@ -168,7 +163,8 @@ namespace WPF_LoginForm.ViewModels
         public DashboardConfigurationViewModel(DashboardConfiguration model)
         {
             _model = model;
-            if (_model.ChartPosition == 4)
+            // FIX: Force Chart 4 AND Chart 6 to be Pie Charts
+            if (_model.ChartPosition == 4 || _model.ChartPosition == 6)
             {
                 _model.ChartType = "Pie";
             }
@@ -259,7 +255,7 @@ namespace WPF_LoginForm.ViewModels
             get => _model.ChartType;
             set
             {
-                if (_model.ChartPosition == 4 || _model.ChartType == value) return;
+                if (_model.ChartPosition == 4 || _model.ChartPosition == 6 || _model.ChartType == value) return;
 
                 _model.ChartType = value;
                 OnPropertyChanged();
@@ -271,7 +267,10 @@ namespace WPF_LoginForm.ViewModels
 
         public bool IsPieChart => string.Equals(_model.ChartType, "Pie", StringComparison.OrdinalIgnoreCase);
         public bool IsCartesianChart => !IsPieChart;
-        public bool CanChangeChartType => _model.ChartPosition != 4;
+
+        // Disable changing type for position 4 and 6
+        public bool CanChangeChartType => _model.ChartPosition != 4 && _model.ChartPosition != 6;
+
         public bool IsTableSelected => !string.IsNullOrEmpty(TableName);
 
         private bool CanExecuteAddSeries(object obj)

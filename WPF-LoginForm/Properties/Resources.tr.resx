@@ -402,4 +402,7 @@
   <data name="Min2clock" xml:space="preserve">
     <value>Saat Gösterimi</value>
   </data>
+  <data name="Max_but" xml:space="preserve">
+    <value>Grafik Tam Ekran</value>
+  </data>
 </root>

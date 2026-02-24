@@ -1,4 +1,6 @@
-﻿using System;
+﻿// ViewModels/DatarepViewModel.cs
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -17,7 +19,8 @@ using WPF_LoginForm.Views;
 
 namespace WPF_LoginForm.ViewModels
 {
-    public class DatarepViewModel : ViewModelBase
+    // FIX (Bug 4): Implement IDisposable to properly unhook from static events and prevent memory leaks
+    public class DatarepViewModel : ViewModelBase, IDisposable
     {
         private readonly IDialogService _dialogService;
         private readonly IDataRepository _dataRepository;
@@ -39,7 +42,6 @@ namespace WPF_LoginForm.ViewModels
         private readonly List<string> _dateColumnAliases = new List<string> { "Tarih", "Date", "EntryDate" };
         private readonly List<DataRow> _rowChangeHistory = new List<DataRow>();
 
-        // FIX Bug 1: Decrementing counter for local IDs to prevent PK Constraint crashes on multiple new rows
         private int _nextNewRowId = -1;
 
         // --- Filter State ---
@@ -210,7 +212,7 @@ namespace WPF_LoginForm.ViewModels
             ClearSearchCommand = new ViewModelCommand(p => { SearchText = ""; IsGlobalSearchActive = false; });
             ClearDateFilterCommand = new ViewModelCommand(p => { FilterStartDate = null; FilterEndDate = null; IsDateFilterPanelVisible = false; ApplyCombinedFiltersAsync(); });
 
-            DatabaseRetryPolicy.OnRetryStatus -= OnRetryStatusReceived;
+            // Subscribe to static event
             DatabaseRetryPolicy.OnRetryStatus += OnRetryStatusReceived;
 
             LoadInitialDataAsync();
@@ -431,7 +433,6 @@ namespace WPF_LoginForm.ViewModels
                     var r = _currentDataTable.NewRow();
                     foreach (var k in data.Values.Keys) if (_currentDataTable.Columns.Contains(k)) r[k] = data.Values[k] ?? DBNull.Value;
 
-                    // FIX Bug 1: Use decrementing ID to avoid constraint clashes locally
                     if (_currentDataTable.Columns.Contains("ID") && (r["ID"] == DBNull.Value || r["ID"] == null))
                     {
                         var idCol = _currentDataTable.Columns["ID"];
@@ -481,5 +482,14 @@ namespace WPF_LoginForm.ViewModels
 
         public async void LoadTableWithFilter(string t, DateTime s, DateTime e, string txt = "")
         { SelectedTable = t; await Task.Delay(100); if (DataTableView != null) { FilterStartDate = s; FilterEndDate = e; if (!string.IsNullOrEmpty(txt)) { IsGlobalSearchActive = true; SearchText = txt; } IsDateFilterVisible = true; ApplyCombinedFiltersAsync(); } }
+
+        // FIX (Bug 4): Clean up event subscriptions
+        public void Dispose()
+        {
+            DatabaseRetryPolicy.OnRetryStatus -= OnRetryStatusReceived;
+            UnsubscribeFromTableEvents();
+            _cts?.Cancel();
+            _cts?.Dispose();
+        }
     }
 }

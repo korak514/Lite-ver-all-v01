@@ -511,6 +511,15 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Maximize button .
+        /// </summary>
+        public static string Max_but {
+            get {
+                return ResourceManager.GetString("Max_but", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Hours Representation.
         /// </summary>
         public static string Min2clock {

@@ -402,4 +402,7 @@
   <data name="Min2clock" xml:space="preserve">
     <value>Hours Representation</value>
   </data>
+  <data name="Max_but" xml:space="preserve">
+    <value>Maximize button </value>
+  </data>
 </root>
