@@ -105,6 +105,7 @@
     </Compile>
     <Compile Include="Models\CategoryRule.cs" />
     <Compile Include="Models\ErrorLogItem.cs" />
+    <Compile Include="Models\PortalConfiguration.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -129,6 +130,7 @@
     <Compile Include="Services\TimeFormatHelper.cs" />
     <Compile Include="Services\UserSessionService.cs" />
     <Compile Include="ViewModels\CategoryConfigViewModel.cs" />
+    <Compile Include="ViewModels\DashboardPortalViewModel.cs" />
     <Compile Include="ViewModels\ErrorDrillDownViewModel.cs" />
     <Compile Include="ViewModels\ErrorEventModel.cs" />
     <Compile Include="ViewModels\ErrorManagementViewModel.cs" />
@@ -137,6 +139,9 @@
     <Compile Include="ViewModels\HierarchyImportViewModel.cs" />
     <Compile Include="Views\CategoryConfigWindow.xaml.cs">
       <DependentUpon>CategoryConfigWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\DashboardPortalView.xaml.cs">
+      <DependentUpon>DashboardPortalView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\ErrorDrillDownWindow.xaml.cs">
       <DependentUpon>ErrorDrillDownWindow.xaml</DependentUpon>
@@ -155,6 +160,9 @@
     </Compile>
     <Compile Include="Views\InputWindow.xaml.cs">
       <DependentUpon>InputWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\PortalSettingsWindow.xaml.cs">
+      <DependentUpon>PortalSettingsWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\SettingsView.xaml.cs">
       <DependentUpon>SettingsView.xaml</DependentUpon>
@@ -326,6 +334,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Views\DashboardPortalView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Views\DatarepView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -371,6 +383,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\MainView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\PortalSettingsWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -48,7 +48,11 @@ namespace WPF_LoginForm.ViewModels
         private CancellationTokenSource _cts;
         private ConcurrentDictionary<string, double> _kpiTotals;
 
-        // --- NEW: Maximize Button Switch ---
+        // --- NEW: Portal Return Action & Command ---
+        public Action ReturnToPortalAction { get; set; }
+
+        public ICommand GoBackCommand { get; }
+
         private bool _showMaximizeButtons;
 
         public bool ShowMaximizeButtons
@@ -56,8 +60,6 @@ namespace WPF_LoginForm.ViewModels
             get => _showMaximizeButtons;
             set => SetProperty(ref _showMaximizeButtons, value);
         }
-
-        // -----------------------------------
 
         private int _maximizedChartIndex = 0;
 
@@ -135,18 +137,22 @@ namespace WPF_LoginForm.ViewModels
         public bool IsSnapshotExport { get; set; } = true;
 
         private bool _isFilterByDate = true;
+
         public bool IsFilterByDate
         { get => _isFilterByDate; set { if (SetProperty(ref _isFilterByDate, value)) { InitializeSliders(); LoadAllChartsData(); AutoSave(); } } }
 
         private bool _ignoreNonDateData = true;
+
         public bool IgnoreNonDateData
         { get => _ignoreNonDateData; set { if (SetProperty(ref _ignoreNonDateData, value)) { LoadAllChartsData(); AutoSave(); } } }
 
         private bool _useIdToDateConversion = false;
+
         public bool UseIdToDateConversion
         { get => _useIdToDateConversion; set { if (SetProperty(ref _useIdToDateConversion, value)) AutoSave(); } }
 
         private DateTime _initialDateForConversion = DateTime.Today.AddYears(-1);
+
         public DateTime InitialDateForConversion
         { get => _initialDateForConversion; set { if (SetProperty(ref _initialDateForConversion, value)) AutoSave(); } }
 
@@ -171,10 +177,12 @@ namespace WPF_LoginForm.ViewModels
         public bool IsDateFilterEnabled { get => _isDateFilterEnabled; private set => SetProperty(ref _isDateFilterEnabled, value); }
 
         private DateTime _startDate;
+
         public DateTime StartDate
         { get => _startDate; set { if (_startDate != value) { _startDate = value; OnPropertyChanged(); if (!_isUpdatingDates && _isActive && IsFilterByDate) { LoadAllChartsData(); UpdateSlidersFromDates(); AutoSave(); } } } }
 
         private DateTime _endDate;
+
         public DateTime EndDate
         { get => _endDate; set { if (_endDate != value) { _endDate = value; OnPropertyChanged(); if (!_isUpdatingDates && _isActive && IsFilterByDate) { LoadAllChartsData(); UpdateSlidersFromDates(); AutoSave(); } } } }
 
@@ -182,10 +190,12 @@ namespace WPF_LoginForm.ViewModels
         public double SliderMaximum { get => _sliderMaximum; set => SetProperty(ref _sliderMaximum, value); }
 
         private double _startMonthSliderValue;
+
         public double StartMonthSliderValue
         { get => _startMonthSliderValue; set { if (SetProperty(ref _startMonthSliderValue, value) && !_isUpdatingDates && _isActive) { if (IsFilterByDate) UpdateDatesFromSliders(); else { UpdateTooltips(); LoadAllChartsData(); } } } }
 
         private double _endMonthSliderValue;
+
         public double EndMonthSliderValue
         { get => _endMonthSliderValue; set { if (SetProperty(ref _endMonthSliderValue, value) && !_isUpdatingDates && _isActive) { if (IsFilterByDate) UpdateDatesFromSliders(); else { UpdateTooltips(); LoadAllChartsData(); } } } }
 
@@ -227,6 +237,13 @@ namespace WPF_LoginForm.ViewModels
 
             MaximizeChartCommand = new ViewModelCommand(p => { if (int.TryParse(p?.ToString(), out int i)) MaximizedChartIndex = i; });
             CloseMaximizeCommand = new ViewModelCommand(p => MaximizedChartIndex = 0);
+
+            // Trigger return to portal
+            GoBackCommand = new ViewModelCommand(p =>
+            {
+                Deactivate();
+                ReturnToPortalAction?.Invoke();
+            });
 
             _startDate = DateTime.Today.AddYears(-1);
             _endDate = DateTime.Today;

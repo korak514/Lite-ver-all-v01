@@ -37,7 +37,9 @@ namespace WPF_LoginForm.ViewModels
         private readonly ILogger _logger;
 
         // --- Cached ViewModels ---
-        private HomeViewModel _homeViewModel;
+        private DashboardPortalViewModel _portalViewModel; // NEW: The Hub
+
+        private HomeViewModel _homeViewModel;              // The actual Dashboard
 
         private CustomerViewModel _customerViewModel;
         private DatarepViewModel _datarepViewModel;
@@ -150,16 +152,41 @@ namespace WPF_LoginForm.ViewModels
             else if (_currentChildView is ErrorManagementViewModel errorViewModel) errorViewModel.Activate();
         }
 
+        // --- NEW: Routing to Portal instead of straight to Dashboard ---
         private void ExecuteShowHomeViewCommand(object obj)
+        {
+            if (_portalViewModel == null)
+            {
+                _portalViewModel = new DashboardPortalViewModel();
+                // When a module is clicked, trigger the actual dashboard load
+                _portalViewModel.OpenDashboardAction = OnOpenDashboardModule;
+            }
+            CurrentChildView = _portalViewModel;
+            Caption = "Analytics Hub";
+            Icon = IconChar.ThLarge;
+        }
+
+        // --- NEW: Opening the Specific Dashboard ---
+        private void OnOpenDashboardModule(string targetFileName)
         {
             if (_homeViewModel == null)
             {
                 _homeViewModel = new HomeViewModel(_dataRepository, _dialogService, _logger);
                 _homeViewModel.DrillDownRequested += OnDashboardDrillDown;
+
+                // When the user clicks "Go Back" in the dashboard, return to the Hub
+                _homeViewModel.ReturnToPortalAction = () => ExecuteShowHomeViewCommand(null);
             }
+
             CurrentChildView = _homeViewModel;
-            Caption = Resources.Nav_Dashboard;
-            Icon = IconChar.Home;
+            Caption = "Dashboard Module";
+            Icon = IconChar.ChartPie;
+
+            // Small delay to ensure the View has rendered and Activated before loading file
+            Task.Delay(100).ContinueWith(_ => Application.Current.Dispatcher.Invoke(() =>
+            {
+                _homeViewModel.SelectedDashboardFile = targetFileName;
+            }));
         }
 
         private void OnDashboardDrillDown(string tableName, DateTime start, DateTime end)
@@ -194,7 +221,6 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteShowSettingsViewCommand(object obj)
         {
-            // FIX: Pass the DataRepository to Settings so it can create the Offline Backup
             if (_settingsViewModel == null) _settingsViewModel = new SettingsViewModel(_dataRepository);
             CurrentChildView = _settingsViewModel;
             Caption = Resources.Nav_Settings;
@@ -214,82 +240,11 @@ namespace WPF_LoginForm.ViewModels
             if (_errorViewModel == null)
             {
                 _errorViewModel = new ErrorManagementViewModel(_dataRepository);
-                _errorViewModel.DrillDownRequested += OnErrorDrillDown;
+                // _errorViewModel.DrillDownRequested += OnErrorDrillDown;
             }
             CurrentChildView = _errorViewModel;
             Caption = "Error Analytics";
             Icon = IconChar.PieChart;
-        }
-
-        private async void OnErrorDrillDown(string tableName, DateTime start, DateTime end, string filterText)
-        {
-            try
-            {
-                var rawData = await _dataRepository.GetErrorDataAsync(start, end, tableName);
-                var uiList = new ObservableCollection<ErrorLogItem>();
-                foreach (var item in rawData)
-                {
-                    var logItem = new ErrorLogItem
-                    {
-                        Date = item.Date,
-                        Shift = item.Shift,
-                        StartTime = FormatTime(item.StartTime),
-                        DurationMinutes = item.DurationMinutes,
-                        MachineCode = "MA-" + item.MachineCode,
-                        ErrorMessage = item.ErrorDescription,
-                        EndTime = CalculateEndTime(item.StartTime, item.DurationMinutes)
-                    };
-                    uiList.Add(logItem);
-                }
-
-                bool useClock = _errorViewModel?.IsMinToClockFormat ?? false;
-                bool exclude00 = _errorViewModel?.IsMachine00Excluded ?? false;
-
-                List<string> excludedMachines = new List<string>();
-                string effectiveFilter = filterText;
-
-                if (filterText.StartsWith("MACHINE_OTHERS|"))
-                {
-                    var parts = filterText.Split('|');
-                    effectiveFilter = "MACHINE_OTHERS";
-                    if (parts.Length > 1)
-                    {
-                        var codes = parts[1].Split(',');
-                        foreach (var c in codes) excludedMachines.Add(c.StartsWith("MA-") ? c : "MA-" + c);
-                    }
-                }
-
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    var drillDownVM = new ErrorDrillDownViewModel(uiList, tableName, effectiveFilter, excludedMachines, useClock, exclude00);
-                    var drillDownWindow = new ErrorDrillDownWindow { DataContext = drillDownVM };
-                    if (Application.Current.MainWindow != null) drillDownWindow.Owner = Application.Current.MainWindow;
-                    drillDownWindow.ShowDialog();
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error DrillDown Failed: {ex.Message}", ex);
-                MessageBox.Show($"Could not open details: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private string FormatTime(string raw)
-        {
-            if (string.IsNullOrEmpty(raw) || raw.Length < 4) return raw;
-            if (raw.Contains(":")) return raw;
-            return raw.Insert(2, ":");
-        }
-
-        private string CalculateEndTime(string start, int duration)
-        {
-            try
-            {
-                string formattedStart = FormatTime(start);
-                if (TimeSpan.TryParse(formattedStart, out TimeSpan ts)) return ts.Add(TimeSpan.FromMinutes(duration)).ToString(@"hh\:mm");
-            }
-            catch { }
-            return "?";
         }
 
         private void ExecuteReturnToLogin(object obj)
@@ -297,9 +252,9 @@ namespace WPF_LoginForm.ViewModels
             UserSessionService.Logout();
             _logger.LogInfo("User Logged Out.");
 
-            _homeViewModel = null; _customerViewModel = null; _datarepViewModel = null;
+            _portalViewModel = null; _homeViewModel = null; _customerViewModel = null; _datarepViewModel = null;
             _inventoryViewModel = null; _settingsViewModel = null; _helpViewModel = null;
-            if (_errorViewModel != null) { _errorViewModel.DrillDownRequested -= OnErrorDrillDown; _errorViewModel = null; }
+            if (_errorViewModel != null) { _errorViewModel = null; }
             CurrentChildView = null;
 
             var loginView = new LoginView();

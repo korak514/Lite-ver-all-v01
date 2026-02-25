@@ -22,6 +22,11 @@
     <Window.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
+        <!-- NEW: Added Mapping for the Dashboard Portal -->
+        <DataTemplate DataType="{x:Type viewModel:DashboardPortalViewModel}">
+            <local:DashboardPortalView />
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type viewModel:HomeViewModel}">
             <local:HomeView />
         </DataTemplate>
@@ -183,7 +188,7 @@
                             </StackPanel>
                             <TextBlock Text="{Binding CurrentUserAccount.DisplayName}" Foreground="{StaticResource titleColor3}" FontFamily="Montserrat" FontSize="12" VerticalAlignment="Center" />
 
-                            <!-- NEW: VISUAL OFFLINE BADGE -->
+                            <!-- VISUAL OFFLINE BADGE -->
                             <Border Background="#D14545" CornerRadius="4" Padding="8,2" Margin="15,0,0,0"
                                     Visibility="{Binding IsOfflineMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <TextBlock Text="OFFLINE MODE" Foreground="White" FontSize="11" FontWeight="Bold" />

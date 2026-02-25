@@ -1,4 +1,3 @@
-// In WPF_LoginForm.Models/DashboardConfiguration.cs
 using System.Collections.Generic;
 
 namespace WPF_LoginForm.Models
@@ -14,7 +13,6 @@ namespace WPF_LoginForm.Models
 
         public int RowsToIgnore { get; set; } = 0;
 
-        // --- NEW PROPERTY ---
         /// <summary>
         /// If true, numbers are parsed using invariant culture ('.' decimal, ',' thousands).
         /// If false, uses the application's current culture (e.g., tr-TR with ',' decimal).
@@ -22,6 +20,13 @@ namespace WPF_LoginForm.Models
         public bool UseInvariantCultureForNumbers { get; set; } = false;
 
         public string DateColumn { get; set; }
+
+        // --- NEW PROPERTY: PIVOT LOGIC ---
+        /// <summary>
+        /// Allows the chart to dynamically split data into multiple lines/bars based on categorical values.
+        /// (e.g., Split Total Amount by "Type/TÜR" column)
+        /// </summary>
+        public string SplitByColumn { get; set; }
 
         public List<SeriesConfiguration> Series { get; set; } = new List<SeriesConfiguration>();
 

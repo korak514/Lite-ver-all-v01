@@ -1,4 +1,3 @@
-// ViewModels/ConfigurationViewModel.cs
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -63,7 +62,6 @@ namespace WPF_LoginForm.ViewModels
             ChartConfigurations.Clear();
             var existingConfigs = configs ?? new List<DashboardConfiguration>();
 
-            // FIX: Expanded to 6 charts to support the new Big Pie Chart on Page 2
             for (int i = 1; i <= 6; i++)
             {
                 var configForSlot = existingConfigs.FirstOrDefault(c => c.ChartPosition == i)
@@ -163,7 +161,6 @@ namespace WPF_LoginForm.ViewModels
         public DashboardConfigurationViewModel(DashboardConfiguration model)
         {
             _model = model;
-            // FIX: Force Chart 4 AND Chart 6 to be Pie Charts
             if (_model.ChartPosition == 4 || _model.ChartPosition == 6)
             {
                 _model.ChartType = "Pie";
@@ -172,6 +169,7 @@ namespace WPF_LoginForm.ViewModels
             Series = new ObservableCollection<SeriesConfiguration>(_model.Series);
             AddSeriesCommand = new ViewModelCommand(ExecuteAddSeries, CanExecuteAddSeries);
             RemoveSeriesCommand = new ViewModelCommand(ExecuteRemoveSeries);
+            ClearSplitByCommand = new ViewModelCommand(p => SplitByColumn = null);
         }
 
         public DashboardConfiguration GetModel()
@@ -182,6 +180,7 @@ namespace WPF_LoginForm.ViewModels
 
         public ICommand AddSeriesCommand { get; }
         public ICommand RemoveSeriesCommand { get; }
+        public ICommand ClearSplitByCommand { get; } // NEW
 
         public List<string> ChartTypes { get; } = new List<string> { "Line", "Bar" };
         public List<string> AggregationOptions { get; } = new List<string> { "Daily", "Weekly", "Monthly" };
@@ -200,6 +199,24 @@ namespace WPF_LoginForm.ViewModels
 
         public string DateColumn
         { get => _model.DateColumn; set { if (_model.DateColumn != value) { _model.DateColumn = value; OnPropertyChanged(); } } }
+
+        // --- NEW PROPERTIES FOR PIVOT ---
+        public string SplitByColumn
+        {
+            get => _model.SplitByColumn;
+            set
+            {
+                if (_model.SplitByColumn != value)
+                {
+                    _model.SplitByColumn = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(HasSplitByColumn));
+                }
+            }
+        }
+
+        public bool HasSplitByColumn => !string.IsNullOrEmpty(SplitByColumn);
+        // --------------------------------
 
         public ObservableCollection<SeriesConfiguration> Series { get; }
 
@@ -224,27 +241,13 @@ namespace WPF_LoginForm.ViewModels
         public int RowsToIgnore
         {
             get => _model.RowsToIgnore;
-            set
-            {
-                if (_model.RowsToIgnore != value)
-                {
-                    _model.RowsToIgnore = value;
-                    OnPropertyChanged();
-                }
-            }
+            set { if (_model.RowsToIgnore != value) { _model.RowsToIgnore = value; OnPropertyChanged(); } }
         }
 
         public bool UseInvariantCultureForNumbers
         {
             get => _model.UseInvariantCultureForNumbers;
-            set
-            {
-                if (_model.UseInvariantCultureForNumbers != value)
-                {
-                    _model.UseInvariantCultureForNumbers = value;
-                    OnPropertyChanged();
-                }
-            }
+            set { if (_model.UseInvariantCultureForNumbers != value) { _model.UseInvariantCultureForNumbers = value; OnPropertyChanged(); } }
         }
 
         public bool IsDailyDateStructure => DataStructureType == "Daily Date";
@@ -267,10 +270,7 @@ namespace WPF_LoginForm.ViewModels
 
         public bool IsPieChart => string.Equals(_model.ChartType, "Pie", StringComparison.OrdinalIgnoreCase);
         public bool IsCartesianChart => !IsPieChart;
-
-        // Disable changing type for position 4 and 6
         public bool CanChangeChartType => _model.ChartPosition != 4 && _model.ChartPosition != 6;
-
         public bool IsTableSelected => !string.IsNullOrEmpty(TableName);
 
         private bool CanExecuteAddSeries(object obj)

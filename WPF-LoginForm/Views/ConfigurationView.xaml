@@ -7,7 +7,7 @@
              xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=viewModels:ConfigurationViewModel, IsDesignTimeCreatable=False}"
-             Width="Auto" Height="Auto" Padding="5" MinWidth="450">
+             Width="Auto" Height="Auto" Padding="5" MinWidth="480">
 
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
@@ -31,7 +31,7 @@
             <ItemsControl ItemsSource="{Binding ChartConfigurations}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <UniformGrid Columns="5" />
+                        <UniformGrid Columns="6" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
@@ -48,7 +48,7 @@
                     Visibility="{Binding IsConfigurationVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
 
                 <StackPanel DataContext="{Binding CurrentConfiguration}">
-                    <CheckBox IsChecked="{Binding IsEnabled}" Content="Enable this chart" Margin="0,0,0,10" />
+                    <CheckBox IsChecked="{Binding IsEnabled}" Content="Enable this chart" Margin="0,0,0,10" FontWeight="Bold" />
 
                     <StackPanel IsEnabled="{Binding IsEnabled}">
                         <TextBlock Text="1. Select Table:" Style="{StaticResource HeaderTextStyle}" />
@@ -95,6 +95,17 @@
                                 <ComboBox ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                           SelectedItem="{Binding DateColumn}" />
 
+                                <TextBlock Text="4.b. Split Data By Category (Pivot Logic):" Style="{StaticResource HeaderTextStyle}" Foreground="#FFC047" Background="#1A000000" Padding="2" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox Grid.Column="0" ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                              SelectedItem="{Binding SplitByColumn}" ToolTip="Select a column to generate separate bars/lines per category." />
+                                    <Button Grid.Column="1" Content="Clear" Command="{Binding ClearSplitByCommand}" Margin="5,0,0,0" Padding="10,0" Background="#DDDDDD" BorderThickness="0" Cursor="Hand" />
+                                </Grid>
+
                                 <TextBlock Text="5. Select Value Columns to Sum (Y-Axis):" Style="{StaticResource HeaderTextStyle}" />
                                 <ItemsControl ItemsSource="{Binding Series}">
                                     <ItemsControl.ItemTemplate>
@@ -113,8 +124,8 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <Button Content="Add Value Column" Margin="0,5,0,0" Padding="5,2"
-                                        Command="{Binding AddSeriesCommand}" />
+                                <Button Content="+ Add Value Column" Margin="0,5,0,0" Padding="5,4"
+                                        Command="{Binding AddSeriesCommand}" Background="#E5F1FB" BorderThickness="0" Cursor="Hand" />
 
                                 <StackPanel Visibility="{Binding IsCartesianChart, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <TextBlock Text="6. Select Bar &amp; Line Chart Aggregation:" Style="{StaticResource HeaderTextStyle}"
@@ -149,6 +160,10 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+
+                                <!-- FIX: Added missing Add Value Column Button for Pie Charts! -->
+                                <Button Content="+ Add Value Column" Margin="0,5,0,0" Padding="5,4"
+                                        Command="{Binding AddSeriesCommand}" Background="#E5F1FB" BorderThickness="0" Cursor="Hand" />
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
@@ -157,9 +172,9 @@
 
             <Button Content="Apply and Close"
                     Command="{Binding ApplyCommand}"
-                    Margin="0,16,0,0" Padding="8,4"
+                    Margin="0,16,0,0" Padding="8,6"
                     Background="#FF0078D7" Foreground="White"
-                    FontWeight="SemiBold" FontSize="13" Height="32" />
+                    FontWeight="SemiBold" FontSize="13" Height="35" Cursor="Hand" BorderThickness="0" />
         </StackPanel>
     </Border>
 </UserControl>
