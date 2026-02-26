@@ -1,3 +1,4 @@
+// ViewModels/ConfigurationViewModel.cs
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -67,7 +68,7 @@ namespace WPF_LoginForm.ViewModels
                 var configForSlot = existingConfigs.FirstOrDefault(c => c.ChartPosition == i)
                                  ?? new DashboardConfiguration { ChartPosition = i, IsEnabled = false };
 
-                var configVM = new DashboardConfigurationViewModel(configForSlot);
+                var configVM = new DashboardConfigurationViewModel(configForSlot, _dataRepository);
                 configVM.PropertyChanged += OnCurrentConfigPropertyChanged;
                 ChartConfigurations.Add(configVM);
             }
@@ -157,10 +158,13 @@ namespace WPF_LoginForm.ViewModels
     public class DashboardConfigurationViewModel : ViewModelBase
     {
         private readonly DashboardConfiguration _model;
+        private readonly IDataRepository _dataRepository;
 
-        public DashboardConfigurationViewModel(DashboardConfiguration model)
+        public DashboardConfigurationViewModel(DashboardConfiguration model, IDataRepository dataRepository)
         {
             _model = model;
+            _dataRepository = dataRepository;
+
             if (_model.ChartPosition == 4 || _model.ChartPosition == 6)
             {
                 _model.ChartType = "Pie";
@@ -170,22 +174,43 @@ namespace WPF_LoginForm.ViewModels
             AddSeriesCommand = new ViewModelCommand(ExecuteAddSeries, CanExecuteAddSeries);
             RemoveSeriesCommand = new ViewModelCommand(ExecuteRemoveSeries);
             ClearSplitByCommand = new ViewModelCommand(p => SplitByColumn = null);
+
+            if (!string.IsNullOrEmpty(_model.SplitByColumn))
+            {
+                _ = LoadSplitCategoriesAsync();
+            }
         }
 
         public DashboardConfiguration GetModel()
         {
             _model.Series = Series.ToList();
+            _model.SelectedSplitCategories = AvailableSplitCategories.Where(c => c.IsSelected).Select(c => c.Name).ToList();
+
+            // Safeguard: If Group By is used but nothing is checked, pass a dummy value so chart draws nothing instead of everything
+            if (!string.IsNullOrEmpty(_model.SplitByColumn) && !_model.SelectedSplitCategories.Any())
+            {
+                _model.SelectedSplitCategories.Add("__NONE__");
+            }
+
             return _model;
         }
 
         public ICommand AddSeriesCommand { get; }
         public ICommand RemoveSeriesCommand { get; }
-        public ICommand ClearSplitByCommand { get; } // NEW
+        public ICommand ClearSplitByCommand { get; }
 
-        public List<string> ChartTypes { get; } = new List<string> { "Line", "Bar" };
+        public List<string> ChartTypes { get; } = new List<string> { "Line", "Bar", "Price Trend (Line)" };
         public List<string> AggregationOptions { get; } = new List<string> { "Daily", "Weekly", "Monthly" };
         public List<string> AvailableDataStructures { get; } = new List<string> { "Daily Date", "Monthly Date", "ID", "General" };
         public List<int> AvailableIgnoreCounts { get; } = Enumerable.Range(0, 10).ToList();
+
+        public ObservableCollection<SelectableCategory> AvailableSplitCategories { get; } = new ObservableCollection<SelectableCategory>();
+
+        public bool HideNumbersInLabels
+        { get => _model.HideNumbersInLabels; set { if (_model.HideNumbersInLabels != value) { _model.HideNumbersInLabels = value; OnPropertyChanged(); } } }
+
+        public bool SimplifyLabels
+        { get => _model.SimplifyLabels; set { if (_model.SimplifyLabels != value) { _model.SimplifyLabels = value; OnPropertyChanged(); } } }
 
         private bool _isSelected;
         public bool IsSelected { get => _isSelected; set => SetProperty(ref _isSelected, value); }
@@ -200,7 +225,6 @@ namespace WPF_LoginForm.ViewModels
         public string DateColumn
         { get => _model.DateColumn; set { if (_model.DateColumn != value) { _model.DateColumn = value; OnPropertyChanged(); } } }
 
-        // --- NEW PROPERTIES FOR PIVOT ---
         public string SplitByColumn
         {
             get => _model.SplitByColumn;
@@ -211,12 +235,12 @@ namespace WPF_LoginForm.ViewModels
                     _model.SplitByColumn = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(HasSplitByColumn));
+                    _ = LoadSplitCategoriesAsync();
                 }
             }
         }
 
         public bool HasSplitByColumn => !string.IsNullOrEmpty(SplitByColumn);
-        // --------------------------------
 
         public ObservableCollection<SeriesConfiguration> Series { get; }
 
@@ -263,19 +287,66 @@ namespace WPF_LoginForm.ViewModels
                 _model.ChartType = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsPieChart));
+                OnPropertyChanged(nameof(IsPriceTrendChart));
                 OnPropertyChanged(nameof(IsCartesianChart));
+
+                if (IsPriceTrendChart && Series.Count > 2)
+                {
+                    while (Series.Count > 2) Series.RemoveAt(Series.Count - 1);
+                }
+
                 (AddSeriesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             }
         }
 
         public bool IsPieChart => string.Equals(_model.ChartType, "Pie", StringComparison.OrdinalIgnoreCase);
+        public bool IsPriceTrendChart => string.Equals(_model.ChartType, "Price Trend (Line)", StringComparison.OrdinalIgnoreCase);
         public bool IsCartesianChart => !IsPieChart;
         public bool CanChangeChartType => _model.ChartPosition != 4 && _model.ChartPosition != 6;
         public bool IsTableSelected => !string.IsNullOrEmpty(TableName);
 
+        private async Task LoadSplitCategoriesAsync()
+        {
+            AvailableSplitCategories.Clear();
+            if (string.IsNullOrEmpty(SplitByColumn) || string.IsNullOrEmpty(TableName)) return;
+
+            try
+            {
+                var dt = await _dataRepository.GetDataAsync(TableName, new List<string> { SplitByColumn }, null, null, null);
+                if (dt != null)
+                {
+                    var distinctValues = dt.AsEnumerable()
+                                     .Select(r => r[SplitByColumn]?.ToString())
+                                     .Where(s => !string.IsNullOrWhiteSpace(s))
+                                     .Distinct()
+                                     .OrderBy(x => x)
+                                     .ToList();
+
+                    foreach (var cat in distinctValues)
+                    {
+                        // TASK 5: Default to FALSE (unselected) so nothing is pre-selected.
+                        bool isSelected = false;
+
+                        // Only check it if it was explicitly saved in the model previously
+                        if (_model.SelectedSplitCategories != null && _model.SelectedSplitCategories.Contains(cat))
+                        {
+                            isSelected = true;
+                        }
+
+                        AvailableSplitCategories.Add(new SelectableCategory { Name = cat, IsSelected = isSelected });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to load pivot categories: {ex.Message}");
+            }
+        }
+
         private bool CanExecuteAddSeries(object obj)
         {
             if (IsPieChart) return Series.Count < 6;
+            if (IsPriceTrendChart) return Series.Count < 2;
             if (string.Equals(ChartType, "Line", StringComparison.OrdinalIgnoreCase)) return Series.Count < 3;
             if (string.Equals(ChartType, "Bar", StringComparison.OrdinalIgnoreCase)) return Series.Count < 2;
             return false;
@@ -286,6 +357,7 @@ namespace WPF_LoginForm.ViewModels
             if (CanExecuteAddSeries(null))
             {
                 Series.Add(new SeriesConfiguration());
+                (AddSeriesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             }
         }
 
@@ -294,7 +366,15 @@ namespace WPF_LoginForm.ViewModels
             if (obj is SeriesConfiguration seriesToRemove)
             {
                 Series.Remove(seriesToRemove);
+                (AddSeriesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             }
         }
+    }
+
+    public class SelectableCategory : ViewModelBase
+    {
+        private bool _isSelected;
+        public string Name { get; set; }
+        public bool IsSelected { get => _isSelected; set => SetProperty(ref _isSelected, value); }
     }
 }

@@ -1,8 +1,10 @@
-﻿using System;
+﻿// Services/DashboardChartService.cs
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows.Media;
 using LiveCharts;
 using LiveCharts.Defaults;
@@ -25,6 +27,7 @@ namespace WPF_LoginForm.Services
         public class SeriesDto
         {
             public string Title { get; set; }
+            public string FullName { get; set; }
             public string SeriesType { get; set; }
             public List<object> Values { get; set; }
             public string ColorHex { get; set; }
@@ -33,7 +36,8 @@ namespace WPF_LoginForm.Services
         public ChartResultDto ProcessChartData(DataTable dataTable, DashboardConfiguration config,
                                                bool isFilterByDate, bool ignoreNonDateData,
                                                double sliderStart, double sliderEnd, double sliderMax,
-                                               Dictionary<(int, string), string> colorMap)
+                                               Dictionary<(int, string), string> colorMap,
+                                               bool globalIgnoreAfterHyphen)
         {
             var result = new ChartResultDto();
             if (dataTable == null) return result;
@@ -72,7 +76,6 @@ namespace WPF_LoginForm.Services
                 if (colorMap != null && colorMap.TryGetValue((config.ChartPosition, title), out string hex)) return hex;
                 lock (_randomLock)
                 {
-                    // Generate distinctly bright colors
                     var color = Color.FromRgb((byte)_random.Next(50, 240), (byte)_random.Next(50, 240), (byte)_random.Next(50, 240));
                     return color.ToString();
                 }
@@ -80,23 +83,63 @@ namespace WPF_LoginForm.Services
 
             if (string.Equals(config.ChartType, "Pie", StringComparison.OrdinalIgnoreCase))
             {
-                if (!string.IsNullOrEmpty(config.DateColumn) && dataTable.Columns.Contains(config.DateColumn) && config.Series.Any())
+                string groupByCol = !string.IsNullOrEmpty(config.SplitByColumn) ? config.SplitByColumn : config.DateColumn;
+
+                if (!string.IsNullOrEmpty(groupByCol) && dataTable.Columns.Contains(groupByCol) && config.Series.Any())
                 {
                     var valueCol = config.Series.FirstOrDefault(s => dataTable.Columns.Contains(s.ColumnName))?.ColumnName;
                     if (valueCol != null)
                     {
+                        // FIXED LOGIC: Group directly by the Cleaned Label, aggregating duplicates together
                         var grouped = dataTable.AsEnumerable()
-                            .GroupBy(r => FormatCategoryKey(r[config.DateColumn]))
-                            .Select(g => new { Category = g.Key, Total = g.Sum(r => safeConvertToDouble(r[valueCol])) })
+                            .Select(r => new
+                            {
+                                RawCategory = FormatCategoryKey(r[groupByCol]),
+                                CleanCategory = CleanLabelString(FormatCategoryKey(r[groupByCol]), config.HideNumbersInLabels, config.SimplifyLabels, globalIgnoreAfterHyphen),
+                                Value = safeConvertToDouble(r[valueCol])
+                            })
+                            .GroupBy(x => x.CleanCategory)
+                            .Select(g => new
+                            {
+                                Category = g.Key,
+                                OriginalNames = g.Select(x => x.RawCategory).Distinct().ToList(),
+                                Total = g.Sum(x => x.Value)
+                            })
                             .OrderByDescending(x => x.Total)
                             .ToList();
 
-                        int topN = 10;
-                        var topItems = grouped.Take(topN).ToList();
-                        var othersSum = grouped.Skip(topN).Sum(x => x.Total);
+                        int maxSlices = 8;
+                        var topItems = grouped.Take(maxSlices).ToList();
+                        var othersSum = grouped.Skip(maxSlices).Sum(x => x.Total);
 
-                        foreach (var g in topItems) result.Series.Add(new SeriesDto { Title = g.Category, SeriesType = "Pie", Values = new List<object> { g.Total }, ColorHex = GetColor(g.Category) });
-                        if (othersSum > 0) result.Series.Add(new SeriesDto { Title = "Others", SeriesType = "Pie", Values = new List<object> { othersSum }, ColorHex = "#808080" });
+                        foreach (var g in topItems)
+                        {
+                            // If multiple raw categories merged into one clean category, indicate it in tooltip
+                            string tooltipName = g.OriginalNames.Count > 1
+                                ? $"{g.Category} (Grouped)"
+                                : g.OriginalNames.FirstOrDefault() ?? g.Category;
+
+                            result.Series.Add(new SeriesDto
+                            {
+                                Title = g.Category,
+                                FullName = tooltipName,
+                                SeriesType = "Pie",
+                                Values = new List<object> { g.Total },
+                                ColorHex = GetColor(g.Category)
+                            });
+                        }
+
+                        if (othersSum > 0)
+                        {
+                            result.Series.Add(new SeriesDto
+                            {
+                                Title = "Others",
+                                FullName = "Others (Minor Values)",
+                                SeriesType = "Pie",
+                                Values = new List<object> { othersSum },
+                                ColorHex = "#808080"
+                            });
+                        }
                     }
                 }
                 else
@@ -104,7 +147,8 @@ namespace WPF_LoginForm.Services
                     foreach (var seriesConfig in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dataTable.Columns.Contains(s.ColumnName)))
                     {
                         double total = dataTable.AsEnumerable().Sum(row => safeConvertToDouble(row[seriesConfig.ColumnName]));
-                        result.Series.Add(new SeriesDto { Title = seriesConfig.ColumnName, SeriesType = "Pie", Values = new List<object> { total }, ColorHex = GetColor(seriesConfig.ColumnName) });
+                        string cleanName = CleanLabelString(seriesConfig.ColumnName, config.HideNumbersInLabels, config.SimplifyLabels, globalIgnoreAfterHyphen);
+                        result.Series.Add(new SeriesDto { Title = cleanName, FullName = seriesConfig.ColumnName, SeriesType = "Pie", Values = new List<object> { total }, ColorHex = GetColor(cleanName) });
                     }
                 }
             }
@@ -112,15 +156,42 @@ namespace WPF_LoginForm.Services
             {
                 switch (config.DataStructureType)
                 {
-                    case "Daily Date": ProcessDailyDateChart(dataTable, config, result, GetColor, safeConvertToDouble); break;
+                    case "Daily Date": ProcessDailyDateChart(dataTable, config, result, GetColor, safeConvertToDouble, globalIgnoreAfterHyphen); break;
                     case "Monthly Date":
                     case "ID":
                     case "General":
-                    default: ProcessPivotCategoricalChart(dataTable, config, result, GetColor, safeConvertToDouble); break;
+                    default: ProcessPivotCategoricalChart(dataTable, config, result, GetColor, safeConvertToDouble, globalIgnoreAfterHyphen); break;
                 }
             }
 
             return result;
+        }
+
+        // IMPROVED: Hardened regex and string manipulation
+        private string CleanLabelString(string original, bool hideNumbers, bool simplify, bool ignoreAfterHyphen)
+        {
+            if (string.IsNullOrWhiteSpace(original)) return "Unknown";
+            string s = original;
+
+            if (ignoreAfterHyphen && s.Contains("-"))
+            {
+                s = s.Split('-')[0];
+            }
+
+            if (hideNumbers)
+            {
+                s = Regex.Replace(s, @"\d+", "");
+            }
+
+            s = s.Replace("_", " ").Replace("-", " ").Trim();
+            s = Regex.Replace(s, @"\s+", " "); // Replace multiple spaces with one
+
+            if (simplify)
+            {
+                s = s.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? s;
+            }
+
+            return string.IsNullOrWhiteSpace(s) ? "Item" : s.Trim();
         }
 
         private void ApplySliderFilter(ref DataTable dt, double start, double end, double max)
@@ -138,7 +209,7 @@ namespace WPF_LoginForm.Services
             dt = filtered;
         }
 
-        private void ProcessDailyDateChart(DataTable dt, DashboardConfiguration config, ChartResultDto res, Func<string, string> colorProvider, Func<object, double> numberParser)
+        private void ProcessDailyDateChart(DataTable dt, DashboardConfiguration config, ChartResultDto res, Func<string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreHyphen)
         {
             if (!dt.Columns.Contains(config.DateColumn)) return;
 
@@ -154,40 +225,83 @@ namespace WPF_LoginForm.Services
 
             var sortedGroups = groups.OrderBy(g => g.Key).ToList();
 
-            // PIVOT LOGIC CHECK
             bool hasSplit = !string.IsNullOrEmpty(config.SplitByColumn) && dt.Columns.Contains(config.SplitByColumn);
             List<string> splitCategories = hasSplit
                 ? dt.AsEnumerable().Select(r => r[config.SplitByColumn]?.ToString() ?? "Unknown").Distinct().OrderBy(x => x).ToList()
                 : new List<string> { "Default" };
 
-            bool isLine = config.ChartType == "Line";
+            if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Any(c => c != "__NONE__"))
+            {
+                splitCategories = splitCategories.Where(c => config.SelectedSplitCategories.Contains(c)).ToList();
+            }
+            else if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Contains("__NONE__"))
+            {
+                splitCategories.Clear(); // Draw nothing if unselected
+            }
+
+            // Group the selected Pivot items by their clean names to merge data automatically
+            var cleanSplitGroups = splitCategories
+                .GroupBy(c => CleanLabelString(c, config.HideNumbersInLabels, config.SimplifyLabels, globalIgnoreHyphen))
+                .ToList();
+
+            bool isPriceTrend = string.Equals(config.ChartType, "Price Trend (Line)", StringComparison.OrdinalIgnoreCase);
+            bool isLine = isPriceTrend || config.ChartType == "Line";
             bool isDailyLine = isLine && config.AggregationType == "Daily";
 
             if (isDailyLine)
             {
-                // Daily Line Chart = Time Series (DateTimePoint)
                 res.IsDateAxis = true;
-                foreach (var ser in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dt.Columns.Contains(s.ColumnName)))
+
+                if (isPriceTrend && config.Series.Count >= 2)
                 {
-                    foreach (var splitVal in splitCategories)
+                    string numCol = config.Series[0].ColumnName;
+                    string denCol = config.Series[1].ColumnName;
+
+                    foreach (var splitGroup in cleanSplitGroups)
                     {
+                        var rawValsInGroup = splitGroup.ToList();
+                        string cleanTitle = hasSplit ? splitGroup.Key : "Efficiency Trend";
+
                         var vals = sortedGroups.Select(g =>
                         {
-                            var filteredRows = hasSplit ? g.Where(x => (x.Row[config.SplitByColumn]?.ToString() ?? "Unknown") == splitVal) : g;
-                            return (object)new DateTimePoint(g.Key, filteredRows.Sum(x => (double)numberParser(x.Row[ser.ColumnName])));
+                            var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(x.Row[config.SplitByColumn]?.ToString() ?? "Unknown")) : g;
+                            double numSum = filteredRows.Sum(x => (double)numberParser(x.Row[numCol]));
+                            double denSum = filteredRows.Sum(x => (double)numberParser(x.Row[denCol]));
+                            double avg = denSum != 0 ? numSum / denSum : 0;
+                            return (object)new DateTimePoint(g.Key, avg);
                         }).ToList();
 
                         if (!hasSplit || vals.Any(v => ((DateTimePoint)v).Value > 0))
                         {
-                            string title = hasSplit ? (config.Series.Count > 1 ? $"{splitVal} - {ser.ColumnName}" : splitVal) : ser.ColumnName;
-                            res.Series.Add(new SeriesDto { Title = title, SeriesType = "Line", Values = vals, ColorHex = colorProvider(title) });
+                            res.Series.Add(new SeriesDto { Title = cleanTitle, SeriesType = "Line", Values = vals, ColorHex = colorProvider(cleanTitle) });
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var ser in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dt.Columns.Contains(s.ColumnName)))
+                    {
+                        foreach (var splitGroup in cleanSplitGroups)
+                        {
+                            var rawValsInGroup = splitGroup.ToList();
+                            string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {ser.ColumnName}" : splitGroup.Key) : ser.ColumnName;
+
+                            var vals = sortedGroups.Select(g =>
+                            {
+                                var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(x.Row[config.SplitByColumn]?.ToString() ?? "Unknown")) : g;
+                                return (object)new DateTimePoint(g.Key, filteredRows.Sum(x => (double)numberParser(x.Row[ser.ColumnName])));
+                            }).ToList();
+
+                            if (!hasSplit || vals.Any(v => ((DateTimePoint)v).Value > 0))
+                            {
+                                res.Series.Add(new SeriesDto { Title = cleanTitle, SeriesType = "Line", Values = vals, ColorHex = colorProvider(cleanTitle) });
+                            }
                         }
                     }
                 }
             }
             else
             {
-                // Bar or Categorical Line
                 res.IsDateAxis = false;
                 res.XAxisLabels = sortedGroups.Select(g =>
                 {
@@ -198,35 +312,71 @@ namespace WPF_LoginForm.Services
 
                 string sType = isLine ? "Line" : "Bar";
 
-                foreach (var ser in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dt.Columns.Contains(s.ColumnName)))
+                if (isPriceTrend && config.Series.Count >= 2)
                 {
-                    foreach (var splitVal in splitCategories)
+                    string numCol = config.Series[0].ColumnName;
+                    string denCol = config.Series[1].ColumnName;
+
+                    foreach (var splitGroup in cleanSplitGroups)
                     {
+                        var rawValsInGroup = splitGroup.ToList();
+                        string cleanTitle = hasSplit ? splitGroup.Key : "Efficiency Trend";
+
                         var vals = sortedGroups.Select(g =>
                         {
-                            var filteredRows = hasSplit ? g.Where(x => (x.Row[config.SplitByColumn]?.ToString() ?? "Unknown") == splitVal) : g;
-                            return (object)filteredRows.Sum(x => (double)numberParser(x.Row[ser.ColumnName]));
+                            var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(x.Row[config.SplitByColumn]?.ToString() ?? "Unknown")) : g;
+                            double numSum = filteredRows.Sum(x => (double)numberParser(x.Row[numCol]));
+                            double denSum = filteredRows.Sum(x => (double)numberParser(x.Row[denCol]));
+                            return (object)(denSum != 0 ? numSum / denSum : 0);
                         }).ToList();
 
                         if (!hasSplit || vals.Any(v => (double)v > 0))
                         {
-                            string title = hasSplit ? (config.Series.Count > 1 ? $"{splitVal} - {ser.ColumnName}" : splitVal) : ser.ColumnName;
-                            res.Series.Add(new SeriesDto { Title = title, SeriesType = sType, Values = vals, ColorHex = colorProvider(title) });
+                            res.Series.Add(new SeriesDto { Title = cleanTitle, SeriesType = sType, Values = vals, ColorHex = colorProvider(cleanTitle) });
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var ser in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dt.Columns.Contains(s.ColumnName)))
+                    {
+                        foreach (var splitGroup in cleanSplitGroups)
+                        {
+                            var rawValsInGroup = splitGroup.ToList();
+                            string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {ser.ColumnName}" : splitGroup.Key) : ser.ColumnName;
+
+                            var vals = sortedGroups.Select(g =>
+                            {
+                                var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(x.Row[config.SplitByColumn]?.ToString() ?? "Unknown")) : g;
+                                return (object)filteredRows.Sum(x => (double)numberParser(x.Row[ser.ColumnName]));
+                            }).ToList();
+
+                            if (!hasSplit || vals.Any(v => (double)v > 0))
+                            {
+                                res.Series.Add(new SeriesDto { Title = cleanTitle, SeriesType = sType, Values = vals, ColorHex = colorProvider(cleanTitle) });
+                            }
                         }
                     }
                 }
             }
         }
 
-        private void ProcessPivotCategoricalChart(DataTable dt, DashboardConfiguration config, ChartResultDto res, Func<string, string> colorProvider, Func<object, double> numberParser)
+        private void ProcessPivotCategoricalChart(DataTable dt, DashboardConfiguration config, ChartResultDto res, Func<string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreHyphen)
         {
             if (!dt.Columns.Contains(config.DateColumn)) return;
 
             bool isMonthly = config.DataStructureType == "Monthly Date";
 
+            // Group X-Axis by CLEANED labels so Bar Charts merge properly
             var grouped = dt.AsEnumerable()
-                .Select(r => new { RawVal = r[config.DateColumn], FormattedKey = FormatCategoryKey(r[config.DateColumn]), Row = r })
-                .GroupBy(x => x.FormattedKey)
+                .Select(r => new
+                {
+                    RawVal = r[config.DateColumn],
+                    FormattedKey = FormatCategoryKey(r[config.DateColumn]),
+                    CleanKey = CleanLabelString(FormatCategoryKey(r[config.DateColumn]), config.HideNumbersInLabels, config.SimplifyLabels, globalIgnoreHyphen),
+                    Row = r
+                })
+                .GroupBy(x => x.CleanKey)
                 .Select(g => new
                 {
                     Key = g.Key,
@@ -247,26 +397,70 @@ namespace WPF_LoginForm.Services
             res.XAxisLabels = topGroups.Select(g => g.Key).ToList();
             res.IsDateAxis = false;
 
-            // PIVOT LOGIC CHECK
             bool hasSplit = !string.IsNullOrEmpty(config.SplitByColumn) && dt.Columns.Contains(config.SplitByColumn);
             List<string> splitCategories = hasSplit
                 ? dt.AsEnumerable().Select(r => r[config.SplitByColumn]?.ToString() ?? "Unknown").Distinct().OrderBy(x => x).ToList()
                 : new List<string> { "Default" };
 
-            foreach (var ser in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dt.Columns.Contains(s.ColumnName)))
+            if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Any(c => c != "__NONE__"))
             {
-                foreach (var splitVal in splitCategories)
+                splitCategories = splitCategories.Where(c => config.SelectedSplitCategories.Contains(c)).ToList();
+            }
+            else if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Contains("__NONE__"))
+            {
+                splitCategories.Clear();
+            }
+
+            var cleanSplitGroups = splitCategories
+                .GroupBy(c => CleanLabelString(c, config.HideNumbersInLabels, config.SimplifyLabels, globalIgnoreHyphen))
+                .ToList();
+
+            bool isPriceTrend = string.Equals(config.ChartType, "Price Trend (Line)", StringComparison.OrdinalIgnoreCase);
+            string baseChartType = isPriceTrend ? "Line" : config.ChartType;
+
+            if (isPriceTrend && config.Series.Count >= 2)
+            {
+                string numCol = config.Series[0].ColumnName;
+                string denCol = config.Series[1].ColumnName;
+
+                foreach (var splitGroup in cleanSplitGroups)
                 {
+                    var rawValsInGroup = splitGroup.ToList();
+                    string cleanTitle = hasSplit ? splitGroup.Key : "Efficiency Trend";
+
                     var vals = topGroups.Select(g =>
                     {
-                        var rows = hasSplit ? g.Rows.Where(r => (r[config.SplitByColumn]?.ToString() ?? "Unknown") == splitVal) : g.Rows;
-                        return (object)rows.Sum(r => numberParser(r[ser.ColumnName]));
+                        var rows = hasSplit ? g.Rows.Where(r => rawValsInGroup.Contains(r[config.SplitByColumn]?.ToString() ?? "Unknown")) : g.Rows;
+                        double numSum = rows.Sum(r => numberParser(r[numCol]));
+                        double denSum = rows.Sum(r => numberParser(r[denCol]));
+                        return (object)(denSum != 0 ? numSum / denSum : 0);
                     }).ToList();
 
                     if (!hasSplit || vals.Any(v => (double)v > 0))
                     {
-                        string title = hasSplit ? (config.Series.Count > 1 ? $"{splitVal} - {ser.ColumnName}" : splitVal) : ser.ColumnName;
-                        res.Series.Add(new SeriesDto { Title = title, SeriesType = config.ChartType, Values = vals, ColorHex = colorProvider(title) });
+                        res.Series.Add(new SeriesDto { Title = cleanTitle, SeriesType = "Line", Values = vals, ColorHex = colorProvider(cleanTitle) });
+                    }
+                }
+            }
+            else
+            {
+                foreach (var ser in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dt.Columns.Contains(s.ColumnName)))
+                {
+                    foreach (var splitGroup in cleanSplitGroups)
+                    {
+                        var rawValsInGroup = splitGroup.ToList();
+                        string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {ser.ColumnName}" : splitGroup.Key) : ser.ColumnName;
+
+                        var vals = topGroups.Select(g =>
+                        {
+                            var rows = hasSplit ? g.Rows.Where(r => rawValsInGroup.Contains(r[config.SplitByColumn]?.ToString() ?? "Unknown")) : g.Rows;
+                            return (object)rows.Sum(r => numberParser(r[ser.ColumnName]));
+                        }).ToList();
+
+                        if (!hasSplit || vals.Any(v => (double)v > 0))
+                        {
+                            res.Series.Add(new SeriesDto { Title = cleanTitle, SeriesType = baseChartType, Values = vals, ColorHex = colorProvider(cleanTitle) });
+                        }
                     }
                 }
             }

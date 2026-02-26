@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Models/DashboardSnapshot.cs
+using System;
 using System.Collections.Generic;
 
 namespace WPF_LoginForm.Models
@@ -14,6 +15,9 @@ namespace WPF_LoginForm.Models
         public bool IgnoreNonDateData { get; set; } = true;
         public bool UseIdToDateConversion { get; set; } = false;
         public DateTime InitialDateForConversion { get; set; } = DateTime.Today;
+
+        // --- NEW: Global Setting for Label Overlap Control ---
+        public bool GlobalIgnoreAfterHyphen { get; set; } = false;
 
         public List<DashboardConfiguration> Configurations { get; set; } = new List<DashboardConfiguration>();
         public List<ChartSeriesSnapshot> SeriesData { get; set; } = new List<ChartSeriesSnapshot>();

@@ -29,6 +29,8 @@ namespace WPF_LoginForm.ViewModels
         public string Title { get; set; }
         public string Value { get; set; }
         public string ColorHex { get; set; }
+        public string TrendIcon { get; set; }
+        public string TrendColor { get; set; }
     }
 
     public class HomeViewModel : ViewModelBase
@@ -47,11 +49,12 @@ namespace WPF_LoginForm.ViewModels
 
         private CancellationTokenSource _cts;
         private ConcurrentDictionary<string, double> _kpiTotals;
+        private ConcurrentDictionary<string, double> _kpiPrevTotals;
 
-        // --- NEW: Portal Return Action & Command ---
         public Action ReturnToPortalAction { get; set; }
-
         public ICommand GoBackCommand { get; }
+        public ICommand CopyImageCommand { get; }
+        public ICommand ExportChartDataCommand { get; }
 
         private bool _showMaximizeButtons;
 
@@ -71,6 +74,7 @@ namespace WPF_LoginForm.ViewModels
                 if (SetProperty(ref _maximizedChartIndex, value))
                 {
                     OnPropertyChanged(nameof(IsAnyChartMaximized));
+                    UpdateDataLabelsVisibility();
                 }
             }
         }
@@ -156,6 +160,11 @@ namespace WPF_LoginForm.ViewModels
         public DateTime InitialDateForConversion
         { get => _initialDateForConversion; set { if (SetProperty(ref _initialDateForConversion, value)) AutoSave(); } }
 
+        private bool _globalIgnoreAfterHyphen = false;
+
+        public bool GlobalIgnoreAfterHyphen
+        { get => _globalIgnoreAfterHyphen; set { if (SetProperty(ref _globalIgnoreAfterHyphen, value)) { LoadAllChartsData(); AutoSave(); } } }
+
         public bool IsDateFilterVisible => Settings.Default.ShowDashboardDateFilter;
 
         public int SliderTickFrequency
@@ -215,6 +224,7 @@ namespace WPF_LoginForm.ViewModels
         public AxesCollection Chart5X { get; } = new AxesCollection(); public AxesCollection Chart5Y { get; } = new AxesCollection();
 
         public Func<double, string> DateFormatter { get; }
+        public Func<double, string> NumberFormatter { get; set; }
 
         public HomeViewModel(IDataRepository dataRepository, IDialogService dialogService, ILogger logger)
         {
@@ -226,6 +236,7 @@ namespace WPF_LoginForm.ViewModels
 
             _dashboardConfigurations = new List<DashboardConfiguration>();
             _kpiTotals = new ConcurrentDictionary<string, double>();
+            _kpiPrevTotals = new ConcurrentDictionary<string, double>();
 
             ConfigureCommand = new ViewModelCommand(p => ShowConfigurationWindow());
             ImportCommand = new ViewModelCommand(p => ImportConfiguration());
@@ -238,7 +249,9 @@ namespace WPF_LoginForm.ViewModels
             MaximizeChartCommand = new ViewModelCommand(p => { if (int.TryParse(p?.ToString(), out int i)) MaximizedChartIndex = i; });
             CloseMaximizeCommand = new ViewModelCommand(p => MaximizedChartIndex = 0);
 
-            // Trigger return to portal
+            CopyImageCommand = new ViewModelCommand(ExecuteCopyImage);
+            ExportChartDataCommand = new ViewModelCommand(ExecuteExportChartData);
+
             GoBackCommand = new ViewModelCommand(p =>
             {
                 Deactivate();
@@ -249,9 +262,22 @@ namespace WPF_LoginForm.ViewModels
             _endDate = DateTime.Today;
 
             DateFormatter = value => (value < DateTime.MinValue.Ticks || value > DateTime.MaxValue.Ticks) ? "" : new DateTime((long)value).ToString("d");
+            NumberFormatter = val => FormatKiloMega(val);
 
             ClearAndReinitializeAxes();
             TryLoadAutoSave();
+        }
+
+        public static string FormatKiloMega(double value)
+        {
+            double abs = Math.Abs(value);
+            if (abs >= 1_000_000)
+                return (value / 1_000_000D).ToString("0.##") + "M";
+            if (abs >= 10_000)
+                return (value / 1_000D).ToString("0.##") + "K";
+
+            if (value % 1 == 0) return value.ToString("N0");
+            return value.ToString("N2");
         }
 
         private async void LoadAllChartsData(Dictionary<(int, string), string> colorMap = null)
@@ -275,6 +301,7 @@ namespace WPF_LoginForm.ViewModels
                     Chart4Series.Clear(); Chart5Series.Clear(); Chart6Series.Clear();
                     ClearAndReinitializeAxes();
                     _kpiTotals.Clear();
+                    _kpiPrevTotals.Clear();
                 });
 
                 var validConfigs = _dashboardConfigurations.Where(c => c.IsEnabled && !string.IsNullOrEmpty(c.TableName) && c.Series.Any(s => !string.IsNullOrEmpty(s.ColumnName))).ToList();
@@ -283,17 +310,74 @@ namespace WPF_LoginForm.ViewModels
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    UpdateDataLabelsVisibility();
+
                     KpiCards.Clear();
                     var colors = new[] { "#3498DB", "#2ECC71", "#9B59B6", "#F1C40F", "#E67E22", "#E74C3C" };
                     int cIdx = 0;
                     foreach (var kvp in _kpiTotals.OrderByDescending(x => x.Value))
                     {
-                        KpiCards.Add(new KpiModel { Title = $"Total {kvp.Key}", Value = kvp.Value.ToString("N0"), ColorHex = colors[cIdx % colors.Length] });
+                        double prev = _kpiPrevTotals.TryGetValue(kvp.Key, out double p) ? p : 0;
+                        string icon = "";
+                        string tColor = "Gray";
+
+                        if (prev > 0)
+                        {
+                            double change = ((kvp.Value - prev) / prev) * 100;
+                            bool isBadMetric = kvp.Key.IndexOf("error", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                               kvp.Key.IndexOf("fire", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                               kvp.Key.IndexOf("scrap", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                            if (change > 0.1)
+                            {
+                                icon = "↑ " + Math.Abs(change).ToString("N1") + "%";
+                                tColor = isBadMetric ? "#E74C3C" : "#2ECC71";
+                            }
+                            else if (change < -0.1)
+                            {
+                                icon = "↓ " + Math.Abs(change).ToString("N1") + "%";
+                                tColor = isBadMetric ? "#2ECC71" : "#E74C3C";
+                            }
+                            else
+                            {
+                                icon = "↔ 0%";
+                            }
+                        }
+
+                        KpiCards.Add(new KpiModel
+                        {
+                            Title = $"Total {kvp.Key}",
+                            Value = FormatKiloMega(kvp.Value),
+                            ColorHex = colors[cIdx % colors.Length],
+                            TrendIcon = icon,
+                            TrendColor = tColor
+                        });
                         cIdx++;
                     }
                 });
             }
             catch (Exception ex) { _logger?.LogError($"Error loading charts: {ex.Message}"); }
+        }
+
+        private void UpdateDataLabelsVisibility()
+        {
+            UpdateSeriesLabels(Chart1Series, MaximizedChartIndex == 1);
+            UpdateSeriesLabels(Chart2Series, MaximizedChartIndex == 2);
+            UpdateSeriesLabels(Chart3Series, MaximizedChartIndex == 3);
+            UpdateSeriesLabels(Chart4Series, MaximizedChartIndex == 4);
+            UpdateSeriesLabels(Chart5Series, MaximizedChartIndex == 5);
+            UpdateSeriesLabels(Chart6Series, MaximizedChartIndex == 6);
+        }
+
+        private void UpdateSeriesLabels(SeriesCollection seriesCollection, bool isMaximized)
+        {
+            foreach (var series in seriesCollection)
+            {
+                // FIX: ONLY show labels on Line/Bar charts when maximized.
+                // Pie charts should NEVER draw text directly on the slices to prevent overlapping messes.
+                if (series is LineSeries ls) ls.DataLabels = isMaximized;
+                if (series is ColumnSeries cs) cs.DataLabels = isMaximized;
+            }
         }
 
         private async Task ProcessChartConfigurationAsync(DashboardConfiguration config, Dictionary<(int, string), string> colorMap, CancellationToken token)
@@ -303,6 +387,7 @@ namespace WPF_LoginForm.ViewModels
             {
                 var cols = config.Series.Select(ser => ser.ColumnName).ToList();
                 if (!string.IsNullOrEmpty(config.DateColumn)) cols.Add(config.DateColumn);
+                if (!string.IsNullOrEmpty(config.SplitByColumn)) cols.Add(config.SplitByColumn);
 
                 DateTime safeStart = StartDate < new DateTime(1753, 1, 1) ? new DateTime(1753, 1, 1) : StartDate;
                 DateTime safeEnd = EndDate < safeStart ? safeStart : EndDate;
@@ -313,11 +398,24 @@ namespace WPF_LoginForm.ViewModels
                 var dt = await _dataRepository.GetDataAsync(config.TableName, cols.Distinct().ToList(), config.DateColumn, filterStart, filterEnd);
                 if (token.IsCancellationRequested || dt == null) return;
 
+                DataTable dtPrev = null;
+                if (IsFilterByDate && config.DataStructureType == "Daily Date")
+                {
+                    TimeSpan duration = safeEnd - safeStart;
+                    if (duration.TotalDays > 0 && duration.TotalDays <= 180)
+                    {
+                        DateTime prevEnd = safeStart.AddDays(-1);
+                        DateTime prevStart = prevEnd.Subtract(duration);
+                        dtPrev = await _dataRepository.GetDataAsync(config.TableName, cols.Distinct().ToList(), config.DateColumn, prevStart, prevEnd);
+                    }
+                }
+
                 foreach (var seriesConfig in config.Series)
                 {
                     if (dt.Columns.Contains(seriesConfig.ColumnName))
                     {
                         var culture = config.UseInvariantCultureForNumbers ? CultureInfo.InvariantCulture : CultureInfo.CurrentCulture;
+
                         double total = dt.AsEnumerable().Sum(r =>
                         {
                             if (r[seriesConfig.ColumnName] == DBNull.Value) return 0.0;
@@ -325,11 +423,23 @@ namespace WPF_LoginForm.ViewModels
                             double.TryParse(strVal, NumberStyles.Any, culture, out double res);
                             return res;
                         });
-                        _kpiTotals.AddOrUpdate(seriesConfig.ColumnName, total, (key, old) => total);
+                        _kpiTotals.AddOrUpdate(seriesConfig.ColumnName, total, (key, old) => total + old);
+
+                        if (dtPrev != null && dtPrev.Columns.Contains(seriesConfig.ColumnName))
+                        {
+                            double prevTotal = dtPrev.AsEnumerable().Sum(r =>
+                            {
+                                if (r[seriesConfig.ColumnName] == DBNull.Value) return 0.0;
+                                string strVal = r[seriesConfig.ColumnName].ToString().Replace("₺", "").Replace("TL", "").Replace("%", "").Trim();
+                                double.TryParse(strVal, NumberStyles.Any, culture, out double res);
+                                return res;
+                            });
+                            _kpiPrevTotals.AddOrUpdate(seriesConfig.ColumnName, prevTotal, (key, old) => prevTotal + old);
+                        }
                     }
                 }
 
-                var chartResult = await Task.Run(() => _chartService.ProcessChartData(dt, config, IsFilterByDate, IgnoreNonDateData, StartMonthSliderValue, EndMonthSliderValue, SliderMaximum, colorMap), token);
+                var chartResult = await Task.Run(() => _chartService.ProcessChartData(dt, config, IsFilterByDate, IgnoreNonDateData, StartMonthSliderValue, EndMonthSliderValue, SliderMaximum, colorMap, GlobalIgnoreAfterHyphen), token);
                 if (token.IsCancellationRequested) return;
 
                 Application.Current.Dispatcher.Invoke(() => { if (!token.IsCancellationRequested) ApplyChartResultToUI(config.ChartPosition, chartResult); });
@@ -354,25 +464,34 @@ namespace WPF_LoginForm.ViewModels
 
                 if (s.SeriesType == "Pie")
                 {
-                    newSeries.Add(new PieSeries { Title = s.Title, Values = new ChartValues<double>(s.Values.Cast<double>()), DataLabels = true, LabelPoint = p => string.Format("{0:P0}", p.Participation), Fill = colorBrush });
+                    string hoverName = string.IsNullOrEmpty(s.FullName) ? s.Title : s.FullName;
+
+                    newSeries.Add(new PieSeries
+                    {
+                        Title = s.Title,
+                        Values = new ChartValues<double>(s.Values.Cast<double>()),
+                        DataLabels = false, // Always False for Pie. We rely on tooltips/legend instead.
+                        LabelPoint = p => $"{hoverName}\n{FormatKiloMega(p.Y)} ({p.Participation:P0})",
+                        Fill = colorBrush
+                    });
                 }
                 else if (s.SeriesType == "Line")
                 {
                     if (result.IsDateAxis)
                     {
                         var cv = new ChartValues<DateTimePoint>(); cv.AddRange(s.Values.Cast<DateTimePoint>());
-                        newSeries.Add(new LineSeries { Title = s.Title, Values = cv, PointGeometry = DefaultGeometries.None, Stroke = colorBrush, Fill = Brushes.Transparent });
+                        newSeries.Add(new LineSeries { Title = s.Title, Values = cv, PointGeometry = DefaultGeometries.None, Stroke = colorBrush, Fill = Brushes.Transparent, DataLabels = false });
                     }
                     else
                     {
                         var cv = new ChartValues<double>(); cv.AddRange(s.Values.Cast<double>());
-                        newSeries.Add(new LineSeries { Title = s.Title, Values = cv, PointGeometry = DefaultGeometries.Circle, Stroke = colorBrush, Fill = Brushes.Transparent });
+                        newSeries.Add(new LineSeries { Title = s.Title, Values = cv, PointGeometry = DefaultGeometries.Circle, Stroke = colorBrush, Fill = Brushes.Transparent, DataLabels = false });
                     }
                 }
                 else
                 {
                     var cv = new ChartValues<double>(); cv.AddRange(s.Values.Cast<double>());
-                    newSeries.Add(new ColumnSeries { Title = s.Title, Values = cv, Fill = colorBrush });
+                    newSeries.Add(new ColumnSeries { Title = s.Title, Values = cv, Fill = colorBrush, DataLabels = false });
                 }
             }
 
@@ -380,10 +499,100 @@ namespace WPF_LoginForm.ViewModels
 
             if (targetX != null && targetY != null && result.Series.Any(x => x.SeriesType != "Pie"))
             {
-                targetY.Add(new Axis { Title = "Values", Foreground = axisColor });
+                targetY.Add(new Axis { Title = "Values", LabelFormatter = NumberFormatter, Foreground = axisColor });
 
                 if (result.IsDateAxis) targetX.Add(new Axis { LabelFormatter = DateFormatter, Separator = new Separator { IsEnabled = false }, Foreground = axisColor });
                 else targetX.Add(new Axis { Labels = result.XAxisLabels, Separator = new Separator { IsEnabled = false }, Foreground = axisColor });
+            }
+        }
+
+        private void ExecuteCopyImage(object parameter)
+        {
+            if (parameter is FrameworkElement element)
+            {
+                try
+                {
+                    var renderTargetBitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                        (int)element.ActualWidth, (int)element.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+                    renderTargetBitmap.Render(element);
+                    Clipboard.SetImage(renderTargetBitmap);
+                    MessageBox.Show("Chart copied to clipboard!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not copy image: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ExecuteExportChartData(object parameter)
+        {
+            if (parameter != null && int.TryParse(parameter.ToString(), out int pos))
+            {
+                var targetSeries = GetSeriesCollection(pos);
+                var targetX = GetXAxes(pos);
+
+                if (targetSeries == null || targetSeries.Count == 0) return;
+
+                if (_dialogService.ShowSaveFileDialog("Export Chart Data", $"Chart_{pos}_Data_{DateTime.Now:yyyyMMdd}", ".csv", "CSV Files|*.csv", out string path))
+                {
+                    try
+                    {
+                        var sb = new System.Text.StringBuilder();
+
+                        sb.Append("Category");
+                        foreach (var series in targetSeries)
+                        {
+                            sb.Append($",{series.Title.Replace(",", " ")}");
+                        }
+                        sb.AppendLine();
+
+                        if (targetSeries[0] is PieSeries)
+                        {
+                            foreach (PieSeries p in targetSeries)
+                            {
+                                double val = (double)p.Values[0];
+                                sb.AppendLine($"{p.Title.Replace(",", " ")},{val}");
+                            }
+                        }
+                        else if (targetSeries[0] is LineSeries || targetSeries[0] is ColumnSeries)
+                        {
+                            int pointCount = targetSeries[0].Values.Count;
+                            bool hasLabels = targetX != null && targetX.Count > 0 && targetX[0].Labels != null && targetX[0].Labels.Count == pointCount;
+
+                            for (int i = 0; i < pointCount; i++)
+                            {
+                                string label = hasLabels ? targetX[0].Labels[i] : $"Point {i + 1}";
+
+                                if (targetSeries[0].Values[0] is DateTimePoint dtp)
+                                {
+                                    label = dtp.DateTime.ToString("yyyy-MM-dd");
+                                }
+
+                                sb.Append(label.Replace(",", " "));
+
+                                foreach (var series in targetSeries)
+                                {
+                                    if (i < series.Values.Count)
+                                    {
+                                        if (series.Values[i] is double d) sb.Append($",{d}");
+                                        else if (series.Values[i] is DateTimePoint dp) sb.Append($",{dp.Value}");
+                                        else sb.Append(",0");
+                                    }
+                                    else sb.Append(",0");
+                                }
+                                sb.AppendLine();
+                            }
+                        }
+
+                        File.WriteAllText(path, sb.ToString(), System.Text.Encoding.UTF8);
+                        MessageBox.Show("Chart data exported successfully.", "Export Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Export failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
             }
         }
 
@@ -517,7 +726,18 @@ namespace WPF_LoginForm.ViewModels
 
         private void AutoSave()
         {
-            var snap = new DashboardSnapshot { StartDate = StartDate, EndDate = EndDate, Configurations = _dashboardConfigurations, IsFilterByDate = IsFilterByDate, IgnoreNonDateData = IgnoreNonDateData, UseIdToDateConversion = UseIdToDateConversion, InitialDateForConversion = InitialDateForConversion, SeriesData = new List<ChartSeriesSnapshot>() };
+            var snap = new DashboardSnapshot
+            {
+                StartDate = StartDate,
+                EndDate = EndDate,
+                Configurations = _dashboardConfigurations,
+                IsFilterByDate = IsFilterByDate,
+                IgnoreNonDateData = IgnoreNonDateData,
+                UseIdToDateConversion = UseIdToDateConversion,
+                InitialDateForConversion = InitialDateForConversion,
+                GlobalIgnoreAfterHyphen = GlobalIgnoreAfterHyphen,
+                SeriesData = new List<ChartSeriesSnapshot>()
+            };
             _storageService.SaveSnapshot(snap);
         }
 
@@ -528,14 +748,18 @@ namespace WPF_LoginForm.ViewModels
         { var d = new OpenFileDialog { Filter = "JSON|*.json" }; if (d.ShowDialog() == true) LoadSnapshotFromFile(d.FileName); }
 
         private void ExportConfiguration()
-        { if (_dashboardConfigurations == null) return; var s = new DashboardSnapshot { StartDate = StartDate, EndDate = EndDate, Configurations = _dashboardConfigurations }; var d = new SaveFileDialog { Filter = "JSON|*.json" }; if (d.ShowDialog() == true) File.WriteAllText(d.FileName, JsonConvert.SerializeObject(s, Formatting.Indented)); }
+        { if (_dashboardConfigurations == null) return; var s = new DashboardSnapshot { StartDate = StartDate, EndDate = EndDate, Configurations = _dashboardConfigurations, GlobalIgnoreAfterHyphen = GlobalIgnoreAfterHyphen }; var d = new SaveFileDialog { Filter = "JSON|*.json" }; if (d.ShowDialog() == true) File.WriteAllText(d.FileName, JsonConvert.SerializeObject(s, Formatting.Indented)); }
 
         private void LoadDashboardFromSnapshot(DashboardSnapshot s)
         {
             if (s == null) return; bool wasActive = _isActive; _isActive = false;
             try
             {
-                _dashboardConfigurations = s.Configurations; IsFilterByDate = s.IsFilterByDate; IgnoreNonDateData = s.IgnoreNonDateData; UseIdToDateConversion = s.UseIdToDateConversion;
+                _dashboardConfigurations = s.Configurations;
+                IsFilterByDate = s.IsFilterByDate;
+                IgnoreNonDateData = s.IgnoreNonDateData;
+                UseIdToDateConversion = s.UseIdToDateConversion;
+                GlobalIgnoreAfterHyphen = s.GlobalIgnoreAfterHyphen;
                 if (s.InitialDateForConversion != default) InitialDateForConversion = s.InitialDateForConversion;
                 if (s.StartDate != default && s.EndDate != default) { _startDate = s.StartDate; _endDate = s.EndDate; OnPropertyChanged(nameof(StartDate)); OnPropertyChanged(nameof(EndDate)); }
                 Application.Current.Dispatcher.Invoke(() => { ClearAndReinitializeAxes(); Chart1Series.Clear(); Chart2Series.Clear(); Chart3Series.Clear(); Chart4Series.Clear(); Chart5Series.Clear(); Chart6Series.Clear(); });

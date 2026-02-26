@@ -1,4 +1,5 @@
-﻿<Window x:Class="WPF_LoginForm.Views.ConfigurationWindow"
+﻿<!-- Views/ConfigurationWindow.xaml -->
+<Window x:Class="WPF_LoginForm.Views.ConfigurationWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -6,10 +7,11 @@
         xmlns:local="clr-namespace:WPF_LoginForm.Views"
         mc:Ignorable="d"
         Title="Dashboard Configuration"
-        SizeToContent="WidthAndHeight"
+        Height="650" Width="520"
+        MinHeight="450" MinWidth="450"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize">
-    <Grid>
-        <local:ConfigurationView/>
+        ResizeMode="CanResizeWithGrip">
+    <Grid Background="#F5F5F5">
+        <local:ConfigurationView />
     </Grid>
 </Window>

@@ -18,6 +18,7 @@
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
+        <!-- FIX 1: This property ensures that hovering over a pie chart only shows the tooltip for THAT slice -->
         <Style TargetType="lvc:DefaultTooltip">
             <Setter Property="Background" Value="#E6000030" />
             <Setter Property="Foreground" Value="WhiteSmoke" />
@@ -26,6 +27,7 @@
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Padding" Value="12,10" />
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="SelectionMode" Value="OnlySender" />
         </Style>
 
         <Style x:Key="GearToggleStyle" TargetType="ToggleButton">
@@ -128,8 +130,6 @@
 
             <StackPanel Grid.Column="0" Orientation="Vertical" Visibility="{Binding IsDateFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,10">
-
-                    <!-- NEW: GO BACK TO HUB BUTTON -->
                     <Button Command="{Binding GoBackCommand}" ToolTip="Return to Analytics Hub" Background="Transparent" BorderThickness="0" Margin="0,0,15,0" Cursor="Hand">
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="ArrowLeft" Height="14" Foreground="#FFC047" Margin="0,0,5,0" />
@@ -177,17 +177,26 @@
                     <Popup IsOpen="{Binding IsChecked, ElementName=FilterConfigToggle}" StaysOpen="False" PlacementTarget="{Binding ElementName=FilterConfigToggle}" Placement="Bottom">
                         <Border Background="#030347" BorderBrush="#49A956" BorderThickness="1" CornerRadius="4" Padding="10">
                             <StackPanel MinWidth="220">
+                                <TextBlock Text="Label Settings (Global)" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
+                                <CheckBox Content="On label ignore after '-'" IsChecked="{Binding GlobalIgnoreAfterHyphen, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" ToolTip="Truncates text after the hyphen to prevent overlaps." />
+
+                                <Separator Background="#49A956" Margin="0,5,0,5" />
+
                                 <TextBlock Text="Filter Mode" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
                                 <CheckBox Content="Filter by Date" IsChecked="{Binding IsFilterByDate, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" />
                                 <CheckBox Content="Ignore Rows with No Date" IsChecked="{Binding IgnoreNonDateData, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" />
+
                                 <Separator Background="#49A956" Margin="0,5,0,5" />
+
                                 <TextBlock Text="Virtual Date (ID to Date)" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
                                 <CheckBox Content="Use Initial Date for Drill-Down" IsChecked="{Binding UseIdToDateConversion, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
                                 <StackPanel Orientation="Horizontal" IsEnabled="{Binding UseIdToDateConversion}">
                                     <TextBlock Text="Initial Date:" Foreground="WhiteSmoke" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11" />
                                     <DatePicker SelectedDate="{Binding InitialDateForConversion, Mode=TwoWay}" Width="100" />
                                 </StackPanel>
+
                                 <Separator Background="#49A956" Margin="0,10,0,5" />
+
                                 <TextBlock Text="Slider Tick Step" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
                                 <ComboBox ItemsSource="{Binding TickOptions}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding SliderTickFrequency, Mode=TwoWay}" Height="26" Margin="0,0,0,5" />
                             </StackPanel>
@@ -264,7 +273,6 @@
                 <Grid>
                     <Grid.Style>
                         <Style TargetType="Grid">
-                            <!-- Default Location -->
                             <Setter Property="Grid.Row" Value="0" />
                             <Setter Property="Grid.Column" Value="0" />
                             <Setter Property="Grid.RowSpan" Value="1" />
@@ -272,7 +280,6 @@
                             <Setter Property="Panel.ZIndex" Value="1" />
                             <Setter Property="Margin" Value="5" />
                             <Style.Triggers>
-                                <!-- Maximized Location -->
                                 <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="1">
                                     <Setter Property="Grid.Row" Value="0" />
                                     <Setter Property="Grid.Column" Value="0" />
@@ -285,6 +292,12 @@
                         </Style>
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
+                        <Border.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Copy Chart Image" Command="{Binding DataContext.CopyImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                <MenuItem Header="Export Chart Data (CSV)" Command="{Binding DataContext.ExportChartDataCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="1" />
+                            </ContextMenu>
+                        </Border.ContextMenu>
                         <Grid>
                             <lvc:CartesianChart Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="1" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource ManualMaximizeButtonStyle}" />
@@ -326,6 +339,12 @@
                         </Style>
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
+                        <Border.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Copy Chart Image" Command="{Binding DataContext.CopyImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                <MenuItem Header="Export Chart Data (CSV)" Command="{Binding DataContext.ExportChartDataCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="2" />
+                            </ContextMenu>
+                        </Border.ContextMenu>
                         <Grid>
                             <lvc:CartesianChart Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="2" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource ManualMaximizeButtonStyle}" />
@@ -367,6 +386,12 @@
                         </Style>
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
+                        <Border.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Copy Chart Image" Command="{Binding DataContext.CopyImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                <MenuItem Header="Export Chart Data (CSV)" Command="{Binding DataContext.ExportChartDataCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="3" />
+                            </ContextMenu>
+                        </Border.ContextMenu>
                         <Grid>
                             <lvc:CartesianChart Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="3" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource ManualMaximizeButtonStyle}" />
@@ -385,6 +410,7 @@
                     </Border>
                 </Grid>
 
+                <!-- FIX 2: Added Hoverable="True" explicitly to Pie Charts -->
                 <!-- CHART 4 (PIE) -->
                 <Grid>
                     <Grid.Style>
@@ -408,8 +434,14 @@
                         </Style>
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
+                        <Border.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Copy Chart Image" Command="{Binding DataContext.CopyImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                <MenuItem Header="Export Chart Data (CSV)" Command="{Binding DataContext.ExportChartDataCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="4" />
+                            </ContextMenu>
+                        </Border.ContextMenu>
                         <Grid>
-                            <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" />
+                            <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" Hoverable="True" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="4" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource ManualMaximizeButtonStyle}" />
                             <Button Command="{Binding CloseMaximizeCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10">
                                 <Button.Style>
@@ -449,6 +481,12 @@
                         </Style>
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
+                        <Border.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Copy Chart Image" Command="{Binding DataContext.CopyImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                <MenuItem Header="Export Chart Data (CSV)" Command="{Binding DataContext.ExportChartDataCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="5" />
+                            </ContextMenu>
+                        </Border.ContextMenu>
                         <Grid>
                             <lvc:CartesianChart Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="5" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource ManualMaximizeButtonStyle}" />
@@ -511,6 +549,7 @@
                     </Border.InputBindings>
                 </Border>
 
+                <!-- FIX 2: Added Hoverable="True" explicitly to Pie Charts -->
                 <!-- CHART 6 (BIG PIE) -->
                 <Grid>
                     <Grid.Style>
@@ -533,15 +572,18 @@
                         </Style>
                     </Grid.Style>
                     <Border Background="#10FFFFFF" CornerRadius="10" Margin="10">
+                        <Border.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Copy Chart Image" Command="{Binding DataContext.CopyImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                <MenuItem Header="Export Chart Data (CSV)" Command="{Binding DataContext.ExportChartDataCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="6" />
+                            </ContextMenu>
+                        </Border.ContextMenu>
                         <Grid>
                             <TextBlock Text="Summary Breakdown (Chart 6)" Foreground="Gray" FontWeight="Bold" Margin="15,10,0,0" />
-                            <lvc:PieChart Series="{Binding Chart6Series}" LegendLocation="Bottom" InnerRadius="80" Hoverable="True" Margin="20,40,20,20">
+                            <lvc:PieChart Series="{Binding Chart6Series}" LegendLocation="Bottom" InnerRadius="80" Margin="20,40,20,20" Hoverable="True">
                                 <lvc:PieChart.ChartLegend>
                                     <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="13" />
                                 </lvc:PieChart.ChartLegend>
-                                <lvc:PieChart.DataTooltip>
-                                    <lvc:DefaultTooltip SelectionMode="OnlySender" />
-                                </lvc:PieChart.DataTooltip>
                             </lvc:PieChart>
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="6" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10" Style="{StaticResource ManualMaximizeButtonStyle}" />
                             <Button Command="{Binding CloseMaximizeCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10">
@@ -574,7 +616,12 @@
                                                 <RowDefinition Height="Auto" />
                                             </Grid.RowDefinitions>
                                             <TextBlock Grid.Row="0" Text="{Binding Title}" Foreground="Gray" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                            <TextBlock Grid.Row="1" Text="{Binding Value}" Foreground="{Binding ColorHex}" FontSize="24" FontWeight="Bold" Margin="0,5,0,0" />
+                                            <StackPanel Orientation="Horizontal" Grid.Row="1">
+                                                <TextBlock Text="{Binding Value}" Foreground="{Binding ColorHex}" FontSize="24" FontWeight="Bold" Margin="0,5,10,0" />
+                                                <Border Background="#10FFFFFF" CornerRadius="4" Padding="5,2" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding TrendIcon}" Foreground="{Binding TrendColor}" FontSize="12" FontWeight="Bold" />
+                                                </Border>
+                                            </StackPanel>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>

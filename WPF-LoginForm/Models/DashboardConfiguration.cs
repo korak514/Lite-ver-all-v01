@@ -1,3 +1,4 @@
+// Models/DashboardConfiguration.cs
 using System.Collections.Generic;
 
 namespace WPF_LoginForm.Models
@@ -21,15 +22,16 @@ namespace WPF_LoginForm.Models
 
         public string DateColumn { get; set; }
 
-        // --- NEW PROPERTY: PIVOT LOGIC ---
-        /// <summary>
-        /// Allows the chart to dynamically split data into multiple lines/bars based on categorical values.
-        /// (e.g., Split Total Amount by "Type/TÜR" column)
-        /// </summary>
         public string SplitByColumn { get; set; }
 
         public List<SeriesConfiguration> Series { get; set; } = new List<SeriesConfiguration>();
 
         public string AggregationType { get; set; } = "Daily";
+
+        // --- NEW PROPERTIES: LABEL & PIVOT CONTROL ---
+        public bool HideNumbersInLabels { get; set; } = false;
+
+        public bool SimplifyLabels { get; set; } = false;
+        public List<string> SelectedSplitCategories { get; set; } = new List<string>();
     }
 }
