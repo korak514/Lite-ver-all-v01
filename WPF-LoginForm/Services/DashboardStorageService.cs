@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿// Services/DashboardStorageService.cs
+using Newtonsoft.Json;
 using System;
 using System.IO;
 using WPF_LoginForm.Models;
@@ -17,16 +18,22 @@ namespace WPF_LoginForm.Services
             _defaultFilePath = Path.Combine(folder, "dashboard_config.json");
         }
 
-        public void SaveSnapshot(DashboardSnapshot snapshot)
+        /// <summary>
+        /// Saves the dashboard configuration.
+        /// </summary>
+        /// <param name="customPath">If provided, attempts to save to this specific path. If null, saves to default AppData.</param>
+        public void SaveSnapshot(DashboardSnapshot snapshot, string customPath = null)
         {
+            string targetPath = string.IsNullOrEmpty(customPath) ? _defaultFilePath : customPath;
+
             try
             {
                 string json = JsonConvert.SerializeObject(snapshot, Formatting.Indented);
-                File.WriteAllText(_defaultFilePath, json);
+                File.WriteAllText(targetPath, json);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to auto-save dashboard: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Failed to auto-save dashboard to {targetPath}: {ex.Message}");
             }
         }
 

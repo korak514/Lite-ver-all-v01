@@ -56,6 +56,14 @@ namespace WPF_LoginForm.Services
                 }
             }
 
+            // MONTHLY DATA INPUT CHECK (Task 3)
+            // If the user selects "Monthly Date" but the data has > 100 rows, it's highly likely they chose the wrong setting
+            // which causes the chart to freeze trying to render 100+ individual string labels. Fallback to General processing.
+            if (config.DataStructureType == "Monthly Date" && dataTable.Rows.Count > 100)
+            {
+                config.DataStructureType = "General";
+            }
+
             bool isDateBasedChart = config.DataStructureType == "Daily Date" && !string.IsNullOrEmpty(config.DateColumn);
             if (!isDateBasedChart || !isFilterByDate)
             {
@@ -66,8 +74,26 @@ namespace WPF_LoginForm.Services
             {
                 if (obj == null || obj == DBNull.Value) return 0.0;
                 string strVal = obj.ToString().Replace("₺", "").Replace("TL", "").Replace("%", "").Trim();
-                var culture = config.UseInvariantCultureForNumbers ? CultureInfo.InvariantCulture : CultureInfo.CurrentCulture;
-                double.TryParse(strVal, NumberStyles.Any, culture, out double res);
+
+                if (string.IsNullOrWhiteSpace(strVal)) return 0.0;
+
+                int lastComma = strVal.LastIndexOf(',');
+                int lastDot = strVal.LastIndexOf('.');
+
+                if (lastComma > lastDot)
+                {
+                    strVal = strVal.Replace(".", "").Replace(",", ".");
+                }
+                else if (lastDot > lastComma && lastComma != -1)
+                {
+                    strVal = strVal.Replace(",", "");
+                }
+                else if (lastComma != -1 && lastDot == -1)
+                {
+                    strVal = strVal.Replace(",", ".");
+                }
+
+                double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double res);
                 return res;
             };
 
@@ -90,13 +116,26 @@ namespace WPF_LoginForm.Services
                     var valueCol = config.Series.FirstOrDefault(s => dataTable.Columns.Contains(s.ColumnName))?.ColumnName;
                     if (valueCol != null)
                     {
-                        // FIXED LOGIC: Group directly by the Cleaned Label, aggregating duplicates together
+                        bool hasSplit = !string.IsNullOrEmpty(config.SplitByColumn);
+                        List<string> allowedCategories = null;
+
+                        if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Any())
+                        {
+                            allowedCategories = config.SelectedSplitCategories;
+                        }
+
                         var grouped = dataTable.AsEnumerable()
                             .Select(r => new
                             {
                                 RawCategory = FormatCategoryKey(r[groupByCol]),
-                                CleanCategory = CleanLabelString(FormatCategoryKey(r[groupByCol]), config.HideNumbersInLabels, config.SimplifyLabels, globalIgnoreAfterHyphen),
                                 Value = safeConvertToDouble(r[valueCol])
+                            })
+                            .Where(x => allowedCategories == null || (!allowedCategories.Contains("__NONE__") && allowedCategories.Contains(x.RawCategory)))
+                            .Select(x => new
+                            {
+                                RawCategory = x.RawCategory,
+                                CleanCategory = CleanLabelString(x.RawCategory, config.HideNumbersInLabels, config.SimplifyLabels, globalIgnoreAfterHyphen),
+                                Value = x.Value
                             })
                             .GroupBy(x => x.CleanCategory)
                             .Select(g => new
@@ -114,7 +153,6 @@ namespace WPF_LoginForm.Services
 
                         foreach (var g in topItems)
                         {
-                            // If multiple raw categories merged into one clean category, indicate it in tooltip
                             string tooltipName = g.OriginalNames.Count > 1
                                 ? $"{g.Category} (Grouped)"
                                 : g.OriginalNames.FirstOrDefault() ?? g.Category;
@@ -167,10 +205,9 @@ namespace WPF_LoginForm.Services
             return result;
         }
 
-        // IMPROVED: Hardened regex and string manipulation
         private string CleanLabelString(string original, bool hideNumbers, bool simplify, bool ignoreAfterHyphen)
         {
-            if (string.IsNullOrWhiteSpace(original)) return "Unknown";
+            if (string.IsNullOrWhiteSpace(original)) return "NA";
             string s = original;
 
             if (ignoreAfterHyphen && s.Contains("-"))
@@ -184,14 +221,14 @@ namespace WPF_LoginForm.Services
             }
 
             s = s.Replace("_", " ").Replace("-", " ").Trim();
-            s = Regex.Replace(s, @"\s+", " "); // Replace multiple spaces with one
+            s = Regex.Replace(s, @"\s+", " ");
 
             if (simplify)
             {
                 s = s.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? s;
             }
 
-            return string.IsNullOrWhiteSpace(s) ? "Item" : s.Trim();
+            return string.IsNullOrWhiteSpace(s) ? "NA" : s.Trim();
         }
 
         private void ApplySliderFilter(ref DataTable dt, double start, double end, double max)
@@ -227,7 +264,7 @@ namespace WPF_LoginForm.Services
 
             bool hasSplit = !string.IsNullOrEmpty(config.SplitByColumn) && dt.Columns.Contains(config.SplitByColumn);
             List<string> splitCategories = hasSplit
-                ? dt.AsEnumerable().Select(r => r[config.SplitByColumn]?.ToString() ?? "Unknown").Distinct().OrderBy(x => x).ToList()
+                ? dt.AsEnumerable().Select(r => FormatCategoryKey(r[config.SplitByColumn])).Distinct().OrderBy(x => x).ToList()
                 : new List<string> { "Default" };
 
             if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Any(c => c != "__NONE__"))
@@ -236,10 +273,9 @@ namespace WPF_LoginForm.Services
             }
             else if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Contains("__NONE__"))
             {
-                splitCategories.Clear(); // Draw nothing if unselected
+                splitCategories.Clear();
             }
 
-            // Group the selected Pivot items by their clean names to merge data automatically
             var cleanSplitGroups = splitCategories
                 .GroupBy(c => CleanLabelString(c, config.HideNumbersInLabels, config.SimplifyLabels, globalIgnoreHyphen))
                 .ToList();
@@ -252,6 +288,7 @@ namespace WPF_LoginForm.Services
             {
                 res.IsDateAxis = true;
 
+                // BUG FIX: Ensure we only process Price Trend if exactly 2 series exist. Otherwise skip to prevent crash.
                 if (isPriceTrend && config.Series.Count >= 2)
                 {
                     string numCol = config.Series[0].ColumnName;
@@ -264,20 +301,23 @@ namespace WPF_LoginForm.Services
 
                         var vals = sortedGroups.Select(g =>
                         {
-                            var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(x.Row[config.SplitByColumn]?.ToString() ?? "Unknown")) : g;
+                            var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(FormatCategoryKey(x.Row[config.SplitByColumn]))) : g;
                             double numSum = filteredRows.Sum(x => (double)numberParser(x.Row[numCol]));
                             double denSum = filteredRows.Sum(x => (double)numberParser(x.Row[denCol]));
-                            double avg = denSum != 0 ? numSum / denSum : 0;
+
+                            // BUG FIX: Return double.NaN if denom is 0, so the line graph breaks cleanly instead of dipping to $0
+                            double avg = denSum != 0 ? numSum / denSum : double.NaN;
                             return (object)new DateTimePoint(g.Key, avg);
                         }).ToList();
 
-                        if (!hasSplit || vals.Any(v => ((DateTimePoint)v).Value > 0))
+                        // Only add series if it has at least one valid point
+                        if (!hasSplit || vals.Any(v => !double.IsNaN(((DateTimePoint)v).Value) && ((DateTimePoint)v).Value > 0))
                         {
                             res.Series.Add(new SeriesDto { Title = cleanTitle, SeriesType = "Line", Values = vals, ColorHex = colorProvider(cleanTitle) });
                         }
                     }
                 }
-                else
+                else if (!isPriceTrend)
                 {
                     foreach (var ser in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dt.Columns.Contains(s.ColumnName)))
                     {
@@ -288,7 +328,7 @@ namespace WPF_LoginForm.Services
 
                             var vals = sortedGroups.Select(g =>
                             {
-                                var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(x.Row[config.SplitByColumn]?.ToString() ?? "Unknown")) : g;
+                                var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(FormatCategoryKey(x.Row[config.SplitByColumn]))) : g;
                                 return (object)new DateTimePoint(g.Key, filteredRows.Sum(x => (double)numberParser(x.Row[ser.ColumnName])));
                             }).ToList();
 
@@ -324,19 +364,21 @@ namespace WPF_LoginForm.Services
 
                         var vals = sortedGroups.Select(g =>
                         {
-                            var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(x.Row[config.SplitByColumn]?.ToString() ?? "Unknown")) : g;
+                            var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(FormatCategoryKey(x.Row[config.SplitByColumn]))) : g;
                             double numSum = filteredRows.Sum(x => (double)numberParser(x.Row[numCol]));
                             double denSum = filteredRows.Sum(x => (double)numberParser(x.Row[denCol]));
-                            return (object)(denSum != 0 ? numSum / denSum : 0);
+
+                            // BUG FIX: Return double.NaN for Bar/Line string-X categories
+                            return (object)(denSum != 0 ? numSum / denSum : double.NaN);
                         }).ToList();
 
-                        if (!hasSplit || vals.Any(v => (double)v > 0))
+                        if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v > 0))
                         {
                             res.Series.Add(new SeriesDto { Title = cleanTitle, SeriesType = sType, Values = vals, ColorHex = colorProvider(cleanTitle) });
                         }
                     }
                 }
-                else
+                else if (!isPriceTrend)
                 {
                     foreach (var ser in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dt.Columns.Contains(s.ColumnName)))
                     {
@@ -347,7 +389,7 @@ namespace WPF_LoginForm.Services
 
                             var vals = sortedGroups.Select(g =>
                             {
-                                var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(x.Row[config.SplitByColumn]?.ToString() ?? "Unknown")) : g;
+                                var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(FormatCategoryKey(x.Row[config.SplitByColumn]))) : g;
                                 return (object)filteredRows.Sum(x => (double)numberParser(x.Row[ser.ColumnName]));
                             }).ToList();
 
@@ -365,9 +407,6 @@ namespace WPF_LoginForm.Services
         {
             if (!dt.Columns.Contains(config.DateColumn)) return;
 
-            bool isMonthly = config.DataStructureType == "Monthly Date";
-
-            // Group X-Axis by CLEANED labels so Bar Charts merge properly
             var grouped = dt.AsEnumerable()
                 .Select(r => new
                 {
@@ -383,12 +422,10 @@ namespace WPF_LoginForm.Services
                     SortDate = ParseDateSafe(g.First().RawVal),
                     IsDate = ParseDateSafe(g.First().RawVal) != DateTime.MinValue,
                     PrimarySum = config.Series.Any() && dt.Columns.Contains(config.Series.First().ColumnName) ? g.Sum(x => numberParser(x.Row[config.Series.First().ColumnName])) : 0,
-                    MonthIndex = isMonthly ? GetMonthIndex(g.Key) : 99,
                     Rows = g.Select(x => x.Row).ToList()
                 })
-                .OrderBy(g => isMonthly ? g.MonthIndex : 0)
-                .ThenByDescending(g => (!isMonthly && !g.IsDate) ? g.PrimarySum : 0)
-                .ThenBy(g => (!isMonthly && g.IsDate) ? g.SortDate.Ticks : 0)
+                .OrderBy(g => g.IsDate ? g.SortDate.Ticks : 0)
+                .ThenByDescending(g => !g.IsDate ? g.PrimarySum : 0)
                 .ToList();
 
             int topN = 30;
@@ -399,7 +436,7 @@ namespace WPF_LoginForm.Services
 
             bool hasSplit = !string.IsNullOrEmpty(config.SplitByColumn) && dt.Columns.Contains(config.SplitByColumn);
             List<string> splitCategories = hasSplit
-                ? dt.AsEnumerable().Select(r => r[config.SplitByColumn]?.ToString() ?? "Unknown").Distinct().OrderBy(x => x).ToList()
+                ? dt.AsEnumerable().Select(r => FormatCategoryKey(r[config.SplitByColumn])).Distinct().OrderBy(x => x).ToList()
                 : new List<string> { "Default" };
 
             if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Any(c => c != "__NONE__"))
@@ -430,19 +467,21 @@ namespace WPF_LoginForm.Services
 
                     var vals = topGroups.Select(g =>
                     {
-                        var rows = hasSplit ? g.Rows.Where(r => rawValsInGroup.Contains(r[config.SplitByColumn]?.ToString() ?? "Unknown")) : g.Rows;
+                        var rows = hasSplit ? g.Rows.Where(r => rawValsInGroup.Contains(FormatCategoryKey(r[config.SplitByColumn]))) : g.Rows;
                         double numSum = rows.Sum(r => numberParser(r[numCol]));
                         double denSum = rows.Sum(r => numberParser(r[denCol]));
-                        return (object)(denSum != 0 ? numSum / denSum : 0);
+
+                        // BUG FIX: return NaN
+                        return (object)(denSum != 0 ? numSum / denSum : double.NaN);
                     }).ToList();
 
-                    if (!hasSplit || vals.Any(v => (double)v > 0))
+                    if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v > 0))
                     {
                         res.Series.Add(new SeriesDto { Title = cleanTitle, SeriesType = "Line", Values = vals, ColorHex = colorProvider(cleanTitle) });
                     }
                 }
             }
-            else
+            else if (!isPriceTrend)
             {
                 foreach (var ser in config.Series.Where(s => !string.IsNullOrEmpty(s.ColumnName) && dt.Columns.Contains(s.ColumnName)))
                 {
@@ -453,7 +492,7 @@ namespace WPF_LoginForm.Services
 
                         var vals = topGroups.Select(g =>
                         {
-                            var rows = hasSplit ? g.Rows.Where(r => rawValsInGroup.Contains(r[config.SplitByColumn]?.ToString() ?? "Unknown")) : g.Rows;
+                            var rows = hasSplit ? g.Rows.Where(r => rawValsInGroup.Contains(FormatCategoryKey(r[config.SplitByColumn]))) : g.Rows;
                             return (object)rows.Sum(r => numberParser(r[ser.ColumnName]));
                         }).ToList();
 
@@ -466,35 +505,13 @@ namespace WPF_LoginForm.Services
             }
         }
 
-        private int GetMonthIndex(string monthName)
-        {
-            if (string.IsNullOrWhiteSpace(monthName)) return 99;
-            string m = monthName.Trim().ToLower(new CultureInfo("tr-TR"));
-            switch (m)
-            {
-                case "ocak": case "jan": case "january": case "01": case "1": return 1;
-                case "şubat": case "subat": case "feb": case "february": case "02": case "2": return 2;
-                case "mart": case "mar": case "march": case "03": case "3": return 3;
-                case "nisan": case "apr": case "april": case "04": case "4": return 4;
-                case "mayıs": case "mayis": case "may": case "05": case "5": return 5;
-                case "haziran": case "jun": case "june": case "06": case "6": return 6;
-                case "temmuz": case "jul": case "july": case "07": case "7": return 7;
-                case "ağustos": case "agustos": case "aug": case "august": case "08": case "8": return 8;
-                case "eylül": case "eylul": case "sep": case "september": case "09": case "9": return 9;
-                case "ekim": case "oct": case "october": case "10": return 10;
-                case "kasım": case "kasim": case "nov": case "november": case "11": return 11;
-                case "aralık": case "aralik": case "dec": case "december": case "12": return 12;
-                default: return 99;
-            }
-        }
-
         private string FormatCategoryKey(object val)
         {
-            if (val == null || val == DBNull.Value) return "Unknown";
+            if (val == null || val == DBNull.Value) return "NA";
             if (val is DateTime dt) return dt.ToString("dd.MM.yyyy");
             string str = val.ToString().Trim();
             if (DateTime.TryParse(str, out DateTime parsed)) return parsed.ToString("dd.MM.yyyy");
-            return string.IsNullOrEmpty(str) ? "Unknown" : str;
+            return string.IsNullOrEmpty(str) ? "NA" : str;
         }
 
         private DateTime ParseDateSafe(object obj)

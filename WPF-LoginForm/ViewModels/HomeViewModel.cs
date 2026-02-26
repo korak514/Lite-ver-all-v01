@@ -51,6 +51,9 @@ namespace WPF_LoginForm.ViewModels
         private ConcurrentDictionary<string, double> _kpiTotals;
         private ConcurrentDictionary<string, double> _kpiPrevTotals;
 
+        // BUG 2 FIX: Track the absolute path of the currently loaded dashboard
+        private string _currentLoadedFilePath;
+
         public Action ReturnToPortalAction { get; set; }
         public ICommand GoBackCommand { get; }
         public ICommand CopyImageCommand { get; }
@@ -373,8 +376,6 @@ namespace WPF_LoginForm.ViewModels
         {
             foreach (var series in seriesCollection)
             {
-                // FIX: ONLY show labels on Line/Bar charts when maximized.
-                // Pie charts should NEVER draw text directly on the slices to prevent overlapping messes.
                 if (series is LineSeries ls) ls.DataLabels = isMaximized;
                 if (series is ColumnSeries cs) cs.DataLabels = isMaximized;
             }
@@ -470,7 +471,7 @@ namespace WPF_LoginForm.ViewModels
                     {
                         Title = s.Title,
                         Values = new ChartValues<double>(s.Values.Cast<double>()),
-                        DataLabels = false, // Always False for Pie. We rely on tooltips/legend instead.
+                        DataLabels = false,
                         LabelPoint = p => $"{hoverName}\n{FormatKiloMega(p.Y)} ({p.Participation:P0})",
                         Fill = colorBrush
                     });
@@ -532,7 +533,12 @@ namespace WPF_LoginForm.ViewModels
                 var targetSeries = GetSeriesCollection(pos);
                 var targetX = GetXAxes(pos);
 
-                if (targetSeries == null || targetSeries.Count == 0) return;
+                // BUG 1 FIX: Prevent index out of range crash if series exists but has no data
+                if (targetSeries == null || targetSeries.Count == 0 || targetSeries[0].Values == null || targetSeries[0].Values.Count == 0)
+                {
+                    MessageBox.Show("There is no data to export for this chart.", "No Data", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
 
                 if (_dialogService.ShowSaveFileDialog("Export Chart Data", $"Chart_{pos}_Data_{DateTime.Now:yyyyMMdd}", ".csv", "CSV Files|*.csv", out string path))
                 {
@@ -551,8 +557,11 @@ namespace WPF_LoginForm.ViewModels
                         {
                             foreach (PieSeries p in targetSeries)
                             {
-                                double val = (double)p.Values[0];
-                                sb.AppendLine($"{p.Title.Replace(",", " ")},{val}");
+                                if (p.Values.Count > 0)
+                                {
+                                    double val = (double)p.Values[0];
+                                    sb.AppendLine($"{p.Title.Replace(",", " ")},{val}");
+                                }
                             }
                         }
                         else if (targetSeries[0] is LineSeries || targetSeries[0] is ColumnSeries)
@@ -677,12 +686,20 @@ namespace WPF_LoginForm.ViewModels
         {
             if (!IsFilterByDate) { SliderMaximum = 100; StartMonthSliderValue = 0; EndMonthSliderValue = 100; UpdateTooltips(); return; }
             if (_minSliderDate == default) return;
-            if (_startDate < _minSliderDate || _startDate == DateTime.MinValue) _startDate = _minSliderDate;
-            if (_endDate > _maxSliderDate || _endDate == DateTime.MinValue) _endDate = _maxSliderDate;
+
+            // BUG 4 FIX: Instead of clamping the user's dates to the database range, expand the slider bounds to include the user's saved dates.
+            if (_startDate != DateTime.MinValue && _startDate < _minSliderDate) _minSliderDate = _startDate;
+            if (_endDate != DateTime.MinValue && _endDate > _maxSliderDate) _maxSliderDate = _endDate;
+
+            if (_startDate == DateTime.MinValue) _startDate = _minSliderDate;
+            if (_endDate == DateTime.MinValue) _endDate = _maxSliderDate;
             if (_startDate > _endDate) { _startDate = _minSliderDate; _endDate = _maxSliderDate; }
+
             Application.Current.Dispatcher.Invoke(() => { OnPropertyChanged(nameof(StartDate)); OnPropertyChanged(nameof(EndDate)); });
+
             SliderMaximum = ((_maxSliderDate.Year - _minSliderDate.Year) * 12) + _maxSliderDate.Month - _minSliderDate.Month;
             if (SliderMaximum < 0) SliderMaximum = 0;
+
             UpdateSlidersFromDates();
         }
 
@@ -719,10 +736,21 @@ namespace WPF_LoginForm.ViewModels
         { DashboardFiles.Clear(); string path = Settings.Default.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : Settings.Default.ImportAbsolutePath; if (Directory.Exists(path)) { try { foreach (var f in Directory.GetFiles(path, "*.json")) DashboardFiles.Add(Path.GetFileName(f)); } catch { } } OnPropertyChanged(nameof(IsDashboardSelectorVisible)); }
 
         private void LoadSelectedDashboardFile(string f)
-        { try { LoadSnapshotFromFile(Path.Combine(Settings.Default.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : Settings.Default.ImportAbsolutePath, f)); } catch { } }
+        {
+            try
+            {
+                string fullPath = Path.Combine(Settings.Default.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : Settings.Default.ImportAbsolutePath, f);
+                LoadSnapshotFromFile(fullPath);
+            }
+            catch { }
+        }
 
         private void LoadSnapshotFromFile(string p)
-        { var s = _storageService.LoadSnapshot(p); if (s != null) LoadDashboardFromSnapshot(s); }
+        {
+            _currentLoadedFilePath = p; // Track the loaded file path
+            var s = _storageService.LoadSnapshot(p);
+            if (s != null) LoadDashboardFromSnapshot(s);
+        }
 
         private void AutoSave()
         {
@@ -738,7 +766,9 @@ namespace WPF_LoginForm.ViewModels
                 GlobalIgnoreAfterHyphen = GlobalIgnoreAfterHyphen,
                 SeriesData = new List<ChartSeriesSnapshot>()
             };
-            _storageService.SaveSnapshot(snap);
+
+            // BUG 2 FIX: Save the snapshot directly back to the file that was loaded (if any)
+            _storageService.SaveSnapshot(snap, _currentLoadedFilePath);
         }
 
         private void TryLoadAutoSave()
@@ -748,7 +778,16 @@ namespace WPF_LoginForm.ViewModels
         { var d = new OpenFileDialog { Filter = "JSON|*.json" }; if (d.ShowDialog() == true) LoadSnapshotFromFile(d.FileName); }
 
         private void ExportConfiguration()
-        { if (_dashboardConfigurations == null) return; var s = new DashboardSnapshot { StartDate = StartDate, EndDate = EndDate, Configurations = _dashboardConfigurations, GlobalIgnoreAfterHyphen = GlobalIgnoreAfterHyphen }; var d = new SaveFileDialog { Filter = "JSON|*.json" }; if (d.ShowDialog() == true) File.WriteAllText(d.FileName, JsonConvert.SerializeObject(s, Formatting.Indented)); }
+        {
+            if (_dashboardConfigurations == null) return;
+            var s = new DashboardSnapshot { StartDate = StartDate, EndDate = EndDate, Configurations = _dashboardConfigurations, GlobalIgnoreAfterHyphen = GlobalIgnoreAfterHyphen };
+            var d = new SaveFileDialog { Filter = "JSON|*.json" };
+            if (d.ShowDialog() == true)
+            {
+                File.WriteAllText(d.FileName, JsonConvert.SerializeObject(s, Formatting.Indented));
+                _currentLoadedFilePath = d.FileName; // Switch active file to the new export
+            }
+        }
 
         private void LoadDashboardFromSnapshot(DashboardSnapshot s)
         {

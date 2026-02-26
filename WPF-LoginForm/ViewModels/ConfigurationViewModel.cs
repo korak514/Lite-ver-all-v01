@@ -159,6 +159,7 @@ namespace WPF_LoginForm.ViewModels
     {
         private readonly DashboardConfiguration _model;
         private readonly IDataRepository _dataRepository;
+        private bool _isUpdatingCategories = false;
 
         public DashboardConfigurationViewModel(DashboardConfiguration model, IDataRepository dataRepository)
         {
@@ -173,7 +174,13 @@ namespace WPF_LoginForm.ViewModels
             Series = new ObservableCollection<SeriesConfiguration>(_model.Series);
             AddSeriesCommand = new ViewModelCommand(ExecuteAddSeries, CanExecuteAddSeries);
             RemoveSeriesCommand = new ViewModelCommand(ExecuteRemoveSeries);
-            ClearSplitByCommand = new ViewModelCommand(p => SplitByColumn = null);
+
+            // BUG FIX: Memory reset on clear
+            ClearSplitByCommand = new ViewModelCommand(p =>
+            {
+                _model.SelectedSplitCategories?.Clear();
+                SplitByColumn = null;
+            });
 
             if (!string.IsNullOrEmpty(_model.SplitByColumn))
             {
@@ -186,7 +193,7 @@ namespace WPF_LoginForm.ViewModels
             _model.Series = Series.ToList();
             _model.SelectedSplitCategories = AvailableSplitCategories.Where(c => c.IsSelected).Select(c => c.Name).ToList();
 
-            // Safeguard: If Group By is used but nothing is checked, pass a dummy value so chart draws nothing instead of everything
+            // BUG FIX: Prevent unchecked-all from showing all data by injecting a dummy block
             if (!string.IsNullOrEmpty(_model.SplitByColumn) && !_model.SelectedSplitCategories.Any())
             {
                 _model.SelectedSplitCategories.Add("__NONE__");
@@ -205,6 +212,28 @@ namespace WPF_LoginForm.ViewModels
         public List<int> AvailableIgnoreCounts { get; } = Enumerable.Range(0, 10).ToList();
 
         public ObservableCollection<SelectableCategory> AvailableSplitCategories { get; } = new ObservableCollection<SelectableCategory>();
+
+        private bool _isAllSplitCategoriesSelected;
+
+        public bool IsAllSplitCategoriesSelected
+        {
+            get => _isAllSplitCategoriesSelected;
+            set
+            {
+                if (SetProperty(ref _isAllSplitCategoriesSelected, value))
+                {
+                    if (!_isUpdatingCategories)
+                    {
+                        _isUpdatingCategories = true;
+                        foreach (var cat in AvailableSplitCategories)
+                        {
+                            cat.IsSelected = value;
+                        }
+                        _isUpdatingCategories = false;
+                    }
+                }
+            }
+        }
 
         public bool HideNumbersInLabels
         { get => _model.HideNumbersInLabels; set { if (_model.HideNumbersInLabels != value) { _model.HideNumbersInLabels = value; OnPropertyChanged(); } } }
@@ -233,6 +262,8 @@ namespace WPF_LoginForm.ViewModels
                 if (_model.SplitByColumn != value)
                 {
                     _model.SplitByColumn = value;
+                    // BUG FIX: Memory leak reset. Changing column drops old checklist memory.
+                    _model.SelectedSplitCategories?.Clear();
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(HasSplitByColumn));
                     _ = LoadSplitCategoriesAsync();
@@ -290,7 +321,11 @@ namespace WPF_LoginForm.ViewModels
                 OnPropertyChanged(nameof(IsPriceTrendChart));
                 OnPropertyChanged(nameof(IsCartesianChart));
 
-                if (IsPriceTrendChart && Series.Count > 2)
+                if (IsPieChart && Series.Count > 1)
+                {
+                    while (Series.Count > 1) Series.RemoveAt(Series.Count - 1);
+                }
+                else if (IsPriceTrendChart && Series.Count > 2)
                 {
                     while (Series.Count > 2) Series.RemoveAt(Series.Count - 1);
                 }
@@ -316,25 +351,29 @@ namespace WPF_LoginForm.ViewModels
                 if (dt != null)
                 {
                     var distinctValues = dt.AsEnumerable()
-                                     .Select(r => r[SplitByColumn]?.ToString())
-                                     .Where(s => !string.IsNullOrWhiteSpace(s))
+                                     .Select(r => string.IsNullOrWhiteSpace(r[SplitByColumn]?.ToString()) ? "NA" : r[SplitByColumn].ToString())
                                      .Distinct()
                                      .OrderBy(x => x)
                                      .ToList();
 
                     foreach (var cat in distinctValues)
                     {
-                        // TASK 5: Default to FALSE (unselected) so nothing is pre-selected.
                         bool isSelected = false;
 
-                        // Only check it if it was explicitly saved in the model previously
                         if (_model.SelectedSplitCategories != null && _model.SelectedSplitCategories.Contains(cat))
                         {
                             isSelected = true;
                         }
 
-                        AvailableSplitCategories.Add(new SelectableCategory { Name = cat, IsSelected = isSelected });
+                        var selectable = new SelectableCategory { Name = cat, IsSelected = isSelected };
+                        selectable.PropertyChanged += Selectable_PropertyChanged;
+                        AvailableSplitCategories.Add(selectable);
                     }
+
+                    // Set initial Select All state
+                    _isUpdatingCategories = true;
+                    IsAllSplitCategoriesSelected = AvailableSplitCategories.Any() && AvailableSplitCategories.All(x => x.IsSelected);
+                    _isUpdatingCategories = false;
                 }
             }
             catch (Exception ex)
@@ -343,9 +382,19 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
+        private void Selectable_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(SelectableCategory.IsSelected) && !_isUpdatingCategories)
+            {
+                _isUpdatingCategories = true;
+                IsAllSplitCategoriesSelected = AvailableSplitCategories.All(x => x.IsSelected);
+                _isUpdatingCategories = false;
+            }
+        }
+
         private bool CanExecuteAddSeries(object obj)
         {
-            if (IsPieChart) return Series.Count < 6;
+            if (IsPieChart) return Series.Count < 1;
             if (IsPriceTrendChart) return Series.Count < 2;
             if (string.Equals(ChartType, "Line", StringComparison.OrdinalIgnoreCase)) return Series.Count < 3;
             if (string.Equals(ChartType, "Bar", StringComparison.OrdinalIgnoreCase)) return Series.Count < 2;

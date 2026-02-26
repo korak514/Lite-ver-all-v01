@@ -14,7 +14,6 @@
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:EqualityConverter x:Key="EqualityConverter" />
 
-        <!-- REDUCED SIZES GLOBALLY -->
         <Style TargetType="TextBlock" x:Key="HeaderTextStyle">
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="#333333" />
@@ -32,15 +31,11 @@
         </Style>
     </UserControl.Resources>
 
-    <!-- MAIN GRID: Pins button to bottom, scrolls middle content -->
     <Grid Margin="15" Background="White">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <!-- Header & Chart Selector -->
             <RowDefinition Height="*" />
-            <!-- SCROLLABLE SETTINGS AREA -->
             <RowDefinition Height="Auto" />
-            <!-- Apply Button -->
         </Grid.RowDefinitions>
 
         <!-- ROW 0: Header & Tabs -->
@@ -74,7 +69,6 @@
                 <CheckBox IsChecked="{Binding IsEnabled}" Content="Enable this chart" Margin="0,0,0,5" FontWeight="Bold" Foreground="#0056B3" />
 
                 <StackPanel IsEnabled="{Binding IsEnabled}">
-
                     <!-- 1. Table -->
                     <TextBlock Text="Table" Style="{StaticResource HeaderTextStyle}" />
                     <ComboBox ItemsSource="{Binding DataContext.AvailableTables, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -137,19 +131,25 @@
                                 <Button Grid.Column="1" Content="Clear" Command="{Binding ClearSplitByCommand}" Margin="5,0,0,0" Padding="10,0" Background="#F0F0F0" BorderBrush="#CCC" BorderThickness="1" Cursor="Hand" />
                             </Grid>
 
-                            <!-- NEW: Collapsible Expander for Group By Checklist -->
+                            <!-- NEW: Select All & Expander -->
                             <Expander Header="Select specific items to display" IsExpanded="False" FontSize="11" Foreground="#0056B3" Margin="0,4,0,0"
                                       Visibility="{Binding HasSplitByColumn, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <Border Background="#FDFDFD" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="4" MaxHeight="150" Margin="0,2,0,0">
-                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                        <ItemsControl ItemsSource="{Binding AvailableSplitCategories}" Margin="2">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" Margin="5,2" Foreground="#444" />
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </ScrollViewer>
+                                <Border Background="#FDFDFD" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="4" MaxHeight="180" Margin="0,2,0,0">
+                                    <StackPanel>
+                                        <!-- Select All Checkbox -->
+                                        <CheckBox Content="Select All" IsChecked="{Binding IsAllSplitCategoriesSelected, Mode=TwoWay}" Margin="7,5,5,5" FontWeight="Bold" Foreground="#0078D7" />
+                                        <Separator Margin="5,0,5,2" Background="#EAEAEA" />
+
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <ItemsControl ItemsSource="{Binding AvailableSplitCategories}" Margin="2">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" Margin="5,2" Foreground="#444" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </StackPanel>
                                 </Border>
                             </Expander>
 
@@ -206,12 +206,10 @@
                         <!-- ========================================== -->
                         <StackPanel Visibility="{Binding IsPieChart, Converter={StaticResource BooleanToVisibilityConverter}}">
 
-                            <!-- Date Column -->
                             <TextBlock Text="Date Column (for Dashboard Filter)" Style="{StaticResource HeaderTextStyle}" />
                             <ComboBox ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                       SelectedItem="{Binding DateColumn}" />
 
-                            <!-- Group By (Slices) -->
                             <TextBlock Text="Group by (Slices)" Style="{StaticResource HeaderTextStyle}" />
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -223,30 +221,32 @@
                                 <Button Grid.Column="1" Content="Clear" Command="{Binding ClearSplitByCommand}" Margin="5,0,0,0" Padding="12,0" Background="#F0F0F0" BorderBrush="#CCC" BorderThickness="1" Cursor="Hand" />
                             </Grid>
 
-                            <!-- NEW: Collapsible Expander for Pie Slices -->
                             <Expander Header="Select specific slices to display" IsExpanded="False" FontSize="11" Foreground="#0056B3" Margin="0,4,0,0"
                                       Visibility="{Binding HasSplitByColumn, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <Border Background="#FDFDFD" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="4" MaxHeight="150" Margin="0,2,0,0">
-                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                        <ItemsControl ItemsSource="{Binding AvailableSplitCategories}" Margin="2">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" Margin="5,2" Foreground="#444" />
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </ScrollViewer>
+                                <Border Background="#FDFDFD" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="4" MaxHeight="180" Margin="0,2,0,0">
+                                    <StackPanel>
+                                        <CheckBox Content="Select All" IsChecked="{Binding IsAllSplitCategoriesSelected, Mode=TwoWay}" Margin="7,5,5,5" FontWeight="Bold" Foreground="#0078D7" />
+                                        <Separator Margin="5,0,5,2" Background="#EAEAEA" />
+
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <ItemsControl ItemsSource="{Binding AvailableSplitCategories}" Margin="2">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" Margin="5,2" Foreground="#444" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </StackPanel>
                                 </Border>
                             </Expander>
 
-                            <!-- Pie Labels -->
                             <TextBlock Text="Label Appearance:" FontSize="11" Foreground="Gray" Margin="0,8,0,2" />
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                 <CheckBox Content="Hide Numbers" IsChecked="{Binding HideNumbersInLabels}" Margin="0,0,15,0" Foreground="#555" />
                                 <CheckBox Content="Simplify (First Word Only)" IsChecked="{Binding SimplifyLabels}" Foreground="#555" />
                             </StackPanel>
 
-                            <!-- Data to Sum -->
                             <TextBlock Text="Data to Sum (Values)" Style="{StaticResource HeaderTextStyle}" />
                             <ItemsControl ItemsSource="{Binding Series}">
                                 <ItemsControl.ItemTemplate>
