@@ -28,7 +28,10 @@ namespace WPF_LoginForm.Models
 
         public string AggregationType { get; set; } = "Daily";
 
-        // --- NEW PROPERTIES: LABEL & PIVOT CONTROL ---
+        // --- NEW: Value Aggregation (Sum vs Average) ---
+        public string ValueAggregation { get; set; } = "Sum";
+
+        // --- PROPERTIES: LABEL & PIVOT CONTROL ---
         public bool HideNumbersInLabels { get; set; } = false;
 
         public bool SimplifyLabels { get; set; } = false;

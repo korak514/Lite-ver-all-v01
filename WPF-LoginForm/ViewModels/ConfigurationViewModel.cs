@@ -175,7 +175,6 @@ namespace WPF_LoginForm.ViewModels
             AddSeriesCommand = new ViewModelCommand(ExecuteAddSeries, CanExecuteAddSeries);
             RemoveSeriesCommand = new ViewModelCommand(ExecuteRemoveSeries);
 
-            // BUG FIX: Memory reset on clear
             ClearSplitByCommand = new ViewModelCommand(p =>
             {
                 _model.SelectedSplitCategories?.Clear();
@@ -193,7 +192,6 @@ namespace WPF_LoginForm.ViewModels
             _model.Series = Series.ToList();
             _model.SelectedSplitCategories = AvailableSplitCategories.Where(c => c.IsSelected).Select(c => c.Name).ToList();
 
-            // BUG FIX: Prevent unchecked-all from showing all data by injecting a dummy block
             if (!string.IsNullOrEmpty(_model.SplitByColumn) && !_model.SelectedSplitCategories.Any())
             {
                 _model.SelectedSplitCategories.Add("__NONE__");
@@ -210,6 +208,12 @@ namespace WPF_LoginForm.ViewModels
         public List<string> AggregationOptions { get; } = new List<string> { "Daily", "Weekly", "Monthly" };
         public List<string> AvailableDataStructures { get; } = new List<string> { "Daily Date", "Monthly Date", "ID", "General" };
         public List<int> AvailableIgnoreCounts { get; } = Enumerable.Range(0, 10).ToList();
+
+        // --- NEW: Value Aggregation Settings ---
+        public List<string> ValueAggregationOptions { get; } = new List<string> { "Sum", "Average" };
+
+        public string ValueAggregation
+        { get => _model.ValueAggregation; set { if (_model.ValueAggregation != value) { _model.ValueAggregation = value; OnPropertyChanged(); } } }
 
         public ObservableCollection<SelectableCategory> AvailableSplitCategories { get; } = new ObservableCollection<SelectableCategory>();
 
@@ -262,7 +266,6 @@ namespace WPF_LoginForm.ViewModels
                 if (_model.SplitByColumn != value)
                 {
                     _model.SplitByColumn = value;
-                    // BUG FIX: Memory leak reset. Changing column drops old checklist memory.
                     _model.SelectedSplitCategories?.Clear();
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(HasSplitByColumn));
@@ -370,7 +373,6 @@ namespace WPF_LoginForm.ViewModels
                         AvailableSplitCategories.Add(selectable);
                     }
 
-                    // Set initial Select All state
                     _isUpdatingCategories = true;
                     IsAllSplitCategoriesSelected = AvailableSplitCategories.Any() && AvailableSplitCategories.All(x => x.IsSelected);
                     _isUpdatingCategories = false;

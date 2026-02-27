@@ -104,6 +104,7 @@
       <DependentUpon>BindablePasswordBox.xaml</DependentUpon>
     </Compile>
     <Compile Include="Models\CategoryRule.cs" />
+    <Compile Include="Models\DashboardDataPoint.cs" />
     <Compile Include="Models\ErrorLogItem.cs" />
     <Compile Include="Models\PortalConfiguration.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
