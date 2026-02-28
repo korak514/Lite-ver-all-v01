@@ -128,6 +128,7 @@
     <Compile Include="Services\InputHelper.cs" />
     <Compile Include="Services\Network\ConnectionManager.cs" />
     <Compile Include="Services\PasswordHelper.cs" />
+    <Compile Include="Services\SmartLabelService.cs" />
     <Compile Include="Services\TimeFormatHelper.cs" />
     <Compile Include="Services\UserSessionService.cs" />
     <Compile Include="ViewModels\CategoryConfigViewModel.cs" />

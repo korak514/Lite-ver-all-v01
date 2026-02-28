@@ -1,13 +1,13 @@
-﻿using System;
+﻿// Services/DashboardChartService.cs
+using LiveCharts.Defaults;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Windows;
 using System.Windows.Media;
-using LiveCharts.Defaults;
-using WPF_LoginForm.Models;   // Use the existing DashboardDataPoint from Models
+using WPF_LoginForm.Models;
 
 namespace WPF_LoginForm.Services
 {
@@ -26,21 +26,17 @@ namespace WPF_LoginForm.Services
         public class SeriesDto
         {
             public string Title { get; set; }
-            public string FullName { get; set; }          // Restored – stores original (uncleaned) name for tooltips
+            public string FullName { get; set; }
             public string SeriesType { get; set; }
-            public List<object> Values { get; set; }      // Kept for backward compatibility with existing chart rendering
-            public List<DashboardDataPoint> Points { get; set; } = new List<DashboardDataPoint>(); // New – for smart labels
-            public List<double> PieValues { get; set; } = new List<double>(); // For pie charts
+            public List<object> Values { get; set; }
+            public List<DashboardDataPoint> Points { get; set; } = new List<DashboardDataPoint>();
+            public List<double> PieValues { get; set; } = new List<double>();
             public string ColorHex { get; set; }
         }
 
         public static string FormatKiloMega(double value)
         {
-            double abs = Math.Abs(value);
-            if (abs >= 1_000_000) return (value / 1_000_000D).ToString("0.##") + "M";
-            if (abs >= 10_000) return (value / 1_000D).ToString("0.##") + "K";
-            if (value % 1 == 0) return value.ToString("N0");
-            return value.ToString("N2");
+            return SmartLabelService.FormatKiloMega(value); // Route to the helper
         }
 
         public ChartResultDto ProcessChartData(DataTable dataTable, DashboardConfiguration config,
@@ -139,127 +135,6 @@ namespace WPF_LoginForm.Services
 
             return result;
         }
-
-        // ==================== New Smart Label Logic ====================
-        private void ApplySmartLabels(List<DashboardDataPoint> points, bool isDateAxis, List<string> xAxisLabels, string seriesType)
-        {
-            if (points.Count == 0) return;
-
-            // 1. Assign formatted text
-            for (int i = 0; i < points.Count; i++)
-            {
-                var p = points[i];
-                string vStr = FormatKiloMega(p.Y);
-                string dStr = isDateAxis
-                    ? new DateTime((long)p.X).ToString("MMM yyyy")
-                    : (xAxisLabels != null && p.X >= 0 && p.X < xAxisLabels.Count ? xAxisLabels[(int)p.X] : "");
-                p.Label = $"{vStr}\n{dStr}";
-                p.ShowLabel = false;
-            }
-
-            // 2. Volatility filtering
-            int maxLabels = 12;
-            int minIndexDist = Math.Max(1, points.Count / maxLabels);
-            var importantIndices = new HashSet<int>();
-
-            if (points.Count <= maxLabels)
-            {
-                for (int i = 0; i < points.Count; i++)
-                {
-                    importantIndices.Add(i);
-                    points[i].IsImportant = true;
-                }
-            }
-            else
-            {
-                double avgY = points.Average(p => p.Y);
-                var scoredPoints = points.Select((p, i) =>
-                {
-                    double score = 0;
-                    if (i == 0 || i == points.Count - 1)
-                        score = double.MaxValue;
-                    else
-                    {
-                        double diffPrev = Math.Abs(points[i].Y - points[i - 1].Y);
-                        double diffNext = Math.Abs(points[i].Y - points[i + 1].Y);
-                        double diffAvg = Math.Abs(points[i].Y - avgY);
-                        score = (diffPrev + diffNext) * 2.0 + diffAvg;
-                    }
-                    return new { Index = i, Score = score };
-                }).ToList();
-
-                foreach (var item in scoredPoints.OrderByDescending(x => x.Score))
-                {
-                    if (importantIndices.Count >= maxLabels) break;
-                    if (importantIndices.Contains(item.Index)) continue;
-
-                    bool tooClose = false;
-                    foreach (var idx in importantIndices)
-                    {
-                        if (Math.Abs(idx - item.Index) < minIndexDist)
-                        {
-                            tooClose = true;
-                            break;
-                        }
-                    }
-                    if (!tooClose || item.Index == 0 || item.Index == points.Count - 1)
-                    {
-                        importantIndices.Add(item.Index);
-                        points[item.Index].IsImportant = true;
-                    }
-                }
-            }
-
-            // 3. Compute Y range
-            double minY = points.Min(p => p.Y);
-            double maxY = points.Max(p => p.Y);
-            double range = maxY - minY;
-            const double offsetPixels = 30;
-
-            // 4. Set margins only for important points
-            for (int i = 0; i < points.Count; i++)
-            {
-                var p = points[i];
-                if (!importantIndices.Contains(i))
-                {
-                    p.ShowLabel = false;
-                    continue;
-                }
-
-                p.ShowLabel = true;
-
-                if (seriesType != "Line")
-                {
-                    p.LabelMargin = new Thickness(0, -offsetPixels, 0, 0);
-                    continue;
-                }
-
-                double prevY = i > 0 ? points[i - 1].Y : p.Y;
-                double nextY = i < points.Count - 1 ? points[i + 1].Y : p.Y;
-
-                bool isPeak = p.Y >= prevY && p.Y >= nextY && !(p.Y == prevY && p.Y == nextY);
-                bool isValley = p.Y <= prevY && p.Y <= nextY && !(p.Y == prevY && p.Y == nextY);
-
-                if (isPeak)
-                {
-                    p.LabelMargin = new Thickness(0, -offsetPixels, 0, 0);
-                }
-                else if (isValley)
-                {
-                    p.LabelMargin = new Thickness(0, offsetPixels, 0, 0);
-                }
-                else
-                {
-                    bool isInTopHalf = (p.Y - minY) > (range / 2);
-                    if (isInTopHalf)
-                        p.LabelMargin = new Thickness(0, offsetPixels, 0, 0);
-                    else
-                        p.LabelMargin = new Thickness(0, -offsetPixels, 0, 0);
-                }
-            }
-        }
-
-        // ==================== Original Chart Processing (adapted to fill Points) ====================
 
         private void ProcessPieChart(DataTable dataTable, DashboardConfiguration config, ChartResultDto result,
             Func<string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreAfterHyphen, bool isAvg)
@@ -440,7 +315,9 @@ namespace WPF_LoginForm.Services
 
                         if (!hasSplit || vals.Any(v => !double.IsNaN(((DateTimePoint)v).Value) && ((DateTimePoint)v).Value > 0))
                         {
-                            ApplySmartLabels(pts, true, null, "Line");
+                            // NEW: Route labels through SmartLabelService
+                            SmartLabelService.ApplyLabels(pts, true, null, "Line");
+
                             res.Series.Add(new SeriesDto
                             {
                                 Title = cleanTitle,
@@ -485,7 +362,9 @@ namespace WPF_LoginForm.Services
 
                             if (!hasSplit || vals.Any(v => ((DateTimePoint)v).Value > 0))
                             {
-                                ApplySmartLabels(pts, true, null, "Line");
+                                // NEW: Route labels through SmartLabelService
+                                SmartLabelService.ApplyLabels(pts, true, null, "Line");
+
                                 res.Series.Add(new SeriesDto
                                 {
                                     Title = cleanTitle,
@@ -548,7 +427,9 @@ namespace WPF_LoginForm.Services
 
                         if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v > 0))
                         {
-                            ApplySmartLabels(pts, false, res.XAxisLabels, sType);
+                            // NEW: Route labels through SmartLabelService
+                            SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, sType);
+
                             res.Series.Add(new SeriesDto
                             {
                                 Title = cleanTitle,
@@ -596,7 +477,9 @@ namespace WPF_LoginForm.Services
 
                             if (!hasSplit || vals.Any(v => (double)v > 0))
                             {
-                                ApplySmartLabels(pts, false, res.XAxisLabels, sType);
+                                // NEW: Route labels through SmartLabelService
+                                SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, sType);
+
                                 res.Series.Add(new SeriesDto
                                 {
                                     Title = cleanTitle,
@@ -705,7 +588,9 @@ namespace WPF_LoginForm.Services
 
                     if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v > 0))
                     {
-                        ApplySmartLabels(pts, false, res.XAxisLabels, "Line");
+                        // NEW: Route labels through SmartLabelService
+                        SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, "Line");
+
                         res.Series.Add(new SeriesDto
                         {
                             Title = cleanTitle,
@@ -753,7 +638,9 @@ namespace WPF_LoginForm.Services
 
                         if (!hasSplit || vals.Any(v => (double)v > 0))
                         {
-                            ApplySmartLabels(pts, false, res.XAxisLabels, baseChartType);
+                            // NEW: Route labels through SmartLabelService
+                            SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, baseChartType);
+
                             res.Series.Add(new SeriesDto
                             {
                                 Title = cleanTitle,
@@ -769,7 +656,7 @@ namespace WPF_LoginForm.Services
             }
         }
 
-        // ==================== Helper Methods (unchanged) ====================
+        // ==================== Helper Methods ====================
 
         private string CleanLabelString(string original, bool hideNumbers, bool simplify, bool ignoreAfterHyphen)
         {

@@ -13,7 +13,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using LiveCharts;
-using LiveCharts.Configurations; // Required for Mappers
+using LiveCharts.Configurations;
 using LiveCharts.Defaults;
 using LiveCharts.Wpf;
 using Microsoft.Win32;
@@ -382,13 +382,16 @@ namespace WPF_LoginForm.ViewModels
             // Mappers connect LiveCharts X/Y logic to our Custom Object
             var xyMapper = Mappers.Xy<DashboardDataPoint>().X(p => p.X).Y(p => p.Y);
 
-            // Our fully Opaque Data Template binding securely to our new Object
+            // CHANGED: FontSize="9.5" and Padding reduced to "6,4" to tighten the visual footprint
             DataTemplate labelTemplate = null;
             try
             {
                 string xaml = @"<DataTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"">
-                                    <Border Background=""#D9151520"" BorderBrush=""#60FFFFFF"" BorderThickness=""1"" CornerRadius=""4"" Padding=""8,5"" Margin=""{Binding Point.Instance.LabelMargin}"">
-                                        <TextBlock Text=""{Binding Point.Instance.Label}"" Foreground=""#F0F0F0"" FontSize=""11"" FontWeight=""SemiBold"" TextAlignment=""Center"" />
+                                    <Border Background=""#E61A1A2E"" BorderBrush=""#804A90E2"" BorderThickness=""1.5"" CornerRadius=""6"" Padding=""6,4"" Margin=""{Binding Point.Instance.LabelMargin}"">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color=""Black"" BlurRadius=""6"" Opacity=""0.5"" ShadowDepth=""2"" />
+                                        </Border.Effect>
+                                        <TextBlock Text=""{Binding Point.Instance.Label}"" Foreground=""#F8F9FA"" FontSize=""9.5"" FontWeight=""Bold"" TextAlignment=""Center"" />
                                         <Border.Style>
                                             <Style TargetType=""Border"">
                                                 <Setter Property=""Visibility"" Value=""Collapsed"" />
@@ -434,6 +437,8 @@ namespace WPF_LoginForm.ViewModels
                             Values = cv,
                             Configuration = xyMapper,
                             PointGeometry = DefaultGeometries.Circle,
+                            PointGeometrySize = 9,
+                            StrokeThickness = 2.5,
                             Stroke = colorBrush,
                             Fill = Brushes.Transparent,
                             DataLabels = true,
