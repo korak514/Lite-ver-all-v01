@@ -18,6 +18,22 @@
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
+        <DataTemplate x:Key="SingleLineLabelTemplate">
+            <TextBlock Text="{Binding Point.Label}"
+                       TextWrapping="NoWrap"
+                       Foreground="WhiteSmoke"
+                       FontSize="11"
+                       Margin="0" />
+        </DataTemplate>
+
+        <Style TargetType="lvc:LineSeries">
+            <Setter Property="DataLabelsTemplate" Value="{StaticResource SingleLineLabelTemplate}" />
+        </Style>
+
+        <Style TargetType="lvc:ColumnSeries">
+            <Setter Property="DataLabelsTemplate" Value="{StaticResource SingleLineLabelTemplate}" />
+        </Style>
+
         <Style TargetType="lvc:DefaultTooltip">
             <Setter Property="Background" Value="#E6000030" />
             <Setter Property="Foreground" Value="WhiteSmoke" />
@@ -87,29 +103,37 @@
             </Style.Triggers>
         </Style>
 
-        <!-- MODIFIED CLOSE BUTTON -->
-        <Style x:Key="CloseMaximizeButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#D14545" />
+        <!-- NEW COMPACT CLOSE BUTTON (Floating X) -->
+        <Style x:Key="CompactCloseButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#C0392B" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="0,-10,-10,0" />
+            <!-- Floats slightly outside/corner -->
             <Setter Property="Visibility" Value="Collapsed" />
+            <Setter Property="Panel.ZIndex" Value="200" />
+            <!-- Ensures it sits ON TOP of the chart -->
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
-                            <StackPanel Orientation="Horizontal" Margin="{TemplateBinding Padding}">
-                                <fa:ImageAwesome Icon="Compress" Height="14" Foreground="White" Margin="0,0,6,0" />
-                                <TextBlock Text="Close Fullscreen" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
-                            </StackPanel>
+                        <!-- FIXED: Removed the invalid inline Effect property -->
+                        <Border Background="{TemplateBinding Background}" CornerRadius="15">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="5" Opacity="0.4" ShadowDepth="2" />
+                            </Border.Effect>
+                            <fa:ImageAwesome Icon="Times" Height="14" Width="14" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center" />
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#B03030" />
+                    <Setter Property="Background" Value="#E74C3C" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -286,7 +310,7 @@
                                     <Setter Property="Grid.RowSpan" Value="2" />
                                     <Setter Property="Grid.ColumnSpan" Value="3" />
                                     <Setter Property="Panel.ZIndex" Value="100" />
-                                    <Setter Property="Margin" Value="100,40" />
+                                    <Setter Property="Margin" Value="20" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -298,29 +322,21 @@
                                 <MenuItem Header="Export Chart Data (CSV)" Command="{Binding DataContext.ExportChartDataCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="1" />
                             </ContextMenu>
                         </Border.ContextMenu>
+
                         <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-
-                            <!-- Control Buttons explicit area above chart -->
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
-                                <Button Command="{Binding MaximizeChartCommand}" CommandParameter="1" Style="{StaticResource ManualMaximizeButtonStyle}" />
-                                <Button Command="{Binding CloseMaximizeCommand}">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource CloseMaximizeButtonStyle}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="1">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
-                            </StackPanel>
-
-                            <lvc:CartesianChart Grid.Row="1" Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" />
+                            <lvc:CartesianChart Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" />
+                            <Button Command="{Binding MaximizeChartCommand}" CommandParameter="1" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <Button Command="{Binding CloseMaximizeCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="1">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </Grid>
                     </Border>
                 </Grid>
@@ -342,7 +358,7 @@
                                     <Setter Property="Grid.RowSpan" Value="2" />
                                     <Setter Property="Grid.ColumnSpan" Value="3" />
                                     <Setter Property="Panel.ZIndex" Value="100" />
-                                    <Setter Property="Margin" Value="100,40" />
+                                    <Setter Property="Margin" Value="20" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -355,27 +371,19 @@
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
-                                <Button Command="{Binding MaximizeChartCommand}" CommandParameter="2" Style="{StaticResource ManualMaximizeButtonStyle}" />
-                                <Button Command="{Binding CloseMaximizeCommand}">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource CloseMaximizeButtonStyle}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="2">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
-                            </StackPanel>
-
-                            <lvc:CartesianChart Grid.Row="1" Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" />
+                            <lvc:CartesianChart Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" />
+                            <Button Command="{Binding MaximizeChartCommand}" CommandParameter="2" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <Button Command="{Binding CloseMaximizeCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="2">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </Grid>
                     </Border>
                 </Grid>
@@ -397,7 +405,7 @@
                                     <Setter Property="Grid.RowSpan" Value="2" />
                                     <Setter Property="Grid.ColumnSpan" Value="3" />
                                     <Setter Property="Panel.ZIndex" Value="100" />
-                                    <Setter Property="Margin" Value="100,40" />
+                                    <Setter Property="Margin" Value="20" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -410,27 +418,19 @@
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
-                                <Button Command="{Binding MaximizeChartCommand}" CommandParameter="3" Style="{StaticResource ManualMaximizeButtonStyle}" />
-                                <Button Command="{Binding CloseMaximizeCommand}">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource CloseMaximizeButtonStyle}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="3">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
-                            </StackPanel>
-
-                            <lvc:CartesianChart Grid.Row="1" Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" />
+                            <lvc:CartesianChart Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" />
+                            <Button Command="{Binding MaximizeChartCommand}" CommandParameter="3" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <Button Command="{Binding CloseMaximizeCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="3">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </Grid>
                     </Border>
                 </Grid>
@@ -452,7 +452,7 @@
                                     <Setter Property="Grid.RowSpan" Value="2" />
                                     <Setter Property="Grid.ColumnSpan" Value="3" />
                                     <Setter Property="Panel.ZIndex" Value="100" />
-                                    <Setter Property="Margin" Value="100,40" />
+                                    <Setter Property="Margin" Value="20" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -465,27 +465,19 @@
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
-                                <Button Command="{Binding MaximizeChartCommand}" CommandParameter="4" Style="{StaticResource ManualMaximizeButtonStyle}" />
-                                <Button Command="{Binding CloseMaximizeCommand}">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource CloseMaximizeButtonStyle}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="4">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
-                            </StackPanel>
-
-                            <lvc:PieChart Grid.Row="1" Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" Hoverable="True" />
+                            <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" Hoverable="True" Margin="0,10,0,0" />
+                            <Button Command="{Binding MaximizeChartCommand}" CommandParameter="4" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <Button Command="{Binding CloseMaximizeCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="4">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </Grid>
                     </Border>
                 </Grid>
@@ -507,7 +499,7 @@
                                     <Setter Property="Grid.RowSpan" Value="2" />
                                     <Setter Property="Grid.ColumnSpan" Value="3" />
                                     <Setter Property="Panel.ZIndex" Value="100" />
-                                    <Setter Property="Margin" Value="100,40" />
+                                    <Setter Property="Margin" Value="20" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -520,27 +512,19 @@
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,10">
-                                <Button Command="{Binding MaximizeChartCommand}" CommandParameter="5" Style="{StaticResource ManualMaximizeButtonStyle}" />
-                                <Button Command="{Binding CloseMaximizeCommand}">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource CloseMaximizeButtonStyle}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="5">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
-                            </StackPanel>
-
-                            <lvc:CartesianChart Grid.Row="1" Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" />
+                            <lvc:CartesianChart Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" />
+                            <Button Command="{Binding MaximizeChartCommand}" CommandParameter="5" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <Button Command="{Binding CloseMaximizeCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="5">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </Grid>
                     </Border>
                 </Grid>
@@ -605,7 +589,7 @@
                                     <Setter Property="Grid.RowSpan" Value="1" />
                                     <Setter Property="Grid.ColumnSpan" Value="2" />
                                     <Setter Property="Panel.ZIndex" Value="100" />
-                                    <Setter Property="Margin" Value="100,40" />
+                                    <Setter Property="Margin" Value="20" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -623,22 +607,22 @@
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
 
-                            <Grid Grid.Row="0" Margin="0,10,0,10">
-                                <TextBlock Text="Summary Breakdown (Chart 6)" Foreground="Gray" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="15,0,0,0" />
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,15,0">
-                                    <Button Command="{Binding MaximizeChartCommand}" CommandParameter="6" Style="{StaticResource ManualMaximizeButtonStyle}" />
-                                    <Button Command="{Binding CloseMaximizeCommand}">
-                                        <Button.Style>
-                                            <Style TargetType="Button" BasedOn="{StaticResource CloseMaximizeButtonStyle}">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="6">
-                                                        <Setter Property="Visibility" Value="Visible" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
-                                </StackPanel>
+                            <TextBlock Grid.Row="0" Text="Summary Breakdown (Chart 6)" Foreground="Gray" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="15,10,0,0" />
+
+                            <!-- Floating Buttons Container -->
+                            <Grid Grid.Row="0" Grid.RowSpan="2">
+                                <Button Command="{Binding MaximizeChartCommand}" CommandParameter="6" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" />
+                                <Button Command="{Binding CloseMaximizeCommand}">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="6">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
                             </Grid>
 
                             <lvc:PieChart Grid.Row="1" Series="{Binding Chart6Series}" LegendLocation="Bottom" InnerRadius="80" Margin="20,10,20,20" Hoverable="True">

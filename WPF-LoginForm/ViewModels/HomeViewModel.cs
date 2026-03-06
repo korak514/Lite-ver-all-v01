@@ -26,7 +26,6 @@ using WPF_LoginForm.Services;
 namespace WPF_LoginForm.ViewModels
 {
     // --- HELPER MODELS ---
-
     public class KpiModel : ViewModelBase
     {
         public string Title { get; set; }
@@ -43,7 +42,6 @@ namespace WPF_LoginForm.ViewModels
     }
 
     // --- MAIN VIEWMODEL ---
-
     public class HomeViewModel : ViewModelBase
     {
         private readonly IDataRepository _dataRepository;
@@ -379,34 +377,56 @@ namespace WPF_LoginForm.ViewModels
             var newSeries = new SeriesCollection();
             var axisColor = Brushes.WhiteSmoke;
 
-            // Mappers connect LiveCharts X/Y logic to our Custom Object
             var xyMapper = Mappers.Xy<DashboardDataPoint>().X(p => p.X).Y(p => p.Y);
 
-            // CHANGED: FontSize="9.5" and Padding reduced to "6,4" to tighten the visual footprint
             DataTemplate labelTemplate = null;
             try
             {
+                // Updated template dynamically integrates Leader Lines natively within the visual canvas.
                 string xaml = @"<DataTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"">
-                                    <Border Background=""#E61A1A2E"" BorderBrush=""#804A90E2"" BorderThickness=""1.5"" CornerRadius=""6"" Padding=""6,4"" Margin=""{Binding Point.Instance.LabelMargin}"">
-                                        <Border.Effect>
-                                            <DropShadowEffect Color=""Black"" BlurRadius=""6"" Opacity=""0.5"" ShadowDepth=""2"" />
-                                        </Border.Effect>
-                                        <TextBlock Text=""{Binding Point.Instance.Label}"" Foreground=""#F8F9FA"" FontSize=""9.5"" FontWeight=""Bold"" TextAlignment=""Center"" />
-                                        <Border.Style>
-                                            <Style TargetType=""Border"">
-                                                <Setter Property=""Visibility"" Value=""Collapsed"" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding=""{Binding Point.Instance.ShowLabel}"" Value=""True"">
-                                                        <Setter Property=""Visibility"" Value=""Visible"" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                    </Border>
+                                    <Canvas Width=""0"" Height=""0"">
+
+                                        <!-- Dynamic Leader Line -->
+                                        <Line X1=""0"" Y1=""0""
+                                              X2=""{Binding Point.Instance.LeaderLineX2}""
+                                              Y2=""{Binding Point.Instance.LeaderLineY2}""
+                                              Stroke=""#804A90E2"" StrokeThickness=""1.5"" StrokeDashArray=""2,2"">
+                                            <Line.Style>
+                                                <Style TargetType=""Line"">
+                                                    <Setter Property=""Visibility"" Value=""Collapsed"" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding=""{Binding Point.Instance.HasLeaderLine}"" Value=""True"">
+                                                            <Setter Property=""Visibility"" Value=""Visible"" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Line.Style>
+                                        </Line>
+
+                                        <!-- Original Floating Bounding Box -->
+                                        <Border Canvas.Left=""{Binding Point.Instance.LabelDx}""
+                                                Canvas.Top=""{Binding Point.Instance.LabelDy}""
+                                                Background=""#E61A1A2E"" BorderBrush=""#804A90E2"" BorderThickness=""1.5"" CornerRadius=""6"" Padding=""6,4"">
+                                            <Border.Effect>
+                                                <DropShadowEffect Color=""Black"" BlurRadius=""4"" Opacity=""0.5"" ShadowDepth=""2"" />
+                                            </Border.Effect>
+                                            <TextBlock Text=""{Binding Point.Instance.Label}"" Foreground=""#F8F9FA"" FontSize=""11"" FontWeight=""Bold"" TextAlignment=""Center"" />
+                                            <Border.Style>
+                                                <Style TargetType=""Border"">
+                                                    <Setter Property=""Visibility"" Value=""Collapsed"" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding=""{Binding Point.Instance.ShowLabel}"" Value=""True"">
+                                                            <Setter Property=""Visibility"" Value=""Visible"" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
+                                    </Canvas>
                                 </DataTemplate>";
                 labelTemplate = (DataTemplate)System.Windows.Markup.XamlReader.Parse(xaml);
             }
-            catch (Exception ex) { _logger?.LogError("Failed to parse DataLabelsTemplate", ex); }
+            catch (Exception ex) { _logger?.LogError("Template parse failed", ex); }
 
             foreach (var s in result.Series)
             {
@@ -462,9 +482,111 @@ namespace WPF_LoginForm.ViewModels
 
             targetSeries.AddRange(newSeries);
 
+            // =========================================================
+            // 🛠️ AXIS LOGIC: 15% SYMMETRIC BUFFER & SMART STEP
+            // =========================================================
             if (targetX != null && targetY != null && result.Series.Any(x => x.SeriesType != "Pie"))
             {
-                targetY.Add(new Axis { Title = "Values", LabelFormatter = NumberFormatter, Foreground = axisColor });
+                double minVal = double.MaxValue;
+                double maxVal = double.MinValue;
+                bool hasValues = false;
+
+                foreach (var s in result.Series)
+                {
+                    if (s.Points != null && s.Points.Any())
+                    {
+                        double sMin = s.Points.Min(p => p.Y);
+                        double sMax = s.Points.Max(p => p.Y);
+                        if (sMin < minVal) minVal = sMin;
+                        if (sMax > maxVal) maxVal = sMax;
+                        hasValues = true;
+                    }
+                }
+
+                var yAxis = new Axis
+                {
+                    Title = "Values",
+                    LabelFormatter = NumberFormatter,
+                    Foreground = axisColor,
+                    FontSize = 12
+                };
+
+                if (hasValues)
+                {
+                    // Special case for column series with non-negative values: force min to 0
+                    bool forceMinZero = result.Series.Any(x => x.SeriesType == "Column") && minVal >= 0;
+
+                    // Calculate data range and apply 15% buffer
+                    double dataRange = maxVal - minVal;
+                    double buffer = 0.22 * dataRange;
+                    double desiredMin = minVal - buffer;
+                    double desiredMax = maxVal + buffer;
+
+                    // If forcing min to zero, override desiredMin
+                    if (forceMinZero)
+                    {
+                        desiredMin = 0;
+                    }
+
+                    // Determine magnitude for scaling (thousands, millions, etc.)
+                    double magnitude = 1;
+                    if (maxVal >= 1_000_000) magnitude = 1_000_000;
+                    else if (maxVal >= 10_000) magnitude = 1_000;
+
+                    double normMin = desiredMin / magnitude;
+                    double normMax = desiredMax / magnitude;
+
+                    // Choose a step size based on the normalized range
+                    double displayStep;
+                    if (normMax - normMin < 0.5) // very small range
+                        displayStep = 0.05;
+                    else if (normMax - normMin < 3)
+                        displayStep = 0.25;
+                    else
+                        displayStep = 0.5;
+
+                    // Adjust step if it leads to too many steps (> 20)
+                    double approxSteps = (normMax - normMin) / displayStep;
+                    if (approxSteps > 20)
+                    {
+                        // Increase step to keep steps <= 15
+                        displayStep = (normMax - normMin) / 15;
+                        double log10 = Math.Floor(Math.Log10(displayStep));
+                        double factor = Math.Pow(10, log10);
+                        double normalized = displayStep / factor;
+                        if (normalized < 0.15) normalized = 0.1;
+                        else if (normalized < 0.35) normalized = 0.2;
+                        else if (normalized < 0.75) normalized = 0.5;
+                        else normalized = 1.0;
+                        displayStep = normalized * factor;
+                    }
+
+                    double actualStep = displayStep * magnitude;
+
+                    double finalNormMin = Math.Floor(normMin / displayStep) * displayStep;
+                    double finalNormMax = Math.Ceiling(normMax / displayStep) * displayStep;
+
+                    yAxis.MinValue = finalNormMin * magnitude;
+                    yAxis.MaxValue = finalNormMax * magnitude;
+
+                    // Optionally, set separator step if not too many steps
+                    double totalSteps = (yAxis.MaxValue - yAxis.MinValue) / actualStep;
+                    if (totalSteps <= 50)
+                    {
+                        yAxis.Separator = new Separator
+                        {
+                            Step = actualStep,
+                            Stroke = new SolidColorBrush(Color.FromArgb(30, 255, 255, 255))
+                        };
+                    }
+                    else
+                    {
+                        yAxis.Separator = new Separator { Stroke = new SolidColorBrush(Color.FromArgb(30, 255, 255, 255)) };
+                    }
+                }
+
+                targetY.Add(yAxis);
+
                 if (result.IsDateAxis) targetX.Add(new Axis { LabelFormatter = DateFormatter, Separator = new Separator { IsEnabled = false }, Foreground = axisColor });
                 else targetX.Add(new Axis { Labels = result.XAxisLabels, Separator = new Separator { IsEnabled = false }, Foreground = axisColor });
             }
@@ -517,13 +639,42 @@ namespace WPF_LoginForm.ViewModels
         }
 
         private SeriesCollection GetSeriesCollection(int pos)
-        { switch (pos) { case 1: return Chart1Series; case 2: return Chart2Series; case 3: return Chart3Series; case 4: return Chart4Series; case 5: return Chart5Series; case 6: return Chart6Series; default: return null; } }
+        {
+            switch (pos)
+            {
+                case 1: return Chart1Series;
+                case 2: return Chart2Series;
+                case 3: return Chart3Series;
+                case 4: return Chart4Series;
+                case 5: return Chart5Series;
+                case 6: return Chart6Series;
+                default: return null;
+            }
+        }
 
         private AxesCollection GetXAxes(int pos)
-        { switch (pos) { case 1: return Chart1X; case 2: return Chart2X; case 3: return Chart3X; case 5: return Chart5X; default: return null; } }
+        {
+            switch (pos)
+            {
+                case 1: return Chart1X;
+                case 2: return Chart2X;
+                case 3: return Chart3X;
+                case 5: return Chart5X;
+                default: return null;
+            }
+        }
 
         private AxesCollection GetYAxes(int pos)
-        { switch (pos) { case 1: return Chart1Y; case 2: return Chart2Y; case 3: return Chart3Y; case 5: return Chart5Y; default: return null; } }
+        {
+            switch (pos)
+            {
+                case 1: return Chart1Y;
+                case 2: return Chart2Y;
+                case 3: return Chart3Y;
+                case 5: return Chart5Y;
+                default: return null;
+            }
+        }
 
         private void ClearAndReinitializeAxes()
         { Chart1X.Clear(); Chart1Y.Clear(); Chart2X.Clear(); Chart2Y.Clear(); Chart3X.Clear(); Chart3Y.Clear(); Chart5X.Clear(); Chart5Y.Clear(); }
