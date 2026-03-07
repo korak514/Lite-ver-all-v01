@@ -25,7 +25,7 @@ namespace WPF_LoginForm.ViewModels
 
     public class ErrorDrillDownViewModel : ViewModelBase
     {
-        private readonly List<ErrorLogItem> _allItemsSource;
+        private readonly List<ErrorEventModel> _allItemsSource;
         private readonly List<string> _excludedMachines;
         private readonly bool _useClockFormat;
         private readonly bool _excludeMachine00;
@@ -36,7 +36,7 @@ namespace WPF_LoginForm.ViewModels
         private string _windowTitle;
         public string WindowTitle { get => _windowTitle; set => SetProperty(ref _windowTitle, value); }
 
-        public ObservableCollection<ErrorLogItem> DisplayedItems { get; set; }
+        public ObservableCollection<ErrorEventModel> DisplayedItems { get; set; }
         public ObservableCollection<CheckableItem> MachineFilterList { get; set; }
         public ObservableCollection<FilterChip> ActiveFilters { get; set; }
 
@@ -46,7 +46,7 @@ namespace WPF_LoginForm.ViewModels
         public ICommand ApplyFilterCommand { get; private set; }
         public ICommand RemoveFilterChipCommand { get; private set; }
 
-        public ErrorDrillDownViewModel(IEnumerable<ErrorLogItem> items, string title, string initialFilter, List<string> excludedMachines, bool useClockFormat, bool excludeMachine00)
+        public ErrorDrillDownViewModel(IEnumerable<ErrorEventModel> items, string title, string initialFilter, List<string> excludedMachines, bool useClockFormat, bool excludeMachine00)
         {
             WindowTitle = title;
             _allItemsSource = items.ToList();
@@ -67,7 +67,7 @@ namespace WPF_LoginForm.ViewModels
             var uniqueMachines = _allItemsSource
                 .Select(x => x.MachineCode)
                 .Distinct()
-                .Where(m => !_excludeMachine00 || (m != "MA-00" && m != "MA-0"))
+                .Where(m => !_excludeMachine00 || (m != "00" && m != "0" && m != "MA-00" && m != "MA-0"))
                 .OrderBy(m => m)
                 .Select(m => new CheckableItem { Name = m, IsChecked = false })
                 .ToList();
@@ -85,15 +85,22 @@ namespace WPF_LoginForm.ViewModels
             var baseQuery = _allItemsSource.AsEnumerable();
             if (_excludeMachine00)
             {
-                baseQuery = baseQuery.Where(x => x.MachineCode != "MA-00" && x.MachineCode != "MA-0");
+                baseQuery = baseQuery.Where(x => x.MachineCode != "00" && x.MachineCode != "0" && x.MachineCode != "MA-00" && x.MachineCode != "MA-0");
             }
 
             if (string.IsNullOrEmpty(filterText))
             {
                 // No filter
             }
-            else if (filterText == "MACHINE_OTHERS")
+            else if (filterText.StartsWith("MACHINE_OTHERS"))
             {
+                var parts = filterText.Split('|');
+                if (parts.Length > 1)
+                {
+                    _excludedMachines.Clear();
+                    _excludedMachines.AddRange(parts[1].Split(','));
+                }
+
                 foreach (var m in MachineFilterList)
                 {
                     if (!_excludedMachines.Contains(m.Name))
@@ -108,14 +115,13 @@ namespace WPF_LoginForm.ViewModels
                     baseQuery = baseQuery.Where(x => !_excludedMachines.Contains(x.MachineCode));
                 }
             }
-            // FIX: Handle Composite Category + Machine click
             else if (filterText.StartsWith("MACHINE_CATEGORY|"))
             {
                 var parts = filterText.Split('|');
                 if (parts.Length == 3)
                 {
-                    string machine = parts[1]; // e.g. "MA-01"
-                    string category = parts[2]; // e.g. "ELECTRICAL"
+                    string machine = parts[1];
+                    string category = parts[2];
 
                     AddChip("Machine", machine);
                     var item = MachineFilterList.FirstOrDefault(m => m.Name == machine);
@@ -125,28 +131,28 @@ namespace WPF_LoginForm.ViewModels
 
                     baseQuery = baseQuery.Where(x =>
                         x.MachineCode == machine &&
-                        !string.IsNullOrEmpty(x.ErrorMessage) &&
-                        _mappingService.GetMappedCategory(x.ErrorMessage, _activeRules).Equals(category, StringComparison.OrdinalIgnoreCase));
+                        !string.IsNullOrEmpty(x.ErrorDescription) &&
+                        _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules).Equals(category, StringComparison.OrdinalIgnoreCase));
                 }
             }
             else if (filterText.StartsWith("MA-"))
             {
-                AddChip("Machine", filterText);
-                var item = MachineFilterList.FirstOrDefault(m => m.Name == filterText);
+                string rawMachine = filterText.Replace("MA-", "");
+                AddChip("Machine", rawMachine);
+                var item = MachineFilterList.FirstOrDefault(m => m.Name == rawMachine);
                 if (item != null) item.IsChecked = true;
 
-                baseQuery = baseQuery.Where(x => x.MachineCode == filterText);
+                baseQuery = baseQuery.Where(x => x.MachineCode == rawMachine);
             }
             else
             {
-                // FIX: Use mapping service instead of basic string IndexOf for Reason filtering
                 AddChip("Reason", filterText);
                 baseQuery = baseQuery.Where(x =>
-                    !string.IsNullOrEmpty(x.ErrorMessage) &&
-                    _mappingService.GetMappedCategory(x.ErrorMessage, _activeRules).Equals(filterText, StringComparison.OrdinalIgnoreCase));
+                    !string.IsNullOrEmpty(x.ErrorDescription) &&
+                    _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules).Equals(filterText, StringComparison.OrdinalIgnoreCase));
             }
 
-            DisplayedItems = new ObservableCollection<ErrorLogItem>(baseQuery);
+            DisplayedItems = new ObservableCollection<ErrorEventModel>(baseQuery);
 
             OnPropertyChanged(nameof(DisplayedItems));
             OnPropertyChanged(nameof(RecordCount));
@@ -159,7 +165,7 @@ namespace WPF_LoginForm.ViewModels
 
             if (_excludeMachine00)
             {
-                query = query.Where(x => x.MachineCode != "MA-00" && x.MachineCode != "MA-0");
+                query = query.Where(x => x.MachineCode != "00" && x.MachineCode != "0" && x.MachineCode != "MA-00" && x.MachineCode != "MA-0");
             }
 
             var machineFilters = ActiveFilters.Where(x => x.FilterType == "Machine").Select(x => x.Value).ToList();
@@ -172,13 +178,12 @@ namespace WPF_LoginForm.ViewModels
 
             if (reasonFilters.Any())
             {
-                // FIX: Use accurate category mapping here as well
                 query = query.Where(x => reasonFilters.Any(r =>
-                    !string.IsNullOrEmpty(x.ErrorMessage) &&
-                    _mappingService.GetMappedCategory(x.ErrorMessage, _activeRules).Equals(r, StringComparison.OrdinalIgnoreCase)));
+                    !string.IsNullOrEmpty(x.ErrorDescription) &&
+                    _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules).Equals(r, StringComparison.OrdinalIgnoreCase)));
             }
 
-            DisplayedItems = new ObservableCollection<ErrorLogItem>(query);
+            DisplayedItems = new ObservableCollection<ErrorEventModel>(query);
 
             OnPropertyChanged(nameof(RecordCount));
             OnPropertyChanged(nameof(TotalDurationText));

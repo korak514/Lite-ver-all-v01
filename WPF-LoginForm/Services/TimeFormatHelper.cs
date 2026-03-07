@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Services/TimeFormatHelper.cs
+using System;
+using System.Globalization;
 using WPF_LoginForm.Properties; // Access to Resources
 
 namespace WPF_LoginForm.Services
@@ -11,7 +13,8 @@ namespace WPF_LoginForm.Services
             if (!useClockFormat || minutes < 60)
             {
                 // Resources.Unit_Minutes usually contains "min" or "dk"
-                return $"{minutes:N0} {Resources.Unit_Minutes}";
+                string unit = Resources.Unit_Minutes ?? "min";
+                return $"{minutes:N0} {unit}";
             }
 
             // 2. Convert to Clock Format (e.g., "1 h 30 m")
@@ -19,8 +22,10 @@ namespace WPF_LoginForm.Services
             int h = (int)ts.TotalHours;
             int m = ts.Minutes;
 
-            // Simple localization check (or use Resources if you have Unit_Hour defined)
-            bool isTurkish = Resources.Culture?.Name == "tr-TR";
+            // Localization Logic
+            string currentLang = Resources.Culture?.Name ?? CultureInfo.CurrentCulture.Name;
+            bool isTurkish = currentLang == "tr-TR";
+
             string hLabel = isTurkish ? "sa" : "h";
             string mLabel = isTurkish ? "dk" : "m";
 

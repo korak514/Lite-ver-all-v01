@@ -1,42 +1,41 @@
-﻿using System;
+﻿// Services/InputHelper.cs
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using WPF_LoginForm.Models;
 
 namespace WPF_LoginForm.Services
 {
+    public class ChartDataPoint
+    {
+        public string Label { get; set; }
+        public double Value { get; set; }
+        public string ExtraInfo { get; set; } // Stores additional context, e.g., machine code
+    }
+
+    public class Page2Stats
+    {
+        public double TotalErrorDuration { get; set; }
+        public double TotalStopDuration { get; set; }
+
+        public string AvgNetStopPerDay { get; set; }
+        public string AvgErrorPerDay { get; set; }
+        public string SavedMaintenanceTime { get; set; }
+        public string AvgWorkingPerDay { get; set; }
+        public string AvgGrossStopPerDay { get; set; }
+        public string MostFrequentMachine { get; set; }
+        public string SavedNonCriticalTime { get; set; }
+    }
+
     public static class InputHelper
     {
-        public class ChartDataPoint
-        {
-            public string Label { get; set; }
-            public double Value { get; set; }
-        }
-
-        public class Page2Stats
-        {
-            public double TotalErrorDuration { get; set; }
-            public double TotalStopDuration { get; set; }
-            public string DailyAvgStop { get; set; }
-            public string DailyAvgError { get; set; }
-            public string SavedBreakTime { get; set; }
-            public string SavedMaintenanceTime { get; set; }
-
-            // Placeholders
-            public string ExtraStat1 { get; set; }
-
-            public string ExtraStat2 { get; set; }
-            public string ExtraStat3 { get; set; }
-            public string ExtraStat4 { get; set; }
-        }
-
         public static List<ErrorEventModel> PreProcessData(List<ErrorEventModel> rawData, bool excludeMachine00)
         {
             if (rawData == null) return new List<ErrorEventModel>();
             var query = rawData.Where(x => !string.IsNullOrWhiteSpace(x.ErrorDescription));
+
             if (excludeMachine00)
             {
-                // Filter out generic cleaning codes often labeled as machine 00
                 query = query.Where(x => x.MachineCode != "00" && x.MachineCode != "0" && x.MachineCode != "MA-00");
             }
             return query.ToList();
@@ -44,28 +43,42 @@ namespace WPF_LoginForm.Services
 
         public static List<ChartDataPoint> GetTopReasons(List<ErrorEventModel> data, CategoryMappingService mappingService, List<CategoryRule> rules, int topN = 5)
         {
-            return data
+            // Group by mapped category and calculate total duration per category.
+            // Also capture the machine that contributed the most duration to that category.
+            var grouped = data
                 .GroupBy(x => mappingService.GetMappedCategory(x.ErrorDescription, rules))
-                .Select(g => new ChartDataPoint { Label = g.Key, Value = g.Max(x => x.DurationMinutes) })
-                .OrderByDescending(x => x.Value)
+                .Select(g => new
+                {
+                    Category = g.Key,
+                    TotalDuration = g.Sum(x => x.DurationMinutes),  // Use Sum for total downtime per category
+                    // Machine with the highest total duration in this category
+                    TopMachine = g.GroupBy(x => x.MachineCode)
+                                  .Select(m => new { Machine = m.Key, Total = m.Sum(x => x.DurationMinutes) })
+                                  .OrderByDescending(m => m.Total)
+                                  .FirstOrDefault()?.Machine
+                })
+                .Where(x => !string.IsNullOrEmpty(x.Category)) // Exclude uncategorized if necessary
+                .OrderByDescending(x => x.TotalDuration)
                 .Take(topN)
                 .ToList();
+
+            return grouped.Select(x => new ChartDataPoint
+            {
+                Label = x.Category,
+                Value = x.TotalDuration,
+                ExtraInfo = x.TopMachine // Machine code (e.g., "22")
+            }).ToList();
         }
 
-        // --- TASK 1: "Others" Grouping Implemented Here ---
         public static List<ChartDataPoint> GetMachineStats(List<ErrorEventModel> data, int topN = 9)
         {
-            // 1. Group and Sum
             var grouped = data
                 .GroupBy(x => x.MachineCode)
                 .Select(g => new ChartDataPoint { Label = g.Key, Value = g.Sum(x => x.DurationMinutes) })
                 .OrderByDescending(x => x.Value)
                 .ToList();
 
-            // 2. Take Top N
             var result = grouped.Take(topN).ToList();
-
-            // 3. Sum the rest into "Others"
             var othersSum = grouped.Skip(topN).Sum(x => x.Value);
 
             if (othersSum > 0)
@@ -87,46 +100,63 @@ namespace WPF_LoginForm.Services
                 .ToList();
         }
 
-        // --- TASK 3: Real Data Binding ---
-        public static Page2Stats CalculatePage2Stats(List<ErrorEventModel> data, DateTime start, DateTime end, Func<double, string> formatter)
+        public static Page2Stats CalculatePage2Stats(List<ErrorEventModel> data, DateTime start, DateTime end, Func<double, string> formatter, bool excludeBreaks)
         {
             var stats = new Page2Stats();
 
-            // 1. Total Error Duration (Sum of individual errors)
+            // 1. Total Error Duration (Sum of filtered errors)
             stats.TotalErrorDuration = data.Sum(x => x.DurationMinutes);
 
-            // 2. Group by UniqueRowId to sum Shift Totals ONLY ONCE per row
-            // (Because 1 row has 1 Stop Time, but might have 5 errors. We don't want to sum Stop Time 5 times)
+            // 2. Get Distinct Rows for column-based sums
             var distinctRows = data.GroupBy(x => x.UniqueRowId).Select(g => g.First()).ToList();
 
-            // 3. Real Sums from distinct rows
-            stats.TotalStopDuration = distinctRows.Sum(x => x.RowTotalStopMinutes);
             double totalSavedBreak = distinctRows.Sum(x => x.RowSavedTimeBreak);
             double totalSavedMaint = distinctRows.Sum(x => x.RowSavedTimeMaint);
+            double rawStopDuration = distinctRows.Sum(x => x.RowTotalStopMinutes);
+            double totalActualWork = distinctRows.Sum(x => x.RowActualWorkingMinutes);
 
-            // Sanity Check
-            if (stats.TotalStopDuration < stats.TotalErrorDuration)
-                stats.TotalStopDuration = stats.TotalErrorDuration;
+            // 3. Logic Correction: Determine "Stops" (Production Loss)
+            if (excludeBreaks)
+            {
+                // Formula: Net Loss = Total Repair Work - Work done during breaks
+                double calculatedStops = stats.TotalErrorDuration - totalSavedBreak - totalSavedMaint;
 
+                // Allow Stops to be LESS than Errors (which is the goal)
+                stats.TotalStopDuration = calculatedStops > 0 ? calculatedStops : 0;
+            }
+            else
+            {
+                // If unfiltered, use the raw stop time from DB
+                stats.TotalStopDuration = rawStopDuration;
+            }
+
+            // 4. Averages
             double totalDays = (end - start).TotalDays;
             if (totalDays < 1) totalDays = 1;
 
             double avgErr = stats.TotalErrorDuration / totalDays;
-            double avgStop = stats.TotalStopDuration / totalDays;
+            double avgNetStop = stats.TotalStopDuration / totalDays;
+            double avgGrossStop = rawStopDuration / totalDays;
+            double avgWork = totalActualWork / totalDays;
 
-            // 4. Format Output
-            stats.DailyAvgError = formatter(avgErr);
-            stats.DailyAvgStop = formatter(avgStop);
+            var frequentMachine = data.GroupBy(x => x.MachineCode)
+                                      .Select(g => new { Machine = g.Key, Count = g.Count() })
+                                      .OrderByDescending(x => x.Count)
+                                      .FirstOrDefault();
 
-            // --- NO MORE MOCK DATA ---
-            stats.SavedBreakTime = formatter(totalSavedBreak);
+            // 5. Populate
+            stats.AvgNetStopPerDay = formatter(avgNetStop);
+            stats.AvgErrorPerDay = formatter(avgErr);
             stats.SavedMaintenanceTime = formatter(totalSavedMaint);
+            stats.AvgWorkingPerDay = formatter(avgWork);
+            stats.AvgGrossStopPerDay = formatter(avgGrossStop);
 
-            // Placeholders
-            stats.ExtraStat1 = "-";
-            stats.ExtraStat2 = "-";
-            stats.ExtraStat3 = "-";
-            stats.ExtraStat4 = "-";
+            if (frequentMachine != null && frequentMachine.Count > 0)
+                stats.MostFrequentMachine = $"MA-{frequentMachine.Machine} ({frequentMachine.Count})";
+            else
+                stats.MostFrequentMachine = "-";
+
+            stats.SavedNonCriticalTime = formatter(totalSavedBreak);
 
             return stats;
         }

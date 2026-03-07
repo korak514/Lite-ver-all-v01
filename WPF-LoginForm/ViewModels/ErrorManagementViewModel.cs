@@ -51,6 +51,7 @@ namespace WPF_LoginForm.ViewModels
         { get => _selectedErrorCategory; set { if (SetProperty(ref _selectedErrorCategory, value)) { SaveState(); UpdateCategoryMachineChart(); } } }
 
         private bool _isMachine00Excluded = false;
+
         public bool IsMachine00Excluded
         { get => _isMachine00Excluded; set { if (SetProperty(ref _isMachine00Excluded, value)) { SaveState(); _ = LoadDataWithDebounce(); } } }
 
@@ -95,6 +96,14 @@ namespace WPF_LoginForm.ViewModels
         private Func<double, string> _numberFormatter;
         public Func<double, string> NumberFormatter { get => _numberFormatter; set => SetProperty(ref _numberFormatter, value); }
 
+        // --- Axis Steps for Granularity ---
+        private double _reasonAxisStep = double.NaN;
+
+        public double ReasonAxisStep { get => _reasonAxisStep; set => SetProperty(ref _reasonAxisStep, value); }
+
+        private double _severityAxisStep = double.NaN;
+        public double SeverityAxisStep { get => _severityAxisStep; set => SetProperty(ref _severityAxisStep, value); }
+
         // --- PAGE 2 CHARTS ---
         private bool _isSecondPageActive;
 
@@ -106,14 +115,14 @@ namespace WPF_LoginForm.ViewModels
         private string[] _severityLabels; public string[] SeverityLabels { get => _severityLabels; set => SetProperty(ref _severityLabels, value); }
 
         // --- PAGE 2 STATS ---
-        private string _dailyAvgStop; public string DailyAvgStop { get => _dailyAvgStop; set => SetProperty(ref _dailyAvgStop, value); }
+        private string _avgNetStopPerDay; public string AvgNetStopPerDay { get => _avgNetStopPerDay; set => SetProperty(ref _avgNetStopPerDay, value); }
 
-        private string _dailyAvgError; public string DailyAvgError { get => _dailyAvgError; set => SetProperty(ref _dailyAvgError, value); }
-        private string _timeSavedBreak; public string TimeSavedBreak { get => _timeSavedBreak; set => SetProperty(ref _timeSavedBreak, value); }
-        private string _timeSavedMaintenance; public string TimeSavedMaintenance { get => _timeSavedMaintenance; set => SetProperty(ref _timeSavedMaintenance, value); }
-        private string _extraStat1; public string ExtraStat1 { get => _extraStat1; set => SetProperty(ref _extraStat1, value); }
-        private string _extraStat2; public string ExtraStat2 { get => _extraStat2; set => SetProperty(ref _extraStat2, value); }
-        private string _extraStat3; public string ExtraStat3 { get => _extraStat3; set => SetProperty(ref _extraStat3, value); }
+        private string _avgErrorPerDay; public string AvgErrorPerDay { get => _avgErrorPerDay; set => SetProperty(ref _avgErrorPerDay, value); }
+        private string _savedMaintenanceTime; public string SavedMaintenanceTime { get => _savedMaintenanceTime; set => SetProperty(ref _savedMaintenanceTime, value); }
+        private string _avgWorkingPerDay; public string AvgWorkingPerDay { get => _avgWorkingPerDay; set => SetProperty(ref _avgWorkingPerDay, value); }
+        private string _avgGrossStopPerDay; public string AvgGrossStopPerDay { get => _avgGrossStopPerDay; set => SetProperty(ref _avgGrossStopPerDay, value); }
+        private string _mostFrequentMachine; public string MostFrequentMachine { get => _mostFrequentMachine; set => SetProperty(ref _mostFrequentMachine, value); }
+        private string _savedNonCriticalTime; public string SavedNonCriticalTime { get => _savedNonCriticalTime; set => SetProperty(ref _savedNonCriticalTime, value); }
 
         // --- Commands ---
         public ICommand LoadDataCommand { get; set; }
@@ -164,6 +173,7 @@ namespace WPF_LoginForm.ViewModels
 
         private void UpdateFormatterLogic()
         {
+            // Task 2: Ensure Y-Axis formatter uses TimeFormatHelper
             NumberFormatter = (val) => TimeFormatHelper.FormatDuration(val, IsMinToClockFormat);
         }
 
@@ -195,15 +205,25 @@ namespace WPF_LoginForm.ViewModels
                 var reasonFullNames = reasonStats.Select(x => x.Label).ToList();
                 var machineStats = InputHelper.GetMachineStats(filteredList);
 
-                var page2Stats = InputHelper.CalculatePage2Stats(filteredList, StartDate, EndDate, NumberFormatter);
+                var page2Stats = InputHelper.CalculatePage2Stats(filteredList, StartDate, EndDate, NumberFormatter, IsMachine00Excluded);
                 var shiftStats = InputHelper.GetShiftStats(filteredList);
                 var severityStats = InputHelper.GetSeverityStats(filteredList);
 
                 var uniqueCategories = filteredList.Select(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules)).Distinct().OrderBy(x => x).ToList();
 
+                // Dynamic Axis Steps
+                double maxReasonVal = reasonStats.Any() ? reasonStats.Max(x => x.Value) : 0;
+                double calculatedReasonStep = CalculateBestStep(maxReasonVal);
+
+                double maxSeverityVal = severityStats.Any() ? severityStats.Max(x => x.Value) : 0;
+                double calculatedSeverityStep = CalculateBestStep(maxSeverityVal);
+
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     if (token.IsCancellationRequested) return;
+
+                    ReasonAxisStep = calculatedReasonStep;
+                    SeverityAxisStep = calculatedSeverityStep;
 
                     string prevCat = SelectedErrorCategory;
                     ErrorCategories.Clear();
@@ -221,32 +241,79 @@ namespace WPF_LoginForm.ViewModels
                     MachineSeries = machineColl;
                     UpdateCategoryMachineChart();
 
-                    DailyAvgStop = page2Stats.DailyAvgStop;
-                    DailyAvgError = page2Stats.DailyAvgError;
-                    TimeSavedBreak = page2Stats.SavedBreakTime;
-                    TimeSavedMaintenance = page2Stats.SavedMaintenanceTime;
-                    ExtraStat1 = page2Stats.ExtraStat1; ExtraStat2 = page2Stats.ExtraStat2; ExtraStat3 = page2Stats.ExtraStat3;
+                    AvgNetStopPerDay = page2Stats.AvgNetStopPerDay;
+                    AvgErrorPerDay = page2Stats.AvgErrorPerDay;
+                    SavedMaintenanceTime = page2Stats.SavedMaintenanceTime;
+                    AvgWorkingPerDay = page2Stats.AvgWorkingPerDay;
+                    AvgGrossStopPerDay = page2Stats.AvgGrossStopPerDay;
+                    MostFrequentMachine = page2Stats.MostFrequentMachine;
+                    SavedNonCriticalTime = page2Stats.SavedNonCriticalTime;
 
+                    string errorText = WPF_LoginForm.Properties.Resources.AnalyticsP2_Error ?? "Errors";
+                    string stopText = WPF_LoginForm.Properties.Resources.AnalyticsP2_Stop ?? "Stops";
+
+                    // Task 1: Updated Pie Chart formatters
                     EfficiencySeries = new SeriesCollection {
-                        new PieSeries { Title = "Errors", Values = new ChartValues<double> { page2Stats.TotalErrorDuration }, DataLabels = true, Fill = Brushes.OrangeRed, LabelPoint = p => $"{p.Y:N0}m" },
-                        new PieSeries { Title = "Stops", Values = new ChartValues<double> { page2Stats.TotalStopDuration }, DataLabels = true, Fill = Brushes.DodgerBlue, LabelPoint = p => $"{p.Y:N0}m" }
+                        new PieSeries {
+                            Title = errorText,
+                            Values = new ChartValues<double> { page2Stats.TotalErrorDuration },
+                            DataLabels = true,
+                            Fill = Brushes.OrangeRed,
+                            LabelPoint = p => TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat)
+                        },
+                        new PieSeries {
+                            Title = stopText,
+                            Values = new ChartValues<double> { page2Stats.TotalStopDuration },
+                            DataLabels = true,
+                            Fill = Brushes.DodgerBlue,
+                            LabelPoint = p => TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat)
+                        }
                     };
 
                     var shiftColl = new SeriesCollection();
-                    foreach (var s in shiftStats) shiftColl.Add(new PieSeries { Title = s.Label, Values = new ChartValues<double> { s.Value }, DataLabels = true, LabelPoint = p => $"{p.Y:N0}m ({p.Participation:P0})" });
+                    foreach (var s in shiftStats)
+                        shiftColl.Add(new PieSeries
+                        {
+                            Title = s.Label,
+                            Values = new ChartValues<double> { s.Value },
+                            DataLabels = true,
+                            LabelPoint = p => $"{TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat)} ({p.Participation:P0})"
+                        });
                     ShiftImpactSeries = shiftColl;
 
+                    // Task 2: Updated Bar Chart formatter
                     var sevColl = new SeriesCollection();
                     foreach (var s in severityStats)
                     {
                         Brush fill = Brushes.Gray;
-                        if (s.Label.Contains("Micro")) fill = Brushes.MediumSeaGreen; else if (s.Label.Contains("Minor")) fill = Brushes.Orange; else if (s.Label.Contains("Major")) fill = Brushes.Crimson;
-                        sevColl.Add(new ColumnSeries { Title = s.Label, Values = new ChartValues<double> { s.Value }, DataLabels = true, Fill = fill });
+                        if (s.Label.Contains("Micro")) fill = Brushes.MediumSeaGreen;
+                        else if (s.Label.Contains("Minor")) fill = Brushes.Orange;
+                        else if (s.Label.Contains("Major")) fill = Brushes.Crimson;
+
+                        sevColl.Add(new ColumnSeries
+                        {
+                            Title = s.Label,
+                            Values = new ChartValues<double> { s.Value },
+                            DataLabels = true,
+                            Fill = fill,
+                            LabelPoint = p => TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat)
+                        });
                     }
                     SeveritySeries = sevColl;
                     SeverityLabels = new string[] { "" };
                 });
             });
+        }
+
+        private double CalculateBestStep(double maxVal)
+        {
+            if (maxVal <= 10) return 1;
+            if (maxVal <= 30) return 5;
+            if (maxVal <= 60) return 10;
+            if (maxVal <= 180) return 30; // 30m
+            if (maxVal <= 360) return 60; // 1h
+            if (maxVal <= 720) return 120; // 2h
+            return double.NaN;
         }
 
         private void UpdateCategoryMachineChart()
@@ -284,20 +351,38 @@ namespace WPF_LoginForm.ViewModels
                         .Where(t => t != "Others")
                         .ToList();
 
-                    DrillDownRequested?.Invoke(SelectedTable, StartDate, EndDate, "MACHINE_OTHERS|" + string.Join(",", visible));
-                    return;
+                    filterText = "MACHINE_OTHERS|" + string.Join(",", visible);
                 }
-
-                if (point.SeriesView is ColumnSeries && _fullReasonNames.Count > (int)point.X)
-                    filterText = _fullReasonNames[(int)point.X];
-
-                // FIX: Pass explicit composite command for Category breakdown pie chart
-                if (ShiftSeries != null && ShiftSeries.Cast<object>().Any(s => s == point.SeriesView))
+                else if (point.SeriesView is ColumnSeries && _fullReasonNames.Count > (int)point.X)
                 {
-                    filterText = $"MACHINE_CATEGORY|{point.SeriesView.Title}|{SelectedErrorCategory}";
+                    filterText = _fullReasonNames[(int)point.X];
+                }
+                else if (ShiftSeries != null && ShiftSeries.Cast<object>().Any(s => s == point.SeriesView))
+                {
+                    filterText = $"MACHINE_CATEGORY|{point.SeriesView.Title.Replace("MA-", "")}|{SelectedErrorCategory}";
                 }
 
-                DrillDownRequested?.Invoke(SelectedTable, StartDate, EndDate, filterText);
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var drillDownVm = new ErrorDrillDownViewModel(
+                        _cachedRawData,
+                        $"Detailed Analysis: {SelectedTable}",
+                        filterText,
+                        new List<string>(),
+                        IsMinToClockFormat,
+                        IsMachine00Excluded
+                    );
+
+                    var win = new WPF_LoginForm.Views.ErrorDrillDownWindow();
+                    win.SetViewModel(drillDownVm);
+
+                    if (Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
+                    {
+                        win.Owner = Application.Current.MainWindow;
+                    }
+
+                    win.ShowDialog();
+                });
             }
         }
 

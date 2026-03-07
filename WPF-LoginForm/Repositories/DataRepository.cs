@@ -142,7 +142,10 @@ namespace WPF_LoginForm.Repositories
             {
                 using (var conn = GetConnection())
                 {
-                    conn.Open();
+                    if (conn is System.Data.SqlClient.SqlConnection sqlConn) await sqlConn.OpenAsync();
+                    else if (conn is Npgsql.NpgsqlConnection pgConn) await pgConn.OpenAsync();
+                    else conn.Open();
+
                     using (var cmd = conn.CreateCommand())
                     {
                         cmd.CommandText = $"SELECT * FROM {Quote(tableName)}";
@@ -153,17 +156,21 @@ namespace WPF_LoginForm.Repositories
                 await Task.Run(() =>
                 {
                     DataColumn colDate = null, colShift = null, colStopDuration = null;
-                    DataColumn colSavedBreak = null, colSavedMaint = null;
+                    DataColumn colSavedBreak = null, colSavedMaint = null, colActualWork = null;
                     var errorCols = new List<DataColumn>();
 
                     foreach (DataColumn c in dt.Columns)
                     {
                         string n = c.ColumnName.ToLower();
+                        // Task 1: Improved Column Mapping
                         if (n.Contains("tarih") || n == "date") colDate = c;
                         else if (n.Contains("vardiya") || n == "shift") colShift = c;
                         else if (n.Contains("duraklama") || n.Contains("stop")) colStopDuration = c;
-                        else if (n.Contains("engelemeyen") || n.Contains("kazanımı")) colSavedBreak = c;
-                        else if (n.Contains("mola") && n.Contains("bakım")) colSavedMaint = c;
+                        // Specific match for "Duruşu Engelemeyen..."
+                        else if (n.Contains("engelemeyen") || (n.Contains("zaman") && n.Contains("kazanımı") && !n.Contains("mola"))) colSavedBreak = c;
+                        // Specific match for "Mola-Bakım süre kazanımı"
+                        else if ((n.Contains("mola") || n.Contains("bakım")) && n.Contains("kazanım")) colSavedMaint = c;
+                        else if (n.Contains("fiili") || n.Contains("çalışılan") || n.Contains("work")) colActualWork = c;
                         else if (n.StartsWith("hata_kodu") || n.StartsWith("error_code") || n.StartsWith("code")) errorCols.Add(c);
                     }
 
@@ -192,6 +199,14 @@ namespace WPF_LoginForm.Repositories
                         double savedMaint = 0;
                         if (colSavedMaint != null && row[colSavedMaint] != DBNull.Value) double.TryParse(row[colSavedMaint].ToString(), out savedMaint);
 
+                        double actualWork = 0;
+                        if (colActualWork != null && row[colActualWork] != DBNull.Value)
+                        {
+                            string val = row[colActualWork].ToString();
+                            if (TimeSpan.TryParse(val, out TimeSpan ts)) actualWork = ts.TotalMinutes;
+                            else if (DateTime.TryParse(val, out DateTime dVal)) actualWork = dVal.TimeOfDay.TotalMinutes;
+                        }
+
                         foreach (var errCol in errorCols)
                         {
                             if (row[errCol] != DBNull.Value)
@@ -199,7 +214,7 @@ namespace WPF_LoginForm.Repositories
                                 string cellData = row[errCol].ToString();
                                 if (string.IsNullOrWhiteSpace(cellData)) continue;
 
-                                var model = ErrorEventModel.Parse(cellData, date, shift, rowStopMin, savedBreak, savedMaint, rowId);
+                                var model = ErrorEventModel.Parse(cellData, date, shift, rowStopMin, savedBreak, savedMaint, actualWork, rowId);
                                 if (model != null) errorList.Add(model);
                             }
                         }

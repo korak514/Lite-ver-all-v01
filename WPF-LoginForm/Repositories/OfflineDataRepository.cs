@@ -82,7 +82,6 @@ namespace WPF_LoginForm.Repositories
             return (dt, true);
         }
 
-        // --- FIX: Implement actual Date Range Scanning for Dashboard Sliders ---
         public async Task<(DateTime Min, DateTime Max)> GetDateRangeAsync(string tableName, string dateColumn)
         {
             try
@@ -109,14 +108,11 @@ namespace WPF_LoginForm.Repositories
             return (DateTime.Today.AddMonths(-1), DateTime.Today);
         }
 
-        // --- FIX: Implement Data Filtering & Type Conversion for Dashboard Charts ---
         public async Task<DataTable> GetDataAsync(string tableName, List<string> columns, string dateColumn, DateTime? startDate, DateTime? endDate)
         {
             string path = Path.Combine(_folderPath, $"{tableName}.csv");
             var rawDt = await Task.Run(() => ReadCsv(path));
 
-            // HomeViewModel strictly expects the DateColumn to be typeof(DateTime), not string.
-            // We must create a strongly typed table.
             var typedDt = new DataTable(tableName);
             foreach (var col in columns)
             {
@@ -165,7 +161,6 @@ namespace WPF_LoginForm.Repositories
                 }
             }
 
-            // Sort ASC by Date for line charts
             if (!string.IsNullOrEmpty(dateColumn) && typedDt.Columns.Contains(dateColumn))
             {
                 var view = typedDt.DefaultView;
@@ -176,7 +171,6 @@ namespace WPF_LoginForm.Repositories
             return typedDt;
         }
 
-        // --- FIX: Implement full Analytics Parsing for Offline Mode ---
         public async Task<List<ErrorEventModel>> GetErrorDataAsync(DateTime startDate, DateTime endDate, string tableName)
         {
             var errorList = new List<ErrorEventModel>();
@@ -188,7 +182,7 @@ namespace WPF_LoginForm.Repositories
             await Task.Run(() =>
             {
                 DataColumn colDate = null, colShift = null, colStopDuration = null;
-                DataColumn colSavedBreak = null, colSavedMaint = null;
+                DataColumn colSavedBreak = null, colSavedMaint = null, colActualWork = null;
                 var errorCols = new List<DataColumn>();
 
                 foreach (DataColumn c in dt.Columns)
@@ -199,6 +193,7 @@ namespace WPF_LoginForm.Repositories
                     else if (n.Contains("duraklama") || n.Contains("stop")) colStopDuration = c;
                     else if (n.Contains("engelemeyen") || n.Contains("kazanımı")) colSavedBreak = c;
                     else if (n.Contains("mola") && n.Contains("bakım")) colSavedMaint = c;
+                    else if (n.Contains("fiili") || n.Contains("çalışılan") || n.Contains("work")) colActualWork = c; // <-- Added Actual Work
                     else if (n.StartsWith("hata_kodu") || n.StartsWith("error_code") || n.StartsWith("code")) errorCols.Add(c);
                 }
 
@@ -228,6 +223,15 @@ namespace WPF_LoginForm.Repositories
                     double savedMaint = 0;
                     if (colSavedMaint != null && row[colSavedMaint] != DBNull.Value) double.TryParse(row[colSavedMaint].ToString(), out savedMaint);
 
+                    // --- Parse Actual Work Time ---
+                    double actualWork = 0;
+                    if (colActualWork != null && row[colActualWork] != DBNull.Value)
+                    {
+                        string val = row[colActualWork].ToString();
+                        if (TimeSpan.TryParse(val, out TimeSpan ts)) actualWork = ts.TotalMinutes;
+                        else if (DateTime.TryParse(val, out DateTime dVal)) actualWork = dVal.TimeOfDay.TotalMinutes;
+                    }
+
                     foreach (var errCol in errorCols)
                     {
                         if (row[errCol] != DBNull.Value)
@@ -235,7 +239,8 @@ namespace WPF_LoginForm.Repositories
                             string cellData = row[errCol].ToString();
                             if (string.IsNullOrWhiteSpace(cellData)) continue;
 
-                            var model = ErrorEventModel.Parse(cellData, date, shift, rowStopMin, savedBreak, savedMaint, rowId);
+                            // --- FIX: Pass actualWork (8 parameters total) ---
+                            var model = ErrorEventModel.Parse(cellData, date, shift, rowStopMin, savedBreak, savedMaint, actualWork, rowId);
                             if (model != null) errorList.Add(model);
                         }
                     }

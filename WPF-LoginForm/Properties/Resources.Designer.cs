@@ -151,6 +151,114 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Severity Breakdown(Duration).
+        /// </summary>
+        public static string AnalyticsP2_BarTitle {
+            get {
+                return ResourceManager.GetString("AnalyticsP2_BarTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Avg Stop/Day.
+        /// </summary>
+        public static string AnalyticsP2_Card_1 {
+            get {
+                return ResourceManager.GetString("AnalyticsP2_Card_1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Avg Error/Day.
+        /// </summary>
+        public static string AnalyticsP2_Card_2 {
+            get {
+                return ResourceManager.GetString("AnalyticsP2_Card_2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Saved Breaks And Parallel Maintenance.
+        /// </summary>
+        public static string AnalyticsP2_Card_3 {
+            get {
+                return ResourceManager.GetString("AnalyticsP2_Card_3", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Avg Working /Day.
+        /// </summary>
+        public static string AnalyticsP2_Card_4 {
+            get {
+                return ResourceManager.GetString("AnalyticsP2_Card_4", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Avg Stop/day (Total ; meals And Breaks Included).
+        /// </summary>
+        public static string AnalyticsP2_Card_5 {
+            get {
+                return ResourceManager.GetString("AnalyticsP2_Card_5", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Machine with the Most Frequent Errors.
+        /// </summary>
+        public static string AnalyticsP2_Card_6 {
+            get {
+                return ResourceManager.GetString("AnalyticsP2_Card_6", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Time Saved from a Non-Critical Failure.
+        /// </summary>
+        public static string AnalyticsP2_Card_7 {
+            get {
+                return ResourceManager.GetString("AnalyticsP2_Card_7", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Errors.
+        /// </summary>
+        public static string AnalyticsP2_Error {
+            get {
+                return ResourceManager.GetString("AnalyticsP2_Error", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Errors vs Stops.
+        /// </summary>
+        public static string AnalyticsP2_PieTitle_1 {
+            get {
+                return ResourceManager.GetString("AnalyticsP2_PieTitle_1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shift İmpact.
+        /// </summary>
+        public static string AnalyticsP2_PieTitle_2 {
+            get {
+                return ResourceManager.GetString("AnalyticsP2_PieTitle_2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stops.
+        /// </summary>
+        public static string AnalyticsP2_Stop {
+            get {
+                return ResourceManager.GetString("AnalyticsP2_Stop", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Application Settings.
         /// </summary>
         public static string AppSettings {

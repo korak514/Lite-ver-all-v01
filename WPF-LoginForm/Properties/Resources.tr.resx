@@ -405,4 +405,40 @@
   <data name="Max_but" xml:space="preserve">
     <value>Grafik Tam Ekran</value>
   </data>
+  <data name="AnalyticsP2_Error" xml:space="preserve">
+    <value>Arızalar</value>
+  </data>
+  <data name="AnalyticsP2_Stop" xml:space="preserve">
+    <value>Duruşlar</value>
+  </data>
+  <data name="AnalyticsP2_PieTitle_1" xml:space="preserve">
+    <value>Arızalar ve Duruş Karşılatırması</value>
+  </data>
+  <data name="AnalyticsP2_PieTitle_2" xml:space="preserve">
+    <value>Vadiya Arıza dağlımı</value>
+  </data>
+  <data name="AnalyticsP2_BarTitle" xml:space="preserve">
+    <value>Ağırlık Dağılımı</value>
+  </data>
+  <data name="AnalyticsP2_Card_1" xml:space="preserve">
+    <value>Günlük Ortalma Duruş</value>
+  </data>
+  <data name="AnalyticsP2_Card_2" xml:space="preserve">
+    <value>Günlük Ortalma Arıza</value>
+  </data>
+  <data name="AnalyticsP2_Card_3" xml:space="preserve">
+    <value>Mola-Bakım süre kazanımı</value>
+  </data>
+  <data name="AnalyticsP2_Card_7" xml:space="preserve">
+    <value>Duruşu Engelemeyen Arızadan Zaman Kazanımı</value>
+  </data>
+  <data name="AnalyticsP2_Card_5" xml:space="preserve">
+    <value>Günlük Ortalma Duruş</value>
+  </data>
+  <data name="AnalyticsP2_Card_6" xml:space="preserve">
+    <value>En Sık arıza yapan Makine</value>
+  </data>
+  <data name="AnalyticsP2_Card_4" xml:space="preserve">
+    <value>Günlük Ortalma çalışma süresi</value>
+  </data>
 </root>

@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Models/ErrorEventModel.cs
+using System;
 using System.Text.RegularExpressions;
 
 namespace WPF_LoginForm.Models
@@ -6,27 +7,27 @@ namespace WPF_LoginForm.Models
     public class ErrorEventModel
     {
         // --- Identity ---
-        // Used to sum Shift-wide totals (like Total Stop Time) only once per row,
-        // even if the row has 10 errors.
         public string UniqueRowId { get; set; }
 
         // --- Data Properties ---
         public DateTime Date { get; set; }
 
-        public string Shift { get; set; } // "Vardiya"
+        public string Shift { get; set; }
         public string RawData { get; set; }
 
-        // --- Metric Columns from Image ---
-        public double RowTotalStopMinutes { get; set; } // "Duraklama_Süresi"
+        // --- Metric Columns ---
+        public double RowTotalStopMinutes { get; set; }
 
-        public double RowSavedTimeBreak { get; set; }   // Col G: "Duruşu Engelemeyen..."
-        public double RowSavedTimeMaint { get; set; }   // Col H: "Mola-Bakım..."
+        public double RowSavedTimeBreak { get; set; }
+        public double RowSavedTimeMaint { get; set; }
+        public double RowActualWorkingMinutes { get; set; } // <-- NEW: Fiili_Çalışılan_Süre
 
         // --- Parsed Properties ---
         public string StartTime { get; set; }
 
         public string EndTime { get; set; }
         public int DurationMinutes { get; set; }
+        public string DisplayDuration { get; set; }
         public string SectionCode { get; set; }
         public string MachineCode { get; set; }
         public string ErrorDescription { get; set; }
@@ -38,7 +39,8 @@ namespace WPF_LoginForm.Models
             @"^(\d{4})\s*-\s*(\d+)\s*-\s*([A-Za-z]+)\s*-\s*([A-Za-z0-9]+)\s*-\s*(.*)$",
             RegexOptions.Compiled);
 
-        public static ErrorEventModel Parse(string cellData, DateTime rowDate, string rowShift, double totalStop, double savedBreak, double savedMaint, string uniqueId)
+        // --- FIX: Added actualWork parameter ---
+        public static ErrorEventModel Parse(string cellData, DateTime rowDate, string rowShift, double totalStop, double savedBreak, double savedMaint, double actualWork, string uniqueId)
         {
             if (string.IsNullOrWhiteSpace(cellData)) return null;
 
@@ -50,10 +52,10 @@ namespace WPF_LoginForm.Models
                 RowTotalStopMinutes = totalStop,
                 RowSavedTimeBreak = savedBreak,
                 RowSavedTimeMaint = savedMaint,
+                RowActualWorkingMinutes = actualWork, // Assign to model
                 UniqueRowId = uniqueId
             };
 
-            // Parse Logic: 0800-43-MA-00-GENEL-TEMİZLİK
             var match = LogPattern.Match(cellData);
             if (match.Success)
             {
@@ -65,7 +67,6 @@ namespace WPF_LoginForm.Models
             }
             else
             {
-                // Fallback split
                 var parts = cellData.Split('-');
                 if (parts.Length >= 4)
                 {

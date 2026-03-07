@@ -405,4 +405,41 @@
   <data name="Max_but" xml:space="preserve">
     <value>Maximize button </value>
   </data>
+  <data name="AnalyticsP2_Error" xml:space="preserve">
+    <value>Errors</value>
+  </data>
+  <data name="AnalyticsP2_Stop" xml:space="preserve">
+    <value>Stops</value>
+  </data>
+  <data name="AnalyticsP2_PieTitle_1" xml:space="preserve">
+    <value>Errors vs Stops</value>
+  </data>
+  <data name="AnalyticsP2_PieTitle_2" xml:space="preserve">
+    <value>Shift İmpact</value>
+  </data>
+  <data name="AnalyticsP2_BarTitle" xml:space="preserve">
+    <value>Severity Breakdown(Duration)</value>
+  </data>
+  <data name="AnalyticsP2_Card_1" xml:space="preserve">
+    <value>Avg Stop/Day</value>
+  </data>
+  <data name="AnalyticsP2_Card_2" xml:space="preserve">
+    <value>Avg Error/Day</value>
+  </data>
+  <data name="AnalyticsP2_Card_3" xml:space="preserve">
+    <value>Saved Breaks And Parallel Maintenance</value>
+  </data>
+  <data name="AnalyticsP2_Card_7" xml:space="preserve">
+    <value>Time Saved from a Non-Critical Failure</value>
+  </data>
+  <data name="AnalyticsP2_Card_5" xml:space="preserve">
+    <value>Avg Stop/day (Total ; meals And Breaks Included)</value>
+  </data>
+  <data name="AnalyticsP2_Card_6" xml:space="preserve">
+    <value>Machine with the Most Frequent Errors</value>
+    <comment>ex:MA-26 128 times </comment>
+  </data>
+  <data name="AnalyticsP2_Card_4" xml:space="preserve">
+    <value>Avg Working /Day</value>
+  </data>
 </root>
