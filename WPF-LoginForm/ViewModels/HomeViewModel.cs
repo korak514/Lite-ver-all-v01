@@ -25,7 +25,6 @@ using WPF_LoginForm.Services;
 
 namespace WPF_LoginForm.ViewModels
 {
-    // --- HELPER MODELS ---
     public class KpiModel : ViewModelBase
     {
         public string Title { get; set; }
@@ -41,7 +40,6 @@ namespace WPF_LoginForm.ViewModels
         public int Value { get; set; }
     }
 
-    // --- MAIN VIEWMODEL ---
     public class HomeViewModel : ViewModelBase
     {
         private readonly IDataRepository _dataRepository;
@@ -49,6 +47,7 @@ namespace WPF_LoginForm.ViewModels
         private readonly ILogger _logger;
         private readonly DashboardStorageService _storageService;
         private readonly DashboardChartService _chartService;
+        private readonly DataTemplate _smartLabelTemplate;
 
         private List<DashboardConfiguration> _dashboardConfigurations;
         private bool _isUpdatingDates = false;
@@ -68,26 +67,14 @@ namespace WPF_LoginForm.ViewModels
         public ICommand ExportChartDataCommand { get; }
 
         private bool _showMaximizeButtons;
-
-        public bool ShowMaximizeButtons
-        {
-            get => _showMaximizeButtons;
-            set => SetProperty(ref _showMaximizeButtons, value);
-        }
+        public bool ShowMaximizeButtons { get => _showMaximizeButtons; set => SetProperty(ref _showMaximizeButtons, value); }
 
         private int _maximizedChartIndex = 0;
 
         public int MaximizedChartIndex
         {
             get => _maximizedChartIndex;
-            set
-            {
-                if (SetProperty(ref _maximizedChartIndex, value))
-                {
-                    OnPropertyChanged(nameof(IsAnyChartMaximized));
-                    UpdateDataLabelsVisibility();
-                }
-            }
+            set { if (SetProperty(ref _maximizedChartIndex, value)) { OnPropertyChanged(nameof(IsAnyChartMaximized)); UpdateDataLabelsVisibility(); } }
         }
 
         public bool IsAnyChartMaximized => MaximizedChartIndex > 0;
@@ -96,32 +83,19 @@ namespace WPF_LoginForm.ViewModels
         public ICommand CloseMaximizeCommand { get; }
 
         private bool _isSecondPageActive;
-
-        public bool IsSecondPageActive
-        {
-            get => _isSecondPageActive;
-            set => SetProperty(ref _isSecondPageActive, value);
-        }
+        public bool IsSecondPageActive { get => _isSecondPageActive; set => SetProperty(ref _isSecondPageActive, value); }
 
         public ObservableCollection<string> ErrorCategories { get; set; } = new ObservableCollection<string>();
         public ObservableCollection<string> DashboardFiles { get; } = new ObservableCollection<string>();
         public ObservableCollection<KpiModel> KpiCards { get; } = new ObservableCollection<KpiModel>();
 
         private string _selectedErrorCategory;
-
         public string SelectedErrorCategory
-        {
-            get => _selectedErrorCategory;
-            set { if (SetProperty(ref _selectedErrorCategory, value)) { InitializeSliders(); LoadAllChartsData(); AutoSave(); } }
-        }
+        { get => _selectedErrorCategory; set { if (SetProperty(ref _selectedErrorCategory, value)) { InitializeSliders(); LoadAllChartsData(); AutoSave(); } } }
 
         private string _selectedDashboardFile;
-
         public string SelectedDashboardFile
-        {
-            get => _selectedDashboardFile;
-            set { if (SetProperty(ref _selectedDashboardFile, value) && _isActive && !string.IsNullOrEmpty(value)) { Task.Delay(50).ContinueWith(_ => Application.Current.Dispatcher.Invoke(() => LoadSelectedDashboardFile(value))); } }
-        }
+        { get => _selectedDashboardFile; set { if (SetProperty(ref _selectedDashboardFile, value) && _isActive && !string.IsNullOrEmpty(value)) { Task.Delay(50).ContinueWith(_ => Application.Current.Dispatcher.Invoke(() => LoadSelectedDashboardFile(value))); } } }
 
         public bool IsDashboardSelectorVisible => Settings.Default.AutoImportEnabled && DashboardFiles.Any();
 
@@ -138,27 +112,22 @@ namespace WPF_LoginForm.ViewModels
         public bool IsSnapshotExport { get; set; } = true;
 
         private bool _isFilterByDate = true;
-
         public bool IsFilterByDate
         { get => _isFilterByDate; set { if (SetProperty(ref _isFilterByDate, value)) { InitializeSliders(); LoadAllChartsData(); AutoSave(); } } }
 
         private bool _ignoreNonDateData = true;
-
         public bool IgnoreNonDateData
         { get => _ignoreNonDateData; set { if (SetProperty(ref _ignoreNonDateData, value)) { LoadAllChartsData(); AutoSave(); } } }
 
         private bool _useIdToDateConversion = false;
-
         public bool UseIdToDateConversion
         { get => _useIdToDateConversion; set { if (SetProperty(ref _useIdToDateConversion, value)) AutoSave(); } }
 
         private DateTime _initialDateForConversion = DateTime.Today.AddYears(-1);
-
         public DateTime InitialDateForConversion
         { get => _initialDateForConversion; set { if (SetProperty(ref _initialDateForConversion, value)) AutoSave(); } }
 
         private bool _globalIgnoreAfterHyphen = false;
-
         public bool GlobalIgnoreAfterHyphen
         { get => _globalIgnoreAfterHyphen; set { if (SetProperty(ref _globalIgnoreAfterHyphen, value)) { LoadAllChartsData(); AutoSave(); } } }
 
@@ -174,12 +143,10 @@ namespace WPF_LoginForm.ViewModels
         public bool IsDateFilterEnabled { get => _isDateFilterEnabled; private set => SetProperty(ref _isDateFilterEnabled, value); }
 
         private DateTime _startDate;
-
         public DateTime StartDate
         { get => _startDate; set { if (_startDate != value) { _startDate = value; OnPropertyChanged(); if (!_isUpdatingDates && _isActive && IsFilterByDate) { LoadAllChartsData(); UpdateSlidersFromDates(); AutoSave(); } } } }
 
         private DateTime _endDate;
-
         public DateTime EndDate
         { get => _endDate; set { if (_endDate != value) { _endDate = value; OnPropertyChanged(); if (!_isUpdatingDates && _isActive && IsFilterByDate) { LoadAllChartsData(); UpdateSlidersFromDates(); AutoSave(); } } } }
 
@@ -187,12 +154,10 @@ namespace WPF_LoginForm.ViewModels
         public double SliderMaximum { get => _sliderMaximum; set => SetProperty(ref _sliderMaximum, value); }
 
         private double _startMonthSliderValue;
-
         public double StartMonthSliderValue
         { get => _startMonthSliderValue; set { if (SetProperty(ref _startMonthSliderValue, value) && !_isUpdatingDates && _isActive) { if (IsFilterByDate) UpdateDatesFromSliders(); else { UpdateTooltips(); LoadAllChartsData(); } } } }
 
         private double _endMonthSliderValue;
-
         public double EndMonthSliderValue
         { get => _endMonthSliderValue; set { if (SetProperty(ref _endMonthSliderValue, value) && !_isUpdatingDates && _isActive) { if (IsFilterByDate) UpdateDatesFromSliders(); else { UpdateTooltips(); LoadAllChartsData(); } } } }
 
@@ -227,6 +192,46 @@ namespace WPF_LoginForm.ViewModels
             DateFormatter = value => (value < DateTime.MinValue.Ticks || value > DateTime.MaxValue.Ticks) ? "" : new DateTime((long)value).ToString("d");
             NumberFormatter = val => DashboardChartService.FormatKiloMega(val);
 
+            try
+            {
+                string xaml = @"<DataTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"">
+                                    <Canvas Width=""0"" Height=""0"">
+                                        <Line X1=""0"" Y1=""0""
+                                              X2=""{Binding Point.Instance.LeaderLineX2}""
+                                              Y2=""{Binding Point.Instance.LeaderLineY2}""
+                                              Stroke=""#804A90E2"" StrokeThickness=""1.5"" StrokeDashArray=""2,2"">
+                                            <Line.Style>
+                                                <Style TargetType=""Line"">
+                                                    <Setter Property=""Visibility"" Value=""Collapsed"" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding=""{Binding Point.Instance.HasLeaderLine}"" Value=""True"">
+                                                            <Setter Property=""Visibility"" Value=""Visible"" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Line.Style>
+                                        </Line>
+                                        <Border Canvas.Left=""{Binding Point.Instance.LabelDx}""
+                                                Canvas.Top=""{Binding Point.Instance.LabelDy}""
+                                                Background=""#CC1A1A2E"" BorderBrush=""#804A90E2"" BorderThickness=""1.5"" CornerRadius=""4"" Padding=""4,2"">
+                                            <TextBlock Text=""{Binding Point.Instance.Label}"" Foreground=""#F8F9FA"" FontSize=""11"" FontWeight=""Bold"" TextAlignment=""Center"" />
+                                            <Border.Style>
+                                                <Style TargetType=""Border"">
+                                                    <Setter Property=""Visibility"" Value=""Collapsed"" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding=""{Binding Point.Instance.ShowLabel}"" Value=""True"">
+                                                            <Setter Property=""Visibility"" Value=""Visible"" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
+                                    </Canvas>
+                                </DataTemplate>";
+                _smartLabelTemplate = (DataTemplate)System.Windows.Markup.XamlReader.Parse(xaml);
+            }
+            catch (Exception ex) { _logger?.LogError("Failed to initialize SmartLabel Template", ex); }
+
             ClearAndReinitializeAxes(); TryLoadAutoSave();
         }
 
@@ -245,13 +250,17 @@ namespace WPF_LoginForm.ViewModels
         private async void LoadAllChartsData(Dictionary<(int, string), string> colorMap = null)
         {
             if (_cts != null) { _cts.Cancel(); _cts.Dispose(); }
-            _cts = new CancellationTokenSource(); var token = _cts.Token;
-
-            if (_dashboardConfigurations == null || !_isActive) return;
-            if (!_dashboardConfigurations.Any()) for (int i = 1; i <= 6; i++) _dashboardConfigurations.Add(new DashboardConfiguration { ChartPosition = i, IsEnabled = false });
+            _cts = new CancellationTokenSource();
+            var token = _cts.Token;
 
             try
             {
+                await Task.Delay(300, token);
+                if (token.IsCancellationRequested) return;
+
+                if (_dashboardConfigurations == null || !_isActive) return;
+                if (!_dashboardConfigurations.Any()) for (int i = 1; i <= 6; i++) _dashboardConfigurations.Add(new DashboardConfiguration { ChartPosition = i, IsEnabled = false });
+
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     Chart1Series.Clear(); Chart2Series.Clear(); Chart3Series.Clear(); Chart4Series.Clear(); Chart5Series.Clear(); Chart6Series.Clear();
@@ -260,7 +269,10 @@ namespace WPF_LoginForm.ViewModels
 
                 var validConfigs = _dashboardConfigurations.Where(c => c.IsEnabled && !string.IsNullOrEmpty(c.TableName) && c.Series.Any(s => !string.IsNullOrEmpty(s.ColumnName))).ToList();
                 var tasks = validConfigs.Select(config => ProcessChartConfigurationAsync(config, colorMap, token)).ToList();
+
                 await Task.WhenAll(tasks);
+
+                if (token.IsCancellationRequested) return;
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {
@@ -284,6 +296,7 @@ namespace WPF_LoginForm.ViewModels
                     }
                 });
             }
+            catch (TaskCanceledException) { }
             catch (Exception ex) { _logger?.LogError($"Error loading charts: {ex.Message}"); }
         }
 
@@ -291,12 +304,14 @@ namespace WPF_LoginForm.ViewModels
         {
             void UpdateSeries(SeriesCollection seriesCol, int index)
             {
-                bool isMax = MaximizedChartIndex == index;
+                bool isMaximized = (MaximizedChartIndex == index);
                 foreach (var series in seriesCol)
                 {
-                    if (series.Values != null && series.Values.Count > 0 && series.Values[0] is DashboardDataPoint)
+                    if (series is LineSeries lineSeries)
                     {
-                        foreach (DashboardDataPoint p in series.Values) p.ShowLabel = isMax && p.IsImportant;
+                        // Optimization: Only allow template-based smart labels if point count is low
+                        bool isSmall = lineSeries.Values != null && lineSeries.Values.Count <= 35;
+                        lineSeries.DataLabels = isMaximized && isSmall;
                     }
                 }
             }
@@ -376,57 +391,7 @@ namespace WPF_LoginForm.ViewModels
 
             var newSeries = new SeriesCollection();
             var axisColor = Brushes.WhiteSmoke;
-
             var xyMapper = Mappers.Xy<DashboardDataPoint>().X(p => p.X).Y(p => p.Y);
-
-            DataTemplate labelTemplate = null;
-            try
-            {
-                // Updated template dynamically integrates Leader Lines natively within the visual canvas.
-                string xaml = @"<DataTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"">
-                                    <Canvas Width=""0"" Height=""0"">
-
-                                        <!-- Dynamic Leader Line -->
-                                        <Line X1=""0"" Y1=""0""
-                                              X2=""{Binding Point.Instance.LeaderLineX2}""
-                                              Y2=""{Binding Point.Instance.LeaderLineY2}""
-                                              Stroke=""#804A90E2"" StrokeThickness=""1.5"" StrokeDashArray=""2,2"">
-                                            <Line.Style>
-                                                <Style TargetType=""Line"">
-                                                    <Setter Property=""Visibility"" Value=""Collapsed"" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding=""{Binding Point.Instance.HasLeaderLine}"" Value=""True"">
-                                                            <Setter Property=""Visibility"" Value=""Visible"" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Line.Style>
-                                        </Line>
-
-                                        <!-- Original Floating Bounding Box -->
-                                        <Border Canvas.Left=""{Binding Point.Instance.LabelDx}""
-                                                Canvas.Top=""{Binding Point.Instance.LabelDy}""
-                                                Background=""#E61A1A2E"" BorderBrush=""#804A90E2"" BorderThickness=""1.5"" CornerRadius=""6"" Padding=""6,4"">
-                                            <Border.Effect>
-                                                <DropShadowEffect Color=""Black"" BlurRadius=""4"" Opacity=""0.5"" ShadowDepth=""2"" />
-                                            </Border.Effect>
-                                            <TextBlock Text=""{Binding Point.Instance.Label}"" Foreground=""#F8F9FA"" FontSize=""11"" FontWeight=""Bold"" TextAlignment=""Center"" />
-                                            <Border.Style>
-                                                <Style TargetType=""Border"">
-                                                    <Setter Property=""Visibility"" Value=""Collapsed"" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding=""{Binding Point.Instance.ShowLabel}"" Value=""True"">
-                                                            <Setter Property=""Visibility"" Value=""Visible"" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                        </Border>
-                                    </Canvas>
-                                </DataTemplate>";
-                labelTemplate = (DataTemplate)System.Windows.Markup.XamlReader.Parse(xaml);
-            }
-            catch (Exception ex) { _logger?.LogError("Template parse failed", ex); }
 
             foreach (var s in result.Series)
             {
@@ -449,6 +414,12 @@ namespace WPF_LoginForm.ViewModels
                     var cv = new ChartValues<DashboardDataPoint>();
                     foreach (var pt in s.Points) cv.Add(pt);
 
+                    // --- VISIBILITY LOGIC ---
+                    // Initially: Only show if this chart position matches the maximized index AND data is small
+                    bool isMaximized = (position == MaximizedChartIndex);
+                    bool isSmall = cv.Count <= 35;
+                    bool showLabels = isMaximized && isSmall;
+
                     if (s.SeriesType == "Line")
                     {
                         newSeries.Add(new LineSeries
@@ -461,8 +432,10 @@ namespace WPF_LoginForm.ViewModels
                             StrokeThickness = 2.5,
                             Stroke = colorBrush,
                             Fill = Brushes.Transparent,
-                            DataLabels = true,
-                            DataLabelsTemplate = labelTemplate
+                            DataLabels = showLabels,
+                            Foreground = Brushes.WhiteSmoke,
+                            LabelPoint = p => DashboardChartService.FormatKiloMega(p.Y),
+                            DataLabelsTemplate = showLabels ? _smartLabelTemplate : null
                         });
                     }
                     else
@@ -473,8 +446,10 @@ namespace WPF_LoginForm.ViewModels
                             Values = cv,
                             Configuration = xyMapper,
                             Fill = colorBrush,
-                            DataLabels = true,
-                            DataLabelsTemplate = labelTemplate
+                            DataLabels = showLabels,
+                            Foreground = Brushes.WhiteSmoke,
+                            LabelPoint = p => DashboardChartService.FormatKiloMega(p.Y),
+                            DataLabelsTemplate = showLabels ? _smartLabelTemplate : null
                         });
                     }
                 }
@@ -482,9 +457,6 @@ namespace WPF_LoginForm.ViewModels
 
             targetSeries.AddRange(newSeries);
 
-            // =========================================================
-            // 🛠️ AXIS LOGIC: 15% SYMMETRIC BUFFER & SMART STEP
-            // =========================================================
             if (targetX != null && targetY != null && result.Series.Any(x => x.SeriesType != "Pie"))
             {
                 double minVal = double.MaxValue;
@@ -508,27 +480,20 @@ namespace WPF_LoginForm.ViewModels
                     Title = "Values",
                     LabelFormatter = NumberFormatter,
                     Foreground = axisColor,
-                    FontSize = 12
+                    FontSize = 12,
+                    Separator = new Separator { Stroke = new SolidColorBrush(Color.FromArgb(20, 255, 255, 255)) }
                 };
 
                 if (hasValues)
                 {
-                    // Special case for column series with non-negative values: force min to 0
                     bool forceMinZero = result.Series.Any(x => x.SeriesType == "Column") && minVal >= 0;
-
-                    // Calculate data range and apply 15% buffer
                     double dataRange = maxVal - minVal;
                     double buffer = 0.22 * dataRange;
                     double desiredMin = minVal - buffer;
                     double desiredMax = maxVal + buffer;
 
-                    // If forcing min to zero, override desiredMin
-                    if (forceMinZero)
-                    {
-                        desiredMin = 0;
-                    }
+                    if (forceMinZero) desiredMin = 0;
 
-                    // Determine magnitude for scaling (thousands, millions, etc.)
                     double magnitude = 1;
                     if (maxVal >= 1_000_000) magnitude = 1_000_000;
                     else if (maxVal >= 10_000) magnitude = 1_000;
@@ -536,20 +501,14 @@ namespace WPF_LoginForm.ViewModels
                     double normMin = desiredMin / magnitude;
                     double normMax = desiredMax / magnitude;
 
-                    // Choose a step size based on the normalized range
                     double displayStep;
-                    if (normMax - normMin < 0.5) // very small range
-                        displayStep = 0.05;
-                    else if (normMax - normMin < 3)
-                        displayStep = 0.25;
-                    else
-                        displayStep = 0.5;
+                    if (normMax - normMin < 0.5) displayStep = 0.05;
+                    else if (normMax - normMin < 3) displayStep = 0.25;
+                    else displayStep = 0.5;
 
-                    // Adjust step if it leads to too many steps (> 20)
                     double approxSteps = (normMax - normMin) / displayStep;
                     if (approxSteps > 20)
                     {
-                        // Increase step to keep steps <= 15
                         displayStep = (normMax - normMin) / 15;
                         double log10 = Math.Floor(Math.Log10(displayStep));
                         double factor = Math.Pow(10, log10);
@@ -562,33 +521,27 @@ namespace WPF_LoginForm.ViewModels
                     }
 
                     double actualStep = displayStep * magnitude;
-
-                    double finalNormMin = Math.Floor(normMin / displayStep) * displayStep;
-                    double finalNormMax = Math.Ceiling(normMax / displayStep) * displayStep;
-
-                    yAxis.MinValue = finalNormMin * magnitude;
-                    yAxis.MaxValue = finalNormMax * magnitude;
-
-                    // Optionally, set separator step if not too many steps
-                    double totalSteps = (yAxis.MaxValue - yAxis.MinValue) / actualStep;
-                    if (totalSteps <= 50)
-                    {
-                        yAxis.Separator = new Separator
-                        {
-                            Step = actualStep,
-                            Stroke = new SolidColorBrush(Color.FromArgb(30, 255, 255, 255))
-                        };
-                    }
-                    else
-                    {
-                        yAxis.Separator = new Separator { Stroke = new SolidColorBrush(Color.FromArgb(30, 255, 255, 255)) };
-                    }
+                    yAxis.MinValue = Math.Floor(normMin / displayStep) * displayStep * magnitude;
+                    yAxis.MaxValue = Math.Ceiling(normMax / displayStep) * displayStep * magnitude;
                 }
 
                 targetY.Add(yAxis);
 
-                if (result.IsDateAxis) targetX.Add(new Axis { LabelFormatter = DateFormatter, Separator = new Separator { IsEnabled = false }, Foreground = axisColor });
-                else targetX.Add(new Axis { Labels = result.XAxisLabels, Separator = new Separator { IsEnabled = false }, Foreground = axisColor });
+                // --- CRITICAL FIX: Removed the Step=0 infinite loop trap ---
+                if (result.IsDateAxis)
+                    targetX.Add(new Axis
+                    {
+                        LabelFormatter = DateFormatter,
+                        Separator = new Separator { IsEnabled = false }, // NO Step property here
+                        Foreground = axisColor
+                    });
+                else
+                    targetX.Add(new Axis
+                    {
+                        Labels = result.XAxisLabels,
+                        Separator = new Separator { IsEnabled = false }, // NO Step property here
+                        Foreground = axisColor
+                    });
             }
         }
 
@@ -720,7 +673,7 @@ namespace WPF_LoginForm.ViewModels
         }
 
         private void UpdateSlidersFromDates()
-        { if (_isUpdatingDates || _minSliderDate == default || !IsFilterByDate) return; _isUpdatingDates = true; StartMonthSliderValue = ((StartDate.Year - _minSliderDate.Year) * 12) + StartDate.Month - _minSliderDate.Month; EndMonthSliderValue = ((EndDate.Year - _minSliderDate.Year) * 12) + EndDate.Month - _minSliderDate.Month; if (StartMonthSliderValue < 0) StartMonthSliderValue = 0; if (EndMonthSliderValue > SliderMaximum) EndMonthSliderValue = SliderMaximum; UpdateTooltips(); _isUpdatingDates = false; }
+        { if (_isUpdatingDates || _minSliderDate == default || !IsFilterByDate) return; _isUpdatingDates = true; StartMonthSliderValue = ((StartDate.Year - _minSliderDate.Year) * 12) + StartDate.Month - _minSliderDate.Month; EndMonthSliderValue = ((EndDate.Year - _minSliderDate.Year) * 12) + EndDate.Month - _minSliderDate.Month; if (StartMonthSliderValue < 0) StartMonthSliderValue = 0; if (EndMonthSliderValue > SliderMaximum) EndMonthSliderValue = SliderMaximum; UpdateTooltips(); _isUpdatingDates = false; LoadAllChartsData(); AutoSave(); }
 
         private void UpdateDatesFromSliders()
         { if (_isUpdatingDates || _minSliderDate == default || !IsFilterByDate) return; if (StartMonthSliderValue > EndMonthSliderValue) { double tmp = StartMonthSliderValue; StartMonthSliderValue = EndMonthSliderValue; EndMonthSliderValue = tmp; } _isUpdatingDates = true; var s = _minSliderDate.AddMonths((int)StartMonthSliderValue); var e = _minSliderDate.AddMonths((int)EndMonthSliderValue); _startDate = new DateTime(s.Year, s.Month, 1); _endDate = new DateTime(e.Year, e.Month, DateTime.DaysInMonth(e.Year, e.Month)); OnPropertyChanged(nameof(StartDate)); OnPropertyChanged(nameof(EndDate)); UpdateTooltips(); _isUpdatingDates = false; LoadAllChartsData(); AutoSave(); }

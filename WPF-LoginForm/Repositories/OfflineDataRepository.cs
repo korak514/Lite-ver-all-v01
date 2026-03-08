@@ -1,10 +1,12 @@
 ﻿// Repositories/OfflineDataRepository.cs
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
+using System.Text;
 using System.Threading.Tasks;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Services;
@@ -17,8 +19,9 @@ namespace WPF_LoginForm.Repositories
         private readonly string _folderPath;
         private readonly ILogger _logger;
 
-        // Regex to split CSV by commas, but ignore commas inside quotes
-        private readonly string _csvSplitPattern = ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
+        // --- STEP 1: IN-MEMORY CACHE ---
+        // Stores the raw CSV data in RAM so we never read the disk twice for the same table.
+        private static readonly ConcurrentDictionary<string, DataTable> _tableCache = new ConcurrentDictionary<string, DataTable>(StringComparer.OrdinalIgnoreCase);
 
         public OfflineDataRepository(ILogger logger)
         {
@@ -38,29 +41,94 @@ namespace WPF_LoginForm.Repositories
             }
         }
 
+        // --- CORE LOGIC: Get from Cache or Load from Disk ---
+        private DataTable GetOrLoadTable(string tableName)
+        {
+            if (string.IsNullOrWhiteSpace(tableName)) return new DataTable();
+
+            if (_tableCache.TryGetValue(tableName, out DataTable cachedTable))
+            {
+                return cachedTable;
+            }
+
+            string filePath = Path.Combine(_folderPath, $"{tableName}.csv");
+            DataTable newTable = ReadCsv(filePath);
+            newTable.TableName = tableName;
+
+            _tableCache.TryAdd(tableName, newTable);
+            return newTable;
+        }
+
         private DataTable ReadCsv(string filePath)
         {
             var dt = new DataTable();
             if (!File.Exists(filePath)) return dt;
 
-            var lines = File.ReadAllLines(filePath);
-            if (lines.Length == 0) return dt;
-
-            var headers = Regex.Split(lines[0], _csvSplitPattern);
-            foreach (var h in headers) dt.Columns.Add(h.Trim('"'));
-
-            foreach (var line in lines.Skip(1))
+            try
             {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                var vals = Regex.Split(line, _csvSplitPattern);
-                var row = dt.NewRow();
-                for (int i = 0; i < Math.Min(vals.Length, dt.Columns.Count); i++)
+                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var sr = new StreamReader(fs, Encoding.UTF8))
                 {
-                    row[i] = vals[i].Trim('"');
+                    string headerLine = sr.ReadLine();
+                    if (string.IsNullOrWhiteSpace(headerLine)) return dt;
+
+                    var headers = ParseCsvLine(headerLine);
+                    foreach (var h in headers)
+                    {
+                        string colName = h;
+                        int dupCount = 1;
+                        while (dt.Columns.Contains(colName))
+                        {
+                            colName = $"{h}_{dupCount++}";
+                        }
+                        dt.Columns.Add(colName);
+                    }
+
+                    while (!sr.EndOfStream)
+                    {
+                        string line = sr.ReadLine();
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        var rowValues = ParseCsvLine(line);
+                        if (rowValues.Count > 0)
+                        {
+                            var row = dt.NewRow();
+                            for (int i = 0; i < Math.Min(rowValues.Count, dt.Columns.Count); i++)
+                            {
+                                row[i] = rowValues[i];
+                            }
+                            dt.Rows.Add(row);
+                        }
+                    }
                 }
-                dt.Rows.Add(row);
             }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error reading CSV {filePath}", ex);
+            }
+
             return dt;
+        }
+
+        private List<string> ParseCsvLine(string line)
+        {
+            var result = new List<string>();
+            bool inQuotes = false;
+            StringBuilder currentValue = new StringBuilder();
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+                if (c == '\"') inQuotes = !inQuotes;
+                else if (c == ',' && !inQuotes)
+                {
+                    result.Add(currentValue.ToString().Trim('"'));
+                    currentValue.Clear();
+                }
+                else currentValue.Append(c);
+            }
+            result.Add(currentValue.ToString().Trim('"'));
+            return result;
         }
 
         public async Task<List<string>> GetTableNamesAsync()
@@ -76,111 +144,128 @@ namespace WPF_LoginForm.Repositories
 
         public async Task<(DataTable Data, bool IsSortable)> GetTableDataAsync(string tableName, int limit = 0)
         {
-            string path = Path.Combine(_folderPath, $"{tableName}.csv");
-            var dt = await Task.Run(() => ReadCsv(path));
-            dt.TableName = tableName;
-            return (dt, true);
+            return await Task.Run(() =>
+            {
+                var cachedDt = GetOrLoadTable(tableName);
+
+                // Return a copy so the UI doesn't accidentally modify the cached master data
+                if (limit > 0 && cachedDt.Rows.Count > limit)
+                {
+                    var limitedDt = cachedDt.Clone();
+                    for (int i = 0; i < limit; i++) limitedDt.ImportRow(cachedDt.Rows[i]);
+                    return (limitedDt, true);
+                }
+
+                return (cachedDt.Copy(), true);
+            });
         }
 
         public async Task<(DateTime Min, DateTime Max)> GetDateRangeAsync(string tableName, string dateColumn)
         {
-            try
+            return await Task.Run(() =>
             {
-                var dtResult = await GetTableDataAsync(tableName, 0);
-                var dt = dtResult.Data;
+                var dt = GetOrLoadTable(tableName);
+                DateTime min = DateTime.MaxValue;
+                DateTime max = DateTime.MinValue;
+                bool found = false;
 
                 if (dt != null && dt.Columns.Contains(dateColumn))
                 {
-                    var dates = dt.AsEnumerable()
-                        .Select(r => r[dateColumn]?.ToString())
-                        .Where(s => !string.IsNullOrWhiteSpace(s))
-                        .Select(s => { DateTime.TryParse(s, out DateTime d); return d; })
-                        .Where(d => d != DateTime.MinValue)
-                        .ToList();
-
-                    if (dates.Any())
+                    int colIdx = dt.Columns.IndexOf(dateColumn);
+                    foreach (DataRow row in dt.Rows)
                     {
-                        return (dates.Min(), dates.Max());
+                        if (row[colIdx] != DBNull.Value && DateTime.TryParse(row[colIdx].ToString(), out DateTime d))
+                        {
+                            if (d < min) min = d;
+                            if (d > max) max = d;
+                            found = true;
+                        }
                     }
                 }
-            }
-            catch { }
-            return (DateTime.Today.AddMonths(-1), DateTime.Today);
+
+                if (found) return (min, max);
+                return (DateTime.Today.AddMonths(-1), DateTime.Today);
+            });
         }
 
         public async Task<DataTable> GetDataAsync(string tableName, List<string> columns, string dateColumn, DateTime? startDate, DateTime? endDate)
         {
-            string path = Path.Combine(_folderPath, $"{tableName}.csv");
-            var rawDt = await Task.Run(() => ReadCsv(path));
-
-            var typedDt = new DataTable(tableName);
-            foreach (var col in columns)
+            return await Task.Run(() =>
             {
-                if (rawDt.Columns.Contains(col))
+                var rawDt = GetOrLoadTable(tableName);
+                var finalDt = new DataTable(tableName);
+
+                // 1. Setup Target Columns
+                foreach (var col in columns)
                 {
-                    typedDt.Columns.Add(col, col == dateColumn ? typeof(DateTime) : typeof(string));
+                    if (!finalDt.Columns.Contains(col))
+                        finalDt.Columns.Add(col, (col == dateColumn) ? typeof(DateTime) : typeof(string));
                 }
-            }
 
-            if (typedDt.Columns.Count == 0) return typedDt;
+                if (rawDt.Rows.Count == 0 || finalDt.Columns.Count == 0) return finalDt;
 
-            foreach (DataRow row in rawDt.Rows)
-            {
-                var newRow = typedDt.NewRow();
-                bool hasDate = true;
-                DateTime rowDate = DateTime.MinValue;
+                // 2. Map Columns
+                int dateIdx = -1;
+                if (!string.IsNullOrEmpty(dateColumn) && rawDt.Columns.Contains(dateColumn))
+                    dateIdx = rawDt.Columns.IndexOf(dateColumn);
 
-                foreach (DataColumn col in typedDt.Columns)
+                var colMappings = new Dictionary<DataColumn, int>();
+                foreach (DataColumn targetCol in finalDt.Columns)
                 {
-                    if (col.ColumnName == dateColumn)
+                    if (rawDt.Columns.Contains(targetCol.ColumnName))
+                        colMappings[targetCol] = rawDt.Columns.IndexOf(targetCol.ColumnName);
+                }
+
+                // 3. Filter & Populate In-Memory
+                foreach (DataRow rawRow in rawDt.Rows)
+                {
+                    DateTime rowDate = DateTime.MinValue;
+                    if (dateIdx != -1)
                     {
-                        if (DateTime.TryParse(row[col.ColumnName]?.ToString(), out DateTime d))
+                        string dateStr = rawRow[dateIdx]?.ToString();
+                        if (!DateTime.TryParse(dateStr, out rowDate)) continue;
+                        if (startDate.HasValue && endDate.HasValue && (rowDate < startDate.Value || rowDate > endDate.Value)) continue;
+                    }
+
+                    var newRow = finalDt.NewRow();
+                    foreach (var kvp in colMappings)
+                    {
+                        DataColumn targetCol = kvp.Key;
+                        string val = rawRow[kvp.Value]?.ToString();
+
+                        if (targetCol.DataType == typeof(DateTime))
                         {
-                            rowDate = d;
-                            newRow[col] = d;
+                            if (kvp.Value == dateIdx) newRow[targetCol] = rowDate;
+                            else if (DateTime.TryParse(val, out DateTime d)) newRow[targetCol] = d;
                         }
-                        else hasDate = false;
+                        else
+                        {
+                            newRow[targetCol] = val;
+                        }
                     }
-                    else
-                    {
-                        newRow[col] = row[col.ColumnName];
-                    }
+                    finalDt.Rows.Add(newRow);
                 }
 
-                if (hasDate || string.IsNullOrEmpty(dateColumn))
+                // 4. Sort
+                if (!string.IsNullOrEmpty(dateColumn) && finalDt.Columns.Contains(dateColumn))
                 {
-                    if (startDate.HasValue && endDate.HasValue && hasDate)
-                    {
-                        if (rowDate.Date >= startDate.Value.Date && rowDate.Date <= endDate.Value.Date)
-                            typedDt.Rows.Add(newRow);
-                    }
-                    else
-                    {
-                        typedDt.Rows.Add(newRow);
-                    }
+                    finalDt.DefaultView.Sort = $"{dateColumn} ASC";
+                    return finalDt.DefaultView.ToTable();
                 }
-            }
 
-            if (!string.IsNullOrEmpty(dateColumn) && typedDt.Columns.Contains(dateColumn))
-            {
-                var view = typedDt.DefaultView;
-                view.Sort = $"{dateColumn} ASC";
-                return view.ToTable();
-            }
-
-            return typedDt;
+                return finalDt;
+            });
         }
 
         public async Task<List<ErrorEventModel>> GetErrorDataAsync(DateTime startDate, DateTime endDate, string tableName)
         {
-            var errorList = new List<ErrorEventModel>();
-            var dtResult = await GetTableDataAsync(tableName, 0);
-            var dt = dtResult.Data;
-
-            if (dt == null || dt.Rows.Count == 0) return errorList;
-
-            await Task.Run(() =>
+            return await Task.Run(() =>
             {
+                var errorList = new List<ErrorEventModel>();
+                var dt = GetOrLoadTable(tableName);
+
+                if (dt == null || dt.Rows.Count == 0) return errorList;
+
                 DataColumn colDate = null, colShift = null, colStopDuration = null;
                 DataColumn colSavedBreak = null, colSavedMaint = null, colActualWork = null;
                 var errorCols = new List<DataColumn>();
@@ -197,61 +282,51 @@ namespace WPF_LoginForm.Repositories
                     else if (n.StartsWith("hata_kodu") || n.StartsWith("error_code") || n.StartsWith("code")) errorCols.Add(c);
                 }
 
-                if (colDate == null) return;
+                if (colDate == null) return errorList;
 
                 foreach (DataRow row in dt.Rows)
                 {
-                    if (row[colDate] == DBNull.Value || string.IsNullOrWhiteSpace(row[colDate].ToString())) continue;
-
-                    if (!DateTime.TryParse(row[colDate].ToString(), out DateTime date)) continue;
+                    string dateStr = row[colDate]?.ToString();
+                    if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out DateTime date)) continue;
                     if (date.Date < startDate.Date || date.Date > endDate.Date) continue;
 
                     string shift = colShift != null ? row[colShift].ToString().Trim() : "Unknown";
                     string rowId = Guid.NewGuid().ToString();
 
-                    double rowStopMin = 0;
-                    if (colStopDuration != null && row[colStopDuration] != DBNull.Value)
+                    double rowStopMin = 0, savedBreak = 0, savedMaint = 0, actualWork = 0;
+
+                    if (colStopDuration != null)
                     {
-                        string val = row[colStopDuration].ToString();
+                        string val = row[colStopDuration]?.ToString();
                         if (TimeSpan.TryParse(val, out TimeSpan ts)) rowStopMin = ts.TotalMinutes;
                         else if (DateTime.TryParse(val, out DateTime dVal)) rowStopMin = dVal.TimeOfDay.TotalMinutes;
                     }
-
-                    double savedBreak = 0;
-                    if (colSavedBreak != null && row[colSavedBreak] != DBNull.Value) double.TryParse(row[colSavedBreak].ToString(), out savedBreak);
-
-                    double savedMaint = 0;
-                    if (colSavedMaint != null && row[colSavedMaint] != DBNull.Value) double.TryParse(row[colSavedMaint].ToString(), out savedMaint);
-
-                    double actualWork = 0;
-                    if (colActualWork != null && row[colActualWork] != DBNull.Value)
+                    if (colSavedBreak != null) double.TryParse(row[colSavedBreak]?.ToString(), out savedBreak);
+                    if (colSavedMaint != null) double.TryParse(row[colSavedMaint]?.ToString(), out savedMaint);
+                    if (colActualWork != null)
                     {
-                        string val = row[colActualWork].ToString();
+                        string val = row[colActualWork]?.ToString();
                         if (TimeSpan.TryParse(val, out TimeSpan ts)) actualWork = ts.TotalMinutes;
                         else if (DateTime.TryParse(val, out DateTime dVal)) actualWork = dVal.TimeOfDay.TotalMinutes;
                     }
 
                     bool hasAnyErrors = false;
-
                     foreach (var errCol in errorCols)
                     {
-                        if (row[errCol] != DBNull.Value)
-                        {
-                            string cellData = row[errCol].ToString();
-                            if (string.IsNullOrWhiteSpace(cellData)) continue;
+                        string cellData = row[errCol]?.ToString();
+                        if (string.IsNullOrWhiteSpace(cellData)) continue;
 
-                            var model = ErrorEventModel.Parse(cellData, date, shift, rowStopMin, savedBreak, savedMaint, actualWork, rowId);
-                            if (model != null)
-                            {
-                                errorList.Add(model);
-                                hasAnyErrors = true;
-                            }
+                        var model = ErrorEventModel.Parse(cellData, date, shift, rowStopMin, savedBreak, savedMaint, actualWork, rowId);
+                        if (model != null)
+                        {
+                            errorList.Add(model);
+                            hasAnyErrors = true;
                         }
                     }
 
                     if (!hasAnyErrors)
                     {
-                        var emptyModel = new ErrorEventModel
+                        errorList.Add(new ErrorEventModel
                         {
                             Date = date,
                             Shift = shift,
@@ -262,23 +337,19 @@ namespace WPF_LoginForm.Repositories
                             RowActualWorkingMinutes = actualWork,
                             ErrorDescription = "NO_ERROR",
                             DurationMinutes = 0
-                        };
-                        errorList.Add(emptyModel);
+                        });
                     }
                 }
+                return errorList;
             });
-
-            return errorList;
         }
 
-        public Task<bool> TableExistsAsync(string tableName) =>
-            Task.FromResult(File.Exists(Path.Combine(_folderPath, $"{tableName}.csv")));
+        // --- Interface Stubs ---
+        public Task<bool> TableExistsAsync(string tableName) => Task.FromResult(File.Exists(Path.Combine(_folderPath, $"{tableName}.csv")));
 
-        public Task<DataTable> GetSystemLogsAsync() =>
-            Task.FromResult(new DataTable());
+        public Task<DataTable> GetSystemLogsAsync() => Task.FromResult(new DataTable());
 
-        public Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName) =>
-            Task.FromResult((false, "Application is in Offline Mode. Changes cannot be saved."));
+        public Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName) => Task.FromResult((false, "Offline Mode"));
 
         public Task<bool> DeleteTableAsync(string tableName) => Task.FromResult(false);
 

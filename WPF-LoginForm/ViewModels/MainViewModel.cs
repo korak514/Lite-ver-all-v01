@@ -269,7 +269,10 @@ namespace WPF_LoginForm.ViewModels
                         if (newMain.DataContext is MainViewModel mainVM)
                         {
                             if (loginVM.IsSettingsModeOnly) mainVM.Initialize(AppMode.SettingsOnly);
-                            else if (loginVM.IsOfflineModeOnly) mainVM.Initialize(AppMode.OfflineReadOnly);
+
+                            // --- FIX: Check the inverted logic here ---
+                            // If Go Online is NOT checked, we launch offline
+                            else if (!loginVM.IsOnlineMode) mainVM.Initialize(AppMode.OfflineReadOnly);
                             else mainVM.Initialize(loginVM.IsReportModeOnly ? AppMode.ReportOnly : AppMode.Normal);
                         }
                         newMain.Show();

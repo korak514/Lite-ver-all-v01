@@ -22,7 +22,10 @@ namespace WPF_LoginForm.ViewModels
 
         private bool _isReportModeOnly;
         private bool _isSettingsModeOnly;
-        private bool _isOfflineModeOnly; // --- NEW: Offline Mode Flag ---
+
+        // --- CHANGED: Default is FALSE. App is Offline by default. ---
+        // Binding this to the CheckBox allows the user to "Go Online".
+        private bool _isOnlineMode = false;
 
         private bool _isBusy;
 
@@ -30,7 +33,15 @@ namespace WPF_LoginForm.ViewModels
         private readonly ILogger _logger;
 
         public string Username
-        { get => _username; set { _username = value; OnPropertyChanged(); (LoginCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); } }
+        {
+            get => _username;
+            set
+            {
+                _username = value;
+                OnPropertyChanged();
+                (LoginCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+            }
+        }
 
         public SecureString Password
         {
@@ -48,25 +59,38 @@ namespace WPF_LoginForm.ViewModels
         }
 
         public string ErrorMessage
-        { get => _errorMessage; set { _errorMessage = value; OnPropertyChanged(); } }
+        {
+            get => _errorMessage;
+            set { _errorMessage = value; OnPropertyChanged(); }
+        }
 
         public bool IsViewVisible
-        { get => _isViewVisible; set { _isViewVisible = value; OnPropertyChanged(); } }
+        {
+            get => _isViewVisible;
+            set { _isViewVisible = value; OnPropertyChanged(); }
+        }
 
         public bool IsReportModeOnly
-        { get => _isReportModeOnly; set { _isReportModeOnly = value; OnPropertyChanged(); } }
+        {
+            get => _isReportModeOnly;
+            set { _isReportModeOnly = value; OnPropertyChanged(); }
+        }
 
         public bool IsSettingsModeOnly
-        { get => _isSettingsModeOnly; set { _isSettingsModeOnly = value; OnPropertyChanged(); } }
-
-        // --- NEW: Property to bind to the switch in LoginView.xaml ---
-        public bool IsOfflineModeOnly
         {
-            get => _isOfflineModeOnly;
+            get => _isSettingsModeOnly;
+            set { _isSettingsModeOnly = value; OnPropertyChanged(); }
+        }
+
+        // --- CHANGED: Renamed property to reflect the new "Go Online" logic ---
+        public bool IsOnlineMode
+        {
+            get => _isOnlineMode;
             set
             {
-                _isOfflineModeOnly = value;
+                _isOnlineMode = value;
                 OnPropertyChanged();
+                // Re-evaluate if the login button should be clickable (validation requirements change)
                 (LoginCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             }
         }
@@ -97,9 +121,10 @@ namespace WPF_LoginForm.ViewModels
 
         private bool CanExecuteLoginCommand(object obj)
         {
-            // NEW: If Offline mode is toggled, allow login without typing user/pass
-            if (IsOfflineModeOnly) return !IsBusy;
+            // If we are NOT in Online Mode (Offline), allow login without credentials
+            if (!IsOnlineMode) return !IsBusy;
 
+            // If we ARE in Online Mode, require Username and Password
             return !IsBusy && !string.IsNullOrWhiteSpace(Username) && Username.Length >= 3 && Password != null && Password.Length >= 3;
         }
 
@@ -111,14 +136,16 @@ namespace WPF_LoginForm.ViewModels
 
             try
             {
-                // NEW: Bypass database check entirely if Offline Mode is selected
-                if (IsOfflineModeOnly)
+                // 1. Offline Mode Logic
+                // Bypass database check entirely if we are NOT in Online Mode
+                if (!IsOnlineMode)
                 {
-                    _logger.LogInfo("User requested Offline Mode Login.");
+                    _logger.LogInfo("User launching in Default Offline Mode.");
                     IsViewVisible = false; // Close window to trigger MainView launch
                     return;
                 }
 
+                // 2. Online Mode Logic
                 UserSessionService.Logout();
 
                 var isValidUser = await userRepository.AuthenticateUserAsync(new NetworkCredential(Username, Password));

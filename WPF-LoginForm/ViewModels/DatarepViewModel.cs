@@ -1,5 +1,4 @@
 ﻿// ViewModels/DatarepViewModel.cs
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -19,7 +18,6 @@ using WPF_LoginForm.Views;
 
 namespace WPF_LoginForm.ViewModels
 {
-    // FIX (Bug 4): Implement IDisposable to properly unhook from static events and prevent memory leaks
     public class DatarepViewModel : ViewModelBase, IDisposable
     {
         private readonly IDialogService _dialogService;
@@ -27,9 +25,7 @@ namespace WPF_LoginForm.ViewModels
         private readonly ILogger _logger;
         private CancellationTokenSource _cts;
 
-        // --- State ---
         private DataView _dataTableView;
-
         private string _selectedTable;
         private bool _isBusy;
         private string _errorMessage;
@@ -41,48 +37,29 @@ namespace WPF_LoginForm.ViewModels
         private string _dateFilterColumnName;
         private readonly List<string> _dateColumnAliases = new List<string> { "Tarih", "Date", "EntryDate" };
         private readonly List<DataRow> _rowChangeHistory = new List<DataRow>();
-
         private int _nextNewRowId = -1;
 
-        // --- Filter State ---
         private string _searchText;
-
         private string _selectedSearchColumn;
         private bool _isGlobalSearchActive;
         private bool _isUpdatingDates;
         private DateTime _minSliderDate;
 
-        // --- Collections ---
         public ObservableCollection<string> TableNames { get; } = new ObservableCollection<string>();
-
         public ObservableCollection<DataRowView> EditableRows { get; } = new ObservableCollection<DataRowView>();
         public ObservableCollection<string> SearchableColumns { get; } = new ObservableCollection<string>();
 
-        // --- Offline Mode Properties ---
         public bool IsOfflineMode => _dataRepository is OfflineDataRepository;
-
         public bool IsOnlineMode => !IsOfflineMode;
         public bool IsAdminAndOnline => IsAdmin && IsOnlineMode;
-
-        // --- Properties ---
         public bool IsAdmin => UserSessionService.IsAdmin;
-
         public bool IsBusy { get => _isBusy; private set => SetProperty(ref _isBusy, value); }
         public bool IsProgressBarVisible => _isBusy;
-
         public string ErrorMessage
-        {
-            get => _errorMessage;
-            private set { if (SetProperty(ref _errorMessage, value)) OnPropertyChanged(nameof(HasError)); }
-        }
-
+        { get => _errorMessage; private set { if (SetProperty(ref _errorMessage, value)) OnPropertyChanged(nameof(HasError)); } }
         public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
-
         public bool IsDirty
-        {
-            get => _isDirty;
-            private set { if (SetProperty(ref _isDirty, value)) (SaveChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); }
-        }
+        { get => _isDirty; private set { if (SetProperty(ref _isDirty, value)) (SaveChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); } }
 
         public string SelectedTable
         {
@@ -94,7 +71,8 @@ namespace WPF_LoginForm.ViewModels
                     _cts?.Cancel();
                     EditableRows.Clear();
                     UnsubscribeFromTableEvents();
-                    LoadDataForSelectedTableAsync();
+                    // Trigger load asynchronously
+                    _ = LoadDataForSelectedTableAsync();
                 }
             }
         }
@@ -116,55 +94,37 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        // --- Filter Properties ---
         public string SearchText
         { get => _searchText; set { if (SetProperty(ref _searchText, value)) ApplyCombinedFiltersAsync(); } }
-
         public string SelectedSearchColumn
         { get => _selectedSearchColumn; set { if (SetProperty(ref _selectedSearchColumn, value)) { _isGlobalSearchActive = false; ApplyCombinedFiltersAsync(); } } }
-
         public bool IsGlobalSearchActive
         { get => _isGlobalSearchActive; set { if (SetProperty(ref _isGlobalSearchActive, value)) ApplyCombinedFiltersAsync(); } }
 
-        // --- Date Filter Properties ---
         private bool _isDateFilterVisible;
-
         private DateTime? _filterStartDate, _filterEndDate;
         private double _sliderMax, _sliderStart, _sliderEnd;
 
         public bool IsDateFilterVisible { get => _isDateFilterVisible; private set => SetProperty(ref _isDateFilterVisible, value); }
         public bool IsDateFilterPanelVisible { get; set; }
-
         public DateTime? FilterStartDate
         { get => _filterStartDate; set { if (SetProperty(ref _filterStartDate, value)) { ApplyCombinedFiltersAsync(); UpdateSlidersFromDates(); } } }
-
         public DateTime? FilterEndDate
         { get => _filterEndDate; set { if (SetProperty(ref _filterEndDate, value)) { ApplyCombinedFiltersAsync(); UpdateSlidersFromDates(); } } }
-
         public double SliderMaximum { get => _sliderMax; set => SetProperty(ref _sliderMax, value); }
-
         public double StartMonthSliderValue
         { get => _sliderStart; set { if (SetProperty(ref _sliderStart, value)) UpdateDatesFromSliders(); } }
-
         public double EndMonthSliderValue
         { get => _sliderEnd; set { if (SetProperty(ref _sliderEnd, value)) UpdateDatesFromSliders(); } }
 
-        // --- Config Properties ---
         public bool IsIdHidden
         { get => _isIdHidden; set { if (SetProperty(ref _isIdHidden, value)) OnPropertyChanged(nameof(IsIdVisible)); } }
-
         public bool IsIdVisible => !_isIdHidden;
         public bool IsAdvancedImportVisible { get; set; }
-
         public double DataGridFontSize
-        {
-            get => _dataGridFontSize;
-            set { if (SetProperty(ref _dataGridFontSize, Math.Max(8, Math.Min(24, value)))) { (DecreaseFontSizeCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); (IncreaseFontSizeCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); } }
-        }
+        { get => _dataGridFontSize; set { if (SetProperty(ref _dataGridFontSize, Math.Max(8, Math.Min(24, value)))) { (DecreaseFontSizeCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); (IncreaseFontSizeCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); } } }
 
-        // --- Commands ---
         public ICommand AddNewRowCommand { get; }
-
         public ICommand SaveChangesCommand { get; }
         public ICommand UndoChangesCommand { get; }
         public ICommand EditSelectedRowsCommand { get; }
@@ -199,12 +159,12 @@ namespace WPF_LoginForm.ViewModels
 
             ImportDataCommand = new ViewModelCommand(ExecuteImportData, p => _currentDataTable != null && !IsBusy && IsOnlineMode);
             ShowAdvancedImportCommand = new ViewModelCommand(p => { var vm = new ImportTableViewModel(SelectedTable, _dialogService); if (_dialogService.ShowImportTableDialog(vm, out ImportSettings s)) ExecuteImportData(s); }, p => _currentDataTable != null && !IsBusy && IsOnlineMode);
-            AddIdColumnCommand = new ViewModelCommand(async p => await ExecuteLongRunning(async t => { var r = await _dataRepository.AddPrimaryKeyAsync(SelectedTable); if (r.Success) LoadDataForSelectedTableAsync(); }), p => _currentDataTable != null && !_currentDataTable.Columns.Contains("ID") && IsOnlineMode);
+            AddIdColumnCommand = new ViewModelCommand(async p => await ExecuteLongRunning(async t => { var r = await _dataRepository.AddPrimaryKeyAsync(SelectedTable); if (r.Success) await LoadDataForSelectedTableAsync(); }), p => _currentDataTable != null && !_currentDataTable.Columns.Contains("ID") && IsOnlineMode);
             ShowCreateTableCommand = new ViewModelCommand(p => { _dialogService.ShowCreateTableDialog(new CreateTableViewModel(_dialogService, _logger, _dataRepository)); LoadInitialDataAsync(); }, p => IsOnlineMode);
             RenameColumnCommand = new ViewModelCommand(ExecuteRenameColumn, p => !IsBusy && IsAdminAndOnline && !string.IsNullOrEmpty(SelectedSearchColumn));
             ShowHierarchyImportCommand = new ViewModelCommand(p => _dialogService.ShowHierarchyImportDialog(new HierarchyImportViewModel(_dataRepository, _dialogService, _logger) { SelectedTableName = SelectedTable }), p => IsOnlineMode);
 
-            ReloadDataCommand = new ViewModelCommand(p => LoadDataForSelectedTableAsync(), p => !string.IsNullOrEmpty(SelectedTable) && !IsBusy);
+            ReloadDataCommand = new ViewModelCommand(p => _ = LoadDataForSelectedTableAsync(), p => !string.IsNullOrEmpty(SelectedTable) && !IsBusy);
             ExportDataCommand = new ViewModelCommand(ExecuteExportData, p => _currentDataTable?.Rows.Count > 0 && !IsBusy);
             ShowFindReplaceCommand = new ViewModelCommand(ExecuteShowFindReplace, p => _currentDataTable != null && !IsBusy);
             DecreaseFontSizeCommand = new ViewModelCommand(p => DataGridFontSize--, p => DataGridFontSize > 8);
@@ -212,9 +172,7 @@ namespace WPF_LoginForm.ViewModels
             ClearSearchCommand = new ViewModelCommand(p => { SearchText = ""; IsGlobalSearchActive = false; });
             ClearDateFilterCommand = new ViewModelCommand(p => { FilterStartDate = null; FilterEndDate = null; IsDateFilterPanelVisible = false; ApplyCombinedFiltersAsync(); });
 
-            // Subscribe to static event
             DatabaseRetryPolicy.OnRetryStatus += OnRetryStatusReceived;
-
             LoadInitialDataAsync();
         }
 
@@ -276,7 +234,8 @@ namespace WPF_LoginForm.ViewModels
             });
         });
 
-        private async void LoadDataForSelectedTableAsync()
+        // FIX: Changed from 'void' to 'Task' so we can await it in DrillDown scenario
+        private async Task LoadDataForSelectedTableAsync()
         {
             if (string.IsNullOrEmpty(SelectedTable)) return;
             string target = SelectedTable;
@@ -294,7 +253,7 @@ namespace WPF_LoginForm.ViewModels
                         res.Data.PrimaryKey = new[] { res.Data.Columns["ID"] };
 
                     DataTableView = res.Data?.DefaultView;
-                    _nextNewRowId = -1; // Reset local ID counter on load
+                    _nextNewRowId = -1;
 
                     if (!res.IsSortable) SetErrorMessage("⚠️ No ID/Date column. Editing limited.");
 
@@ -302,6 +261,34 @@ namespace WPF_LoginForm.ViewModels
                     ApplyCombinedFiltersAsync();
                 });
             });
+        }
+
+        // FIX: Replaced race-prone delay with explicit await logic
+        public async void LoadTableWithFilter(string t, DateTime s, DateTime e, string txt = "")
+        {
+            // Bypass setter to avoid double-loading
+            _selectedTable = t;
+            OnPropertyChanged(nameof(SelectedTable));
+
+            _cts?.Cancel();
+            EditableRows.Clear();
+            UnsubscribeFromTableEvents();
+
+            // Await the load completion guarantees data is present
+            await LoadDataForSelectedTableAsync();
+
+            if (DataTableView != null)
+            {
+                FilterStartDate = s;
+                FilterEndDate = e;
+                if (!string.IsNullOrEmpty(txt))
+                {
+                    IsGlobalSearchActive = true;
+                    SearchText = txt;
+                }
+                IsDateFilterVisible = true;
+                ApplyCombinedFiltersAsync();
+            }
         }
 
         private async void ApplyCombinedFiltersAsync()
@@ -336,7 +323,7 @@ namespace WPF_LoginForm.ViewModels
                         _currentDataTable.AcceptChanges();
                         EditableRows.Clear();
                         CheckIfDirty();
-                        if (newRows) LoadDataForSelectedTableAsync();
+                        if (newRows) _ = LoadDataForSelectedTableAsync();
                         SetErrorMessage("Changes Saved Successfully.");
                     }
                     else SetErrorMessage(r.ErrorMessage);
@@ -457,7 +444,7 @@ namespace WPF_LoginForm.ViewModels
         { if (_dialogService.ShowConfirmationDialog("Delete", "Permanently Delete Table?")) await ExecuteLongRunning(async t => { if (await _dataRepository.DeleteTableAsync(SelectedTable)) LoadInitialDataAsync(); }); }
 
         private async void ExecuteRenameColumn(object p)
-        { if (_dialogService.ShowInputDialog("Rename", $"Rename '{SelectedSearchColumn}' to:", SelectedSearchColumn, out string n)) await ExecuteLongRunning(async t => { var r = await _dataRepository.RenameColumnAsync(SelectedTable, SelectedSearchColumn, n); if (r.Success) LoadDataForSelectedTableAsync(); else SetErrorMessage(r.ErrorMessage); }); }
+        { if (_dialogService.ShowInputDialog("Rename", $"Rename '{SelectedSearchColumn}' to:", SelectedSearchColumn, out string n)) await ExecuteLongRunning(async t => { var r = await _dataRepository.RenameColumnAsync(SelectedTable, SelectedSearchColumn, n); if (r.Success) await LoadDataForSelectedTableAsync(); else SetErrorMessage(r.ErrorMessage); }); }
 
         private void ExecuteShowFindReplace(object p)
         { var w = new FindReplaceWindow(); w.FindRequested += (s, e) => { SearchText = w.FindText; IsGlobalSearchActive = true; }; if (Application.Current.MainWindow != null) w.Owner = Application.Current.MainWindow; w.Show(); }
@@ -480,10 +467,6 @@ namespace WPF_LoginForm.ViewModels
         private void PopulateSearchableColumns()
         { SearchableColumns.Clear(); if (_currentDataTable != null) foreach (DataColumn c in _currentDataTable.Columns) SearchableColumns.Add(c.ColumnName); SelectedSearchColumn = SearchableColumns.FirstOrDefault(); }
 
-        public async void LoadTableWithFilter(string t, DateTime s, DateTime e, string txt = "")
-        { SelectedTable = t; await Task.Delay(100); if (DataTableView != null) { FilterStartDate = s; FilterEndDate = e; if (!string.IsNullOrEmpty(txt)) { IsGlobalSearchActive = true; SearchText = txt; } IsDateFilterVisible = true; ApplyCombinedFiltersAsync(); } }
-
-        // FIX (Bug 4): Clean up event subscriptions
         public void Dispose()
         {
             DatabaseRetryPolicy.OnRetryStatus -= OnRetryStatusReceived;

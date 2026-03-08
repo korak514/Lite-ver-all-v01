@@ -18,22 +18,6 @@
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
-        <DataTemplate x:Key="SingleLineLabelTemplate">
-            <TextBlock Text="{Binding Point.Label}"
-                       TextWrapping="NoWrap"
-                       Foreground="WhiteSmoke"
-                       FontSize="11"
-                       Margin="0" />
-        </DataTemplate>
-
-        <Style TargetType="lvc:LineSeries">
-            <Setter Property="DataLabelsTemplate" Value="{StaticResource SingleLineLabelTemplate}" />
-        </Style>
-
-        <Style TargetType="lvc:ColumnSeries">
-            <Setter Property="DataLabelsTemplate" Value="{StaticResource SingleLineLabelTemplate}" />
-        </Style>
-
         <Style TargetType="lvc:DefaultTooltip">
             <Setter Property="Background" Value="#E6000030" />
             <Setter Property="Foreground" Value="WhiteSmoke" />
@@ -45,6 +29,7 @@
             <Setter Property="SelectionMode" Value="OnlySender" />
         </Style>
 
+        <!-- Styles for toggle/buttons kept same as before -->
         <Style x:Key="GearToggleStyle" TargetType="ToggleButton">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -103,7 +88,6 @@
             </Style.Triggers>
         </Style>
 
-        <!-- NEW COMPACT CLOSE BUTTON (Floating X) -->
         <Style x:Key="CompactCloseButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#C0392B" />
             <Setter Property="Foreground" Value="White" />
@@ -114,18 +98,12 @@
             <Setter Property="HorizontalAlignment" Value="Right" />
             <Setter Property="VerticalAlignment" Value="Top" />
             <Setter Property="Margin" Value="0,-10,-10,0" />
-            <!-- Floats slightly outside/corner -->
             <Setter Property="Visibility" Value="Collapsed" />
             <Setter Property="Panel.ZIndex" Value="200" />
-            <!-- Ensures it sits ON TOP of the chart -->
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <!-- FIXED: Removed the invalid inline Effect property -->
                         <Border Background="{TemplateBinding Background}" CornerRadius="15">
-                            <Border.Effect>
-                                <DropShadowEffect Color="Black" BlurRadius="5" Opacity="0.4" ShadowDepth="2" />
-                            </Border.Effect>
                             <fa:ImageAwesome Icon="Times" Height="14" Width="14" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center" />
                         </Border>
                     </ControlTemplate>
@@ -145,7 +123,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Top Control Bar -->
+        <!-- Top Control Bar (Same as before) -->
         <Grid Grid.Row="0" Margin="5,5,10,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -198,6 +176,7 @@
                         </Grid>
                     </Button>
 
+                    <!-- Popup Settings -->
                     <Popup IsOpen="{Binding IsChecked, ElementName=FilterConfigToggle}" StaysOpen="False" PlacementTarget="{Binding ElementName=FilterConfigToggle}" Placement="Bottom">
                         <Border Background="#030347" BorderBrush="#49A956" BorderThickness="1" CornerRadius="4" Padding="10">
                             <StackPanel MinWidth="220">
@@ -245,8 +224,8 @@
             </StackPanel>
         </Grid>
 
+        <!-- PAGE 1: CHARTS -->
         <Grid Grid.Row="1">
-            <!-- PAGE 1 -->
             <Grid x:Name="Page1" RenderTransformOrigin="0.5,0.5">
                 <Grid.Style>
                     <Style TargetType="Grid">
@@ -293,7 +272,7 @@
                     </Border.InputBindings>
                 </Border>
 
-                <!-- CHART 1 -->
+                <!-- CHART 1 (DisableAnimations="True" Added) -->
                 <Grid>
                     <Grid.Style>
                         <Style TargetType="Grid">
@@ -324,7 +303,7 @@
                         </Border.ContextMenu>
 
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" />
+                            <lvc:CartesianChart Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" DisableAnimations="True" Hoverable="False" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="1" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
@@ -371,7 +350,7 @@
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" />
+                            <lvc:CartesianChart Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" DisableAnimations="True" Hoverable="False" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="2" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
@@ -418,7 +397,7 @@
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" />
+                            <lvc:CartesianChart Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" DisableAnimations="True" Hoverable="False" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="3" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
@@ -465,7 +444,7 @@
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Grid>
-                            <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" Hoverable="True" Margin="0,10,0,0" />
+                            <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" Hoverable="True" Margin="0,10,0,0" DisableAnimations="True" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="4" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
@@ -512,7 +491,7 @@
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" />
+                            <lvc:CartesianChart Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" DisableAnimations="True" Hoverable="False" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="5" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
@@ -530,8 +509,9 @@
                 </Grid>
             </Grid>
 
-            <!-- PAGE 2 (Advanced View) -->
+            <!-- PAGE 2 (Advanced View) - kept same but with disabled animations -->
             <Grid x:Name="Page2" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+                <!-- (Same logic as Page 1 for visibility) -->
                 <Grid.Style>
                     <Style TargetType="Grid">
                         <Style.Triggers>
@@ -609,7 +589,6 @@
 
                             <TextBlock Grid.Row="0" Text="Summary Breakdown (Chart 6)" Foreground="Gray" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="15,10,0,0" />
 
-                            <!-- Floating Buttons Container -->
                             <Grid Grid.Row="0" Grid.RowSpan="2">
                                 <Button Command="{Binding MaximizeChartCommand}" CommandParameter="6" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" />
                                 <Button Command="{Binding CloseMaximizeCommand}">
@@ -625,7 +604,7 @@
                                 </Button>
                             </Grid>
 
-                            <lvc:PieChart Grid.Row="1" Series="{Binding Chart6Series}" LegendLocation="Bottom" InnerRadius="80" Margin="20,10,20,20" Hoverable="True">
+                            <lvc:PieChart Grid.Row="1" Series="{Binding Chart6Series}" LegendLocation="Bottom" InnerRadius="80" Margin="20,10,20,20" Hoverable="True" DisableAnimations="True">
                                 <lvc:PieChart.ChartLegend>
                                     <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="13" />
                                 </lvc:PieChart.ChartLegend>

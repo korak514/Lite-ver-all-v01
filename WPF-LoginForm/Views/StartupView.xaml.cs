@@ -2,11 +2,7 @@
 using System;
 using System.Threading.Tasks;
 using System.Windows;
-using WPF_LoginForm.Services.Database;
-using System.Net.NetworkInformation;
-using WPF_LoginForm.Properties;
 using WPF_LoginForm.ViewModels;
-using WPF_LoginForm.Services.Network;
 
 namespace WPF_LoginForm.Views
 {
@@ -24,72 +20,28 @@ namespace WPF_LoginForm.Views
 
         private async Task RunStartupSequence()
         {
+            // --- UPDATED: Fast Startup for "Offline First" Approach ---
+            // We skip Pings and DB Connectivity checks here.
+            // Connectivity is now handled on-demand in the LoginView
+            // when the user explicitly checks "Go Online".
+
             try
             {
-                UpdateStatus("Locating Server...", 10);
-                string bestHost = await ConnectionManager.ResolveBestHostAsync();
+                UpdateStatus("Initializing Application...", 20);
+                await Task.Delay(400); // Visual delay for smooth UX
 
-                UpdateStatus($"Pinging {bestHost}...", 20);
+                UpdateStatus("Loading Resources...", 60);
+                await Task.Delay(400);
 
-                if (!IsLocalHost(bestHost))
-                {
-                    bool pingSuccess = await Task.Run(() =>
-                    {
-                        try { return new Ping().Send(bestHost, 2000).Status == IPStatus.Success; }
-                        catch { return false; }
-                    });
-
-                    if (!pingSuccess)
-                    {
-                        HandleConnectionFailure($"Cannot reach server: {bestHost}\nCheck your VPN or Wi-Fi.");
-                        return;
-                    }
-                }
-
-                UpdateStatus("Connecting to Database...", 50);
-                await Task.Delay(500);
-
-                bool dbConnected = await Task.Run(() => DatabaseBootstrapper.Run());
-
-                if (!dbConnected)
-                {
-                    HandleConnectionFailure("Database initialization failed. Check credentials.");
-                    return;
-                }
-
-                UpdateStatus("Starting Application...", 100);
-                await Task.Delay(500);
+                UpdateStatus("Starting...", 100);
+                await Task.Delay(200);
 
                 OpenLoginAndListen();
             }
             catch (Exception ex)
             {
-                HandleConnectionFailure($"Startup Error: {ex.Message}");
-            }
-        }
-
-        private void HandleConnectionFailure(string errorMessage)
-        {
-            UpdateStatus("Connection Failed.", 0);
-
-            var result = MessageBox.Show($"{errorMessage}\n\nWould you like to start the application in Offline Mode? (Read-Only access to local files)",
-                                         "Connection Failed",
-                                         MessageBoxButton.YesNo,
-                                         MessageBoxImage.Warning);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                var mainView = new MainView();
-                if (mainView.DataContext is MainViewModel mainVM)
-                {
-                    mainVM.Initialize(AppMode.OfflineReadOnly);
-                }
-                mainView.Show();
-                this.Close();
-            }
-            else
-            {
-                ShowError(errorMessage);
+                // Fallback catch, though unlikely to be hit with removed network logic
+                ShowError($"Startup Error: {ex.Message}");
             }
         }
 
@@ -113,8 +65,10 @@ namespace WPF_LoginForm.Views
                         {
                             if (loginVM.IsSettingsModeOnly)
                                 mainVM.Initialize(AppMode.SettingsOnly);
-                            // --- FIX: Respect the Offline Toggle even if DB is online! ---
-                            else if (loginVM.IsOfflineModeOnly)
+
+                            // Check the ViewModel property 'IsOnlineMode'
+                            // If it is FALSE (unchecked), we launch in OfflineReadOnly mode.
+                            else if (!loginVM.IsOnlineMode)
                                 mainVM.Initialize(AppMode.OfflineReadOnly);
                             else
                             {
@@ -149,15 +103,6 @@ namespace WPF_LoginForm.Views
         private void btnSettings_Click(object sender, RoutedEventArgs e)
         {
             OpenLoginAndListen();
-        }
-
-        private bool IsLocalHost(string host)
-        {
-            return string.IsNullOrEmpty(host) ||
-                   host.ToLower() == "localhost" ||
-                   host == "." ||
-                   host.ToLower() == "(local)" ||
-                   host == "127.0.0.1";
         }
     }
 }

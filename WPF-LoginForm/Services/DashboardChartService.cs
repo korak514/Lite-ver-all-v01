@@ -36,7 +36,7 @@ namespace WPF_LoginForm.Services
 
         public static string FormatKiloMega(double value)
         {
-            return SmartLabelService.FormatKiloMega(value); // Route to the helper
+            return SmartLabelService.FormatKiloMega(value);
         }
 
         public ChartResultDto ProcessChartData(DataTable dataTable, DashboardConfiguration config,
@@ -246,10 +246,21 @@ namespace WPF_LoginForm.Services
                 .Where(p => p.Date != DateTime.MinValue)
                 .ToList();
 
+            if (!points.Any()) return;
+
+            // --- PERFORMANCE FIX: DYNAMIC DECIMATION ---
+            DateTime minDate = points.Min(p => p.Date);
+            DateTime maxDate = points.Max(p => p.Date);
+            double totalDays = (maxDate - minDate).TotalDays;
+
+            string effectiveAgg = config.AggregationType;
+            if (effectiveAgg == "Daily" && totalDays > 90) effectiveAgg = "Weekly";
+            if ((effectiveAgg == "Daily" || effectiveAgg == "Weekly") && totalDays > 365) effectiveAgg = "Monthly";
+
             IEnumerable<IGrouping<DateTime, dynamic>> groups;
-            if (config.AggregationType == "Weekly")
+            if (effectiveAgg == "Weekly")
                 groups = points.GroupBy(p => GetStartOfWeek(p.Date));
-            else if (config.AggregationType == "Monthly")
+            else if (effectiveAgg == "Monthly")
                 groups = points.GroupBy(p => new DateTime(p.Date.Year, p.Date.Month, 1));
             else
                 groups = points.GroupBy(p => p.Date.Date);
@@ -276,7 +287,7 @@ namespace WPF_LoginForm.Services
 
             bool isPriceTrend = string.Equals(config.ChartType, "Price Trend (Line)", StringComparison.OrdinalIgnoreCase);
             bool isLine = isPriceTrend || config.ChartType == "Line";
-            bool isDailyLine = isLine && config.AggregationType == "Daily";
+            bool isDailyLine = isLine && effectiveAgg == "Daily";
 
             if (isDailyLine)
             {
@@ -315,8 +326,7 @@ namespace WPF_LoginForm.Services
 
                         if (!hasSplit || vals.Any(v => !double.IsNaN(((DateTimePoint)v).Value) && ((DateTimePoint)v).Value > 0))
                         {
-                            // NEW: Route labels through SmartLabelService
-                            SmartLabelService.ApplyLabels(pts, true, null, "Line");
+                            if (pts.Count <= 35) SmartLabelService.ApplyLabels(pts, true, null, "Line");
 
                             res.Series.Add(new SeriesDto
                             {
@@ -362,8 +372,7 @@ namespace WPF_LoginForm.Services
 
                             if (!hasSplit || vals.Any(v => ((DateTimePoint)v).Value > 0))
                             {
-                                // NEW: Route labels through SmartLabelService
-                                SmartLabelService.ApplyLabels(pts, true, null, "Line");
+                                if (pts.Count <= 35) SmartLabelService.ApplyLabels(pts, true, null, "Line");
 
                                 res.Series.Add(new SeriesDto
                                 {
@@ -384,8 +393,8 @@ namespace WPF_LoginForm.Services
                 res.IsDateAxis = false;
                 res.XAxisLabels = sortedGroups.Select(g =>
                 {
-                    if (config.AggregationType == "Monthly") return g.Key.ToString("MMM yyyy");
-                    if (config.AggregationType == "Weekly") return g.Key.ToString("dd.MM.yyyy") + " (Wk)";
+                    if (effectiveAgg == "Monthly") return g.Key.ToString("MMM yyyy");
+                    if (effectiveAgg == "Weekly") return g.Key.ToString("dd.MM.yyyy") + " (Wk)";
                     return g.Key.ToString("dd.MM.yyyy");
                 }).ToList();
 
@@ -427,8 +436,7 @@ namespace WPF_LoginForm.Services
 
                         if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v > 0))
                         {
-                            // NEW: Route labels through SmartLabelService
-                            SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, sType);
+                            if (pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, sType);
 
                             res.Series.Add(new SeriesDto
                             {
@@ -477,8 +485,7 @@ namespace WPF_LoginForm.Services
 
                             if (!hasSplit || vals.Any(v => (double)v > 0))
                             {
-                                // NEW: Route labels through SmartLabelService
-                                SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, sType);
+                                if (pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, sType);
 
                                 res.Series.Add(new SeriesDto
                                 {
@@ -588,8 +595,7 @@ namespace WPF_LoginForm.Services
 
                     if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v > 0))
                     {
-                        // NEW: Route labels through SmartLabelService
-                        SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, "Line");
+                        if (pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, "Line");
 
                         res.Series.Add(new SeriesDto
                         {
@@ -638,8 +644,7 @@ namespace WPF_LoginForm.Services
 
                         if (!hasSplit || vals.Any(v => (double)v > 0))
                         {
-                            // NEW: Route labels through SmartLabelService
-                            SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, baseChartType);
+                            if (pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, baseChartType);
 
                             res.Series.Add(new SeriesDto
                             {
