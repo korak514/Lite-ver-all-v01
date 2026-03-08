@@ -173,7 +173,6 @@ namespace WPF_LoginForm.ViewModels
 
         private void UpdateFormatterLogic()
         {
-            // Task 2: Ensure Y-Axis formatter uses TimeFormatHelper
             NumberFormatter = (val) => TimeFormatHelper.FormatDuration(val, IsMinToClockFormat);
         }
 
@@ -205,13 +204,13 @@ namespace WPF_LoginForm.ViewModels
                 var reasonFullNames = reasonStats.Select(x => x.Label).ToList();
                 var machineStats = InputHelper.GetMachineStats(filteredList);
 
-                var page2Stats = InputHelper.CalculatePage2Stats(filteredList, StartDate, EndDate, NumberFormatter, IsMachine00Excluded);
-                var shiftStats = InputHelper.GetShiftStats(filteredList);
+                // FIX: Both raw and filtered lists passed through
+                var page2Stats = InputHelper.CalculatePage2Stats(rawData, filteredList, StartDate, EndDate, NumberFormatter, IsMachine00Excluded);
+                var shiftStats = InputHelper.GetShiftStats(rawData, filteredList);
                 var severityStats = InputHelper.GetSeverityStats(filteredList);
 
                 var uniqueCategories = filteredList.Select(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules)).Distinct().OrderBy(x => x).ToList();
 
-                // Dynamic Axis Steps
                 double maxReasonVal = reasonStats.Any() ? reasonStats.Max(x => x.Value) : 0;
                 double calculatedReasonStep = CalculateBestStep(maxReasonVal);
 
@@ -252,7 +251,6 @@ namespace WPF_LoginForm.ViewModels
                     string errorText = WPF_LoginForm.Properties.Resources.AnalyticsP2_Error ?? "Errors";
                     string stopText = WPF_LoginForm.Properties.Resources.AnalyticsP2_Stop ?? "Stops";
 
-                    // Task 1: Updated Pie Chart formatters
                     EfficiencySeries = new SeriesCollection {
                         new PieSeries {
                             Title = errorText,
@@ -281,7 +279,6 @@ namespace WPF_LoginForm.ViewModels
                         });
                     ShiftImpactSeries = shiftColl;
 
-                    // Task 2: Updated Bar Chart formatter
                     var sevColl = new SeriesCollection();
                     foreach (var s in severityStats)
                     {

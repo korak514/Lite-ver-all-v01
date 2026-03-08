@@ -151,7 +151,7 @@ namespace WPF_LoginForm.Repositories
                 {
                     if (startDate.HasValue && endDate.HasValue && hasDate)
                     {
-                        if (rowDate >= startDate.Value && rowDate <= endDate.Value)
+                        if (rowDate.Date >= startDate.Value.Date && rowDate.Date <= endDate.Value.Date)
                             typedDt.Rows.Add(newRow);
                     }
                     else
@@ -187,13 +187,13 @@ namespace WPF_LoginForm.Repositories
 
                 foreach (DataColumn c in dt.Columns)
                 {
-                    string n = c.ColumnName.ToLower();
+                    string n = c.ColumnName.ToLower().Trim();
                     if (n.Contains("tarih") || n == "date") colDate = c;
                     else if (n.Contains("vardiya") || n == "shift") colShift = c;
                     else if (n.Contains("duraklama") || n.Contains("stop")) colStopDuration = c;
                     else if (n.Contains("engelemeyen") || n.Contains("kazanımı")) colSavedBreak = c;
                     else if (n.Contains("mola") && n.Contains("bakım")) colSavedMaint = c;
-                    else if (n.Contains("fiili") || n.Contains("çalışılan") || n.Contains("work")) colActualWork = c; // <-- Added Actual Work
+                    else if (n.Contains("fiili") || n.Contains("çalışılan") || n.Contains("work")) colActualWork = c;
                     else if (n.StartsWith("hata_kodu") || n.StartsWith("error_code") || n.StartsWith("code")) errorCols.Add(c);
                 }
 
@@ -204,9 +204,9 @@ namespace WPF_LoginForm.Repositories
                     if (row[colDate] == DBNull.Value || string.IsNullOrWhiteSpace(row[colDate].ToString())) continue;
 
                     if (!DateTime.TryParse(row[colDate].ToString(), out DateTime date)) continue;
-                    if (date < startDate || date > endDate) continue;
+                    if (date.Date < startDate.Date || date.Date > endDate.Date) continue;
 
-                    string shift = colShift != null ? row[colShift].ToString() : "Unknown";
+                    string shift = colShift != null ? row[colShift].ToString().Trim() : "Unknown";
                     string rowId = Guid.NewGuid().ToString();
 
                     double rowStopMin = 0;
@@ -223,7 +223,6 @@ namespace WPF_LoginForm.Repositories
                     double savedMaint = 0;
                     if (colSavedMaint != null && row[colSavedMaint] != DBNull.Value) double.TryParse(row[colSavedMaint].ToString(), out savedMaint);
 
-                    // --- Parse Actual Work Time ---
                     double actualWork = 0;
                     if (colActualWork != null && row[colActualWork] != DBNull.Value)
                     {
@@ -232,6 +231,8 @@ namespace WPF_LoginForm.Repositories
                         else if (DateTime.TryParse(val, out DateTime dVal)) actualWork = dVal.TimeOfDay.TotalMinutes;
                     }
 
+                    bool hasAnyErrors = false;
+
                     foreach (var errCol in errorCols)
                     {
                         if (row[errCol] != DBNull.Value)
@@ -239,10 +240,30 @@ namespace WPF_LoginForm.Repositories
                             string cellData = row[errCol].ToString();
                             if (string.IsNullOrWhiteSpace(cellData)) continue;
 
-                            // --- FIX: Pass actualWork (8 parameters total) ---
                             var model = ErrorEventModel.Parse(cellData, date, shift, rowStopMin, savedBreak, savedMaint, actualWork, rowId);
-                            if (model != null) errorList.Add(model);
+                            if (model != null)
+                            {
+                                errorList.Add(model);
+                                hasAnyErrors = true;
+                            }
                         }
+                    }
+
+                    if (!hasAnyErrors)
+                    {
+                        var emptyModel = new ErrorEventModel
+                        {
+                            Date = date,
+                            Shift = shift,
+                            UniqueRowId = rowId,
+                            RowTotalStopMinutes = rowStopMin,
+                            RowSavedTimeBreak = savedBreak,
+                            RowSavedTimeMaint = savedMaint,
+                            RowActualWorkingMinutes = actualWork,
+                            ErrorDescription = "NO_ERROR",
+                            DurationMinutes = 0
+                        };
+                        errorList.Add(emptyModel);
                     }
                 }
             });
@@ -256,7 +277,6 @@ namespace WPF_LoginForm.Repositories
         public Task<DataTable> GetSystemLogsAsync() =>
             Task.FromResult(new DataTable());
 
-        // --- ALL WRITE OPERATIONS BLOCKED IN OFFLINE MODE ---
         public Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName) =>
             Task.FromResult((false, "Application is in Offline Mode. Changes cannot be saved."));
 
@@ -276,7 +296,6 @@ namespace WPF_LoginForm.Repositories
 
         public Task<(bool Success, string ErrorMessage)> ImportHierarchyMapAsync(DataTable mapData) => Task.FromResult((false, "Offline Mode"));
 
-        // --- HIERARCHY STUBS ---
         public Task<string> GetActualColumnNameAsync(string t, string p1, string p2, string p3, string p4, string c) => Task.FromResult<string>(null);
 
         public Task<List<string>> GetDistinctPart1ValuesAsync(string t) => Task.FromResult(new List<string>());

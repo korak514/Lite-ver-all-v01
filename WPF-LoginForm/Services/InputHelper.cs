@@ -32,7 +32,9 @@ namespace WPF_LoginForm.Services
         public static List<ErrorEventModel> PreProcessData(List<ErrorEventModel> rawData, bool excludeMachine00)
         {
             if (rawData == null) return new List<ErrorEventModel>();
-            var query = rawData.Where(x => !string.IsNullOrWhiteSpace(x.ErrorDescription));
+
+            // Ignore dummy NO_ERROR entries for actual error analysis
+            var query = rawData.Where(x => !string.IsNullOrWhiteSpace(x.ErrorDescription) && x.ErrorDescription != "NO_ERROR");
 
             if (excludeMachine00)
             {
@@ -43,21 +45,18 @@ namespace WPF_LoginForm.Services
 
         public static List<ChartDataPoint> GetTopReasons(List<ErrorEventModel> data, CategoryMappingService mappingService, List<CategoryRule> rules, int topN = 5)
         {
-            // Group by mapped category and calculate total duration per category.
-            // Also capture the machine that contributed the most duration to that category.
             var grouped = data
                 .GroupBy(x => mappingService.GetMappedCategory(x.ErrorDescription, rules))
                 .Select(g => new
                 {
                     Category = g.Key,
-                    TotalDuration = g.Sum(x => x.DurationMinutes),  // Use Sum for total downtime per category
-                    // Machine with the highest total duration in this category
+                    TotalDuration = g.Sum(x => x.DurationMinutes),
                     TopMachine = g.GroupBy(x => x.MachineCode)
                                   .Select(m => new { Machine = m.Key, Total = m.Sum(x => x.DurationMinutes) })
                                   .OrderByDescending(m => m.Total)
                                   .FirstOrDefault()?.Machine
                 })
-                .Where(x => !string.IsNullOrEmpty(x.Category)) // Exclude uncategorized if necessary
+                .Where(x => !string.IsNullOrEmpty(x.Category))
                 .OrderByDescending(x => x.TotalDuration)
                 .Take(topN)
                 .ToList();
@@ -66,7 +65,7 @@ namespace WPF_LoginForm.Services
             {
                 Label = x.Category,
                 Value = x.TotalDuration,
-                ExtraInfo = x.TopMachine // Machine code (e.g., "22")
+                ExtraInfo = x.TopMachine
             }).ToList();
         }
 
@@ -100,15 +99,16 @@ namespace WPF_LoginForm.Services
                 .ToList();
         }
 
-        public static Page2Stats CalculatePage2Stats(List<ErrorEventModel> data, DateTime start, DateTime end, Func<double, string> formatter, bool excludeBreaks)
+        // FIX: Now requires both ALL Data and FILTERED Data to accurately calculate Working Hours across empty shifts
+        public static Page2Stats CalculatePage2Stats(List<ErrorEventModel> allData, List<ErrorEventModel> filteredErrors, DateTime start, DateTime end, Func<double, string> formatter, bool excludeBreaks)
         {
             var stats = new Page2Stats();
 
-            // 1. Total Error Duration (Sum of filtered errors)
-            stats.TotalErrorDuration = data.Sum(x => x.DurationMinutes);
+            // 1. Total Error Duration (Sum of filtered errors only)
+            stats.TotalErrorDuration = filteredErrors.Sum(x => x.DurationMinutes);
 
-            // 2. Get Distinct Rows for column-based sums
-            var distinctRows = data.GroupBy(x => x.UniqueRowId).Select(g => g.First()).ToList();
+            // 2. Get Distinct Rows for column-based sums from ALL Data (To include shifts that had 0 errors)
+            var distinctRows = allData.GroupBy(x => x.UniqueRowId).Select(g => g.First()).ToList();
 
             double totalSavedBreak = distinctRows.Sum(x => x.RowSavedTimeBreak);
             double totalSavedMaint = distinctRows.Sum(x => x.RowSavedTimeMaint);
@@ -118,20 +118,17 @@ namespace WPF_LoginForm.Services
             // 3. Logic Correction: Determine "Stops" (Production Loss)
             if (excludeBreaks)
             {
-                // Formula: Net Loss = Total Repair Work - Work done during breaks
                 double calculatedStops = stats.TotalErrorDuration - totalSavedBreak - totalSavedMaint;
-
-                // Allow Stops to be LESS than Errors (which is the goal)
                 stats.TotalStopDuration = calculatedStops > 0 ? calculatedStops : 0;
             }
             else
             {
-                // If unfiltered, use the raw stop time from DB
                 stats.TotalStopDuration = rawStopDuration;
             }
 
             // 4. Averages
-            double totalDays = (end - start).TotalDays;
+            // FIX: Dates are inclusive! (e.g. 21.02 to 22.02 is TWO days, not 1)
+            double totalDays = (end.Date - start.Date).TotalDays + 1;
             if (totalDays < 1) totalDays = 1;
 
             double avgErr = stats.TotalErrorDuration / totalDays;
@@ -139,7 +136,7 @@ namespace WPF_LoginForm.Services
             double avgGrossStop = rawStopDuration / totalDays;
             double avgWork = totalActualWork / totalDays;
 
-            var frequentMachine = data.GroupBy(x => x.MachineCode)
+            var frequentMachine = filteredErrors.GroupBy(x => x.MachineCode)
                                       .Select(g => new { Machine = g.Key, Count = g.Count() })
                                       .OrderByDescending(x => x.Count)
                                       .FirstOrDefault();
@@ -161,11 +158,42 @@ namespace WPF_LoginForm.Services
             return stats;
         }
 
-        public static List<ChartDataPoint> GetShiftStats(List<ErrorEventModel> data)
+        // FIX: Now constructs Shift List from ALL data, then maps durations from FILTERED data
+        public static List<ChartDataPoint> GetShiftStats(List<ErrorEventModel> allData, List<ErrorEventModel> filteredErrors)
         {
-            return data
-                .GroupBy(x => string.IsNullOrWhiteSpace(x.Shift) ? "Unknown" : x.Shift)
-                .Select(g => new ChartDataPoint { Label = g.Key, Value = g.Sum(x => x.DurationMinutes) })
+            var distinctDates = allData.Select(x => x.Date.Date).Distinct().Count();
+
+            // If looking at a short timeframe (<= 7 days), break it down into explicit shifts per day
+            if (distinctDates > 0 && distinctDates <= 7)
+            {
+                var allShifts = allData.GroupBy(x => new { Date = x.Date.Date, Shift = string.IsNullOrWhiteSpace(x.Shift) ? "Unknown" : x.Shift.Trim() })
+                    .Select(g => new { g.Key.Date, g.Key.Shift })
+                    .ToList();
+
+                var result = new List<ChartDataPoint>();
+                foreach (var s in allShifts)
+                {
+                    double duration = filteredErrors.Where(x => x.Date.Date == s.Date && (string.IsNullOrWhiteSpace(x.Shift) ? "Unknown" : x.Shift.Trim()) == s.Shift)
+                                                    .Sum(x => x.DurationMinutes);
+
+                    result.Add(new ChartDataPoint
+                    {
+                        Label = $"{s.Date:dd.MM} {s.Shift}",
+                        Value = duration
+                    });
+                }
+
+                return result.OrderBy(x => x.Label).ToList();
+            }
+
+            // Large timeframe: Aggregated generally
+            return allData
+                .GroupBy(x => string.IsNullOrWhiteSpace(x.Shift) ? "Unknown" : x.Shift.Trim())
+                .Select(g => new ChartDataPoint
+                {
+                    Label = g.Key,
+                    Value = filteredErrors.Where(f => (string.IsNullOrWhiteSpace(f.Shift) ? "Unknown" : f.Shift.Trim()) == g.Key).Sum(f => f.DurationMinutes)
+                })
                 .OrderByDescending(x => x.Value)
                 .ToList();
         }

@@ -13,35 +13,29 @@ namespace WPF_LoginForm.Services
         // =========================================================================
         public static class Config
         {
-            // [CHANGE] Increased from 1 to 4 to move peak labels (Şub 2024) a tiny bit up
-            public static double PeakGapY = 4;
+            public static double PeakGapY = 8;
 
-            public static double ValleyGapY = 18;
-            public static double DefaultGapY = 4;
+            // [FIX] Increased from 10 to 16 to push Ara & May labels lower
+            public static double ValleyGapY = 16;
 
-            public static double SteepRiseLift = -2;
-            public static double SteepFallLift = 12;
-
-            public static double SteepFallOffsetX = -4;
-            public static double PlateauOffsetX = 4;
+            public static double DefaultTopGapY = 6;
+            public static double DefaultBottomGapY = 8;
 
             public static double PeakOffsetX = 0;
             public static double PeakOffsetY = 0;
             public static double ValleyOffsetX = 0;
             public static double ValleyOffsetY = 0;
 
-            public static double GapX = 8;
+            public static double GapX = 12;
 
             public static double FarGapY_Add = 12;
             public static double FarGapX_Add = 10;
 
-            // [CHANGE] Increased snug further to pull Ağu/Eyl tighter into the data point
             public static double DiagonalSnugY = 6;
-
             public static double DiagonalSnugX = 8;
 
-            public static double FirstLabelOffsetX = 4;
-            public static double FirstLabelOffsetY = 1;
+            public static double FirstLabelOffsetX = 12;
+            public static double FirstLabelOffsetY = 0;
 
             public static double LastLabelOffsetX = 12;
             public static double LastLabelOffsetY = 0;
@@ -50,13 +44,13 @@ namespace WPF_LoginForm.Services
             public static double BoxPaddingX = 16;
             public static double BoxHeight = 38;
 
-            public static double CollisionPadX = 2;
-            public static double CollisionPadY = 1;
+            public static double CollisionPadX = 4;
+            public static double CollisionPadY = 2;
 
-            public static double SteepSlope = 0.10;
-            public static double FlatSlope = 0.08;
+            public static double SteepSlope = 0.07;
+            public static double FlatSlope = 0.05;
 
-            public static double VirtualWidthPerPoint = 85.0;
+            public static double VirtualWidthPerPoint = 75.0;
             public static double VirtualHeight = 450.0;
         }
 
@@ -102,6 +96,10 @@ namespace WPF_LoginForm.Services
             double minY = points.Min(p => p.Y);
             double maxY = points.Max(p => p.Y);
             double rangeY = maxY - minY == 0 ? 1 : maxY - minY;
+
+            double minX = points.Min(p => p.X);
+            double maxX = points.Max(p => p.X);
+            double rangeX = maxX - minX == 0 ? 1 : maxX - minX;
 
             bool[] isPeakArray = new bool[count];
             bool[] isValleyArray = new bool[count];
@@ -158,7 +156,10 @@ namespace WPF_LoginForm.Services
 
                 bool isSharpRise = (slopeIn > steepThresholdValue || slopeOut > steepThresholdValue);
                 bool isSharpFall = (slopeIn < -steepThresholdValue || slopeOut < -steepThresholdValue);
+
                 bool isDiveToFlat = slopeIn < -steepThresholdValue && Math.Abs(slopeOut) < flatThresholdValue;
+                bool isRiseToFlat = slopeIn > steepThresholdValue && Math.Abs(slopeOut) < flatThresholdValue;
+                bool isFlatToDive = Math.Abs(slopeIn) < flatThresholdValue && slopeOut < -steepThresholdValue;
 
                 int maxCharCount = 5;
                 if (!string.IsNullOrEmpty(p.Label))
@@ -170,13 +171,13 @@ namespace WPF_LoginForm.Services
                 double w = (maxCharCount * Config.CharWidth) + Config.BoxPaddingX;
                 double h = Config.BoxHeight;
 
-                double px = count > 1 ? (i / (double)(count - 1)) * VIRTUAL_WIDTH : VIRTUAL_WIDTH / 2;
+                double px = count > 1 ? ((points[i].X - minX) / rangeX) * VIRTUAL_WIDTH : VIRTUAL_WIDTH / 2;
                 double py = rangeY > 0 ? VIRTUAL_HEIGHT - (((curr - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2;
 
-                double prevPx = i > 0 ? ((i - 1) / (double)(count - 1)) * VIRTUAL_WIDTH : px;
+                double prevPx = i > 0 ? ((points[i - 1].X - minX) / rangeX) * VIRTUAL_WIDTH : px;
                 double prevPy = i > 0 ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[i - 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : py;
 
-                double nextPx = i < count - 1 ? ((i + 1) / (double)(count - 1)) * VIRTUAL_WIDTH : px;
+                double nextPx = i < count - 1 ? ((points[i + 1].X - minX) / rangeX) * VIRTUAL_WIDTH : px;
                 double nextPy = i < count - 1 ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[i + 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : py;
 
                 List<Dir> candidates = GetCandidates(i, count, curr, prev, next, isPeak, isValley, seriesType, rangeY);
@@ -184,12 +185,11 @@ namespace WPF_LoginForm.Services
 
                 foreach (Dir dir in candidates)
                 {
-                    GetOffsets(dir, w, h, isPeak, isValley, isSharpRise, isSharpFall, isDiveToFlat, out double dx, out double dy);
+                    GetOffsets(dir, w, h, isPeak, isValley, isDiveToFlat, isFlatToDive, isSharpRise, out double dx, out double dy);
                     Rect proposedBox = new Rect(px + dx, py + dy, w, h);
 
                     bool collidesLabels = placements.Any(placed => placed.Show && placed.Bounds.Intersects(proposedBox));
-
-                    Rect coreBox = new Rect(proposedBox.X + 6, proposedBox.Y + 6, proposedBox.W - 12, proposedBox.H - 12);
+                    Rect coreBox = new Rect(proposedBox.X - 1, proposedBox.Y - 1, proposedBox.W + 2, proposedBox.H + 2);
 
                     bool collidesLine = false;
                     if (i > 0) collidesLine |= LineIntersectsRect(prevPx, prevPy, px, py, coreBox);
@@ -206,14 +206,34 @@ namespace WPF_LoginForm.Services
                     }
                 }
 
-                if (!placement.Show && importance[i] >= 80)
+                if (!placement.Show)
                 {
-                    GetOffsets(candidates[0], w, h, isPeak, isValley, isSharpRise, isSharpFall, isDiveToFlat, out double dx, out double dy, forceFar: true);
-                    placement.Dx = dx;
-                    placement.Dy = dy;
-                    placement.Bounds = new Rect(px + dx, py + dy, w, h);
-                    placement.Show = true;
-                    placement.IsFar = true;
+                    Dir[] emergencyDirs = { Dir.S, Dir.N, Dir.SE, Dir.NE, Dir.E };
+                    foreach (Dir edir in emergencyDirs)
+                    {
+                        GetOffsets(edir, w, h, isPeak, isValley, isDiveToFlat, isFlatToDive, isSharpRise, out double dx, out double dy, forceFar: true);
+                        Rect proposedBox = new Rect(px + dx, py + dy, w, h);
+
+                        bool collidesLabels = placements.Any(placed => placed.Show && placed.Bounds.Intersects(proposedBox));
+                        if (!collidesLabels)
+                        {
+                            placement.Dx = dx;
+                            placement.Dy = dy;
+                            placement.Bounds = proposedBox;
+                            placement.Show = true;
+                            placement.IsFar = true;
+                            break;
+                        }
+                    }
+
+                    if (!placement.Show)
+                    {
+                        GetOffsets(Dir.S, w, h, isPeak, isValley, isDiveToFlat, isFlatToDive, isSharpRise, out double dx, out double dy, forceFar: true);
+                        placement.Dx = dx;
+                        placement.Dy = dy;
+                        placement.Bounds = new Rect(px + dx, py + dy, w, h);
+                        placement.Show = true;
+                    }
                 }
 
                 if (placement.Show)
@@ -225,23 +245,29 @@ namespace WPF_LoginForm.Services
                         placement.Bounds.X = px + placement.Dx;
                         placement.Bounds.Y = py + placement.Dy;
                     }
-                    else if (i == count - 1)
+
+                    double leftEdge = px + placement.Dx;
+                    double rightEdge = px + placement.Dx + w;
+
+                    if (leftEdge < 5)
                     {
-                        double rightEdge = px + placement.Dx + w;
-                        double screenLimit = VIRTUAL_WIDTH - 5;
-                        if (rightEdge > screenLimit) placement.Dx -= (rightEdge - screenLimit);
-                        placement.Dx += Config.LastLabelOffsetX;
-                        placement.Dy += Config.LastLabelOffsetY;
-                        placement.Bounds.X = px + placement.Dx;
-                        placement.Bounds.Y = py + placement.Dy;
+                        placement.Dx += (5 - leftEdge);
                     }
+                    else if (rightEdge > VIRTUAL_WIDTH - 5)
+                    {
+                        placement.Dx -= (rightEdge - (VIRTUAL_WIDTH - 5));
+                    }
+
+                    placement.Bounds.X = px + placement.Dx;
+                    placement.Bounds.Y = py + placement.Dy;
                 }
 
                 placements.Add(placement);
             }
 
-            // 4. Post-Placement Micro-Adjustments
-            double[] shifts = new double[] { 0, -2, 2, -4, 4, -8, 8 };
+            // 4. POST-PLACEMENT AGGRESSIVE ZIPPER
+            double[] shiftsX = new double[] { 0, -10, 10, -20, 20 };
+            double[] shiftsY = new double[] { 0, -5, 5 };
             int maxPasses = 3;
 
             for (int pass = 0; pass < maxPasses; pass++)
@@ -258,27 +284,25 @@ namespace WPF_LoginForm.Services
 
                         int idx = current.Index;
                         double currY = points[idx].Y;
-                        double cx = count > 1 ? (idx / (double)(count - 1)) * VIRTUAL_WIDTH : VIRTUAL_WIDTH / 2;
+                        double cx = count > 1 ? ((points[idx].X - minX) / rangeX) * VIRTUAL_WIDTH : VIRTUAL_WIDTH / 2;
                         double cy = rangeY > 0 ? VIRTUAL_HEIGHT - (((currY - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2;
-
-                        double prevPx = idx > 0 ? ((idx - 1) / (double)(count - 1)) * VIRTUAL_WIDTH : cx;
+                        double prevPx = idx > 0 ? ((points[idx - 1].X - minX) / rangeX) * VIRTUAL_WIDTH : cx;
                         double prevPy = idx > 0 ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[idx - 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : cy;
-
-                        double nextPx = idx < count - 1 ? ((idx + 1) / (double)(count - 1)) * VIRTUAL_WIDTH : cx;
+                        double nextPx = idx < count - 1 ? ((points[idx + 1].X - minX) / rangeX) * VIRTUAL_WIDTH : cx;
                         double nextPy = idx < count - 1 ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[idx + 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : cy;
 
-                        foreach (double sx in shifts)
+                        foreach (double sx in shiftsX)
                         {
-                            foreach (double sy in shifts)
+                            foreach (double sy in shiftsY)
                             {
                                 if (sx == 0 && sy == 0) continue;
 
                                 Rect testBounds = new Rect(current.Bounds.X + sx, current.Bounds.Y + sy, current.Bounds.W, current.Bounds.H);
-                                if (testBounds.X < 0 || testBounds.X + testBounds.W > VIRTUAL_WIDTH + 20) continue;
+                                if (testBounds.X < 5 || testBounds.X + testBounds.W > VIRTUAL_WIDTH - 5) continue;
 
                                 bool stillOverlaps = placements.Any(o => o != current && o.Show && testBounds.Intersects(o.Bounds));
+                                Rect coreBox = new Rect(testBounds.X - 1, testBounds.Y - 1, testBounds.W + 2, testBounds.H + 2);
 
-                                Rect coreBox = new Rect(testBounds.X + 6, testBounds.Y + 6, testBounds.W - 12, testBounds.H - 12);
                                 bool hitLine = false;
                                 if (idx > 0) hitLine |= LineIntersectsRect(prevPx, prevPy, cx, cy, coreBox);
                                 if (idx < count - 1) hitLine |= LineIntersectsRect(cx, cy, nextPx, nextPy, coreBox);
@@ -342,15 +366,15 @@ namespace WPF_LoginForm.Services
 
             if (i == 0)
             {
-                if (next > curr) list.AddRange(new[] { Dir.SE, Dir.E, Dir.S, Dir.NE, Dir.N });
-                else list.AddRange(new[] { Dir.NE, Dir.E, Dir.N, Dir.SE, Dir.S });
+                if (next > curr) list.AddRange(new[] { Dir.N, Dir.S, Dir.SE, Dir.E, Dir.NE });
+                else list.AddRange(new[] { Dir.N, Dir.S, Dir.NE, Dir.E, Dir.SE });
                 return list;
             }
 
             if (i == count - 1)
             {
-                if (prev > curr) list.AddRange(new[] { Dir.S, Dir.Far_S, Dir.SW, Dir.Far_SW, Dir.N });
-                else if (prev < curr) list.AddRange(new[] { Dir.NW, Dir.W, Dir.N, Dir.SW, Dir.S });
+                if (prev > curr) list.AddRange(new[] { Dir.N, Dir.S, Dir.Far_S, Dir.SW, Dir.Far_SW });
+                else if (prev < curr) list.AddRange(new[] { Dir.N, Dir.S, Dir.NW, Dir.W, Dir.SW });
                 else list.AddRange(new[] { Dir.N, Dir.S, Dir.Far_N, Dir.Far_S });
                 return list;
             }
@@ -378,17 +402,18 @@ namespace WPF_LoginForm.Services
             }
             if (isDiveToFlat)
             {
-                list.AddRange(new[] { Dir.S, Dir.SE, Dir.Far_S });
+                list.AddRange(new[] { Dir.N, Dir.S, Dir.SE, Dir.Far_N });
                 return list;
             }
-            if (isRiseToFlat)
+            if (isRiseToFlat) // (Nis 2023, Eyl 2023)
             {
-                list.AddRange(new[] { Dir.N, Dir.NW, Dir.NE, Dir.Far_N });
+                // [FIX] Changed to prefer North (Top) first to fix Eyl 2023.
+                list.AddRange(new[] { Dir.N, Dir.NW, Dir.SE, Dir.S, Dir.Far_N });
                 return list;
             }
             if (isFlatToDive)
             {
-                list.AddRange(new[] { Dir.NE, Dir.N, Dir.E, Dir.Far_NE });
+                list.AddRange(new[] { Dir.N, Dir.NW, Dir.NE, Dir.E });
                 return list;
             }
 
@@ -399,82 +424,91 @@ namespace WPF_LoginForm.Services
             }
             if (isValley)
             {
-                list.AddRange(new[] { Dir.S, Dir.SE, Dir.SW, Dir.Far_S });
+                list.AddRange(new[] { Dir.S, Dir.SE, Dir.SW, Dir.N, Dir.Far_S });
                 return list;
             }
 
             if (isSteepRise)
             {
-                list.AddRange(new[] { Dir.N, Dir.NW, Dir.SE, Dir.S, Dir.E, Dir.Far_SE });
+                list.AddRange(new[] { Dir.E, Dir.SE, Dir.S, Dir.N });
             }
             else if (isGentleRise)
             {
-                list.AddRange(new[] { Dir.N, Dir.NW, Dir.NE, Dir.SE, Dir.Far_N });
+                list.AddRange(new[] { Dir.N, Dir.S, Dir.SE, Dir.NE, Dir.E });
             }
             else if (isSteepFall)
             {
-                list.AddRange(new[] { Dir.E, Dir.NE, Dir.N, Dir.SW, Dir.S, Dir.Far_E });
+                list.AddRange(new[] { Dir.S, Dir.NE, Dir.E, Dir.N });
             }
             else if (isGentleFall)
             {
-                list.AddRange(new[] { Dir.N, Dir.NE, Dir.SW, Dir.S, Dir.Far_NE });
+                list.AddRange(new[] { Dir.N, Dir.NE, Dir.E, Dir.S, Dir.Far_N });
             }
             else
             {
-                list.AddRange(new[] { Dir.N, Dir.S, Dir.NE, Dir.SE, Dir.NW, Dir.SW });
+                list.AddRange(new[] { Dir.N, Dir.S, Dir.NE, Dir.SE });
             }
 
             return list;
         }
 
-        private static void GetOffsets(Dir dir, double w, double h, bool isPeak, bool isValley, bool isSharpRise, bool isSharpFall, bool isDiveToFlat, out double dx, out double dy, bool forceFar = false)
+        private static void GetOffsets(Dir dir, double w, double h, bool isPeak, bool isValley, bool isDiveToFlat, bool isFlatToDive, bool isSharpRise, out double dx, out double dy, bool forceFar = false)
         {
-            double gY;
-            if (isPeak) gY = Config.PeakGapY;
-            else if (isValley) gY = Config.ValleyGapY;
-            else gY = Config.DefaultGapY;
-
-            double gX = Config.GapX;
-
-            if (forceFar || dir.ToString().StartsWith("Far_"))
+            bool isFar = forceFar || dir.ToString().StartsWith("Far_");
+            if (isFar)
             {
-                gX += Config.FarGapX_Add;
-                gY += Config.FarGapY_Add;
                 string cleanDir = dir.ToString().Replace("Far_", "");
                 dir = (Dir)Enum.Parse(typeof(Dir), cleanDir);
             }
 
-            if (!isPeak && !isValley)
+            bool isTop = dir == Dir.N || dir == Dir.NE || dir == Dir.NW;
+            bool isBottom = dir == Dir.S || dir == Dir.SE || dir == Dir.SW;
+
+            double gY;
+            if (isTop) gY = isPeak ? Config.PeakGapY : Config.DefaultTopGapY;
+            else if (isBottom) gY = isValley ? Config.ValleyGapY : Config.DefaultBottomGapY;
+            else gY = Config.DefaultTopGapY;
+
+            double gX = Config.GapX;
+
+            if (isFar)
             {
-                if (isSharpRise) gY += Config.SteepRiseLift;
-                else if (isSharpFall) gY += Config.SteepFallLift;
+                gX += Config.FarGapX_Add;
+                gY += Config.FarGapY_Add;
             }
 
             switch (dir)
             {
                 case Dir.N:
-                    dx = (-w / 2) + (isPeak ? Config.PeakOffsetX : 0);
+                    // [FIX] Kas 2024 (FlatToDive) shift Left by 8px
+                    dx = (-w / 2) + (isPeak ? Config.PeakOffsetX : 0) + (isFlatToDive ? -8 : 0);
                     dy = -h - gY + (isPeak ? Config.PeakOffsetY : 0);
                     break;
 
                 case Dir.S:
-                    dx = (-w / 2) + (isValley ? Config.ValleyOffsetX : 0) + (isDiveToFlat ? -8 : 0);
+                    // [FIX] Ağu (DiveToFlat) specific fallback shift
+                    dx = (-w / 2) + (isValley ? Config.ValleyOffsetX : 0) + (isDiveToFlat ? 4 : 0);
                     dy = gY + (isValley ? Config.ValleyOffsetY : 0);
                     break;
 
                 case Dir.E:
-                    dx = gX + (isSharpFall ? 4 : 0);
-                    dy = -h / 2 + (isSharpFall ? -6 : 0);
+                    dx = gX + 6;
+                    dy = -h / 2;
                     break;
 
                 case Dir.W:
-                    dx = -w - gX - (isSharpFall ? 4 : 0);
-                    dy = -h / 2 + (isSharpFall ? -6 : 0);
+                    dx = -w - gX;
+                    dy = -h / 2;
                     break;
 
                 case Dir.NE: dx = gX - Config.DiagonalSnugX; dy = -h - gY + Config.DiagonalSnugY; break;
                 case Dir.NW: dx = -w - gX + Config.DiagonalSnugX; dy = -h - gY + Config.DiagonalSnugY; break;
-                case Dir.SE: dx = gX - Config.DiagonalSnugX; dy = gY - Config.DiagonalSnugY; break;
+                case Dir.SE:
+                    // [FIX] Haz 2024 (SteepRise) shift Right by 6px
+                    dx = (gX - Config.DiagonalSnugX) + (isSharpRise ? 6 : 0);
+                    dy = gY - Config.DiagonalSnugY;
+                    break;
+
                 case Dir.SW: dx = -w - gX + Config.DiagonalSnugX; dy = gY - Config.DiagonalSnugY; break;
                 default: dx = -w / 2; dy = -h - gY; break;
             }

@@ -30,7 +30,6 @@ namespace WPF_LoginForm.Repositories
 
         private bool IsPostgres => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql;
 
-        // FIX (Bug 2): Properly escape quotes and brackets to prevent SQL Injection in identifiers
         private string Quote(string identifier)
         {
             if (IsPostgres)
@@ -161,14 +160,11 @@ namespace WPF_LoginForm.Repositories
 
                     foreach (DataColumn c in dt.Columns)
                     {
-                        string n = c.ColumnName.ToLower();
-                        // Task 1: Improved Column Mapping
+                        string n = c.ColumnName.ToLower().Trim();
                         if (n.Contains("tarih") || n == "date") colDate = c;
                         else if (n.Contains("vardiya") || n == "shift") colShift = c;
                         else if (n.Contains("duraklama") || n.Contains("stop")) colStopDuration = c;
-                        // Specific match for "Duruşu Engelemeyen..."
                         else if (n.Contains("engelemeyen") || (n.Contains("zaman") && n.Contains("kazanımı") && !n.Contains("mola"))) colSavedBreak = c;
-                        // Specific match for "Mola-Bakım süre kazanımı"
                         else if ((n.Contains("mola") || n.Contains("bakım")) && n.Contains("kazanım")) colSavedMaint = c;
                         else if (n.Contains("fiili") || n.Contains("çalışılan") || n.Contains("work")) colActualWork = c;
                         else if (n.StartsWith("hata_kodu") || n.StartsWith("error_code") || n.StartsWith("code")) errorCols.Add(c);
@@ -180,9 +176,9 @@ namespace WPF_LoginForm.Repositories
                     {
                         if (row[colDate] == DBNull.Value) continue;
                         DateTime date = Convert.ToDateTime(row[colDate]);
-                        if (date < startDate || date > endDate) continue;
+                        if (date.Date < startDate.Date || date.Date > endDate.Date) continue;
 
-                        string shift = colShift != null ? row[colShift].ToString() : "Unknown";
+                        string shift = colShift != null ? row[colShift].ToString().Trim() : "Unknown";
                         string rowId = Guid.NewGuid().ToString();
 
                         double rowStopMin = 0;
@@ -245,7 +241,6 @@ namespace WPF_LoginForm.Repositories
                         }
                         else
                         {
-                            // FIX (Bug 2): Use the updated Quote method to prevent escape sequences in column names
                             command.CommandText = $"ALTER TABLE {Quote(tableName)} RENAME COLUMN {Quote(oldName)} TO {Quote(newName)}";
                             if (command is NpgsqlCommand pgCmd) await pgCmd.ExecuteNonQueryAsync();
                         }
@@ -467,7 +462,7 @@ namespace WPF_LoginForm.Repositories
                     using (var cmd = conn.CreateCommand())
                     {
                         if (IsPostgres) cmd.CommandText = $"ALTER TABLE {Quote(tableName)} ADD COLUMN \"ID\" SERIAL";
-                        else cmd.CommandText = $"ALTER TABLE {Quote(tableName)} ADD [ID] INT IDENTITY(1,1) NOT NULL";
+                        else cmd.CommandText = $"ALTER TABLE {Quote(tableName)} ADD[ID] INT IDENTITY(1,1) NOT NULL";
                         await Task.Run(() => cmd.ExecuteNonQuery());
 
                         if (IsPostgres) cmd.CommandText = $"ALTER TABLE {Quote(tableName)} ADD CONSTRAINT \"PK_{tableName}\" PRIMARY KEY (\"ID\")";
@@ -507,8 +502,8 @@ namespace WPF_LoginForm.Repositories
                             cmd.CommandText = query;
                             if (startDate.HasValue && endDate.HasValue)
                             {
-                                AddParameter(cmd, "@start", startDate.Value);
-                                AddParameter(cmd, "@end", endDate.Value);
+                                AddParameter(cmd, "@start", startDate.Value.Date);
+                                AddParameter(cmd, "@end", endDate.Value.Date.AddDays(1).AddSeconds(-1));
                             }
                             FillDataTable(cmd, dt);
                         }
