@@ -18,6 +18,12 @@
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
+        <!-- GLOBAL SEPARATOR STYLE (Horizontal Lines Visible, Vertical Hidden) -->
+        <Style TargetType="lvc:Separator">
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="Stroke" Value="#30FFFFFF" />
+        </Style>
+
         <Style TargetType="lvc:DefaultTooltip">
             <Setter Property="Background" Value="#E6000030" />
             <Setter Property="Foreground" Value="WhiteSmoke" />
@@ -29,7 +35,6 @@
             <Setter Property="SelectionMode" Value="OnlySender" />
         </Style>
 
-        <!-- Styles for toggle/buttons kept same as before -->
         <Style x:Key="GearToggleStyle" TargetType="ToggleButton">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -88,32 +93,52 @@
             </Style.Triggers>
         </Style>
 
+        <!-- ================================================================= -->
+        <!-- NEW MODERN CLOSE BUTTON STYLE (Floating Circle + Glass Effect)    -->
+        <!-- ================================================================= -->
         <Style x:Key="CompactCloseButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#C0392B" />
+            <!-- Semi-transparent Dark Background by Default -->
+            <Setter Property="Background" Value="#66000000" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Width" Value="30" />
-            <Setter Property="Height" Value="30" />
+            <!-- Thin White Border for visibility against dark charts -->
+            <Setter Property="BorderBrush" Value="#40FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="HorizontalAlignment" Value="Right" />
             <Setter Property="VerticalAlignment" Value="Top" />
-            <Setter Property="Margin" Value="0,-10,-10,0" />
+            <!-- Floating Margin -->
+            <Setter Property="Margin" Value="0,8,8,0" />
             <Setter Property="Visibility" Value="Collapsed" />
             <Setter Property="Panel.ZIndex" Value="200" />
+
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="15">
-                            <fa:ImageAwesome Icon="Times" Height="14" Width="14" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="20">
+                            <!-- Using CornerRadius=20 (Half of Width 40) makes it a perfect circle -->
+                            <fa:ImageAwesome Icon="Times" Height="16" Width="16" Foreground="{TemplateBinding Foreground}"
+                                             VerticalAlignment="Center" HorizontalAlignment="Center" />
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <!-- Hover Effect: Turns Red and Removes Border -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#D14545" />
+                                <Setter Property="BorderBrush" Value="Transparent" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#A02020" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#E74C3C" />
-                </Trigger>
-            </Style.Triggers>
         </Style>
     </UserControl.Resources>
 
@@ -123,7 +148,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Top Control Bar (Same as before) -->
+        <!-- Top Control Bar -->
         <Grid Grid.Row="0" Margin="5,5,10,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -272,7 +297,7 @@
                     </Border.InputBindings>
                 </Border>
 
-                <!-- CHART 1 (DisableAnimations="True" Added) -->
+                <!-- CHART 1 -->
                 <Grid>
                     <Grid.Style>
                         <Style TargetType="Grid">
@@ -305,6 +330,7 @@
                         <Grid>
                             <lvc:CartesianChart Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" DisableAnimations="True" Hoverable="False" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="1" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
@@ -352,6 +378,7 @@
                         <Grid>
                             <lvc:CartesianChart Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" DisableAnimations="True" Hoverable="False" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="2" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
@@ -399,6 +426,7 @@
                         <Grid>
                             <lvc:CartesianChart Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" DisableAnimations="True" Hoverable="False" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="3" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
@@ -446,6 +474,7 @@
                         <Grid>
                             <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" Hoverable="True" Margin="0,10,0,0" DisableAnimations="True" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="4" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
@@ -493,6 +522,7 @@
                         <Grid>
                             <lvc:CartesianChart Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" DisableAnimations="True" Hoverable="False" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="5" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
@@ -509,9 +539,8 @@
                 </Grid>
             </Grid>
 
-            <!-- PAGE 2 (Advanced View) - kept same but with disabled animations -->
+            <!-- PAGE 2 (Advanced View) -->
             <Grid x:Name="Page2" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
-                <!-- (Same logic as Page 1 for visibility) -->
                 <Grid.Style>
                     <Style TargetType="Grid">
                         <Style.Triggers>
@@ -591,6 +620,7 @@
 
                             <Grid Grid.Row="0" Grid.RowSpan="2">
                                 <Button Command="{Binding MaximizeChartCommand}" CommandParameter="6" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" />
+                                <!-- Updated Close Button -->
                                 <Button Command="{Binding CloseMaximizeCommand}">
                                     <Button.Style>
                                         <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">

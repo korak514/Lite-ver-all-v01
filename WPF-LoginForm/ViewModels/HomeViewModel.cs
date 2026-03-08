@@ -1,5 +1,4 @@
-﻿// ViewModels/HomeViewModel.cs
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -74,7 +73,14 @@ namespace WPF_LoginForm.ViewModels
         public int MaximizedChartIndex
         {
             get => _maximizedChartIndex;
-            set { if (SetProperty(ref _maximizedChartIndex, value)) { OnPropertyChanged(nameof(IsAnyChartMaximized)); UpdateDataLabelsVisibility(); } }
+            set
+            {
+                if (SetProperty(ref _maximizedChartIndex, value))
+                {
+                    OnPropertyChanged(nameof(IsAnyChartMaximized));
+                    UpdateDataLabelsVisibility();
+                }
+            }
         }
 
         public bool IsAnyChartMaximized => MaximizedChartIndex > 0;
@@ -90,10 +96,12 @@ namespace WPF_LoginForm.ViewModels
         public ObservableCollection<KpiModel> KpiCards { get; } = new ObservableCollection<KpiModel>();
 
         private string _selectedErrorCategory;
+
         public string SelectedErrorCategory
         { get => _selectedErrorCategory; set { if (SetProperty(ref _selectedErrorCategory, value)) { InitializeSliders(); LoadAllChartsData(); AutoSave(); } } }
 
         private string _selectedDashboardFile;
+
         public string SelectedDashboardFile
         { get => _selectedDashboardFile; set { if (SetProperty(ref _selectedDashboardFile, value) && _isActive && !string.IsNullOrEmpty(value)) { Task.Delay(50).ContinueWith(_ => Application.Current.Dispatcher.Invoke(() => LoadSelectedDashboardFile(value))); } } }
 
@@ -112,22 +120,27 @@ namespace WPF_LoginForm.ViewModels
         public bool IsSnapshotExport { get; set; } = true;
 
         private bool _isFilterByDate = true;
+
         public bool IsFilterByDate
         { get => _isFilterByDate; set { if (SetProperty(ref _isFilterByDate, value)) { InitializeSliders(); LoadAllChartsData(); AutoSave(); } } }
 
         private bool _ignoreNonDateData = true;
+
         public bool IgnoreNonDateData
         { get => _ignoreNonDateData; set { if (SetProperty(ref _ignoreNonDateData, value)) { LoadAllChartsData(); AutoSave(); } } }
 
         private bool _useIdToDateConversion = false;
+
         public bool UseIdToDateConversion
         { get => _useIdToDateConversion; set { if (SetProperty(ref _useIdToDateConversion, value)) AutoSave(); } }
 
         private DateTime _initialDateForConversion = DateTime.Today.AddYears(-1);
+
         public DateTime InitialDateForConversion
         { get => _initialDateForConversion; set { if (SetProperty(ref _initialDateForConversion, value)) AutoSave(); } }
 
         private bool _globalIgnoreAfterHyphen = false;
+
         public bool GlobalIgnoreAfterHyphen
         { get => _globalIgnoreAfterHyphen; set { if (SetProperty(ref _globalIgnoreAfterHyphen, value)) { LoadAllChartsData(); AutoSave(); } } }
 
@@ -143,10 +156,12 @@ namespace WPF_LoginForm.ViewModels
         public bool IsDateFilterEnabled { get => _isDateFilterEnabled; private set => SetProperty(ref _isDateFilterEnabled, value); }
 
         private DateTime _startDate;
+
         public DateTime StartDate
         { get => _startDate; set { if (_startDate != value) { _startDate = value; OnPropertyChanged(); if (!_isUpdatingDates && _isActive && IsFilterByDate) { LoadAllChartsData(); UpdateSlidersFromDates(); AutoSave(); } } } }
 
         private DateTime _endDate;
+
         public DateTime EndDate
         { get => _endDate; set { if (_endDate != value) { _endDate = value; OnPropertyChanged(); if (!_isUpdatingDates && _isActive && IsFilterByDate) { LoadAllChartsData(); UpdateSlidersFromDates(); AutoSave(); } } } }
 
@@ -154,10 +169,12 @@ namespace WPF_LoginForm.ViewModels
         public double SliderMaximum { get => _sliderMaximum; set => SetProperty(ref _sliderMaximum, value); }
 
         private double _startMonthSliderValue;
+
         public double StartMonthSliderValue
         { get => _startMonthSliderValue; set { if (SetProperty(ref _startMonthSliderValue, value) && !_isUpdatingDates && _isActive) { if (IsFilterByDate) UpdateDatesFromSliders(); else { UpdateTooltips(); LoadAllChartsData(); } } } }
 
         private double _endMonthSliderValue;
+
         public double EndMonthSliderValue
         { get => _endMonthSliderValue; set { if (SetProperty(ref _endMonthSliderValue, value) && !_isUpdatingDates && _isActive) { if (IsFilterByDate) UpdateDatesFromSliders(); else { UpdateTooltips(); LoadAllChartsData(); } } } }
 
@@ -167,10 +184,16 @@ namespace WPF_LoginForm.ViewModels
         public SeriesCollection Chart1Series { get; } = new SeriesCollection(); public SeriesCollection Chart2Series { get; } = new SeriesCollection(); public SeriesCollection Chart3Series { get; } = new SeriesCollection();
         public SeriesCollection Chart4Series { get; } = new SeriesCollection(); public SeriesCollection Chart5Series { get; } = new SeriesCollection(); public SeriesCollection Chart6Series { get; } = new SeriesCollection();
 
-        public AxesCollection Chart1X { get; } = new AxesCollection(); public AxesCollection Chart1Y { get; } = new AxesCollection();
-        public AxesCollection Chart2X { get; } = new AxesCollection(); public AxesCollection Chart2Y { get; } = new AxesCollection();
-        public AxesCollection Chart3X { get; } = new AxesCollection(); public AxesCollection Chart3Y { get; } = new AxesCollection();
-        public AxesCollection Chart5X { get; } = new AxesCollection(); public AxesCollection Chart5Y { get; } = new AxesCollection();
+        // Initialize Axes Collections with EXACTLY ONE default axis to prevent the double-axis bug
+        public AxesCollection Chart1X { get; } = new AxesCollection { new Axis() };
+
+        public AxesCollection Chart1Y { get; } = new AxesCollection { new Axis() };
+        public AxesCollection Chart2X { get; } = new AxesCollection { new Axis() };
+        public AxesCollection Chart2Y { get; } = new AxesCollection { new Axis() };
+        public AxesCollection Chart3X { get; } = new AxesCollection { new Axis() };
+        public AxesCollection Chart3Y { get; } = new AxesCollection { new Axis() };
+        public AxesCollection Chart5X { get; } = new AxesCollection { new Axis() };
+        public AxesCollection Chart5Y { get; } = new AxesCollection { new Axis() };
 
         public Func<double, string> DateFormatter { get; }
         public Func<double, string> NumberFormatter { get; set; }
@@ -184,7 +207,11 @@ namespace WPF_LoginForm.ViewModels
             ConfigureCommand = new ViewModelCommand(p => ShowConfigurationWindow()); ImportCommand = new ViewModelCommand(p => ImportConfiguration()); ExportCommand = new ViewModelCommand(p => ExportConfiguration());
             RecolorChartsCommand = new ViewModelCommand(p => LoadAllChartsData()); ToggleFilterModeCommand = new ViewModelCommand(p => IsFilterByDate = !IsFilterByDate); ChartClickCommand = new ViewModelCommand(ExecuteChartClick);
             TogglePageCommand = new ViewModelCommand(p => IsSecondPageActive = !IsSecondPageActive);
-            MaximizeChartCommand = new ViewModelCommand(p => { if (int.TryParse(p?.ToString(), out int i)) MaximizedChartIndex = i; }); CloseMaximizeCommand = new ViewModelCommand(p => MaximizedChartIndex = 0);
+
+            // LAG FIX: Maximize command only sets the index, does NOT reload data
+            MaximizeChartCommand = new ViewModelCommand(p => { if (int.TryParse(p?.ToString(), out int i)) { MaximizedChartIndex = i; } });
+            CloseMaximizeCommand = new ViewModelCommand(p => { MaximizedChartIndex = 0; });
+
             CopyImageCommand = new ViewModelCommand(ExecuteCopyImage); ExportChartDataCommand = new ViewModelCommand(ExecuteExportChartData);
             GoBackCommand = new ViewModelCommand(p => { Deactivate(); ReturnToPortalAction?.Invoke(); });
 
@@ -194,41 +221,10 @@ namespace WPF_LoginForm.ViewModels
 
             try
             {
-                string xaml = @"<DataTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"">
-                                    <Canvas Width=""0"" Height=""0"">
-                                        <Line X1=""0"" Y1=""0""
-                                              X2=""{Binding Point.Instance.LeaderLineX2}""
-                                              Y2=""{Binding Point.Instance.LeaderLineY2}""
-                                              Stroke=""#804A90E2"" StrokeThickness=""1.5"" StrokeDashArray=""2,2"">
-                                            <Line.Style>
-                                                <Style TargetType=""Line"">
-                                                    <Setter Property=""Visibility"" Value=""Collapsed"" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding=""{Binding Point.Instance.HasLeaderLine}"" Value=""True"">
-                                                            <Setter Property=""Visibility"" Value=""Visible"" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Line.Style>
-                                        </Line>
-                                        <Border Canvas.Left=""{Binding Point.Instance.LabelDx}""
-                                                Canvas.Top=""{Binding Point.Instance.LabelDy}""
-                                                Background=""#CC1A1A2E"" BorderBrush=""#804A90E2"" BorderThickness=""1.5"" CornerRadius=""4"" Padding=""4,2"">
-                                            <TextBlock Text=""{Binding Point.Instance.Label}"" Foreground=""#F8F9FA"" FontSize=""11"" FontWeight=""Bold"" TextAlignment=""Center"" />
-                                            <Border.Style>
-                                                <Style TargetType=""Border"">
-                                                    <Setter Property=""Visibility"" Value=""Collapsed"" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding=""{Binding Point.Instance.ShowLabel}"" Value=""True"">
-                                                            <Setter Property=""Visibility"" Value=""Visible"" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                        </Border>
-                                    </Canvas>
-                                </DataTemplate>";
-                _smartLabelTemplate = (DataTemplate)System.Windows.Markup.XamlReader.Parse(xaml);
+                if (Application.Current != null)
+                {
+                    _smartLabelTemplate = Application.Current.TryFindResource("SmartLabelTemplate") as DataTemplate;
+                }
             }
             catch (Exception ex) { _logger?.LogError("Failed to initialize SmartLabel Template", ex); }
 
@@ -309,9 +305,13 @@ namespace WPF_LoginForm.ViewModels
                 {
                     if (series is LineSeries lineSeries)
                     {
-                        // Optimization: Only allow template-based smart labels if point count is low
                         bool isSmall = lineSeries.Values != null && lineSeries.Values.Count <= 35;
                         lineSeries.DataLabels = isMaximized && isSmall;
+                    }
+                    else if (series is ColumnSeries colSeries)
+                    {
+                        bool isSmall = colSeries.Values != null && colSeries.Values.Count <= 35;
+                        colSeries.DataLabels = isMaximized && isSmall;
                     }
                 }
             }
@@ -414,8 +414,6 @@ namespace WPF_LoginForm.ViewModels
                     var cv = new ChartValues<DashboardDataPoint>();
                     foreach (var pt in s.Points) cv.Add(pt);
 
-                    // --- VISIBILITY LOGIC ---
-                    // Initially: Only show if this chart position matches the maximized index AND data is small
                     bool isMaximized = (position == MaximizedChartIndex);
                     bool isSmall = cv.Count <= 35;
                     bool showLabels = isMaximized && isSmall;
@@ -435,7 +433,7 @@ namespace WPF_LoginForm.ViewModels
                             DataLabels = showLabels,
                             Foreground = Brushes.WhiteSmoke,
                             LabelPoint = p => DashboardChartService.FormatKiloMega(p.Y),
-                            DataLabelsTemplate = showLabels ? _smartLabelTemplate : null
+                            DataLabelsTemplate = _smartLabelTemplate
                         });
                     }
                     else
@@ -449,7 +447,7 @@ namespace WPF_LoginForm.ViewModels
                             DataLabels = showLabels,
                             Foreground = Brushes.WhiteSmoke,
                             LabelPoint = p => DashboardChartService.FormatKiloMega(p.Y),
-                            DataLabelsTemplate = showLabels ? _smartLabelTemplate : null
+                            DataLabelsTemplate = _smartLabelTemplate
                         });
                     }
                 }
@@ -475,74 +473,94 @@ namespace WPF_LoginForm.ViewModels
                     }
                 }
 
-                var yAxis = new Axis
-                {
-                    Title = "Values",
-                    LabelFormatter = NumberFormatter,
-                    Foreground = axisColor,
-                    FontSize = 12,
-                    Separator = new Separator { Stroke = new SolidColorBrush(Color.FromArgb(20, 255, 255, 255)) }
-                };
+                // FIX: Use existing Single Axis to avoid duplication
+                var yAxis = targetY[0];
+                yAxis.Title = "Values";
+                yAxis.LabelFormatter = NumberFormatter;
+                yAxis.Foreground = axisColor;
+                yAxis.FontSize = 12;
 
                 if (hasValues)
                 {
                     bool forceMinZero = result.Series.Any(x => x.SeriesType == "Column") && minVal >= 0;
+
                     double dataRange = maxVal - minVal;
-                    double buffer = 0.22 * dataRange;
-                    double desiredMin = minVal - buffer;
-                    double desiredMax = maxVal + buffer;
+                    if (dataRange == 0) dataRange = 1;
 
-                    if (forceMinZero) desiredMin = 0;
+                    // LABEL BOUNDARY FIX: Increased top buffer to 25%
+                    // This creates headroom for labels so they don't get cut off at the top
+                    double topBuffer = 0.25 * dataRange;
+                    double bottomBuffer = forceMinZero ? 0 : 0.1 * dataRange;
 
-                    double magnitude = 1;
-                    if (maxVal >= 1_000_000) magnitude = 1_000_000;
-                    else if (maxVal >= 10_000) magnitude = 1_000;
+                    double desiredMin = forceMinZero ? 0 : minVal - bottomBuffer;
+                    double desiredMax = maxVal + topBuffer;
 
-                    double normMin = desiredMin / magnitude;
-                    double normMax = desiredMax / magnitude;
+                    // NICE NUMBER ALGORITHM
+                    double range = desiredMax - desiredMin;
+                    double targetTicks = 6.0;
 
-                    double displayStep;
-                    if (normMax - normMin < 0.5) displayStep = 0.05;
-                    else if (normMax - normMin < 3) displayStep = 0.25;
-                    else displayStep = 0.5;
+                    double rawStep = range / targetTicks;
+                    double mag = Math.Pow(10, Math.Floor(Math.Log10(rawStep)));
+                    double relStep = rawStep / mag;
 
-                    double approxSteps = (normMax - normMin) / displayStep;
-                    if (approxSteps > 20)
-                    {
-                        displayStep = (normMax - normMin) / 15;
-                        double log10 = Math.Floor(Math.Log10(displayStep));
-                        double factor = Math.Pow(10, log10);
-                        double normalized = displayStep / factor;
-                        if (normalized < 0.15) normalized = 0.1;
-                        else if (normalized < 0.35) normalized = 0.2;
-                        else if (normalized < 0.75) normalized = 0.5;
-                        else normalized = 1.0;
-                        displayStep = normalized * factor;
-                    }
+                    double niceStep;
+                    if (relStep <= 1.5) niceStep = 1;
+                    else if (relStep <= 3.5) niceStep = 2;
+                    else if (relStep <= 7.5) niceStep = 5;
+                    else niceStep = 10;
 
-                    double actualStep = displayStep * magnitude;
-                    yAxis.MinValue = Math.Floor(normMin / displayStep) * displayStep * magnitude;
-                    yAxis.MaxValue = Math.Ceiling(normMax / displayStep) * displayStep * magnitude;
+                    double finalStep = niceStep * mag;
+
+                    yAxis.MinValue = Math.Floor(desiredMin / finalStep) * finalStep;
+                    yAxis.MaxValue = Math.Ceiling(desiredMax / finalStep) * finalStep;
+
+                    // GRID LINE LOGIC: Faint Horizontal Lines
+                    if (yAxis.Separator == null) yAxis.Separator = new LiveCharts.Wpf.Separator();
+                    yAxis.Separator.Step = finalStep;
+                    yAxis.Separator.StrokeThickness = 1;
+                    yAxis.Separator.Stroke = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)); // Faint White
                 }
 
-                targetY.Add(yAxis);
+                // X-AXIS: Vertical Lines HIDDEN (Transparent)
+                var xAxis = targetX[0];
+                xAxis.Foreground = axisColor;
 
-                // --- CRITICAL FIX: Removed the Step=0 infinite loop trap ---
+                // Force transparent separator
+                if (xAxis.Separator == null) xAxis.Separator = new LiveCharts.Wpf.Separator();
+                xAxis.Separator.StrokeThickness = 0;
+                xAxis.Separator.Stroke = Brushes.Transparent;
+
                 if (result.IsDateAxis)
-                    targetX.Add(new Axis
-                    {
-                        LabelFormatter = DateFormatter,
-                        Separator = new Separator { IsEnabled = false }, // NO Step property here
-                        Foreground = axisColor
-                    });
+                {
+                    xAxis.LabelFormatter = DateFormatter;
+                    xAxis.Labels = null;
+                }
                 else
-                    targetX.Add(new Axis
-                    {
-                        Labels = result.XAxisLabels,
-                        Separator = new Separator { IsEnabled = false }, // NO Step property here
-                        Foreground = axisColor
-                    });
+                {
+                    xAxis.LabelFormatter = null;
+                    xAxis.Labels = result.XAxisLabels;
+                }
             }
+        }
+
+        private void ClearAndReinitializeAxes()
+        {
+            // Reset existing axis properties instead of clearing collection
+            void Reset(AxesCollection ax)
+            {
+                if (ax.Count > 0)
+                {
+                    ax[0].Labels = null;
+                    ax[0].LabelFormatter = null;
+                    ax[0].MinValue = double.NaN;
+                    ax[0].MaxValue = double.NaN;
+                }
+            }
+
+            Reset(Chart1X); Reset(Chart1Y);
+            Reset(Chart2X); Reset(Chart2Y);
+            Reset(Chart3X); Reset(Chart3Y);
+            Reset(Chart5X); Reset(Chart5Y);
         }
 
         private void ExecuteCopyImage(object parameter)
@@ -629,8 +647,24 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        private void ClearAndReinitializeAxes()
-        { Chart1X.Clear(); Chart1Y.Clear(); Chart2X.Clear(); Chart2Y.Clear(); Chart3X.Clear(); Chart3Y.Clear(); Chart5X.Clear(); Chart5Y.Clear(); }
+        private void ClearAndReinitializeAxesHelper()
+        {
+            void Reset(AxesCollection ax)
+            {
+                if (ax.Count > 0)
+                {
+                    ax[0].Labels = null;
+                    ax[0].LabelFormatter = null;
+                    ax[0].MinValue = double.NaN;
+                    ax[0].MaxValue = double.NaN;
+                }
+            }
+
+            Reset(Chart1X); Reset(Chart1Y);
+            Reset(Chart2X); Reset(Chart2Y);
+            Reset(Chart3X); Reset(Chart3Y);
+            Reset(Chart5X); Reset(Chart5Y);
+        }
 
         private async void ShowConfigurationWindow()
         { var vm = new ConfigurationViewModel(_dataRepository); await vm.InitializeAsync(); vm.LoadConfigurations(_dashboardConfigurations); if (_dialogService.ShowConfigurationDialog(vm)) { _dashboardConfigurations = vm.GetFinalConfigurations(); Activate(); AutoSave(); } }
@@ -710,7 +744,7 @@ namespace WPF_LoginForm.ViewModels
                 _dashboardConfigurations = s.Configurations; IsFilterByDate = s.IsFilterByDate; IgnoreNonDateData = s.IgnoreNonDateData; UseIdToDateConversion = s.UseIdToDateConversion; GlobalIgnoreAfterHyphen = s.GlobalIgnoreAfterHyphen;
                 if (s.InitialDateForConversion != default) InitialDateForConversion = s.InitialDateForConversion;
                 if (s.StartDate != default && s.EndDate != default) { _startDate = s.StartDate; _endDate = s.EndDate; OnPropertyChanged(nameof(StartDate)); OnPropertyChanged(nameof(EndDate)); }
-                Application.Current.Dispatcher.Invoke(() => { ClearAndReinitializeAxes(); Chart1Series.Clear(); Chart2Series.Clear(); Chart3Series.Clear(); Chart4Series.Clear(); Chart5Series.Clear(); Chart6Series.Clear(); });
+                Application.Current.Dispatcher.Invoke(() => { ClearAndReinitializeAxesHelper(); Chart1Series.Clear(); Chart2Series.Clear(); Chart3Series.Clear(); Chart4Series.Clear(); Chart5Series.Clear(); Chart6Series.Clear(); });
                 if (wasActive) { _isActive = true; _ = InitializeDashboardAsync(); }
             }
             finally { if (wasActive && !_isActive) _isActive = true; }

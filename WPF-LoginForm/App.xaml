@@ -38,6 +38,42 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+
+            <!-- Smart Label Template for LiveCharts -->
+            <DataTemplate x:Key="SmartLabelTemplate">
+                <Canvas Width="0" Height="0" ClipToBounds="False">
+                    <Line X1="0" Y1="0"
+                          X2="{Binding Point.Instance.LeaderLineX2}"
+                          Y2="{Binding Point.Instance.LeaderLineY2}"
+                          Stroke="#804A90E2" StrokeThickness="1.5" StrokeDashArray="2,2">
+                        <Line.Style>
+                            <Style TargetType="Line">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Point.Instance.HasLeaderLine}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Line.Style>
+                    </Line>
+                    <Border Canvas.Left="{Binding Point.Instance.LabelDx}"
+                            Canvas.Top="{Binding Point.Instance.LabelDy}"
+                            Background="#CC1A1A2E" BorderBrush="#804A90E2" BorderThickness="1.5" CornerRadius="4" Padding="4,2">
+                        <TextBlock Text="{Binding Point.Instance.Label}" Foreground="#F8F9FA" FontSize="11" FontWeight="Bold" TextAlignment="Center" />
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Point.Instance.ShowLabel}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
+                </Canvas>
+            </DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
