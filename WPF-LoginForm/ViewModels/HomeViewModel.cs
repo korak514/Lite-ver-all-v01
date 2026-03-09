@@ -1,4 +1,5 @@
-﻿using System;
+﻿// ViewModels/HomeViewModel.cs
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -55,6 +56,7 @@ namespace WPF_LoginForm.ViewModels
         private bool _isActive = false;
 
         private CancellationTokenSource _cts;
+        private CancellationTokenSource _fileLoadCts;
         private ConcurrentDictionary<string, double> _kpiTotals;
         private ConcurrentDictionary<string, double> _kpiPrevTotals;
 
@@ -103,7 +105,43 @@ namespace WPF_LoginForm.ViewModels
         private string _selectedDashboardFile;
 
         public string SelectedDashboardFile
-        { get => _selectedDashboardFile; set { if (SetProperty(ref _selectedDashboardFile, value) && _isActive && !string.IsNullOrEmpty(value)) { Task.Delay(50).ContinueWith(_ => Application.Current.Dispatcher.Invoke(() => LoadSelectedDashboardFile(value))); } } }
+        {
+            get => _selectedDashboardFile;
+            set
+            {
+                if (SetProperty(ref _selectedDashboardFile, value) && _isActive && !string.IsNullOrEmpty(value))
+                {
+                    DebounceLoadDashboardFile(value);
+                }
+            }
+        }
+
+        private async void DebounceLoadDashboardFile(string fileName)
+        {
+            _fileLoadCts?.Cancel();
+            _fileLoadCts?.Dispose();
+            _fileLoadCts = new CancellationTokenSource();
+            var token = _fileLoadCts.Token;
+
+            _cts?.Cancel(); // Stop any chart rendering immediately
+
+            try
+            {
+                await Task.Delay(200, token);
+
+                if (!token.IsCancellationRequested)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        if (!token.IsCancellationRequested)
+                        {
+                            LoadSelectedDashboardFile(fileName);
+                        }
+                    });
+                }
+            }
+            catch (TaskCanceledException) { }
+        }
 
         public bool IsDashboardSelectorVisible => Settings.Default.AutoImportEnabled && DashboardFiles.Any();
 
@@ -184,9 +222,7 @@ namespace WPF_LoginForm.ViewModels
         public SeriesCollection Chart1Series { get; } = new SeriesCollection(); public SeriesCollection Chart2Series { get; } = new SeriesCollection(); public SeriesCollection Chart3Series { get; } = new SeriesCollection();
         public SeriesCollection Chart4Series { get; } = new SeriesCollection(); public SeriesCollection Chart5Series { get; } = new SeriesCollection(); public SeriesCollection Chart6Series { get; } = new SeriesCollection();
 
-        // Initialize Axes Collections with EXACTLY ONE default axis to prevent the double-axis bug
         public AxesCollection Chart1X { get; } = new AxesCollection { new Axis() };
-
         public AxesCollection Chart1Y { get; } = new AxesCollection { new Axis() };
         public AxesCollection Chart2X { get; } = new AxesCollection { new Axis() };
         public AxesCollection Chart2Y { get; } = new AxesCollection { new Axis() };
@@ -208,7 +244,6 @@ namespace WPF_LoginForm.ViewModels
             RecolorChartsCommand = new ViewModelCommand(p => LoadAllChartsData()); ToggleFilterModeCommand = new ViewModelCommand(p => IsFilterByDate = !IsFilterByDate); ChartClickCommand = new ViewModelCommand(ExecuteChartClick);
             TogglePageCommand = new ViewModelCommand(p => IsSecondPageActive = !IsSecondPageActive);
 
-            // LAG FIX: Maximize command only sets the index, does NOT reload data
             MaximizeChartCommand = new ViewModelCommand(p => { if (int.TryParse(p?.ToString(), out int i)) { MaximizedChartIndex = i; } });
             CloseMaximizeCommand = new ViewModelCommand(p => { MaximizedChartIndex = 0; });
 
@@ -252,13 +287,15 @@ namespace WPF_LoginForm.ViewModels
             try
             {
                 await Task.Delay(300, token);
-                if (token.IsCancellationRequested) return;
+                if (token.IsCancellationRequested || !_isActive) return;
 
-                if (_dashboardConfigurations == null || !_isActive) return;
+                if (_dashboardConfigurations == null) return;
                 if (!_dashboardConfigurations.Any()) for (int i = 1; i <= 6; i++) _dashboardConfigurations.Add(new DashboardConfiguration { ChartPosition = i, IsEnabled = false });
 
+                // Clear UI on Dispatcher
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    if (!_isActive) return; // Check again inside dispatcher
                     Chart1Series.Clear(); Chart2Series.Clear(); Chart3Series.Clear(); Chart4Series.Clear(); Chart5Series.Clear(); Chart6Series.Clear();
                     ClearAndReinitializeAxes(); _kpiTotals.Clear(); _kpiPrevTotals.Clear();
                 });
@@ -268,10 +305,11 @@ namespace WPF_LoginForm.ViewModels
 
                 await Task.WhenAll(tasks);
 
-                if (token.IsCancellationRequested) return;
+                if (token.IsCancellationRequested || !_isActive) return;
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    if (!_isActive) return;
                     UpdateDataLabelsVisibility();
                     KpiCards.Clear();
                     var colors = new[] { "#3498DB", "#2ECC71", "#9B59B6", "#F1C40F", "#E67E22", "#E74C3C" };
@@ -321,7 +359,7 @@ namespace WPF_LoginForm.ViewModels
 
         private async Task ProcessChartConfigurationAsync(DashboardConfiguration config, Dictionary<(int, string), string> colorMap, CancellationToken token)
         {
-            if (token.IsCancellationRequested) return;
+            if (token.IsCancellationRequested || !_isActive) return;
             try
             {
                 var cols = config.Series.Select(ser => ser.ColumnName).ToList();
@@ -334,7 +372,7 @@ namespace WPF_LoginForm.ViewModels
                 DateTime? filterEnd = (IsFilterByDate && config.DataStructureType == "Daily Date") ? (DateTime?)safeEnd : null;
 
                 var dt = await _dataRepository.GetDataAsync(config.TableName, cols.Distinct().ToList(), config.DateColumn, filterStart, filterEnd);
-                if (token.IsCancellationRequested || dt == null) return;
+                if (token.IsCancellationRequested || !_isActive || dt == null) return;
 
                 DataTable dtPrev = null;
                 if (IsFilterByDate && config.DataStructureType == "Daily Date")
@@ -375,9 +413,14 @@ namespace WPF_LoginForm.ViewModels
                 }
 
                 var chartResult = await Task.Run(() => _chartService.ProcessChartData(dt, config, IsFilterByDate, IgnoreNonDateData, StartMonthSliderValue, EndMonthSliderValue, SliderMaximum, colorMap, GlobalIgnoreAfterHyphen), token);
-                if (token.IsCancellationRequested) return;
+                if (token.IsCancellationRequested || !_isActive) return;
 
-                Application.Current.Dispatcher.Invoke(() => { if (!token.IsCancellationRequested) ApplyChartResultToUI(config.ChartPosition, chartResult); });
+                // FIX: Check _isActive and token before UI update
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (!token.IsCancellationRequested && _isActive)
+                        ApplyChartResultToUI(config.ChartPosition, chartResult);
+                });
             }
             catch (Exception ex) { _logger?.LogError($"Error processing chart position {config.ChartPosition}", ex); }
         }
@@ -387,7 +430,9 @@ namespace WPF_LoginForm.ViewModels
             var targetSeries = GetSeriesCollection(position);
             var targetX = GetXAxes(position);
             var targetY = GetYAxes(position);
-            if (targetSeries == null) return;
+
+            // FIX: Strict Null Checks
+            if (targetSeries == null || result == null || result.Series == null) return;
 
             var newSeries = new SeriesCollection();
             var axisColor = Brushes.WhiteSmoke;
@@ -395,6 +440,8 @@ namespace WPF_LoginForm.ViewModels
 
             foreach (var s in result.Series)
             {
+                if (s == null) continue; // Safety check
+
                 Brush colorBrush = (Brush)new BrushConverter().ConvertFrom(s.ColorHex);
 
                 if (s.SeriesType == "Pie")
@@ -412,7 +459,10 @@ namespace WPF_LoginForm.ViewModels
                 else
                 {
                     var cv = new ChartValues<DashboardDataPoint>();
-                    foreach (var pt in s.Points) cv.Add(pt);
+                    if (s.Points != null)
+                    {
+                        foreach (var pt in s.Points) cv.Add(pt);
+                    }
 
                     bool isMaximized = (position == MaximizedChartIndex);
                     bool isSmall = cv.Count <= 35;
@@ -473,7 +523,6 @@ namespace WPF_LoginForm.ViewModels
                     }
                 }
 
-                // FIX: Use existing Single Axis to avoid duplication
                 var yAxis = targetY[0];
                 yAxis.Title = "Values";
                 yAxis.LabelFormatter = NumberFormatter;
@@ -487,15 +536,12 @@ namespace WPF_LoginForm.ViewModels
                     double dataRange = maxVal - minVal;
                     if (dataRange == 0) dataRange = 1;
 
-                    // LABEL BOUNDARY FIX: Increased top buffer to 25%
-                    // This creates headroom for labels so they don't get cut off at the top
                     double topBuffer = 0.25 * dataRange;
                     double bottomBuffer = forceMinZero ? 0 : 0.1 * dataRange;
 
                     double desiredMin = forceMinZero ? 0 : minVal - bottomBuffer;
                     double desiredMax = maxVal + topBuffer;
 
-                    // NICE NUMBER ALGORITHM
                     double range = desiredMax - desiredMin;
                     double targetTicks = 6.0;
 
@@ -514,18 +560,15 @@ namespace WPF_LoginForm.ViewModels
                     yAxis.MinValue = Math.Floor(desiredMin / finalStep) * finalStep;
                     yAxis.MaxValue = Math.Ceiling(desiredMax / finalStep) * finalStep;
 
-                    // GRID LINE LOGIC: Faint Horizontal Lines
                     if (yAxis.Separator == null) yAxis.Separator = new LiveCharts.Wpf.Separator();
                     yAxis.Separator.Step = finalStep;
                     yAxis.Separator.StrokeThickness = 1;
-                    yAxis.Separator.Stroke = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)); // Faint White
+                    yAxis.Separator.Stroke = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255));
                 }
 
-                // X-AXIS: Vertical Lines HIDDEN (Transparent)
                 var xAxis = targetX[0];
                 xAxis.Foreground = axisColor;
 
-                // Force transparent separator
                 if (xAxis.Separator == null) xAxis.Separator = new LiveCharts.Wpf.Separator();
                 xAxis.Separator.StrokeThickness = 0;
                 xAxis.Separator.Stroke = Brushes.Transparent;
@@ -545,7 +588,6 @@ namespace WPF_LoginForm.ViewModels
 
         private void ClearAndReinitializeAxes()
         {
-            // Reset existing axis properties instead of clearing collection
             void Reset(AxesCollection ax)
             {
                 if (ax.Count > 0)
@@ -673,7 +715,12 @@ namespace WPF_LoginForm.ViewModels
         { if (_isActive) return; _isActive = true; OnPropertyChanged(nameof(IsDateFilterVisible)); if (Settings.Default.AutoImportEnabled) RefreshDashboardFiles(); await InitializeDashboardAsync(); }
 
         public void Deactivate()
-        { _isActive = false; if (_cts != null) { _cts.Cancel(); _cts.Dispose(); _cts = null; } AutoSave(); }
+        {
+            _isActive = false;
+            if (_cts != null) { _cts.Cancel(); _cts.Dispose(); _cts = null; }
+            if (_fileLoadCts != null) { _fileLoadCts.Cancel(); _fileLoadCts.Dispose(); _fileLoadCts = null; }
+            AutoSave();
+        }
 
         private async Task InitializeDashboardAsync()
         {
@@ -739,6 +786,9 @@ namespace WPF_LoginForm.ViewModels
         private void LoadDashboardFromSnapshot(DashboardSnapshot s)
         {
             if (s == null) return; bool wasActive = _isActive; _isActive = false;
+
+            if (_cts != null) { _cts.Cancel(); _cts.Dispose(); _cts = null; }
+
             try
             {
                 _dashboardConfigurations = s.Configurations; IsFilterByDate = s.IsFilterByDate; IgnoreNonDateData = s.IgnoreNonDateData; UseIdToDateConversion = s.UseIdToDateConversion; GlobalIgnoreAfterHyphen = s.GlobalIgnoreAfterHyphen;

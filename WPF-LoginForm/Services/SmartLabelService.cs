@@ -14,8 +14,6 @@ namespace WPF_LoginForm.Services
         public static class Config
         {
             public static double PeakGapY = 8;
-
-            // [FIX] Increased from 10 to 16 to push Ara & May labels lower
             public static double ValleyGapY = 16;
 
             public static double DefaultTopGapY = 6;
@@ -52,6 +50,9 @@ namespace WPF_LoginForm.Services
 
             public static double VirtualWidthPerPoint = 75.0;
             public static double VirtualHeight = 450.0;
+
+            // Constants for Bar Chart Standard Labels
+            public static double BarLabelGapY = 10.0;
         }
 
         // =========================================================================
@@ -90,24 +91,111 @@ namespace WPF_LoginForm.Services
 
         public static void ApplyLabels(List<DashboardDataPoint> points, bool isDateAxis, List<string> xAxisLabels, string seriesType)
         {
+            // SAFETY CHECK: Ensure points list is not null or empty
             if (points == null || points.Count == 0) return;
 
-            int count = points.Count;
-            double minY = points.Min(p => p.Y);
-            double maxY = points.Max(p => p.Y);
+            // =========================================================================
+            // 🚫 BYPASS SMART LABELS FOR BAR/COLUMN CHARTS
+            // =========================================================================
+            if (string.Equals(seriesType, "Bar", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(seriesType, "Column", StringComparison.OrdinalIgnoreCase))
+            {
+                int count = points.Count;
+
+                // Rule 1: Only use labels if there are more than 6 bars
+                if (count <= 6)
+                {
+                    foreach (var p in points)
+                    {
+                        if (p != null) p.ShowLabel = false; // Safety check
+                    }
+                    return;
+                }
+
+                // Find indices for Max and Min
+                int maxIdx = 0;
+                int minIdx = 0;
+                double maxVal = double.MinValue;
+                double minVal = double.MaxValue;
+
+                for (int i = 0; i < count; i++)
+                {
+                    var p = points[i];
+                    // SAFETY CHECK: Ensure point is not null
+                    if (p == null) continue;
+
+                    double val = p.Y;
+                    if (val > maxVal) { maxVal = val; maxIdx = i; }
+                    if (val < minVal) { minVal = val; minIdx = i; }
+                }
+
+                // Create list of unique indices to label
+                HashSet<int> indicesToLabel = new HashSet<int>();
+
+                // Add First and Last
+                indicesToLabel.Add(0);
+                indicesToLabel.Add(count - 1);
+
+                // Add Max and Min
+                indicesToLabel.Add(maxIdx);
+                indicesToLabel.Add(minIdx);
+
+                // Apply Labels
+                for (int i = 0; i < count; i++)
+                {
+                    var p = points[i];
+
+                    // SAFETY CHECK: Ensure point is not null
+                    if (p == null) continue;
+
+                    // Check if this index is in our list AND value is not 0
+                    if (indicesToLabel.Contains(i) && p.Y != 0)
+                    {
+                        p.Label = FormatKiloMega(p.Y);
+                        double w = (p.Label.Length * Config.CharWidth) + Config.BoxPaddingX;
+
+                        p.LabelDx = -w / 2.0; // Center horizontally
+                        p.LabelDy = -Config.BoxHeight - Config.BarLabelGapY; // Position above bar
+
+                        p.ShowLabel = true;
+                        p.HasLeaderLine = false;
+                    }
+                    else
+                    {
+                        p.ShowLabel = false;
+                    }
+                }
+
+                return; // Exit immediately
+            }
+
+            // =========================================================================
+            // 📈 LINE CHART SMART LABEL LOGIC (CONTINUES BELOW)
+            // =========================================================================
+
+            int countLine = points.Count;
+
+            // SAFETY CHECK: Filter out null points for calculations
+            var validPoints = points.Where(p => p != null).ToList();
+            if (validPoints.Count == 0) return;
+
+            double minY = validPoints.Min(p => p.Y);
+            double maxY = validPoints.Max(p => p.Y);
             double rangeY = maxY - minY == 0 ? 1 : maxY - minY;
 
-            double minX = points.Min(p => p.X);
-            double maxX = points.Max(p => p.X);
+            double minX = validPoints.Min(p => p.X);
+            double maxX = validPoints.Max(p => p.X);
             double rangeX = maxX - minX == 0 ? 1 : maxX - minX;
 
-            bool[] isPeakArray = new bool[count];
-            bool[] isValleyArray = new bool[count];
-            int[] importance = new int[count];
+            bool[] isPeakArray = new bool[countLine];
+            bool[] isValleyArray = new bool[countLine];
+            int[] importance = new int[countLine];
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < countLine; i++)
             {
                 var p = points[i];
+                if (p == null) continue; // Safety check
+
                 string vStr = FormatKiloMega(p.Y);
                 string dStr = isDateAxis
                     ? new DateTime((long)p.X).ToString("MMM yyyy")
@@ -118,25 +206,27 @@ namespace WPF_LoginForm.Services
                 p.IsImportant = true;
 
                 double curr = p.Y;
-                double prev = i > 0 ? points[i - 1].Y : curr;
-                double next = i < count - 1 ? points[i + 1].Y : curr;
+                double prev = i > 0 && points[i - 1] != null ? points[i - 1].Y : curr;
+                double next = i < countLine - 1 && points[i + 1] != null ? points[i + 1].Y : curr;
 
                 isPeakArray[i] = (curr >= prev && curr >= next) && (curr > prev || curr > next);
                 isValleyArray[i] = (curr <= prev && curr <= next) && (curr < prev || curr < next);
             }
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < countLine; i++)
             {
+                if (points[i] == null) continue;
+
                 importance[i] = 50;
                 if (isPeakArray[i] || isValleyArray[i]) importance[i] = 80;
                 if (points[i].Y == maxY || points[i].Y == minY) importance[i] = 90;
-                if (i == 0 || i == count - 1) importance[i] = 100;
+                if (i == 0 || i == countLine - 1) importance[i] = 100;
             }
 
-            var sortedIndices = Enumerable.Range(0, count).OrderByDescending(i => importance[i]).ToList();
+            var sortedIndices = Enumerable.Range(0, countLine).OrderByDescending(i => importance[i]).ToList();
             List<LabelPlacement> placements = new List<LabelPlacement>();
 
-            double VIRTUAL_WIDTH = Math.Max(800.0, count * Config.VirtualWidthPerPoint);
+            double VIRTUAL_WIDTH = Math.Max(800.0, countLine * Config.VirtualWidthPerPoint);
             double VIRTUAL_HEIGHT = Config.VirtualHeight;
             double steepThresholdValue = rangeY * Config.SteepSlope;
             double flatThresholdValue = rangeY * Config.FlatSlope;
@@ -144,9 +234,11 @@ namespace WPF_LoginForm.Services
             foreach (int i in sortedIndices)
             {
                 var p = points[i];
+                if (p == null) continue; // Safety check
+
                 double curr = p.Y;
-                double prev = i > 0 ? points[i - 1].Y : curr;
-                double next = i < count - 1 ? points[i + 1].Y : curr;
+                double prev = i > 0 && points[i - 1] != null ? points[i - 1].Y : curr;
+                double next = i < countLine - 1 && points[i + 1] != null ? points[i + 1].Y : curr;
 
                 bool isPeak = isPeakArray[i];
                 bool isValley = isValleyArray[i];
@@ -171,16 +263,16 @@ namespace WPF_LoginForm.Services
                 double w = (maxCharCount * Config.CharWidth) + Config.BoxPaddingX;
                 double h = Config.BoxHeight;
 
-                double px = count > 1 ? ((points[i].X - minX) / rangeX) * VIRTUAL_WIDTH : VIRTUAL_WIDTH / 2;
+                double px = countLine > 1 ? ((points[i].X - minX) / rangeX) * VIRTUAL_WIDTH : VIRTUAL_WIDTH / 2;
                 double py = rangeY > 0 ? VIRTUAL_HEIGHT - (((curr - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2;
 
-                double prevPx = i > 0 ? ((points[i - 1].X - minX) / rangeX) * VIRTUAL_WIDTH : px;
-                double prevPy = i > 0 ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[i - 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : py;
+                double prevPx = i > 0 && points[i - 1] != null ? ((points[i - 1].X - minX) / rangeX) * VIRTUAL_WIDTH : px;
+                double prevPy = i > 0 && points[i - 1] != null ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[i - 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : py;
 
-                double nextPx = i < count - 1 ? ((points[i + 1].X - minX) / rangeX) * VIRTUAL_WIDTH : px;
-                double nextPy = i < count - 1 ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[i + 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : py;
+                double nextPx = i < countLine - 1 && points[i + 1] != null ? ((points[i + 1].X - minX) / rangeX) * VIRTUAL_WIDTH : px;
+                double nextPy = i < countLine - 1 && points[i + 1] != null ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[i + 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : py;
 
-                List<Dir> candidates = GetCandidates(i, count, curr, prev, next, isPeak, isValley, seriesType, rangeY);
+                List<Dir> candidates = GetCandidates(i, countLine, curr, prev, next, isPeak, isValley, seriesType, rangeY);
                 var placement = new LabelPlacement { Index = i, Show = false };
 
                 foreach (Dir dir in candidates)
@@ -193,7 +285,7 @@ namespace WPF_LoginForm.Services
 
                     bool collidesLine = false;
                     if (i > 0) collidesLine |= LineIntersectsRect(prevPx, prevPy, px, py, coreBox);
-                    if (i < count - 1) collidesLine |= LineIntersectsRect(px, py, nextPx, nextPy, coreBox);
+                    if (i < countLine - 1) collidesLine |= LineIntersectsRect(px, py, nextPx, nextPy, coreBox);
 
                     if (!collidesLabels && !collidesLine)
                     {
@@ -283,13 +375,18 @@ namespace WPF_LoginForm.Services
                         bool resolved = false;
 
                         int idx = current.Index;
+
+                        // Safety check for index bounds
+                        if (idx < 0 || idx >= countLine || points[idx] == null) continue;
+
                         double currY = points[idx].Y;
-                        double cx = count > 1 ? ((points[idx].X - minX) / rangeX) * VIRTUAL_WIDTH : VIRTUAL_WIDTH / 2;
+                        double cx = countLine > 1 ? ((points[idx].X - minX) / rangeX) * VIRTUAL_WIDTH : VIRTUAL_WIDTH / 2;
                         double cy = rangeY > 0 ? VIRTUAL_HEIGHT - (((currY - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2;
-                        double prevPx = idx > 0 ? ((points[idx - 1].X - minX) / rangeX) * VIRTUAL_WIDTH : cx;
-                        double prevPy = idx > 0 ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[idx - 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : cy;
-                        double nextPx = idx < count - 1 ? ((points[idx + 1].X - minX) / rangeX) * VIRTUAL_WIDTH : cx;
-                        double nextPy = idx < count - 1 ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[idx + 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : cy;
+
+                        double prevPx = idx > 0 && points[idx - 1] != null ? ((points[idx - 1].X - minX) / rangeX) * VIRTUAL_WIDTH : cx;
+                        double prevPy = idx > 0 && points[idx - 1] != null ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[idx - 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : cy;
+                        double nextPx = idx < countLine - 1 && points[idx + 1] != null ? ((points[idx + 1].X - minX) / rangeX) * VIRTUAL_WIDTH : cx;
+                        double nextPy = idx < countLine - 1 && points[idx + 1] != null ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[idx + 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : cy;
 
                         foreach (double sx in shiftsX)
                         {
@@ -305,7 +402,7 @@ namespace WPF_LoginForm.Services
 
                                 bool hitLine = false;
                                 if (idx > 0) hitLine |= LineIntersectsRect(prevPx, prevPy, cx, cy, coreBox);
-                                if (idx < count - 1) hitLine |= LineIntersectsRect(cx, cy, nextPx, nextPy, coreBox);
+                                if (idx < countLine - 1) hitLine |= LineIntersectsRect(cx, cy, nextPx, nextPy, coreBox);
 
                                 if (!stillOverlaps && !hitLine)
                                 {
@@ -325,14 +422,15 @@ namespace WPF_LoginForm.Services
 
             foreach (var pm in placements)
             {
-                var p = points[pm.Index];
-                p.LabelDx = pm.Dx;
-                p.LabelDy = pm.Dy;
-                p.ShowLabel = pm.Show;
-                p.HasLeaderLine = false;
+                if (pm.Index >= 0 && pm.Index < countLine && points[pm.Index] != null)
+                {
+                    var p = points[pm.Index];
+                    p.LabelDx = pm.Dx;
+                    p.LabelDy = pm.Dy;
+                    p.ShowLabel = pm.Show;
+                    p.HasLeaderLine = false;
+                }
             }
-
-            points.OrderBy(p => p.X);
         }
 
         private static bool LineIntersectsRect(double x1, double y1, double x2, double y2, Rect r)
@@ -405,9 +503,8 @@ namespace WPF_LoginForm.Services
                 list.AddRange(new[] { Dir.N, Dir.S, Dir.SE, Dir.Far_N });
                 return list;
             }
-            if (isRiseToFlat) // (Nis 2023, Eyl 2023)
+            if (isRiseToFlat)
             {
-                // [FIX] Changed to prefer North (Top) first to fix Eyl 2023.
                 list.AddRange(new[] { Dir.N, Dir.NW, Dir.SE, Dir.S, Dir.Far_N });
                 return list;
             }
@@ -480,13 +577,11 @@ namespace WPF_LoginForm.Services
             switch (dir)
             {
                 case Dir.N:
-                    // [FIX] Kas 2024 (FlatToDive) shift Left by 8px
                     dx = (-w / 2) + (isPeak ? Config.PeakOffsetX : 0) + (isFlatToDive ? -8 : 0);
                     dy = -h - gY + (isPeak ? Config.PeakOffsetY : 0);
                     break;
 
                 case Dir.S:
-                    // [FIX] Ağu (DiveToFlat) specific fallback shift
                     dx = (-w / 2) + (isValley ? Config.ValleyOffsetX : 0) + (isDiveToFlat ? 4 : 0);
                     dy = gY + (isValley ? Config.ValleyOffsetY : 0);
                     break;
@@ -504,7 +599,6 @@ namespace WPF_LoginForm.Services
                 case Dir.NE: dx = gX - Config.DiagonalSnugX; dy = -h - gY + Config.DiagonalSnugY; break;
                 case Dir.NW: dx = -w - gX + Config.DiagonalSnugX; dy = -h - gY + Config.DiagonalSnugY; break;
                 case Dir.SE:
-                    // [FIX] Haz 2024 (SteepRise) shift Right by 6px
                     dx = (gX - Config.DiagonalSnugX) + (isSharpRise ? 6 : 0);
                     dy = gY - Config.DiagonalSnugY;
                     break;
