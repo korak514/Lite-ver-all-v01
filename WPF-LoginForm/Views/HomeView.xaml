@@ -328,7 +328,7 @@
                         </Border.ContextMenu>
 
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" DisableAnimations="True" Hoverable="False" />
+                            <lvc:CartesianChart Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" Hoverable="False" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="1" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
@@ -376,7 +376,7 @@
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" DisableAnimations="True" Hoverable="False" />
+                            <lvc:CartesianChart Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4"  Hoverable="False" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="2" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
@@ -424,7 +424,7 @@
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" DisableAnimations="True" Hoverable="False" />
+                            <lvc:CartesianChart Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4"  Hoverable="False" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="3" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
@@ -472,7 +472,7 @@
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Grid>
-                            <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" Hoverable="True" Margin="0,10,0,0" DisableAnimations="True" />
+                            <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" Hoverable="True" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="4" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
@@ -520,7 +520,7 @@
                             </ContextMenu>
                         </Border.ContextMenu>
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" DisableAnimations="True" Hoverable="False" />
+                            <lvc:CartesianChart Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" Hoverable="False" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="5" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
@@ -634,7 +634,7 @@
                                 </Button>
                             </Grid>
 
-                            <lvc:PieChart Grid.Row="1" Series="{Binding Chart6Series}" LegendLocation="Bottom" InnerRadius="80" Margin="20,10,20,20" Hoverable="True" DisableAnimations="True">
+                            <lvc:PieChart Grid.Row="1" Series="{Binding Chart6Series}" LegendLocation="Bottom" InnerRadius="80" Margin="20,10,20,20" Hoverable="True" AnimationsSpeed="0:0:0.4">
                                 <lvc:PieChart.ChartLegend>
                                     <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="13" />
                                 </lvc:PieChart.ChartLegend>

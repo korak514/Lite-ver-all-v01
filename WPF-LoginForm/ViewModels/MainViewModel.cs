@@ -37,16 +37,18 @@ namespace WPF_LoginForm.ViewModels
         private readonly ILogger _logger;
 
         // --- Cached ViewModels ---
-        private DashboardPortalViewModel _portalViewModel; // NEW: The Hub
+        private DashboardPortalViewModel _portalViewModel;
 
-        private HomeViewModel _homeViewModel;              // The actual Dashboard
+        // FIX: Removed caching of HomeViewModel and ErrorViewModel to prevent LiveCharts memory leaks
+        private HomeViewModel _homeViewModel;
+
+        private ErrorManagementViewModel _errorViewModel;
 
         private CustomerViewModel _customerViewModel;
         private DatarepViewModel _datarepViewModel;
         private InventoryViewModel _inventoryViewModel;
         private SettingsViewModel _settingsViewModel;
         private HelpViewModel _helpViewModel;
-        private ErrorManagementViewModel _errorViewModel;
 
         // --- Properties ---
         public UserAccountModel CurrentUserAccount
@@ -143,7 +145,7 @@ namespace WPF_LoginForm.ViewModels
         private void DeactivateCurrentView()
         {
             if (_currentChildView is HomeViewModel homeViewModel) homeViewModel.Deactivate();
-            else if (_currentChildView is ErrorManagementViewModel errorViewModel) errorViewModel.IsActiveView = false;
+            else if (_currentChildView is ErrorManagementViewModel errorViewModel) errorViewModel.Deactivate();
         }
 
         private void ActivateCurrentView()
@@ -152,13 +154,11 @@ namespace WPF_LoginForm.ViewModels
             else if (_currentChildView is ErrorManagementViewModel errorViewModel) errorViewModel.Activate();
         }
 
-        // --- NEW: Routing to Portal instead of straight to Dashboard ---
         private void ExecuteShowHomeViewCommand(object obj)
         {
             if (_portalViewModel == null)
             {
                 _portalViewModel = new DashboardPortalViewModel();
-                // When a module is clicked, trigger the actual dashboard load
                 _portalViewModel.OpenDashboardAction = OnOpenDashboardModule;
             }
             CurrentChildView = _portalViewModel;
@@ -166,26 +166,27 @@ namespace WPF_LoginForm.ViewModels
             Icon = IconChar.ThLarge;
         }
 
-        // --- NEW: Opening the Specific Dashboard ---
         private void OnOpenDashboardModule(string targetFileName)
         {
-            if (_homeViewModel == null)
+            // FIX: Always safely destroy and recreate HomeViewModel to prevent LiveCharts Ghost Crashes
+            if (_homeViewModel != null)
             {
-                _homeViewModel = new HomeViewModel(_dataRepository, _dialogService, _logger);
-                _homeViewModel.DrillDownRequested += OnDashboardDrillDown;
-
-                // When the user clicks "Go Back" in the dashboard, return to the Hub
-                _homeViewModel.ReturnToPortalAction = () => ExecuteShowHomeViewCommand(null);
+                _homeViewModel.Deactivate();
+                _homeViewModel.DrillDownRequested -= OnDashboardDrillDown;
             }
+
+            _homeViewModel = new HomeViewModel(_dataRepository, _dialogService, _logger);
+            _homeViewModel.DrillDownRequested += OnDashboardDrillDown;
+            _homeViewModel.ReturnToPortalAction = () => ExecuteShowHomeViewCommand(null);
 
             CurrentChildView = _homeViewModel;
             Caption = "Dashboard Module";
             Icon = IconChar.ChartPie;
 
-            // Small delay to ensure the View has rendered and Activated before loading file
             Task.Delay(100).ContinueWith(_ => Application.Current.Dispatcher.Invoke(() =>
             {
-                _homeViewModel.SelectedDashboardFile = targetFileName;
+                if (_homeViewModel != null)
+                    _homeViewModel.SelectedDashboardFile = targetFileName;
             }));
         }
 
@@ -237,11 +238,13 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteShowErrorViewCommand(object obj)
         {
-            if (_errorViewModel == null)
+            // FIX: Always safely destroy and recreate ErrorManagementViewModel to prevent LiveCharts Ghost Crashes
+            if (_errorViewModel != null)
             {
-                _errorViewModel = new ErrorManagementViewModel(_dataRepository);
-                // _errorViewModel.DrillDownRequested += OnErrorDrillDown;
+                _errorViewModel.Deactivate();
             }
+
+            _errorViewModel = new ErrorManagementViewModel(_dataRepository);
             CurrentChildView = _errorViewModel;
             Caption = "Error Analytics";
             Icon = IconChar.PieChart;
@@ -269,9 +272,6 @@ namespace WPF_LoginForm.ViewModels
                         if (newMain.DataContext is MainViewModel mainVM)
                         {
                             if (loginVM.IsSettingsModeOnly) mainVM.Initialize(AppMode.SettingsOnly);
-
-                            // --- FIX: Check the inverted logic here ---
-                            // If Go Online is NOT checked, we launch offline
                             else if (!loginVM.IsOnlineMode) mainVM.Initialize(AppMode.OfflineReadOnly);
                             else mainVM.Initialize(loginVM.IsReportModeOnly ? AppMode.ReportOnly : AppMode.Normal);
                         }

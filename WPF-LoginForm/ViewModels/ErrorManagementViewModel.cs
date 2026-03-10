@@ -34,6 +34,8 @@ namespace WPF_LoginForm.ViewModels
         private List<string> _fullReasonNames = new List<string>();
         private List<CategoryRule> _activeRules;
 
+        private bool _isSyncing = false; // Protects the slider from ping-ponging
+
         // --- Selection ---
         public ObservableCollection<string> TableNames { get; set; } = new ObservableCollection<string>();
 
@@ -59,23 +61,76 @@ namespace WPF_LoginForm.ViewModels
         private DateTime _startDate = DateTime.Today.AddDays(-7);
 
         private DateTime _endDate = DateTime.Today;
-        private bool _isUpdatingFromSlider = false;
 
         public DateTime StartDate
-        { get => _startDate; set { if (SetProperty(ref _startDate, value)) { if (!_isUpdatingFromSlider) RecalculateSliderValues(); SaveState(); _ = LoadDataWithDebounce(); } } }
+        {
+            get => _startDate;
+            set
+            {
+                if (_startDate != value)
+                {
+                    DateTime safeValue = value;
+                    if (_endDate != DateTime.MinValue && safeValue > _endDate) safeValue = _endDate;
+                    _startDate = safeValue;
+                    OnPropertyChanged();
+                    if (!_isSyncing)
+                    {
+                        RecalculateSliderValues(true);
+                    }
+                }
+            }
+        }
 
         public DateTime EndDate
-        { get => _endDate; set { if (SetProperty(ref _endDate, value)) { if (!_isUpdatingFromSlider) RecalculateSliderValues(); SaveState(); _ = LoadDataWithDebounce(); } } }
+        {
+            get => _endDate;
+            set
+            {
+                if (_endDate != value)
+                {
+                    DateTime safeValue = value;
+                    if (_startDate != DateTime.MinValue && safeValue < _startDate) safeValue = _startDate;
+                    _endDate = safeValue;
+                    OnPropertyChanged();
+                    if (!_isSyncing)
+                    {
+                        RecalculateSliderValues(true);
+                    }
+                }
+            }
+        }
 
         private double _sliderMin = 0; private double _sliderMax = 100; private double _sliderLow; private double _sliderHigh; private DateTime _absoluteMinDate = DateTime.Today.AddYears(-1);
         public double SliderMinimum { get => _sliderMin; set => SetProperty(ref _sliderMin, value); }
         public double SliderMaximum { get => _sliderMax; set => SetProperty(ref _sliderMax, value); }
 
         public double SliderLowValue
-        { get => _sliderLow; set { if (SetProperty(ref _sliderLow, value) && !_isUpdatingFromSlider) UpdateDatesFromSlider(); } }
+        {
+            get => _sliderLow;
+            set
+            {
+                if (_sliderLow != value)
+                {
+                    _sliderLow = value;
+                    OnPropertyChanged();
+                    if (!_isSyncing) UpdateDatesFromSlider();
+                }
+            }
+        }
 
         public double SliderHighValue
-        { get => _sliderHigh; set { if (SetProperty(ref _sliderHigh, value) && !_isUpdatingFromSlider) UpdateDatesFromSlider(); } }
+        {
+            get => _sliderHigh;
+            set
+            {
+                if (_sliderHigh != value)
+                {
+                    _sliderHigh = value;
+                    OnPropertyChanged();
+                    if (!_isSyncing) UpdateDatesFromSlider();
+                }
+            }
+        }
 
         // --- Formatting Setting ---
         private bool _isMinToClockFormat;
@@ -171,6 +226,14 @@ namespace WPF_LoginForm.ViewModels
             if (_cachedRawData != null && _cachedRawData.Any()) { OnPropertyChanged(nameof(ReasonSeries)); _ = LoadDataWithDebounce(); }
         }
 
+        public void Deactivate()
+        {
+            IsActiveView = false;
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = null;
+        }
+
         private void UpdateFormatterLogic()
         {
             NumberFormatter = (val) => TimeFormatHelper.FormatDuration(val, IsMinToClockFormat);
@@ -193,7 +256,7 @@ namespace WPF_LoginForm.ViewModels
         {
             await Task.Run(() =>
             {
-                if (token.IsCancellationRequested) return;
+                if (token.IsCancellationRequested || !IsActiveView) return;
                 _cachedRawData = rawData;
 
                 var filteredList = InputHelper.PreProcessData(rawData, IsMachine00Excluded);
@@ -204,7 +267,6 @@ namespace WPF_LoginForm.ViewModels
                 var reasonFullNames = reasonStats.Select(x => x.Label).ToList();
                 var machineStats = InputHelper.GetMachineStats(filteredList);
 
-                // FIX: Both raw and filtered lists passed through
                 var page2Stats = InputHelper.CalculatePage2Stats(rawData, filteredList, StartDate, EndDate, NumberFormatter, IsMachine00Excluded);
                 var shiftStats = InputHelper.GetShiftStats(rawData, filteredList);
                 var severityStats = InputHelper.GetSeverityStats(filteredList);
@@ -219,7 +281,7 @@ namespace WPF_LoginForm.ViewModels
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    if (token.IsCancellationRequested) return;
+                    if (token.IsCancellationRequested || !IsActiveView) return;
 
                     ReasonAxisStep = calculatedReasonStep;
                     SeverityAxisStep = calculatedSeverityStep;
@@ -401,11 +463,50 @@ namespace WPF_LoginForm.ViewModels
             catch { }
         }
 
-        private void RecalculateSliderValues()
-        { _isUpdatingFromSlider = true; SliderLowValue = Math.Max(0, (StartDate - _absoluteMinDate).TotalDays); SliderHighValue = Math.Min(SliderMaximum, (EndDate - _absoluteMinDate).TotalDays); _isUpdatingFromSlider = false; }
+        private void RecalculateSliderValues(bool triggerLoad = false)
+        {
+            if (_isSyncing) return;
+            _isSyncing = true;
+
+            _sliderLow = Math.Max(0, (StartDate - _absoluteMinDate).TotalDays);
+            _sliderHigh = Math.Min(SliderMaximum, (EndDate - _absoluteMinDate).TotalDays);
+
+            OnPropertyChanged(nameof(SliderLowValue));
+            OnPropertyChanged(nameof(SliderHighValue));
+
+            _isSyncing = false;
+
+            if (triggerLoad)
+            {
+                SaveState();
+                _ = LoadDataWithDebounce();
+            }
+        }
 
         private void UpdateDatesFromSlider()
-        { _isUpdatingFromSlider = true; StartDate = _absoluteMinDate.AddDays(SliderLowValue); EndDate = _absoluteMinDate.AddDays(SliderHighValue); _isUpdatingFromSlider = false; _ = LoadDataWithDebounce(); }
+        {
+            if (_isSyncing) return;
+            _isSyncing = true;
+
+            if (_sliderLow > _sliderHigh)
+            {
+                double tmp = _sliderLow;
+                _sliderLow = _sliderHigh;
+                _sliderHigh = tmp;
+                OnPropertyChanged(nameof(SliderLowValue));
+                OnPropertyChanged(nameof(SliderHighValue));
+            }
+
+            _startDate = _absoluteMinDate.AddDays(_sliderLow);
+            _endDate = _absoluteMinDate.AddDays(_sliderHigh);
+            OnPropertyChanged(nameof(StartDate));
+            OnPropertyChanged(nameof(EndDate));
+
+            _isSyncing = false;
+
+            SaveState();
+            _ = LoadDataWithDebounce();
+        }
 
         private void ExecuteMoveDate(object p)
         { if (p is string s && s.Contains("|")) { var parts = s.Split('|'); if (int.TryParse(parts[1], out int d)) { if (parts[0] == "Start") StartDate = StartDate.AddDays(d); else EndDate = EndDate.AddDays(d); if (StartDate > EndDate) { if (parts[0] == "Start") EndDate = StartDate; else StartDate = EndDate; } } } }

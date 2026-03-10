@@ -1,5 +1,4 @@
-﻿// ViewModels/HomeViewModel.cs
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -50,7 +49,10 @@ namespace WPF_LoginForm.ViewModels
         private readonly DataTemplate _smartLabelTemplate;
 
         private List<DashboardConfiguration> _dashboardConfigurations;
-        private bool _isUpdatingDates = false;
+
+        // FIX: Binding synchronization semaphore
+        private bool _isSyncing = false;
+
         private DateTime _minSliderDate;
         private DateTime _maxSliderDate;
         private bool _isActive = false;
@@ -100,7 +102,18 @@ namespace WPF_LoginForm.ViewModels
         private string _selectedErrorCategory;
 
         public string SelectedErrorCategory
-        { get => _selectedErrorCategory; set { if (SetProperty(ref _selectedErrorCategory, value)) { InitializeSliders(); LoadAllChartsData(); AutoSave(); } } }
+        {
+            get => _selectedErrorCategory;
+            set
+            {
+                if (SetProperty(ref _selectedErrorCategory, value))
+                {
+                    InitializeSliders();
+                    LoadAllChartsData();
+                    AutoSave();
+                }
+            }
+        }
 
         private string _selectedDashboardFile;
 
@@ -123,7 +136,7 @@ namespace WPF_LoginForm.ViewModels
             _fileLoadCts = new CancellationTokenSource();
             var token = _fileLoadCts.Token;
 
-            _cts?.Cancel(); // Stop any chart rendering immediately
+            _cts?.Cancel();
 
             try
             {
@@ -133,7 +146,7 @@ namespace WPF_LoginForm.ViewModels
                 {
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        if (!token.IsCancellationRequested)
+                        if (!token.IsCancellationRequested && _isActive)
                         {
                             LoadSelectedDashboardFile(fileName);
                         }
@@ -196,12 +209,46 @@ namespace WPF_LoginForm.ViewModels
         private DateTime _startDate;
 
         public DateTime StartDate
-        { get => _startDate; set { if (_startDate != value) { _startDate = value; OnPropertyChanged(); if (!_isUpdatingDates && _isActive && IsFilterByDate) { LoadAllChartsData(); UpdateSlidersFromDates(); AutoSave(); } } } }
+        {
+            get => _startDate;
+            set
+            {
+                if (_startDate != value)
+                {
+                    DateTime safeValue = value;
+                    if (_endDate != DateTime.MinValue && safeValue > _endDate) safeValue = _endDate;
+
+                    _startDate = safeValue;
+                    OnPropertyChanged();
+                    if (!_isSyncing && _isActive && IsFilterByDate)
+                    {
+                        UpdateSlidersFromDates(true);
+                    }
+                }
+            }
+        }
 
         private DateTime _endDate;
 
         public DateTime EndDate
-        { get => _endDate; set { if (_endDate != value) { _endDate = value; OnPropertyChanged(); if (!_isUpdatingDates && _isActive && IsFilterByDate) { LoadAllChartsData(); UpdateSlidersFromDates(); AutoSave(); } } } }
+        {
+            get => _endDate;
+            set
+            {
+                if (_endDate != value)
+                {
+                    DateTime safeValue = value;
+                    if (_startDate != DateTime.MinValue && safeValue < _startDate) safeValue = _startDate;
+
+                    _endDate = safeValue;
+                    OnPropertyChanged();
+                    if (!_isSyncing && _isActive && IsFilterByDate)
+                    {
+                        UpdateSlidersFromDates(true);
+                    }
+                }
+            }
+        }
 
         private double _sliderMaximum;
         public double SliderMaximum { get => _sliderMaximum; set => SetProperty(ref _sliderMaximum, value); }
@@ -209,27 +256,71 @@ namespace WPF_LoginForm.ViewModels
         private double _startMonthSliderValue;
 
         public double StartMonthSliderValue
-        { get => _startMonthSliderValue; set { if (SetProperty(ref _startMonthSliderValue, value) && !_isUpdatingDates && _isActive) { if (IsFilterByDate) UpdateDatesFromSliders(); else { UpdateTooltips(); LoadAllChartsData(); } } } }
+        {
+            get => _startMonthSliderValue;
+            set
+            {
+                if (_startMonthSliderValue != value)
+                {
+                    _startMonthSliderValue = value;
+                    OnPropertyChanged();
+                    if (!_isSyncing && _isActive)
+                    {
+                        if (IsFilterByDate) UpdateDatesFromSliders(true);
+                        else
+                        {
+                            UpdateTooltips();
+                            LoadAllChartsData();
+                        }
+                    }
+                }
+            }
+        }
 
         private double _endMonthSliderValue;
 
         public double EndMonthSliderValue
-        { get => _endMonthSliderValue; set { if (SetProperty(ref _endMonthSliderValue, value) && !_isUpdatingDates && _isActive) { if (IsFilterByDate) UpdateDatesFromSliders(); else { UpdateTooltips(); LoadAllChartsData(); } } } }
+        {
+            get => _endMonthSliderValue;
+            set
+            {
+                if (_endMonthSliderValue != value)
+                {
+                    _endMonthSliderValue = value;
+                    OnPropertyChanged();
+                    if (!_isSyncing && _isActive)
+                    {
+                        if (IsFilterByDate) UpdateDatesFromSliders(true);
+                        else
+                        {
+                            UpdateTooltips();
+                            LoadAllChartsData();
+                        }
+                    }
+                }
+            }
+        }
 
         private string _startSliderTooltip; public string StartSliderTooltip { get => _startSliderTooltip; set => SetProperty(ref _startSliderTooltip, value); }
         private string _endSliderTooltip; public string EndSliderTooltip { get => _endSliderTooltip; set => SetProperty(ref _endSliderTooltip, value); }
 
-        public SeriesCollection Chart1Series { get; } = new SeriesCollection(); public SeriesCollection Chart2Series { get; } = new SeriesCollection(); public SeriesCollection Chart3Series { get; } = new SeriesCollection();
-        public SeriesCollection Chart4Series { get; } = new SeriesCollection(); public SeriesCollection Chart5Series { get; } = new SeriesCollection(); public SeriesCollection Chart6Series { get; } = new SeriesCollection();
+        // FIX: Ensure Collections can be completely replaced instead of calling Clear()
+        private SeriesCollection _chart1Series = new SeriesCollection(); public SeriesCollection Chart1Series { get => _chart1Series; set => SetProperty(ref _chart1Series, value); }
 
-        public AxesCollection Chart1X { get; } = new AxesCollection { new Axis() };
-        public AxesCollection Chart1Y { get; } = new AxesCollection { new Axis() };
-        public AxesCollection Chart2X { get; } = new AxesCollection { new Axis() };
-        public AxesCollection Chart2Y { get; } = new AxesCollection { new Axis() };
-        public AxesCollection Chart3X { get; } = new AxesCollection { new Axis() };
-        public AxesCollection Chart3Y { get; } = new AxesCollection { new Axis() };
-        public AxesCollection Chart5X { get; } = new AxesCollection { new Axis() };
-        public AxesCollection Chart5Y { get; } = new AxesCollection { new Axis() };
+        private SeriesCollection _chart2Series = new SeriesCollection(); public SeriesCollection Chart2Series { get => _chart2Series; set => SetProperty(ref _chart2Series, value); }
+        private SeriesCollection _chart3Series = new SeriesCollection(); public SeriesCollection Chart3Series { get => _chart3Series; set => SetProperty(ref _chart3Series, value); }
+        private SeriesCollection _chart4Series = new SeriesCollection(); public SeriesCollection Chart4Series { get => _chart4Series; set => SetProperty(ref _chart4Series, value); }
+        private SeriesCollection _chart5Series = new SeriesCollection(); public SeriesCollection Chart5Series { get => _chart5Series; set => SetProperty(ref _chart5Series, value); }
+        private SeriesCollection _chart6Series = new SeriesCollection(); public SeriesCollection Chart6Series { get => _chart6Series; set => SetProperty(ref _chart6Series, value); }
+
+        private AxesCollection _chart1X = new AxesCollection { new Axis() }; public AxesCollection Chart1X { get => _chart1X; set => SetProperty(ref _chart1X, value); }
+        private AxesCollection _chart1Y = new AxesCollection { new Axis() }; public AxesCollection Chart1Y { get => _chart1Y; set => SetProperty(ref _chart1Y, value); }
+        private AxesCollection _chart2X = new AxesCollection { new Axis() }; public AxesCollection Chart2X { get => _chart2X; set => SetProperty(ref _chart2X, value); }
+        private AxesCollection _chart2Y = new AxesCollection { new Axis() }; public AxesCollection Chart2Y { get => _chart2Y; set => SetProperty(ref _chart2Y, value); }
+        private AxesCollection _chart3X = new AxesCollection { new Axis() }; public AxesCollection Chart3X { get => _chart3X; set => SetProperty(ref _chart3X, value); }
+        private AxesCollection _chart3Y = new AxesCollection { new Axis() }; public AxesCollection Chart3Y { get => _chart3Y; set => SetProperty(ref _chart3Y, value); }
+        private AxesCollection _chart5X = new AxesCollection { new Axis() }; public AxesCollection Chart5X { get => _chart5X; set => SetProperty(ref _chart5X, value); }
+        private AxesCollection _chart5Y = new AxesCollection { new Axis() }; public AxesCollection Chart5Y { get => _chart5Y; set => SetProperty(ref _chart5Y, value); }
 
         public Func<double, string> DateFormatter { get; }
         public Func<double, string> NumberFormatter { get; set; }
@@ -292,11 +383,13 @@ namespace WPF_LoginForm.ViewModels
                 if (_dashboardConfigurations == null) return;
                 if (!_dashboardConfigurations.Any()) for (int i = 1; i <= 6; i++) _dashboardConfigurations.Add(new DashboardConfiguration { ChartPosition = i, IsEnabled = false });
 
-                // Clear UI on Dispatcher
+                // FIX: Force LiveCharts to detach completely by creating new objects on the UI thread
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    if (!_isActive) return; // Check again inside dispatcher
-                    Chart1Series.Clear(); Chart2Series.Clear(); Chart3Series.Clear(); Chart4Series.Clear(); Chart5Series.Clear(); Chart6Series.Clear();
+                    if (token.IsCancellationRequested || !_isActive) return;
+
+                    Chart1Series = new SeriesCollection(); Chart2Series = new SeriesCollection(); Chart3Series = new SeriesCollection();
+                    Chart4Series = new SeriesCollection(); Chart5Series = new SeriesCollection(); Chart6Series = new SeriesCollection();
                     ClearAndReinitializeAxes(); _kpiTotals.Clear(); _kpiPrevTotals.Clear();
                 });
 
@@ -309,7 +402,8 @@ namespace WPF_LoginForm.ViewModels
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    if (!_isActive) return;
+                    if (token.IsCancellationRequested || !_isActive) return;
+
                     UpdateDataLabelsVisibility();
                     KpiCards.Clear();
                     var colors = new[] { "#3498DB", "#2ECC71", "#9B59B6", "#F1C40F", "#E67E22", "#E74C3C" };
@@ -338,6 +432,7 @@ namespace WPF_LoginForm.ViewModels
         {
             void UpdateSeries(SeriesCollection seriesCol, int index)
             {
+                if (seriesCol == null) return;
                 bool isMaximized = (MaximizedChartIndex == index);
                 foreach (var series in seriesCol)
                 {
@@ -415,7 +510,6 @@ namespace WPF_LoginForm.ViewModels
                 var chartResult = await Task.Run(() => _chartService.ProcessChartData(dt, config, IsFilterByDate, IgnoreNonDateData, StartMonthSliderValue, EndMonthSliderValue, SliderMaximum, colorMap, GlobalIgnoreAfterHyphen), token);
                 if (token.IsCancellationRequested || !_isActive) return;
 
-                // FIX: Check _isActive and token before UI update
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     if (!token.IsCancellationRequested && _isActive)
@@ -425,14 +519,26 @@ namespace WPF_LoginForm.ViewModels
             catch (Exception ex) { _logger?.LogError($"Error processing chart position {config.ChartPosition}", ex); }
         }
 
+        private void SetSeriesCollection(int pos, SeriesCollection collection)
+        {
+            switch (pos)
+            {
+                case 1: Chart1Series = collection; break;
+                case 2: Chart2Series = collection; break;
+                case 3: Chart3Series = collection; break;
+                case 4: Chart4Series = collection; break;
+                case 5: Chart5Series = collection; break;
+                case 6: Chart6Series = collection; break;
+            }
+        }
+
+        // UPDATED METHOD with dynamic bottom padding
         private void ApplyChartResultToUI(int position, DashboardChartService.ChartResultDto result)
         {
-            var targetSeries = GetSeriesCollection(position);
             var targetX = GetXAxes(position);
             var targetY = GetYAxes(position);
 
-            // FIX: Strict Null Checks
-            if (targetSeries == null || result == null || result.Series == null) return;
+            if (result == null || result.Series == null) return;
 
             var newSeries = new SeriesCollection();
             var axisColor = Brushes.WhiteSmoke;
@@ -440,7 +546,7 @@ namespace WPF_LoginForm.ViewModels
 
             foreach (var s in result.Series)
             {
-                if (s == null) continue; // Safety check
+                if (s == null) continue;
 
                 Brush colorBrush = (Brush)new BrushConverter().ConvertFrom(s.ColorHex);
 
@@ -503,22 +609,34 @@ namespace WPF_LoginForm.ViewModels
                 }
             }
 
-            targetSeries.AddRange(newSeries);
+            SetSeriesCollection(position, newSeries);
 
             if (targetX != null && targetY != null && result.Series.Any(x => x.SeriesType != "Pie"))
             {
                 double minVal = double.MaxValue;
                 double maxVal = double.MinValue;
+                double minX = double.MaxValue;
+                double maxX = double.MinValue;
+                int maxPointCount = 0;
                 bool hasValues = false;
 
                 foreach (var s in result.Series)
                 {
                     if (s.Points != null && s.Points.Any())
                     {
+                        // Calculate Y Bounds
                         double sMin = s.Points.Min(p => p.Y);
                         double sMax = s.Points.Max(p => p.Y);
                         if (sMin < minVal) minVal = sMin;
                         if (sMax > maxVal) maxVal = sMax;
+
+                        // Calculate X Bounds
+                        double sMinX = s.Points.Min(p => p.X);
+                        double sMaxX = s.Points.Max(p => p.X);
+                        if (sMinX < minX) minX = sMinX;
+                        if (sMaxX > maxX) maxX = sMaxX;
+
+                        if (s.Points.Count > maxPointCount) maxPointCount = s.Points.Count;
                         hasValues = true;
                     }
                 }
@@ -537,7 +655,10 @@ namespace WPF_LoginForm.ViewModels
                     if (dataRange == 0) dataRange = 1;
 
                     double topBuffer = 0.25 * dataRange;
-                    double bottomBuffer = forceMinZero ? 0 : 0.1 * dataRange;
+
+                    // FIX: Massive bottom padding to accommodate S labels dynamically.
+                    // It uses whichever is larger: 45% of the data range, or 15% of the absolute minimum value.
+                    double bottomBuffer = forceMinZero ? 0 : Math.Max(0.45 * dataRange, minVal * 0.15);
 
                     double desiredMin = forceMinZero ? 0 : minVal - bottomBuffer;
                     double desiredMax = maxVal + topBuffer;
@@ -577,11 +698,26 @@ namespace WPF_LoginForm.ViewModels
                 {
                     xAxis.LabelFormatter = DateFormatter;
                     xAxis.Labels = null;
+
+                    // Extend X Axis to simulate "one more data point" on the right
+                    if (hasValues && maxPointCount > 1 && maxX > minX)
+                    {
+                        double avgStep = (maxX - minX) / (maxPointCount - 1);
+                        xAxis.MaxValue = maxX + avgStep;
+                        xAxis.MinValue = minX - (avgStep * 0.1);
+                    }
                 }
                 else
                 {
                     xAxis.LabelFormatter = null;
                     xAxis.Labels = result.XAxisLabels;
+
+                    // Extend Categorical X Axis to the right
+                    if (hasValues)
+                    {
+                        xAxis.MaxValue = maxX + 0.85;
+                        xAxis.MinValue = minX - 0.15;
+                    }
                 }
             }
         }
@@ -590,12 +726,16 @@ namespace WPF_LoginForm.ViewModels
         {
             void Reset(AxesCollection ax)
             {
-                if (ax.Count > 0)
+                if (ax != null && ax.Count > 0)
                 {
                     ax[0].Labels = null;
                     ax[0].LabelFormatter = null;
                     ax[0].MinValue = double.NaN;
                     ax[0].MaxValue = double.NaN;
+                    if (ax[0].Separator != null)
+                    {
+                        ax[0].Separator.Step = double.NaN;
+                    }
                 }
             }
 
@@ -689,25 +829,6 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        private void ClearAndReinitializeAxesHelper()
-        {
-            void Reset(AxesCollection ax)
-            {
-                if (ax.Count > 0)
-                {
-                    ax[0].Labels = null;
-                    ax[0].LabelFormatter = null;
-                    ax[0].MinValue = double.NaN;
-                    ax[0].MaxValue = double.NaN;
-                }
-            }
-
-            Reset(Chart1X); Reset(Chart1Y);
-            Reset(Chart2X); Reset(Chart2Y);
-            Reset(Chart3X); Reset(Chart3Y);
-            Reset(Chart5X); Reset(Chart5Y);
-        }
-
         private async void ShowConfigurationWindow()
         { var vm = new ConfigurationViewModel(_dataRepository); await vm.InitializeAsync(); vm.LoadConfigurations(_dashboardConfigurations); if (_dialogService.ShowConfigurationDialog(vm)) { _dashboardConfigurations = vm.GetFinalConfigurations(); Activate(); AutoSave(); } }
 
@@ -717,15 +838,30 @@ namespace WPF_LoginForm.ViewModels
         public void Deactivate()
         {
             _isActive = false;
-            if (_cts != null) { _cts.Cancel(); _cts.Dispose(); _cts = null; }
-            if (_fileLoadCts != null) { _fileLoadCts.Cancel(); _fileLoadCts.Dispose(); _fileLoadCts = null; }
+            _cts?.Cancel();
+            _fileLoadCts?.Cancel();
+
             AutoSave();
+
+            // Clear purely for visual cleanup
+            Application.Current?.Dispatcher.Invoke(() =>
+            {
+                Chart1Series = new SeriesCollection();
+                Chart2Series = new SeriesCollection();
+                Chart3Series = new SeriesCollection();
+                Chart4Series = new SeriesCollection();
+                Chart5Series = new SeriesCollection();
+                Chart6Series = new SeriesCollection();
+                ClearAndReinitializeAxes();
+            });
         }
 
         private async Task InitializeDashboardAsync()
         {
             IsDateFilterEnabled = _dashboardConfigurations.Any(c => c.IsEnabled && c.DataStructureType == "Daily Date");
-            await FindGlobalDateRangeAsync(); InitializeSliders(); LoadAllChartsData();
+            await FindGlobalDateRangeAsync();
+            InitializeSliders();
+            LoadAllChartsData();
         }
 
         private async Task FindGlobalDateRangeAsync()
@@ -742,22 +878,81 @@ namespace WPF_LoginForm.ViewModels
         {
             if (!IsFilterByDate) { SliderMaximum = 100; StartMonthSliderValue = 0; EndMonthSliderValue = 100; UpdateTooltips(); return; }
             if (_minSliderDate == default) return;
+
+            // Bypass the setter to prevent loops during init
             if (_startDate != DateTime.MinValue && _startDate < _minSliderDate) _minSliderDate = _startDate;
             if (_endDate != DateTime.MinValue && _endDate > _maxSliderDate) _maxSliderDate = _endDate;
             if (_startDate == DateTime.MinValue) _startDate = _minSliderDate;
             if (_endDate == DateTime.MinValue) _endDate = _maxSliderDate;
             if (_startDate > _endDate) { _startDate = _minSliderDate; _endDate = _maxSliderDate; }
+
             Application.Current.Dispatcher.Invoke(() => { OnPropertyChanged(nameof(StartDate)); OnPropertyChanged(nameof(EndDate)); });
+
             SliderMaximum = ((_maxSliderDate.Year - _minSliderDate.Year) * 12) + _maxSliderDate.Month - _minSliderDate.Month;
             if (SliderMaximum < 0) SliderMaximum = 0;
-            UpdateSlidersFromDates();
+            UpdateSlidersFromDates(false);
         }
 
-        private void UpdateSlidersFromDates()
-        { if (_isUpdatingDates || _minSliderDate == default || !IsFilterByDate) return; _isUpdatingDates = true; StartMonthSliderValue = ((StartDate.Year - _minSliderDate.Year) * 12) + StartDate.Month - _minSliderDate.Month; EndMonthSliderValue = ((EndDate.Year - _minSliderDate.Year) * 12) + EndDate.Month - _minSliderDate.Month; if (StartMonthSliderValue < 0) StartMonthSliderValue = 0; if (EndMonthSliderValue > SliderMaximum) EndMonthSliderValue = SliderMaximum; UpdateTooltips(); _isUpdatingDates = false; LoadAllChartsData(); AutoSave(); }
+        private void UpdateSlidersFromDates(bool triggerLoad = true)
+        {
+            if (_isSyncing || _minSliderDate == default || !IsFilterByDate) return;
+            _isSyncing = true;
 
-        private void UpdateDatesFromSliders()
-        { if (_isUpdatingDates || _minSliderDate == default || !IsFilterByDate) return; if (StartMonthSliderValue > EndMonthSliderValue) { double tmp = StartMonthSliderValue; StartMonthSliderValue = EndMonthSliderValue; EndMonthSliderValue = tmp; } _isUpdatingDates = true; var s = _minSliderDate.AddMonths((int)StartMonthSliderValue); var e = _minSliderDate.AddMonths((int)EndMonthSliderValue); _startDate = new DateTime(s.Year, s.Month, 1); _endDate = new DateTime(e.Year, e.Month, DateTime.DaysInMonth(e.Year, e.Month)); OnPropertyChanged(nameof(StartDate)); OnPropertyChanged(nameof(EndDate)); UpdateTooltips(); _isUpdatingDates = false; LoadAllChartsData(); AutoSave(); }
+            _startMonthSliderValue = ((_startDate.Year - _minSliderDate.Year) * 12) + _startDate.Month - _minSliderDate.Month;
+            _endMonthSliderValue = ((_endDate.Year - _minSliderDate.Year) * 12) + _endDate.Month - _minSliderDate.Month;
+
+            if (_startMonthSliderValue < 0) _startMonthSliderValue = 0;
+            if (_endMonthSliderValue > _sliderMaximum) _endMonthSliderValue = _sliderMaximum;
+
+            OnPropertyChanged(nameof(StartMonthSliderValue));
+            OnPropertyChanged(nameof(EndMonthSliderValue));
+
+            UpdateTooltips();
+            _isSyncing = false;
+
+            if (triggerLoad)
+            {
+                LoadAllChartsData();
+                AutoSave();
+            }
+        }
+
+        private void UpdateDatesFromSliders(bool triggerLoad = true)
+        {
+            if (_isSyncing || _minSliderDate == default || !IsFilterByDate) return;
+            _isSyncing = true;
+
+            if (_startMonthSliderValue > _endMonthSliderValue)
+            {
+                double tmp = _startMonthSliderValue;
+                _startMonthSliderValue = _endMonthSliderValue;
+                _endMonthSliderValue = tmp;
+                OnPropertyChanged(nameof(StartMonthSliderValue));
+                OnPropertyChanged(nameof(EndMonthSliderValue));
+            }
+
+            var s = _minSliderDate.AddMonths((int)_startMonthSliderValue);
+            var e = _minSliderDate.AddMonths((int)_endMonthSliderValue);
+
+            if (e < s) e = s;
+
+            _startDate = new DateTime(s.Year, s.Month, 1);
+            _endDate = new DateTime(e.Year, e.Month, DateTime.DaysInMonth(e.Year, e.Month));
+
+            if (_endDate < _startDate) _endDate = _startDate; // Extra safeguard
+
+            OnPropertyChanged(nameof(StartDate));
+            OnPropertyChanged(nameof(EndDate));
+
+            UpdateTooltips();
+            _isSyncing = false;
+
+            if (triggerLoad)
+            {
+                LoadAllChartsData();
+                AutoSave();
+            }
+        }
 
         private void UpdateTooltips()
         { if (IsFilterByDate && _minSliderDate != default) { StartSliderTooltip = _minSliderDate.AddMonths((int)_startMonthSliderValue).ToString("MMM yyyy"); EndSliderTooltip = _minSliderDate.AddMonths((int)_endMonthSliderValue).ToString("MMM yyyy"); } else { StartSliderTooltip = $"{StartMonthSliderValue:F0}%"; EndSliderTooltip = $"{EndMonthSliderValue:F0}%"; } }
@@ -793,8 +988,18 @@ namespace WPF_LoginForm.ViewModels
             {
                 _dashboardConfigurations = s.Configurations; IsFilterByDate = s.IsFilterByDate; IgnoreNonDateData = s.IgnoreNonDateData; UseIdToDateConversion = s.UseIdToDateConversion; GlobalIgnoreAfterHyphen = s.GlobalIgnoreAfterHyphen;
                 if (s.InitialDateForConversion != default) InitialDateForConversion = s.InitialDateForConversion;
+
+                _isSyncing = true;
                 if (s.StartDate != default && s.EndDate != default) { _startDate = s.StartDate; _endDate = s.EndDate; OnPropertyChanged(nameof(StartDate)); OnPropertyChanged(nameof(EndDate)); }
-                Application.Current.Dispatcher.Invoke(() => { ClearAndReinitializeAxesHelper(); Chart1Series.Clear(); Chart2Series.Clear(); Chart3Series.Clear(); Chart4Series.Clear(); Chart5Series.Clear(); Chart6Series.Clear(); });
+                _isSyncing = false;
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ClearAndReinitializeAxes();
+                    Chart1Series = new SeriesCollection(); Chart2Series = new SeriesCollection(); Chart3Series = new SeriesCollection();
+                    Chart4Series = new SeriesCollection(); Chart5Series = new SeriesCollection(); Chart6Series = new SeriesCollection();
+                });
+
                 if (wasActive) { _isActive = true; _ = InitializeDashboardAsync(); }
             }
             finally { if (wasActive && !_isActive) _isActive = true; }
