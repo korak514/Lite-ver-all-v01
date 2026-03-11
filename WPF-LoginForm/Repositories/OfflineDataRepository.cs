@@ -72,14 +72,27 @@ namespace WPF_LoginForm.Repositories
                     string headerLine = sr.ReadLine();
                     if (string.IsNullOrWhiteSpace(headerLine)) return dt;
 
-                    var headers = ParseCsvLine(headerLine);
+                    // --- NEW: Auto-detect CSV delimiter (Excel in Turkey exports with ';' instead of ',') ---
+                    char delimiter = ',';
+                    int commaCount = headerLine.Count(c => c == ',');
+                    int semiCount = headerLine.Count(c => c == ';');
+                    int tabCount = headerLine.Count(c => c == '\t');
+
+                    if (semiCount > commaCount && semiCount > tabCount) delimiter = ';';
+                    else if (tabCount > commaCount && tabCount > semiCount) delimiter = '\t';
+
+                    // Pass the detected delimiter to the parser
+                    var headers = ParseCsvLine(headerLine, delimiter);
                     foreach (var h in headers)
                     {
-                        string colName = h;
+                        string colName = h.Trim();
+                        if (string.IsNullOrWhiteSpace(colName)) colName = "Column"; // fallback for empty headers
+
                         int dupCount = 1;
+                        string originalColName = colName;
                         while (dt.Columns.Contains(colName))
                         {
-                            colName = $"{h}_{dupCount++}";
+                            colName = $"{originalColName}_{dupCount++}";
                         }
                         dt.Columns.Add(colName);
                     }
@@ -89,7 +102,8 @@ namespace WPF_LoginForm.Repositories
                         string line = sr.ReadLine();
                         if (string.IsNullOrWhiteSpace(line)) continue;
 
-                        var rowValues = ParseCsvLine(line);
+                        // Pass the detected delimiter to the parser
+                        var rowValues = ParseCsvLine(line, delimiter);
                         if (rowValues.Count > 0)
                         {
                             var row = dt.NewRow();
@@ -110,7 +124,7 @@ namespace WPF_LoginForm.Repositories
             return dt;
         }
 
-        private List<string> ParseCsvLine(string line)
+        private List<string> ParseCsvLine(string line, char delimiter)
         {
             var result = new List<string>();
             bool inQuotes = false;
@@ -119,15 +133,21 @@ namespace WPF_LoginForm.Repositories
             for (int i = 0; i < line.Length; i++)
             {
                 char c = line[i];
-                if (c == '\"') inQuotes = !inQuotes;
-                else if (c == ',' && !inQuotes)
+                if (c == '\"')
                 {
-                    result.Add(currentValue.ToString().Trim('"'));
+                    inQuotes = !inQuotes;
+                }
+                else if (c == delimiter && !inQuotes)
+                {
+                    result.Add(currentValue.ToString().Trim());
                     currentValue.Clear();
                 }
-                else currentValue.Append(c);
+                else
+                {
+                    currentValue.Append(c);
+                }
             }
-            result.Add(currentValue.ToString().Trim('"'));
+            result.Add(currentValue.ToString().Trim());
             return result;
         }
 

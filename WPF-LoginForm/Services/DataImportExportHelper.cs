@@ -142,8 +142,14 @@ namespace WPF_LoginForm.Services
             else
             {
                 var sb = new StringBuilder();
-                sb.AppendLine(string.Join(",", table.Columns.Cast<DataColumn>().Select(c => Quote(c.ColumnName))));
-                foreach (var r in rows) sb.AppendLine(string.Join(",", r.ItemArray.Select(i => Quote(i?.ToString()))));
+
+                // NEW: Changed string.Join from "," to ";" to support Turkish Excel and Offline Data
+                sb.AppendLine(string.Join(";", table.Columns.Cast<DataColumn>().Select(c => Quote(c.ColumnName))));
+                foreach (var r in rows)
+                {
+                    sb.AppendLine(string.Join(";", r.ItemArray.Select(i => Quote(i?.ToString()))));
+                }
+
                 File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
             }
         }
@@ -188,9 +194,6 @@ namespace WPF_LoginForm.Services
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var reader = new StreamReader(stream, Encoding.UTF8))
             {
-                // FIX (Bug 3): Prevent OutOfMemoryException by processing the file line-by-line instead of loading everything into memory at once
-                string pattern = ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"; // CSV Split regex
-
                 // Skip requested lines
                 for (int i = 0; i < skip; i++)
                 {
@@ -199,6 +202,15 @@ namespace WPF_LoginForm.Services
 
                 string headerLine = reader.ReadLine();
                 if (string.IsNullOrWhiteSpace(headerLine)) return dt;
+
+                // NEW: Auto-detect if the file is using Semicolons or Commas
+                char delimiter = ',';
+                int commaCount = headerLine.Count(c => c == ',');
+                int semiCount = headerLine.Count(c => c == ';');
+                if (semiCount > commaCount) delimiter = ';';
+
+                // Inject the detected delimiter into the regex pattern
+                string pattern = Regex.Escape(delimiter.ToString()) + "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
 
                 var headers = Regex.Split(headerLine, pattern);
                 foreach (var h in headers) dt.Columns.Add(h.Trim('"'));
@@ -231,7 +243,7 @@ namespace WPF_LoginForm.Services
 
         private static bool ParseBool(string v) => v?.ToLower() == "true" || v == "1" || v?.ToLower() == "yes" || v?.ToLower() == "on";
 
-        private static string Quote(string v) => (v?.Contains(",") == true || v?.Contains("\"") == true) ? $"\"{v.Replace("\"", "\"\"")}\"" : v;
+        private static string Quote(string v) => (v?.Contains(";") == true || v?.Contains(",") == true || v?.Contains("\"") == true || v?.Contains("\n") == true) ? $"\"{v.Replace("\"", "\"\"")}\"" : v;
 
         private static string Sanitize(string s) => Regex.Replace(s ?? "Sheet1", @"[\\/\?\*\[\]:]", "_");
     }

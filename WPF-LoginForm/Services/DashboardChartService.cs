@@ -1,5 +1,4 @@
-﻿// Services/DashboardChartService.cs
-using LiveCharts.Defaults;
+﻿using LiveCharts.Defaults;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -85,15 +84,24 @@ namespace WPF_LoginForm.Services
 
                 if (lastComma > lastDot)
                 {
+                    // Format: 1.500.000,00 → remove dots, replace comma with dot
                     strVal = strVal.Replace(".", "").Replace(",", ".");
                 }
                 else if (lastDot > lastComma && lastComma != -1)
                 {
+                    // Format: 1,500,000.00 → remove commas
                     strVal = strVal.Replace(",", "");
                 }
                 else if (lastComma != -1 && lastDot == -1)
                 {
+                    // Format: 1500,00 → replace comma with dot
                     strVal = strVal.Replace(",", ".");
+                }
+                // FIX: Added handling for numbers with only dots (e.g., 3.500.000)
+                else if (lastDot != -1 && lastComma == -1)
+                {
+                    // Format: 3.500.000 → remove all dots (thousand separators)
+                    strVal = strVal.Replace(".", "");
                 }
 
                 double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double res);

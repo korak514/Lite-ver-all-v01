@@ -132,6 +132,7 @@
     <Compile Include="Services\TimeFormatHelper.cs" />
     <Compile Include="Services\UserSessionService.cs" />
     <Compile Include="ViewModels\CategoryConfigViewModel.cs" />
+    <Compile Include="ViewModels\DailyTimelineViewModel.cs" />
     <Compile Include="ViewModels\DashboardPortalViewModel.cs" />
     <Compile Include="ViewModels\ErrorDrillDownViewModel.cs" />
     <Compile Include="ViewModels\ErrorEventModel.cs" />
@@ -141,6 +142,9 @@
     <Compile Include="ViewModels\HierarchyImportViewModel.cs" />
     <Compile Include="Views\CategoryConfigWindow.xaml.cs">
       <DependentUpon>CategoryConfigWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\DailyTimelineWindow.xaml.cs">
+      <DependentUpon>DailyTimelineWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\DashboardPortalView.xaml.cs">
       <DependentUpon>DashboardPortalView.xaml</DependentUpon>
@@ -333,6 +337,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\CustomerView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\DailyTimelineWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

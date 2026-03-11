@@ -1,0 +1,425 @@
+﻿<!-- Views/DailyTimelineWindow.xaml -->
+<Window x:Class="WPF_LoginForm.Views.DailyTimelineWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:fa="http://schemas.fontawesome.io/icons/"
+        xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+        Title="Daily Timeline" Height="720" Width="1150"
+        WindowStartupLocation="CenterOwner"
+        Background="#09092B">
+
+    <Window.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:InverseBooleanConverter x:Key="BooleanInverter" />
+
+        <Style TargetType="TextBox" x:Key="EditBoxStyle">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="#10102A" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#303050" />
+            <Setter Property="Padding" Value="5" />
+            <Setter Property="Margin" Value="0,0,0,15" />
+        </Style>
+
+        <Style TargetType="TextBlock" x:Key="EditLabelStyle">
+            <Setter Property="Foreground" Value="LightGray" />
+            <Setter Property="Margin" Value="0,0,0,5" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <!-- Custom Day Toggle Button -->
+        <Style x:Key="DayToggleStyle" TargetType="RadioButton">
+            <Setter Property="Background" Value="#80F39C12" />
+            <Setter Property="Foreground" Value="LightGray" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="15,8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4,0,0,4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="#F1C40F" />
+                    <Setter Property="Foreground" Value="Black" />
+                    <Setter Property="FontWeight" Value="Bold" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Custom Night Toggle Button -->
+        <Style x:Key="NightToggleStyle" TargetType="RadioButton">
+            <Setter Property="Background" Value="#80191970" />
+            <Setter Property="Foreground" Value="LightGray" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="15,8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="0,4,4,0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="#2980B9" />
+                    <Setter Property="Foreground" Value="White" />
+                    <Setter Property="FontWeight" Value="Bold" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- TOP HEADER -->
+        <Grid Grid.Row="0" Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Date Navigation & Display with Hidden DatePicker -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Command="{Binding PrevDayCommand}" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                    <fa:ImageAwesome Icon="ChevronLeft" Height="25" Foreground="Gray" Margin="0,0,10,0" />
+                </Button>
+
+                <Border Background="#181838" BorderBrush="#3498DB" BorderThickness="2" CornerRadius="8" Padding="15,5">
+                    <StackPanel Orientation="Horizontal">
+                        <Grid>
+                            <!-- Invisible DatePicker mapped to the icon -->
+                            <DatePicker x:Name="HiddenDatePicker" SelectedDate="{Binding TargetDate, Mode=TwoWay}" Width="0" Height="0" Opacity="0" />
+                            <Button Click="OpenDatePicker_Click" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="0,0,10,0" ToolTip="Select Date">
+                                <fa:ImageAwesome Icon="Calendar" Height="25" Foreground="#3498DB" VerticalAlignment="Center" />
+                            </Button>
+                        </Grid>
+
+                        <TextBlock Text="{Binding FormattedDateNumber}" Foreground="White" FontSize="32" FontWeight="ExtraBold" VerticalAlignment="Center" />
+                        <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding FormattedDateMonthYear}" Foreground="#FFC047" FontSize="14" FontWeight="Bold" />
+                            <TextBlock Text="{Binding FormattedDay}" Foreground="LightGray" FontSize="12" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Button Command="{Binding NextDayCommand}" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                    <fa:ImageAwesome Icon="ChevronRight" Height="25" Foreground="Gray" Margin="10,0,0,0" />
+                </Button>
+            </StackPanel>
+
+            <!-- Controls (Zoom, Shift, Save/Undo/Refresh, Close) -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+
+                <Border Background="#181838" CornerRadius="4" Margin="0,0,15,0" Padding="10,5">
+                    <StackPanel Orientation="Horizontal">
+                        <fa:ImageAwesome Icon="SearchPlus" Height="14" Foreground="Gray" Margin="0,0,5,0" />
+                        <TextBlock Text="Zoom (Hrs):" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,5,0" />
+                        <Slider Minimum="2" Maximum="12" Value="{Binding TimeWindowHours, Mode=TwoWay}"
+                                Width="100" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
+                        <TextBlock Text="{Binding TimeWindowHours, StringFormat={}{0}h}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" Margin="10,0,0,0" Width="25" />
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,15,0">
+                    <RadioButton Content="☼ Day" IsChecked="{Binding IsNightShift, Converter={StaticResource BooleanInverter}}" Style="{StaticResource DayToggleStyle}" />
+                    <RadioButton Content="☾ Night" IsChecked="{Binding IsNightShift}" Style="{StaticResource NightToggleStyle}" />
+                </StackPanel>
+
+                <!-- Data Action Buttons -->
+                <Button Content="⟲" Command="{Binding UndoCommand}" ToolTip="Undo Changes" Background="#7F8C8D" Foreground="White" FontWeight="Bold" Padding="10,8" Margin="0,0,5,0" BorderThickness="0" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                </Button>
+
+                <Button Content="↻" Command="{Binding RefreshCommand}" ToolTip="Refresh from Database" Background="#F39C12" Foreground="White" FontWeight="Bold" Padding="10,8" Margin="0,0,5,0" BorderThickness="0" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                </Button>
+
+                <Button Content="💾 Save" Command="{Binding SaveToDatabaseCommand}" Background="#2ECC71" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,15,0" BorderThickness="0" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Style.Triggers>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <!-- Layout Buttons -->
+                <Button Content="★ Favs" Command="{Binding ToggleFavoritesCommand}" Background="#9B59B6" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,5,0" BorderThickness="0" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                </Button>
+                <Button Content="Edit" Command="{Binding ToggleEditPanelCommand}" Background="#3498DB" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                </Button>
+                <Button Content="✕" Click="CloseButton_Click" Background="#E74C3C" Foreground="White" FontWeight="Bold" Padding="15,8" BorderThickness="0" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- FAVORITES BAR (Collapsible & Draggable) -->
+        <Border Grid.Row="1" Background="#1A1A3A" CornerRadius="6" Padding="10" Margin="0,0,0,15"
+                Visibility="{Binding IsFavoritesVisible, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+                <TextBlock Text="Most Used Events (Drag onto Timeline or Click Empty Timeline Area)" Foreground="#FFC047" FontSize="12" FontWeight="Bold" Margin="0,0,0,10" />
+                <ItemsControl ItemsSource="{Binding FavoriteEvents}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{Binding ColorHex}" CornerRadius="15" Margin="0,0,10,5" Padding="10,5" Cursor="Hand"
+                                    PreviewMouseLeftButtonDown="FavoriteBorder_PreviewMouseLeftButtonDown"
+                                    PreviewMouseMove="FavoriteBorder_PreviewMouseMove"
+                                    PreviewMouseLeftButtonUp="FavoriteBorder_PreviewMouseLeftButtonUp">
+
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Title}" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center" />
+
+                                    <Button Content="✕"
+                                            Command="{Binding DataContext.RemoveFavoriteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"
+                                            Background="Transparent" Foreground="#80FFFFFF" BorderThickness="0"
+                                            Margin="5,0,0,0" Padding="3,0" Cursor="Hand" ToolTip="Remove Favorite">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Foreground" Value="White" />
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <!-- MAIN LAYOUT -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT: TV GUIDE TIMELINE -->
+            <Border Grid.Column="0" Background="#181838" CornerRadius="8" x:Name="TimelineViewport" SizeChanged="TimelineViewport_SizeChanged" ClipToBounds="True">
+                <ScrollViewer x:Name="TimelineScrollViewer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                              PreviewMouseLeftButtonDown="ScrollViewer_PreviewMouseLeftButtonDown"
+                              PreviewMouseMove="ScrollViewer_PreviewMouseMove"
+                              PreviewMouseLeftButtonUp="ScrollViewer_PreviewMouseLeftButtonUp">
+
+                    <Canvas x:Name="MainCanvas" Width="{Binding CalculatedCanvasWidth}" Height="520" Background="Transparent"
+                            AllowDrop="True" DragOver="TimelineCanvas_DragOver" Drop="TimelineCanvas_Drop"
+                            MouseLeftButtonDown="TimelineCanvas_MouseLeftButtonDown">
+
+                        <!-- HORIZONTAL LANE LINES -->
+                        <Line X1="0" Y1="30" X2="{Binding CalculatedCanvasWidth}" Y2="30" Stroke="#40FFFFFF" StrokeThickness="2" />
+                        <Line X1="0" Y1="110" X2="{Binding CalculatedCanvasWidth}" Y2="110" Stroke="#20FFFFFF" StrokeThickness="1" />
+                        <Line X1="0" Y1="190" X2="{Binding CalculatedCanvasWidth}" Y2="190" Stroke="#20FFFFFF" StrokeThickness="1" />
+                        <Line X1="0" Y1="270" X2="{Binding CalculatedCanvasWidth}" Y2="270" Stroke="#20FFFFFF" StrokeThickness="1" />
+                        <Line X1="0" Y1="350" X2="{Binding CalculatedCanvasWidth}" Y2="350" Stroke="#20FFFFFF" StrokeThickness="1" />
+                        <Line X1="0" Y1="430" X2="{Binding CalculatedCanvasWidth}" Y2="430" Stroke="#20FFFFFF" StrokeThickness="1" />
+                        <Line X1="0" Y1="510" X2="{Binding CalculatedCanvasWidth}" Y2="510" Stroke="#40FFFFFF" StrokeThickness="2" />
+
+                        <!-- VERTICAL HOUR LINES & LABELS -->
+                        <ItemsControl ItemsSource="{Binding HourMarkers}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <Canvas />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Canvas>
+                                        <Line X1="0" Y1="30" X2="0" Y2="510" Stroke="#30FFFFFF" StrokeThickness="1" />
+                                        <TextBlock Text="{Binding Text}" Foreground="LightGray" FontWeight="Bold" Canvas.Top="5" Canvas.Left="-15" Width="35" TextAlignment="Center" />
+                                    </Canvas>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                        </ItemsControl>
+
+                        <!-- EVENT BLOCKS -->
+                        <ItemsControl ItemsSource="{Binding TimelineBlocks}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <Canvas />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="{Binding PixelWidth}" Height="70"
+                                            Background="{Binding BlockColor}"
+                                            CornerRadius="4" Cursor="Hand"
+                                            ToolTip="{Binding DisplayText}">
+                                        <Border.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick"
+                                                          Command="{Binding DataContext.BlockClickCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                          CommandParameter="{Binding}" />
+                                        </Border.InputBindings>
+
+                                        <TextBlock Text="{Binding DisplayText}"
+                                                   Foreground="White"
+                                                   FontSize="{Binding TextFontSize}"
+                                                   Visibility="{Binding IsTextVisible, Converter={StaticResource BoolToVis}}"
+                                                   FontWeight="SemiBold" VerticalAlignment="Center" Margin="5,0"
+                                                   TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                    <Setter Property="Canvas.Top" Value="{Binding PixelY}" />
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                        </ItemsControl>
+                    </Canvas>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Margin column to separate timeline and edit panel -->
+            <Border Grid.Column="1" Width="15" Visibility="{Binding IsEditPanelVisible, Converter={StaticResource BoolToVis}}" />
+
+            <!-- RIGHT: EDIT PANEL (Fixed Width) -->
+            <Border Grid.Column="2" Width="380" Background="#1E1E3F" CornerRadius="8" Padding="20"
+                    Visibility="{Binding IsEditPanelVisible, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Event Details" Foreground="#FFC047" FontSize="20" FontWeight="Bold" Margin="0,0,0,20" />
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+
+                            <TextBlock Text="Start Time (HH:mm)" Style="{StaticResource EditLabelStyle}" />
+                            <TextBox Text="{Binding EditStartTime, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource EditBoxStyle}" />
+
+                            <!-- End Time / Duration Toggle -->
+                            <CheckBox Content="Specify End Time instead of Duration" IsChecked="{Binding UseEndTimeMode}" Foreground="LightGray" Margin="0,0,0,10" />
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,5,0">
+                                    <TextBlock Text="Duration (Min)" Style="{StaticResource EditLabelStyle}" />
+                                    <TextBox Text="{Binding EditDuration, UpdateSourceTrigger=PropertyChanged}"
+                                             IsEnabled="{Binding UseEndTimeMode, Converter={StaticResource BooleanInverter}}"
+                                             Style="{StaticResource EditBoxStyle}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="5,0,0,0">
+                                    <TextBlock Text="End Time (HH:mm)" Style="{StaticResource EditLabelStyle}" />
+                                    <TextBox Text="{Binding EditEndTime, UpdateSourceTrigger=PropertyChanged}"
+                                             IsEnabled="{Binding UseEndTimeMode}"
+                                             Style="{StaticResource EditBoxStyle}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="Machine Code" Style="{StaticResource EditLabelStyle}" />
+                            <Grid Margin="0,0,0,5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableMachineCodes}"
+                                          SelectedItem="{Binding SelectedBlock.OriginalEvent.MachineCode}"
+                                          Height="30" VerticalContentAlignment="Center" />
+
+                                <Button Grid.Column="1" Command="{Binding ManageMachineCodesCommand}" Width="30" Height="30" Margin="5,0,0,0" Background="#333" BorderThickness="0" Cursor="Hand" ToolTip="Add New Machine Code">
+                                    <fa:ImageAwesome Icon="Gear" Height="14" Foreground="White" />
+                                </Button>
+                            </Grid>
+
+                            <CheckBox Content="Enter code manually" IsChecked="{Binding IsManualMachineCodeEnabled}" Foreground="Gray" FontSize="11" Margin="0,0,0,5" />
+                            <TextBox Text="{Binding SelectedBlock.OriginalEvent.MachineCode}"
+                                     Visibility="{Binding IsManualMachineCodeEnabled, Converter={StaticResource BoolToVis}}"
+                                     Style="{StaticResource EditBoxStyle}" ToolTip="Manual Entry Override" />
+
+                            <TextBlock Text="Description" Style="{StaticResource EditLabelStyle}" />
+                            <TextBox Text="{Binding SelectedBlock.OriginalEvent.ErrorDescription, UpdateSourceTrigger=PropertyChanged}" Height="80" TextWrapping="Wrap" AcceptsReturn="True" Style="{StaticResource EditBoxStyle}" />
+
+                            <Button Content="★ Save as Favorite" Command="{Binding SaveAsFavoriteCommand}" Background="#8E44AD" Foreground="White" FontWeight="Bold" Padding="10,5" Margin="0,5,0,15" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Left">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="4" />
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+                        <Button Content="Delete" Command="{Binding DeleteEventCommand}" Background="#D14545" Foreground="White" Padding="15,5" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand" />
+                        <Button Content="Apply to Timeline" Command="{Binding ApplyToTimelineCommand}" Background="#0078D7" Foreground="White" Padding="15,5" BorderThickness="0" Cursor="Hand" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

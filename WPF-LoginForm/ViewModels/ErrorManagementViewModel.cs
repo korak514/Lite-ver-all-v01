@@ -187,6 +187,9 @@ namespace WPF_LoginForm.ViewModels
         public ICommand ConfigureCategoriesCommand { get; }
         public ICommand TogglePageCommand { get; }
 
+        // NEW COMMAND: Daily Timeline
+        public ICommand OpenDailyTimelineCommand { get; }
+
         public ErrorManagementViewModel(IDataRepository repository)
         {
             _repository = repository;
@@ -205,6 +208,9 @@ namespace WPF_LoginForm.ViewModels
             MoveDateCommand = new ViewModelCommand(ExecuteMoveDate);
             ConfigureCategoriesCommand = new ViewModelCommand(ExecuteConfigureCategories);
             TogglePageCommand = new ViewModelCommand(p => IsSecondPageActive = !IsSecondPageActive);
+
+            // Hook up new command
+            OpenDailyTimelineCommand = new ViewModelCommand(ExecuteOpenDailyTimeline);
 
             UpdateFormatterLogic();
             InitializeAsync();
@@ -443,6 +449,21 @@ namespace WPF_LoginForm.ViewModels
                     win.ShowDialog();
                 });
             }
+        }
+
+        // NEW METHOD: Opens the Daily Timeline Window
+        private void ExecuteOpenDailyTimeline(object obj)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                // Pass the Repository, Selected Table, and the currently selected EndDate (as target date)
+                var win = new WPF_LoginForm.Views.DailyTimelineWindow(_repository, SelectedTable, EndDate);
+                if (Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
+                {
+                    win.Owner = Application.Current.MainWindow;
+                }
+                win.Show();
+            });
         }
 
         private async Task UpdateDateRangeFromDbAsync()
