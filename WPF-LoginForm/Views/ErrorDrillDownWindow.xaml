@@ -1,5 +1,4 @@
-﻿<!-- Views/ErrorDrillDownWindow.xaml -->
-<Window x:Class="WPF_LoginForm.Views.ErrorDrillDownWindow"
+﻿<Window x:Class="WPF_LoginForm.Views.ErrorDrillDownWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -9,7 +8,7 @@
         xmlns:local="clr-namespace:WPF_LoginForm.ViewModels"
         mc:Ignorable="d"
         Title="{Binding WindowTitle}"
-        Height="700" Width="1100"
+        Height="780" Width="1100"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource Theme.Background}">
 
@@ -19,7 +18,6 @@
 
     <Window.Resources>
         <ResourceDictionary>
-            <!-- 1. TITLE BAR BUTTON STYLE -->
             <Style x:Key="TitleBarButtonStyle" TargetType="Button">
                 <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
                 <Setter Property="Background" Value="Transparent" />
@@ -42,30 +40,6 @@
                 </Setter>
             </Style>
 
-            <!-- 2. GENERAL ACTION BUTTON STYLE (Apply/Add) -->
-            <Style TargetType="Button">
-                <Setter Property="Background" Value="{DynamicResource Theme.Accent}" />
-                <Setter Property="Foreground" Value="White" />
-                <Setter Property="Padding" Value="18,8" />
-                <Setter Property="FontWeight" Value="SemiBold" />
-                <Setter Property="Cursor" Value="Hand" />
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}" CornerRadius="4">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
-                            </Border>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-                <Style.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True">
-                        <Setter Property="Opacity" Value="0.9" />
-                    </Trigger>
-                </Style.Triggers>
-            </Style>
-
-            <!-- 3. CHIP STYLE -->
             <Style x:Key="FilterChipStyle" TargetType="Border">
                 <Setter Property="Background" Value="{DynamicResource Theme.Accent}" />
                 <Setter Property="CornerRadius" Value="4" />
@@ -73,7 +47,33 @@
                 <Setter Property="Margin" Value="0,0,10,0" />
             </Style>
 
-            <!-- 4. REDESIGNED FOOTER CLOSE BUTTON -->
+            <Style x:Key="SearchTextBoxStyle" TargetType="TextBox">
+                <Setter Property="Height" Value="32" />
+                <Setter Property="Padding" Value="8,0" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Background" Value="{DynamicResource Theme.Combo.Background}" />
+                <Setter Property="Foreground" Value="{DynamicResource Theme.Combo.Foreground}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="BorderBrush" Value="Gray" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+                                <Grid>
+                                    <ScrollViewer x:Name="PART_ContentHost" Margin="5,0,0,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="Search..." Foreground="Gray" Margin="10,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed" x:Name="PlaceholderText" />
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Text.Length, RelativeSource={RelativeSource Self}}" Value="0">
+                                    <Setter TargetName="PlaceholderText" Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <Style x:Key="FooterCloseButtonStyle" TargetType="Button">
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Primary}" />
@@ -85,10 +85,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="4">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="35,10" />
                             </Border>
                         </ControlTemplate>
@@ -113,25 +110,21 @@
             <RowDefinition Height="Auto" />
             <!-- Active Chips -->
             <RowDefinition Height="Auto" />
-            <!-- Selector -->
+            <!-- Dual Filter Selectors -->
             <RowDefinition Height="*" />
             <!-- Data Grid -->
             <RowDefinition Height="Auto" />
             <!-- Footer -->
         </Grid.RowDefinitions>
 
-        <!-- ROW 0: TITLE BAR (Custom) -->
+        <!-- ROW 0: TITLE BAR -->
         <Border Grid.Row="0" Background="{DynamicResource Theme.TitleBar}">
             <Grid>
-                <TextBlock Text="{Binding WindowTitle}" Foreground="White"
-                           VerticalAlignment="Center" Margin="15,0" FontSize="11" FontWeight="SemiBold" Opacity="0.8" />
-
+                <TextBlock Text="{Binding WindowTitle}" Foreground="White" VerticalAlignment="Center" Margin="15,0" FontSize="11" FontWeight="SemiBold" Opacity="0.8" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <!-- Theme Toggle Button -->
                     <Button Click="ThemeToggle_Click" Background="Transparent" BorderThickness="0" Width="40" WindowChrome.IsHitTestVisibleInChrome="True">
                         <fa:IconImage Icon="Adjust" Foreground="White" Width="14" Height="14" />
                     </Button>
-
                     <Button Style="{StaticResource TitleBarButtonStyle}" Click="MinimizeButton_Click">
                         <TextBlock Text="—" VerticalAlignment="Center" />
                     </Button>
@@ -143,7 +136,7 @@
         </Border>
 
         <!-- ROW 1: HEADER & STATS -->
-        <Border Grid.Row="1" Background="{DynamicResource Theme.Panel}" Padding="25,20">
+        <Border Grid.Row="1" Background="{DynamicResource Theme.Panel}" Padding="25,15">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -162,7 +155,6 @@
                             <TextBlock Text="{Binding RecordCount}" Foreground="{DynamicResource Theme.Text.Primary}" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
                         </StackPanel>
                     </Border>
-                    <!-- Duration Box stays high contrast Red -->
                     <Border Background="#C0392B" CornerRadius="4" Padding="20,10">
                         <StackPanel>
                             <TextBlock Text="{x:Static p:Resources.Drill_TotalDuration}" Foreground="#FADBD8" FontSize="11" FontWeight="Bold" />
@@ -174,7 +166,7 @@
         </Border>
 
         <!-- ROW 2: ACTIVE FILTERS (Chips) -->
-        <ItemsControl Grid.Row="2" ItemsSource="{Binding ActiveFilters}" Margin="25,15,25,5">
+        <ItemsControl Grid.Row="2" ItemsSource="{Binding ActiveFilters}" Margin="25,10,25,0">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <WrapPanel Orientation="Horizontal" />
@@ -186,7 +178,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding Label}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" FontSize="13" />
                             <Button Command="{Binding DataContext.RemoveFilterChipCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CommandParameter="{Binding}" Margin="10,0,0,0" Background="Transparent" BorderThickness="0">
+                                    CommandParameter="{Binding}" Margin="10,0,0,0" Background="Transparent" BorderThickness="0" Cursor="Hand">
                                 <TextBlock Text="✕" Foreground="White" FontSize="12" />
                             </Button>
                         </StackPanel>
@@ -195,30 +187,119 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <!-- ROW 3: SELECTOR -->
-        <Border Grid.Row="3" Padding="25,10,25,15">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{x:Static p:Resources.Col_Machine}" Foreground="{DynamicResource Theme.Text.Primary}"
-                           VerticalAlignment="Center" Margin="0,0,15,0" FontSize="15" FontWeight="SemiBold" />
+        <!-- ROW 3: DUAL LIST SELECTOR (Expandable) -->
+        <Grid Grid.Row="3" Margin="25,10,25,10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-                <ComboBox Width="200" Height="38"
-                          ItemsSource="{Binding MachineFilterList}"
-                          IsEditable="True" IsReadOnly="True"
-                          Text="{x:Static p:Resources.PleaseSelect}"
-                          Background="{DynamicResource Theme.Combo.Background}"
-                          Foreground="{DynamicResource Theme.Combo.Foreground}">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <CheckBox Content="{Binding Name}" IsChecked="{Binding IsChecked}" Margin="5" FontSize="15" />
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="2*" />
+                </Grid.ColumnDefinitions>
 
-                <Button Content="{x:Static p:Resources.Add}" Command="{Binding ApplyFilterCommand}" Margin="15,0,0,0" Height="38" />
-            </StackPanel>
-        </Border>
+                <!-- LEFT: Machine Filter -->
+                <Border Grid.Column="0" Background="{DynamicResource Theme.Panel}" CornerRadius="6" Padding="10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-        <!-- ROW 4: DATA GRID (20% Size Increase & Theme Support) -->
+                        <TextBlock Grid.Row="0" Text="Machines" Foreground="{DynamicResource Theme.Text.Primary}" FontWeight="Bold" Margin="0,0,0,8" />
+                        <TextBox Grid.Row="1" Text="{Binding MachineSearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SearchTextBoxStyle}" Margin="0,0,0,8" />
+
+                        <!-- Dynamic Height ScrollViewer -->
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer">
+                                    <!-- Compact Mode default height -->
+                                    <Setter Property="Height" Value="60" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFiltersExpanded}" Value="True">
+                                            <!-- Expanded Mode height -->
+                                            <Setter Property="Height" Value="170" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Style>
+
+                            <ItemsControl ItemsSource="{Binding FilteredMachineList}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding Name}"
+                                                  IsChecked="{Binding IsChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  Margin="0,4" Foreground="{DynamicResource Theme.Text.Primary}" FontSize="13" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+
+                <!-- RIGHT: Reason Filter -->
+                <Border Grid.Column="2" Background="{DynamicResource Theme.Panel}" CornerRadius="6" Padding="10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="Error Categories" Foreground="{DynamicResource Theme.Text.Primary}" FontWeight="Bold" Margin="0,0,0,8" />
+                        <TextBox Grid.Row="1" Text="{Binding ReasonSearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SearchTextBoxStyle}" Margin="0,0,0,8" />
+
+                        <!-- Dynamic Height ScrollViewer -->
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer">
+                                    <!-- Compact Mode default height -->
+                                    <Setter Property="Height" Value="60" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFiltersExpanded}" Value="True">
+                                            <!-- Expanded Mode height -->
+                                            <Setter Property="Height" Value="170" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Style>
+
+                            <ItemsControl ItemsSource="{Binding FilteredReasonList}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding Name}"
+                                                  IsChecked="{Binding IsChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  Margin="0,4" Foreground="{DynamicResource Theme.Text.Primary}" FontSize="13" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Expand/Collapse Toggle Button -->
+            <ToggleButton Grid.Row="1" HorizontalAlignment="Center" Margin="0,5,0,0"
+                          IsChecked="{Binding IsFiltersExpanded, Mode=TwoWay}"
+                          Background="Transparent" BorderThickness="0" Foreground="{DynamicResource Theme.Accent}" Cursor="Hand" FontWeight="Bold">
+                <ToggleButton.Style>
+                    <Style TargetType="ToggleButton">
+                        <Setter Property="Content" Value="▼ Expand Filters" />
+                        <Style.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Content" Value="▲ Collapse Filters" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ToggleButton.Style>
+            </ToggleButton>
+        </Grid>
+
+        <!-- ROW 4: DATA GRID -->
         <DataGrid Grid.Row="4"
                   ItemsSource="{Binding DisplayedItems}"
                   AutoGenerateColumns="False"
@@ -229,8 +310,8 @@
                   GridLinesVisibility="Horizontal"
                   HorizontalGridLinesBrush="{DynamicResource Theme.Grid.Lines}"
                   VerticalGridLinesBrush="Transparent"
-                  RowHeight="45"
-                  FontSize="15"
+                  RowHeight="40"
+                  FontSize="14"
                   Background="Transparent"
                   BorderThickness="0"
                   Margin="25,0,25,10">
@@ -241,7 +322,7 @@
                     <Setter Property="Foreground" Value="{DynamicResource Theme.Accent}" />
                     <Setter Property="Padding" Value="12,12" />
                     <Setter Property="FontWeight" Value="Bold" />
-                    <Setter Property="FontSize" Value="14" />
+                    <Setter Property="FontSize" Value="13" />
                     <Setter Property="BorderThickness" Value="0,0,0,2" />
                     <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
                 </Style>
@@ -266,17 +347,10 @@
             </DataGrid.RowStyle>
 
             <DataGrid.Columns>
-                <DataGridTextColumn Header="{x:Static p:Resources.Col_Date}" Binding="{Binding Date, StringFormat=dd.MM.yyyy}" Width="130" />
-                <DataGridTextColumn Header="{x:Static p:Resources.Col_Machine}" Binding="{Binding MachineDisplay}" Width="130" FontWeight="Bold" />
-                <DataGridTextColumn Header="{x:Static p:Resources.Col_Timeline}" Binding="{Binding TimeRange}" Width="180" />
-
-                <!-- FIX: SortMemberPath="DurationMinutes" added here -->
-                <DataGridTextColumn Header="{x:Static p:Resources.Col_Duration}"
-                                    Binding="{Binding DisplayDuration}"
-                                    SortMemberPath="DurationMinutes"
-                                    Width="110"
-                                    FontWeight="Bold" />
-
+                <DataGridTextColumn Header="{x:Static p:Resources.Col_Date}" Binding="{Binding Date, StringFormat=dd.MM.yyyy}" Width="110" />
+                <DataGridTextColumn Header="{x:Static p:Resources.Col_Machine}" Binding="{Binding MachineDisplay}" Width="110" FontWeight="Bold" />
+                <DataGridTextColumn Header="{x:Static p:Resources.Col_Timeline}" Binding="{Binding TimeRange}" Width="150" />
+                <DataGridTextColumn Header="{x:Static p:Resources.Col_Duration}" Binding="{Binding DisplayDuration}" SortMemberPath="DurationMinutes" Width="100" FontWeight="Bold" />
                 <DataGridTextColumn Header="{x:Static p:Resources.Col_Description}" Binding="{Binding ErrorDescription}" Width="*" />
             </DataGrid.Columns>
         </DataGrid>
@@ -284,11 +358,7 @@
         <!-- ROW 5: FOOTER -->
         <Border Grid.Row="5" Background="{DynamicResource Theme.Footer}" Padding="20">
             <Grid>
-                <!-- Redesigned CLOSE Button -->
-                <Button Content="{x:Static p:Resources.Cancel}"
-                        Style="{StaticResource FooterCloseButtonStyle}"
-                        Click="CloseButton_Click"
-                        HorizontalAlignment="Right" />
+                <Button Content="{x:Static p:Resources.Cancel}" Style="{StaticResource FooterCloseButtonStyle}" Click="CloseButton_Click" HorizontalAlignment="Right" />
             </Grid>
         </Border>
     </Grid>

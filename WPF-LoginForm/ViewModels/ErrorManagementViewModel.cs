@@ -265,7 +265,11 @@ namespace WPF_LoginForm.ViewModels
                 if (token.IsCancellationRequested || !IsActiveView) return;
                 _cachedRawData = rawData;
 
+                // 1. Dynamic list (responds to global toggle)
                 var filteredList = InputHelper.PreProcessData(rawData, IsMachine00Excluded);
+
+                // 2. Strict list (ALWAYS excludes MA-00) for Cards 1 & 2
+                var strictNoM00List = InputHelper.PreProcessData(rawData, true);
 
                 var reasonStats = InputHelper.GetTopReasons(filteredList, _mappingService, _activeRules, 5);
                 var reasonValues = new ChartValues<double>(reasonStats.Select(x => x.Value));
@@ -273,7 +277,9 @@ namespace WPF_LoginForm.ViewModels
                 var reasonFullNames = reasonStats.Select(x => x.Label).ToList();
                 var machineStats = InputHelper.GetMachineStats(filteredList);
 
-                var page2Stats = InputHelper.CalculatePage2Stats(rawData, filteredList, StartDate, EndDate, NumberFormatter, IsMachine00Excluded);
+                // 3. Pass both lists into the helper
+                var page2Stats = InputHelper.CalculatePage2Stats(rawData, filteredList, strictNoM00List, StartDate, EndDate, NumberFormatter, IsMachine00Excluded);
+
                 var shiftStats = InputHelper.GetShiftStats(rawData, filteredList);
                 var severityStats = InputHelper.GetSeverityStats(filteredList);
 
@@ -308,6 +314,7 @@ namespace WPF_LoginForm.ViewModels
                     MachineSeries = machineColl;
                     UpdateCategoryMachineChart();
 
+                    // UI Binding assignment
                     AvgNetStopPerDay = page2Stats.AvgNetStopPerDay;
                     AvgErrorPerDay = page2Stats.AvgErrorPerDay;
                     SavedMaintenanceTime = page2Stats.SavedMaintenanceTime;

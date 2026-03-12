@@ -1,5 +1,4 @@
-﻿// Services/InputHelper.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using WPF_LoginForm.Models;
@@ -99,15 +98,14 @@ namespace WPF_LoginForm.Services
                 .ToList();
         }
 
-        // FIX: Now requires both ALL Data and FILTERED Data to accurately calculate Working Hours across empty shifts
-        public static Page2Stats CalculatePage2Stats(List<ErrorEventModel> allData, List<ErrorEventModel> filteredErrors, DateTime start, DateTime end, Func<double, string> formatter, bool excludeBreaks)
+        // FIX: Added 'strictNoM00Errors' parameter so Cards 1 & 2 can remain completely static regarding MA-00
+        public static Page2Stats CalculatePage2Stats(List<ErrorEventModel> allData, List<ErrorEventModel> filteredErrors, List<ErrorEventModel> strictNoM00Errors, DateTime start, DateTime end, Func<double, string> formatter, bool excludeBreaks)
         {
             var stats = new Page2Stats();
 
-            // 1. Total Error Duration (Sum of filtered errors only)
+            // --- 1. DYNAMIC CALCULATIONS (Used for Pie Charts & Other UI) ---
             stats.TotalErrorDuration = filteredErrors.Sum(x => x.DurationMinutes);
 
-            // 2. Get Distinct Rows for column-based sums from ALL Data (To include shifts that had 0 errors)
             var distinctRows = allData.GroupBy(x => x.UniqueRowId).Select(g => g.First()).ToList();
 
             double totalSavedBreak = distinctRows.Sum(x => x.RowSavedTimeBreak);
@@ -115,7 +113,6 @@ namespace WPF_LoginForm.Services
             double rawStopDuration = distinctRows.Sum(x => x.RowTotalStopMinutes);
             double totalActualWork = distinctRows.Sum(x => x.RowActualWorkingMinutes);
 
-            // 3. Logic Correction: Determine "Stops" (Production Loss)
             if (excludeBreaks)
             {
                 double calculatedStops = stats.TotalErrorDuration - totalSavedBreak - totalSavedMaint;
@@ -126,39 +123,47 @@ namespace WPF_LoginForm.Services
                 stats.TotalStopDuration = rawStopDuration;
             }
 
-            // 4. Averages
-            // FIX: Dates are inclusive! (e.g. 21.02 to 22.02 is TWO days, not 1)
+            // --- 2. STRICT CALCULATIONS FOR CARDS 1 & 2 (Always Exclude MA-00) ---
+            double strictErrorDuration = strictNoM00Errors.Sum(x => x.DurationMinutes);
+            // Apply the net-stop formula (Duration - Saved) to the strict duration.
+            double strictCalculatedStops = strictErrorDuration - totalSavedBreak - totalSavedMaint;
+            double strictTotalStopDuration = strictCalculatedStops > 0 ? strictCalculatedStops : 0;
+
+            // --- 3. AVERAGES ---
             double totalDays = (end.Date - start.Date).TotalDays + 1;
             if (totalDays < 1) totalDays = 1;
 
-            double avgErr = stats.TotalErrorDuration / totalDays;
-            double avgNetStop = stats.TotalStopDuration / totalDays;
+            // Cards 1 & 2 (Strict)
+            double avgNetStop = strictTotalStopDuration / totalDays;
+            double avgErr = strictErrorDuration / totalDays;
+
+            // Cards 4 & 5 (Dynamic / All Data)
             double avgGrossStop = rawStopDuration / totalDays;
             double avgWork = totalActualWork / totalDays;
 
+            // Most Frequent Machine (Dynamic)
             var frequentMachine = filteredErrors.GroupBy(x => x.MachineCode)
                                       .Select(g => new { Machine = g.Key, Count = g.Count() })
                                       .OrderByDescending(x => x.Count)
                                       .FirstOrDefault();
 
-            // 5. Populate
-            stats.AvgNetStopPerDay = formatter(avgNetStop);
-            stats.AvgErrorPerDay = formatter(avgErr);
-            stats.SavedMaintenanceTime = formatter(totalSavedMaint);
-            stats.AvgWorkingPerDay = formatter(avgWork);
-            stats.AvgGrossStopPerDay = formatter(avgGrossStop);
+            // --- 4. POPULATE STATS ---
+            stats.AvgNetStopPerDay = formatter(avgNetStop);         // Card 1 (Strict)
+            stats.AvgErrorPerDay = formatter(avgErr);               // Card 2 (Strict)
+            stats.SavedMaintenanceTime = formatter(totalSavedMaint); // Card 3
+            stats.AvgWorkingPerDay = formatter(avgWork);            // Card 4
+            stats.AvgGrossStopPerDay = formatter(avgGrossStop);     // Card 5
 
             if (frequentMachine != null && frequentMachine.Count > 0)
-                stats.MostFrequentMachine = $"MA-{frequentMachine.Machine} ({frequentMachine.Count})";
+                stats.MostFrequentMachine = $"MA-{frequentMachine.Machine} ({frequentMachine.Count})"; // Card 6
             else
                 stats.MostFrequentMachine = "-";
 
-            stats.SavedNonCriticalTime = formatter(totalSavedBreak);
+            stats.SavedNonCriticalTime = formatter(totalSavedBreak); // Card 7
 
             return stats;
         }
 
-        // FIX: Now constructs Shift List from ALL data, then maps durations from FILTERED data
         public static List<ChartDataPoint> GetShiftStats(List<ErrorEventModel> allData, List<ErrorEventModel> filteredErrors)
         {
             var distinctDates = allData.Select(x => x.Date.Date).Distinct().Count();
