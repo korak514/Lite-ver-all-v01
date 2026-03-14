@@ -1,4 +1,5 @@
-﻿<UserControl x:Class="WPF_LoginForm.Views.ErrorManagementView"
+﻿<!-- Views/ErrorManagementView.xaml -->
+<UserControl x:Class="WPF_LoginForm.Views.ErrorManagementView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -151,7 +152,8 @@
                                 </lvc:Axis>
                             </lvc:CartesianChart.AxisX>
                             <lvc:CartesianChart.AxisY>
-                                <lvc:Axis LabelFormatter="{Binding NumberFormatter}" Foreground="White">
+                                <!-- <==== ADDED MaxValue Binding ====> -->
+                                <lvc:Axis LabelFormatter="{Binding NumberFormatter}" Foreground="White" MaxValue="{Binding ReasonAxisMax}">
                                     <lvc:Axis.Separator>
                                         <lvc:Separator Stroke="#303030" Step="{Binding ReasonAxisStep}" />
                                     </lvc:Axis.Separator>
@@ -249,14 +251,14 @@
                             <TextBlock Text="{x:Static p:Resources.AnalyticsP2_BarTitle}" Style="{StaticResource ChartTitleStyle}" />
                             <lvc:CartesianChart Series="{Binding SeveritySeries}" LegendLocation="Right" Margin="15,40,15,10">
                                 <lvc:CartesianChart.AxisX>
-                                    <lvc:Axis Labels="{Binding SeverityLabels}" ShowLabels="False">
+                                    <lvc:Axis Labels="{Binding SeverityLabels}" Foreground="#7A76DE">
                                         <lvc:Axis.Separator>
                                             <lvc:Separator Step="1" StrokeThickness="0" />
                                         </lvc:Axis.Separator>
                                     </lvc:Axis>
                                 </lvc:CartesianChart.AxisX>
                                 <lvc:CartesianChart.AxisY>
-                                    <lvc:Axis LabelFormatter="{Binding NumberFormatter}" Foreground="White">
+                                    <lvc:Axis LabelFormatter="{Binding NumberFormatter}" Foreground="White" MaxValue="{Binding SeverityAxisMax}">
                                         <lvc:Axis.Separator>
                                             <lvc:Separator Stroke="#303030" Step="{Binding SeverityAxisStep}" />
                                         </lvc:Axis.Separator>
@@ -366,9 +368,9 @@
 
                     <TextBlock Grid.Column="0" Text="{x:Static p:Resources.Ana_Title}" Foreground="#0078D7" FontSize="18" FontWeight="Bold" TextWrapping="Wrap" VerticalAlignment="Center" />
 
-                    <!-- NEW: StackPanel to hold both top right buttons -->
+                    <!-- StackPanel to hold both top right buttons -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <!-- NEW BUTTON: Daily Timeline -->
+                        <!-- BUTTON: Daily Timeline -->
                         <Button Command="{Binding OpenDailyTimelineCommand}" Width="35" Height="35" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Daily Timeline View" Margin="0,0,5,0">
                             <fa:ImageAwesome Icon="SunOutline" Foreground="#3498DB" Width="20" Height="20" />
                         </Button>

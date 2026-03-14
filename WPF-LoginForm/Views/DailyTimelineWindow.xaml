@@ -4,7 +4,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:fa="http://schemas.fontawesome.io/icons/"
         xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
-        Title="Daily Timeline" Height="720" Width="1150"
+        Title="Daily Timeline" Height="720" Width="1200"
         WindowStartupLocation="CenterOwner"
         Background="#09092B">
 
@@ -144,12 +144,37 @@
                 </StackPanel>
 
                 <!-- Data Action Buttons -->
-                <Button Content="⟲" Command="{Binding UndoCommand}" ToolTip="Undo Changes" Background="#7F8C8D" Foreground="White" FontWeight="Bold" Padding="10,8" Margin="0,0,5,0" BorderThickness="0" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4" />
+                <Button Content="⟲"
+        Command="{Binding UndoCommand}"
+        ToolTip="Undo Changes"
+        FontWeight="Bold"
+        Padding="10,8"
+        Margin="0,0,5,0"
+        BorderThickness="0"
+        Cursor="Hand" Width="30.43">
+
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="#7F8C8D" />
+                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="4">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <!-- This trigger keeps the background consistent even when disabled -->
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter TargetName="border" Property="Background" Value="#407F8C8D" />
+                                                <Setter Property="Foreground" Value="#80FFFFFF" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
                         </Style>
-                    </Button.Resources>
+                    </Button.Style>
                 </Button>
 
                 <Button Content="↻" Command="{Binding RefreshCommand}" ToolTip="Refresh from Database" Background="#F39C12" Foreground="White" FontWeight="Bold" Padding="10,8" Margin="0,0,5,0" BorderThickness="0" Cursor="Hand">
@@ -160,7 +185,8 @@
                     </Button.Resources>
                 </Button>
 
-                <Button Content="💾 Save" Command="{Binding SaveToDatabaseCommand}" Background="#2ECC71" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,15,0" BorderThickness="0" Cursor="Hand">
+                <!-- SAVE BUTTON UPDATED TO DARK BLUE -->
+                <Button Content="💾 Save" Command="{Binding SaveToDatabaseCommand}" Background="#003399" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,15,0" BorderThickness="0" Cursor="Hand">
                     <Button.Resources>
                         <Style TargetType="Border">
                             <Setter Property="CornerRadius" Value="4" />
@@ -185,6 +211,16 @@
                         </Style>
                     </Button.Resources>
                 </Button>
+
+                <!-- NEW ADD EVENT BUTTON -->
+                <Button Content="+ Add New" Command="{Binding AddNewEventCommand}" Background="#27AE60" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,5,0" BorderThickness="0" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                </Button>
+
                 <Button Content="Edit" Command="{Binding ToggleEditPanelCommand}" Background="#3498DB" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand">
                     <Button.Resources>
                         <Style TargetType="Border">
@@ -380,26 +416,34 @@
                                 </StackPanel>
                             </Grid>
 
-                            <TextBlock Text="Machine Code" Style="{StaticResource EditLabelStyle}" />
-                            <Grid Margin="0,0,0,5">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
+                            <!-- UPDATED MACHINE CODE SELECTOR -->
+                            <TextBlock Text="Machine Code Type" Style="{StaticResource EditLabelStyle}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                <RadioButton Content="Normal (Manual)" IsChecked="{Binding IsMachineTypeNormal, Mode=OneWay}" Foreground="LightGray" Margin="0,0,15,0" />
+                                <RadioButton Content="Extra (Configured)" IsChecked="{Binding IsMachineTypeExtra, Mode=TwoWay}" Foreground="LightGray" />
+                            </StackPanel>
 
-                                <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableMachineCodes}"
-                                          SelectedItem="{Binding SelectedBlock.OriginalEvent.MachineCode}"
-                                          Height="30" VerticalContentAlignment="Center" />
+                            <Grid Margin="0,0,0,15">
+                                <!-- EXTRA MODE: ComboBox + Gear -->
+                                <Grid Visibility="{Binding IsMachineTypeExtra, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableMachineCodes}"
+                                              SelectedItem="{Binding SelectedBlock.OriginalEvent.MachineCode}"
+                                              Height="30" VerticalContentAlignment="Center" />
 
-                                <Button Grid.Column="1" Command="{Binding ManageMachineCodesCommand}" Width="30" Height="30" Margin="5,0,0,0" Background="#333" BorderThickness="0" Cursor="Hand" ToolTip="Add New Machine Code">
-                                    <fa:ImageAwesome Icon="Gear" Height="14" Foreground="White" />
-                                </Button>
+                                    <Button Grid.Column="1" Command="{Binding ManageMachineCodesCommand}" Width="30" Height="30" Margin="5,0,0,0" Background="#333" BorderThickness="0" Cursor="Hand" ToolTip="Configure Extra Machine Codes">
+                                        <fa:ImageAwesome Icon="Gear" Height="14" Foreground="White" />
+                                    </Button>
+                                </Grid>
+
+                                <!-- NORMAL MODE: TextBox -->
+                                <TextBox Text="{Binding SelectedBlock.OriginalEvent.MachineCode, UpdateSourceTrigger=PropertyChanged}"
+                                         Visibility="{Binding IsMachineTypeExtra, Converter={StaticResource BoolToVis}, ConverterParameter=Inverse}"
+                                         Style="{StaticResource EditBoxStyle}" Margin="0" />
                             </Grid>
-
-                            <CheckBox Content="Enter code manually" IsChecked="{Binding IsManualMachineCodeEnabled}" Foreground="Gray" FontSize="11" Margin="0,0,0,5" />
-                            <TextBox Text="{Binding SelectedBlock.OriginalEvent.MachineCode}"
-                                     Visibility="{Binding IsManualMachineCodeEnabled, Converter={StaticResource BoolToVis}}"
-                                     Style="{StaticResource EditBoxStyle}" ToolTip="Manual Entry Override" />
 
                             <TextBlock Text="Description" Style="{StaticResource EditLabelStyle}" />
                             <TextBox Text="{Binding SelectedBlock.OriginalEvent.ErrorDescription, UpdateSourceTrigger=PropertyChanged}" Height="80" TextWrapping="Wrap" AcceptsReturn="True" Style="{StaticResource EditBoxStyle}" />

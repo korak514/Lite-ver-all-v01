@@ -1,4 +1,5 @@
-﻿using FontAwesome.Sharp;
+﻿// ViewModels/MainViewModel.cs
+using FontAwesome.Sharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -39,11 +40,8 @@ namespace WPF_LoginForm.ViewModels
         // --- Cached ViewModels ---
         private DashboardPortalViewModel _portalViewModel;
 
-        // FIX: Removed caching of HomeViewModel and ErrorViewModel to prevent LiveCharts memory leaks
         private HomeViewModel _homeViewModel;
-
         private ErrorManagementViewModel _errorViewModel;
-
         private CustomerViewModel _customerViewModel;
         private DatarepViewModel _datarepViewModel;
         private InventoryViewModel _inventoryViewModel;
@@ -168,7 +166,6 @@ namespace WPF_LoginForm.ViewModels
 
         private void OnOpenDashboardModule(string targetFileName)
         {
-            // FIX: Always safely destroy and recreate HomeViewModel to prevent LiveCharts Ghost Crashes
             if (_homeViewModel != null)
             {
                 _homeViewModel.Deactivate();
@@ -238,16 +235,33 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteShowErrorViewCommand(object obj)
         {
-            // FIX: Always safely destroy and recreate ErrorManagementViewModel to prevent LiveCharts Ghost Crashes
             if (_errorViewModel != null)
             {
                 _errorViewModel.Deactivate();
+                _errorViewModel.NavigateToDataReportRequested -= OnNavigateToDataReport;
             }
 
             _errorViewModel = new ErrorManagementViewModel(_dataRepository);
+
+            // --- NEW: Hook up event to handle navigation jumps ---
+            _errorViewModel.NavigateToDataReportRequested += OnNavigateToDataReport;
+
             CurrentChildView = _errorViewModel;
             Caption = "Error Analytics";
             Icon = IconChar.PieChart;
+        }
+
+        // --- NEW: The method that processes the jump to the Data Report ---
+        private void OnNavigateToDataReport(string tableName, DateTime start, DateTime end, string searchText)
+        {
+            // Switch current view to Datarep
+            ExecuteShowReportsViewCommand(null);
+
+            // Execute the filter injection in DatarepViewModel
+            if (_datarepViewModel != null)
+            {
+                _datarepViewModel.LoadTableWithFilter(tableName, start, end, searchText);
+            }
         }
 
         private void ExecuteReturnToLogin(object obj)

@@ -1,4 +1,5 @@
-﻿using System;
+﻿// ViewModels/ErrorDrillDownViewModel.cs
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -12,8 +13,8 @@ namespace WPF_LoginForm.ViewModels
     {
         private bool _isChecked;
         public string Name { get; set; }
-        public string Type { get; set; } // "Machine" or "Reason"
-        public Action OnCheckChanged { get; set; } // Callback to trigger filter immediately
+        public string Type { get; set; }
+        public Action OnCheckChanged { get; set; }
 
         public bool IsChecked
         {
@@ -22,7 +23,7 @@ namespace WPF_LoginForm.ViewModels
             {
                 if (SetProperty(ref _isChecked, value))
                 {
-                    OnCheckChanged?.Invoke(); // Fire immediately when property changes
+                    OnCheckChanged?.Invoke();
                 }
             }
         }
@@ -44,12 +45,11 @@ namespace WPF_LoginForm.ViewModels
 
         private readonly CategoryMappingService _mappingService;
         private readonly List<CategoryRule> _activeRules;
-        private bool _isUpdatingFilters = false; // Prevents recursive loops
+        private bool _isUpdatingFilters = false;
 
         private string _windowTitle;
         public string WindowTitle { get => _windowTitle; set => SetProperty(ref _windowTitle, value); }
 
-        // FIX: Properly encapsulated so the DataGrid updates instantly when the collection is swapped.
         private ObservableCollection<ErrorEventModel> _displayedItems;
 
         public ObservableCollection<ErrorEventModel> DisplayedItems
@@ -65,7 +65,7 @@ namespace WPF_LoginForm.ViewModels
 
         public ObservableCollection<CheckableItem> ReasonFilterList { get; set; }
 
-        // Filtered Lists (Bound to UI)
+        // Dynamic Filtered Lists bound to UI
         private ObservableCollection<CheckableItem> _filteredMachineList;
 
         public ObservableCollection<CheckableItem> FilteredMachineList { get => _filteredMachineList; set => SetProperty(ref _filteredMachineList, value); }
@@ -73,12 +73,9 @@ namespace WPF_LoginForm.ViewModels
         private ObservableCollection<CheckableItem> _filteredReasonList;
         public ObservableCollection<CheckableItem> FilteredReasonList { get => _filteredReasonList; set => SetProperty(ref _filteredReasonList, value); }
 
-        // UI State
         private bool _isFiltersExpanded = false;
-
         public bool IsFiltersExpanded { get => _isFiltersExpanded; set => SetProperty(ref _isFiltersExpanded, value); }
 
-        // Search Texts
         private string _machineSearchText;
 
         public string MachineSearchText
@@ -89,7 +86,7 @@ namespace WPF_LoginForm.ViewModels
                 if (SetProperty(ref _machineSearchText, value))
                 {
                     if (!string.IsNullOrWhiteSpace(value)) IsFiltersExpanded = true;
-                    FilterMachines();
+                    TriggerFilterUpdate(); // Re-evaluate lists dynamically on type
                 }
             }
         }
@@ -104,7 +101,7 @@ namespace WPF_LoginForm.ViewModels
                 if (SetProperty(ref _reasonSearchText, value))
                 {
                     if (!string.IsNullOrWhiteSpace(value)) IsFiltersExpanded = true;
-                    FilterReasons();
+                    TriggerFilterUpdate(); // Re-evaluate lists dynamically on type
                 }
             }
         }
@@ -113,6 +110,8 @@ namespace WPF_LoginForm.ViewModels
         public string TotalDurationText => GetTotalDuration();
 
         public ICommand RemoveFilterChipCommand { get; private set; }
+        public ICommand NavigateToDataCommand { get; private set; }
+        public Action<ErrorEventModel> OnNavigateRequested { get; set; }
 
         public ErrorDrillDownViewModel(IEnumerable<ErrorEventModel> items, string title, string initialFilter, List<string> excludedMachines, bool useClockFormat, bool excludeMachine00)
         {
@@ -132,7 +131,7 @@ namespace WPF_LoginForm.ViewModels
                 item.DisplayDuration = TimeFormatHelper.FormatDuration(item.DurationMinutes, _useClockFormat);
             }
 
-            // Populate Machines
+            // Create Master Machine List
             var uniqueMachines = _allItemsSource
                 .Select(x => x.MachineCode)
                 .Distinct()
@@ -143,7 +142,7 @@ namespace WPF_LoginForm.ViewModels
 
             MachineFilterList = new ObservableCollection<CheckableItem>(uniqueMachines);
 
-            // Populate Reasons (Categories)
+            // Create Master Reason List
             var uniqueReasons = _allItemsSource
                 .Where(x => !string.IsNullOrEmpty(x.ErrorDescription))
                 .Select(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules))
@@ -156,29 +155,16 @@ namespace WPF_LoginForm.ViewModels
 
             RemoveFilterChipCommand = new ViewModelCommand(ExecuteRemoveFilterChip);
 
+            NavigateToDataCommand = new ViewModelCommand((obj) =>
+            {
+                if (obj is ErrorEventModel ev)
+                {
+                    OnNavigateRequested?.Invoke(ev);
+                }
+            });
+
+            // This will automatically run TriggerFilterUpdate and populate the Dynamic Lists
             ApplyInitialFilter(initialFilter);
-
-            // Initialize filtered lists after initial filter is applied
-            FilteredMachineList = new ObservableCollection<CheckableItem>(MachineFilterList);
-            FilteredReasonList = new ObservableCollection<CheckableItem>(ReasonFilterList);
-        }
-
-        private void FilterMachines()
-        {
-            if (string.IsNullOrWhiteSpace(MachineSearchText))
-                FilteredMachineList = new ObservableCollection<CheckableItem>(MachineFilterList);
-            else
-                FilteredMachineList = new ObservableCollection<CheckableItem>(
-                    MachineFilterList.Where(m => m.Name.IndexOf(MachineSearchText, StringComparison.OrdinalIgnoreCase) >= 0));
-        }
-
-        private void FilterReasons()
-        {
-            if (string.IsNullOrWhiteSpace(ReasonSearchText))
-                FilteredReasonList = new ObservableCollection<CheckableItem>(ReasonFilterList);
-            else
-                FilteredReasonList = new ObservableCollection<CheckableItem>(
-                    ReasonFilterList.Where(r => r.Name.IndexOf(ReasonSearchText, StringComparison.OrdinalIgnoreCase) >= 0));
         }
 
         private void ApplyInitialFilter(string filterText)
@@ -210,22 +196,22 @@ namespace WPF_LoginForm.ViewModels
                         string machine = parts[1];
                         string category = parts[2];
 
-                        var mItem = MachineFilterList.FirstOrDefault(m => m.Name == machine);
+                        var mItem = MachineFilterList.FirstOrDefault(m => string.Equals(m.Name, machine, StringComparison.OrdinalIgnoreCase));
                         if (mItem != null) mItem.IsChecked = true;
 
-                        var rItem = ReasonFilterList.FirstOrDefault(r => r.Name == category);
+                        var rItem = ReasonFilterList.FirstOrDefault(r => string.Equals(r.Name, category, StringComparison.OrdinalIgnoreCase));
                         if (rItem != null) rItem.IsChecked = true;
                     }
                 }
                 else if (filterText.StartsWith("MA-"))
                 {
                     string rawMachine = filterText.Replace("MA-", "");
-                    var item = MachineFilterList.FirstOrDefault(m => m.Name == rawMachine);
+                    var item = MachineFilterList.FirstOrDefault(m => string.Equals(m.Name, rawMachine, StringComparison.OrdinalIgnoreCase));
                     if (item != null) item.IsChecked = true;
                 }
                 else
                 {
-                    var item = ReasonFilterList.FirstOrDefault(r => r.Name == filterText);
+                    var item = ReasonFilterList.FirstOrDefault(r => string.Equals(r.Name, filterText, StringComparison.OrdinalIgnoreCase));
                     if (item != null) item.IsChecked = true;
                 }
             }
@@ -234,7 +220,6 @@ namespace WPF_LoginForm.ViewModels
             TriggerFilterUpdate();
         }
 
-        // Rebuilds chips and data grid based on current checkbox states
         private void TriggerFilterUpdate()
         {
             if (_isUpdatingFilters) return;
@@ -276,34 +261,96 @@ namespace WPF_LoginForm.ViewModels
                     _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules).Equals(r, StringComparison.OrdinalIgnoreCase)));
             }
 
-            // Assigning this will now trigger the UI update thanks to the SetProperty fix!
             DisplayedItems = new ObservableCollection<ErrorEventModel>(query);
 
             OnPropertyChanged(nameof(RecordCount));
             OnPropertyChanged(nameof(TotalDurationText));
+
+            // NEW: Execute the Cascading logic to shrink lists
+            UpdateFilterListsAvailability(machineFilters, reasonFilters);
+        }
+
+        // --- NEW CASCADING FILTER LOGIC ---
+        private void UpdateFilterListsAvailability(List<string> activeMachines, List<string> activeReasons)
+        {
+            var baseQuery = _allItemsSource.AsEnumerable();
+            if (_excludeMachine00)
+            {
+                baseQuery = baseQuery.Where(x => x.MachineCode != "00" && x.MachineCode != "0" && x.MachineCode != "MA-00" && x.MachineCode != "MA-0");
+            }
+
+            // 1. Calculate which machines are available (ignoring active Machine filters, applying only Reason filters)
+            var availableMachinesQuery = baseQuery;
+            if (activeReasons.Any())
+            {
+                availableMachinesQuery = availableMachinesQuery.Where(x => activeReasons.Any(r =>
+                    !string.IsNullOrEmpty(x.ErrorDescription) &&
+                    _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules).Equals(r, StringComparison.OrdinalIgnoreCase)));
+            }
+            var validMachineNames = availableMachinesQuery.Select(x => x.MachineCode).Distinct().ToList();
+
+            // 2. Calculate which reasons are available (ignoring active Reason filters, applying only Machine filters)
+            var availableReasonsQuery = baseQuery;
+            if (activeMachines.Any())
+            {
+                availableReasonsQuery = availableReasonsQuery.Where(x => activeMachines.Contains(x.MachineCode));
+            }
+            var validReasonNames = availableReasonsQuery
+                .Where(x => !string.IsNullOrEmpty(x.ErrorDescription))
+                .Select(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules))
+                .Distinct()
+                .ToList();
+
+            // 3. Filter Master Lists (Always keep currently checked items visible)
+            var newMachineList = MachineFilterList
+                .Where(m => m.IsChecked || validMachineNames.Contains(m.Name))
+                .ToList();
+
+            var newReasonList = ReasonFilterList
+                .Where(r => r.IsChecked || validReasonNames.Contains(r.Name))
+                .ToList();
+
+            // 4. Apply Search Texts on top of the shrunken lists
+            if (!string.IsNullOrWhiteSpace(MachineSearchText))
+            {
+                newMachineList = newMachineList
+                    .Where(m => m.Name.IndexOf(MachineSearchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                    .ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(ReasonSearchText))
+            {
+                newReasonList = newReasonList
+                    .Where(r => r.Name.IndexOf(ReasonSearchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                    .ToList();
+            }
+
+            // 5. Update UI Collections
+            FilteredMachineList = new ObservableCollection<CheckableItem>(newMachineList);
+            FilteredReasonList = new ObservableCollection<CheckableItem>(newReasonList);
         }
 
         private void ExecuteRemoveFilterChip(object obj)
         {
             if (obj is FilterChip chip)
             {
-                _isUpdatingFilters = true; // Prevent recursive update while unchecking
+                _isUpdatingFilters = true;
 
                 ActiveFilters.Remove(chip);
 
                 if (chip.FilterType == "Machine")
                 {
-                    var item = MachineFilterList.FirstOrDefault(m => m.Name == chip.Value);
+                    var item = MachineFilterList.FirstOrDefault(m => string.Equals(m.Name, chip.Value, StringComparison.OrdinalIgnoreCase));
                     if (item != null) item.IsChecked = false;
                 }
                 else if (chip.FilterType == "Reason")
                 {
-                    var item = ReasonFilterList.FirstOrDefault(r => r.Name == chip.Value);
+                    var item = ReasonFilterList.FirstOrDefault(r => string.Equals(r.Name, chip.Value, StringComparison.OrdinalIgnoreCase));
                     if (item != null) item.IsChecked = false;
                 }
 
                 _isUpdatingFilters = false;
-                TriggerFilterUpdate(); // Rebuild cleanly
+                TriggerFilterUpdate();
             }
         }
 

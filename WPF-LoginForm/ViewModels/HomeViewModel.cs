@@ -1,4 +1,5 @@
-﻿using System;
+﻿// ViewModels/HomeViewModel.cs
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -304,9 +305,7 @@ namespace WPF_LoginForm.ViewModels
         private string _startSliderTooltip; public string StartSliderTooltip { get => _startSliderTooltip; set => SetProperty(ref _startSliderTooltip, value); }
         private string _endSliderTooltip; public string EndSliderTooltip { get => _endSliderTooltip; set => SetProperty(ref _endSliderTooltip, value); }
 
-        // FIX: Ensure Collections can be completely replaced instead of calling Clear()
         private SeriesCollection _chart1Series = new SeriesCollection(); public SeriesCollection Chart1Series { get => _chart1Series; set => SetProperty(ref _chart1Series, value); }
-
         private SeriesCollection _chart2Series = new SeriesCollection(); public SeriesCollection Chart2Series { get => _chart2Series; set => SetProperty(ref _chart2Series, value); }
         private SeriesCollection _chart3Series = new SeriesCollection(); public SeriesCollection Chart3Series { get => _chart3Series; set => SetProperty(ref _chart3Series, value); }
         private SeriesCollection _chart4Series = new SeriesCollection(); public SeriesCollection Chart4Series { get => _chart4Series; set => SetProperty(ref _chart4Series, value); }
@@ -383,7 +382,6 @@ namespace WPF_LoginForm.ViewModels
                 if (_dashboardConfigurations == null) return;
                 if (!_dashboardConfigurations.Any()) for (int i = 1; i <= 6; i++) _dashboardConfigurations.Add(new DashboardConfiguration { ChartPosition = i, IsEnabled = false });
 
-                // FIX: Force LiveCharts to detach completely by creating new objects on the UI thread
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     if (token.IsCancellationRequested || !_isActive) return;
@@ -532,7 +530,6 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        // UPDATED METHOD with dynamic bottom padding
         private void ApplyChartResultToUI(int position, DashboardChartService.ChartResultDto result)
         {
             var targetX = GetXAxes(position);
@@ -624,13 +621,11 @@ namespace WPF_LoginForm.ViewModels
                 {
                     if (s.Points != null && s.Points.Any())
                     {
-                        // Calculate Y Bounds
                         double sMin = s.Points.Min(p => p.Y);
                         double sMax = s.Points.Max(p => p.Y);
                         if (sMin < minVal) minVal = sMin;
                         if (sMax > maxVal) maxVal = sMax;
 
-                        // Calculate X Bounds
                         double sMinX = s.Points.Min(p => p.X);
                         double sMaxX = s.Points.Max(p => p.X);
                         if (sMinX < minX) minX = sMinX;
@@ -649,24 +644,37 @@ namespace WPF_LoginForm.ViewModels
 
                 if (hasValues)
                 {
-                    bool forceMinZero = result.Series.Any(x => x.SeriesType == "Column") && minVal >= 0;
+                    bool hasColumnSeries = result.Series.Any(x => x.SeriesType == "Column");
+                    bool forceMinZero = hasColumnSeries && minVal >= 0;
+
+                    // FIX: Ensures negative columns hang from the 0 line correctly
+                    bool forceMaxZero = hasColumnSeries && maxVal <= 0;
 
                     double dataRange = maxVal - minVal;
-                    if (dataRange == 0) dataRange = 1;
+                    // FIX: Safer fallback so range calculates cleanly even if all values are identical negative numbers
+                    if (dataRange == 0) dataRange = Math.Abs(minVal) > 0 ? Math.Abs(minVal) * 0.2 : 1;
 
                     double topBuffer = 0.25 * dataRange;
 
-                    // FIX: Massive bottom padding to accommodate S labels dynamically.
-                    // It uses whichever is larger: 45% of the data range, or 15% of the absolute minimum value.
-                    double bottomBuffer = forceMinZero ? 0 : Math.Max(0.45 * dataRange, minVal * 0.15);
+                    // FIX: Use Math.Abs(minVal) to guarantee padding applies beneath the lowest negative value
+                    double bottomBuffer = forceMinZero ? 0 : Math.Max(0.45 * dataRange, Math.Abs(minVal) * 0.15);
 
                     double desiredMin = forceMinZero ? 0 : minVal - bottomBuffer;
                     double desiredMax = maxVal + topBuffer;
 
-                    double range = desiredMax - desiredMin;
-                    double targetTicks = 6.0;
+                    // FIX: Clamp upper bound to 0 for negative column charts
+                    if (forceMaxZero && desiredMax < 0)
+                    {
+                        desiredMax = 0;
+                    }
 
+                    double range = desiredMax - desiredMin;
+                    if (range <= 0) range = 1; // Failsafe
+
+                    double targetTicks = 6.0;
                     double rawStep = range / targetTicks;
+                    if (rawStep <= 0) rawStep = 1; // Prevent Math.Log10(<=0) returning NaN
+
                     double mag = Math.Pow(10, Math.Floor(Math.Log10(rawStep)));
                     double relStep = rawStep / mag;
 
@@ -699,7 +707,6 @@ namespace WPF_LoginForm.ViewModels
                     xAxis.LabelFormatter = DateFormatter;
                     xAxis.Labels = null;
 
-                    // Extend X Axis to simulate "one more data point" on the right
                     if (hasValues && maxPointCount > 1 && maxX > minX)
                     {
                         double avgStep = (maxX - minX) / (maxPointCount - 1);
@@ -712,7 +719,6 @@ namespace WPF_LoginForm.ViewModels
                     xAxis.LabelFormatter = null;
                     xAxis.Labels = result.XAxisLabels;
 
-                    // Extend Categorical X Axis to the right
                     if (hasValues)
                     {
                         xAxis.MaxValue = maxX + 0.85;
@@ -843,7 +849,6 @@ namespace WPF_LoginForm.ViewModels
 
             AutoSave();
 
-            // Clear purely for visual cleanup
             Application.Current?.Dispatcher.Invoke(() =>
             {
                 Chart1Series = new SeriesCollection();
@@ -879,7 +884,6 @@ namespace WPF_LoginForm.ViewModels
             if (!IsFilterByDate) { SliderMaximum = 100; StartMonthSliderValue = 0; EndMonthSliderValue = 100; UpdateTooltips(); return; }
             if (_minSliderDate == default) return;
 
-            // Bypass the setter to prevent loops during init
             if (_startDate != DateTime.MinValue && _startDate < _minSliderDate) _minSliderDate = _startDate;
             if (_endDate != DateTime.MinValue && _endDate > _maxSliderDate) _maxSliderDate = _endDate;
             if (_startDate == DateTime.MinValue) _startDate = _minSliderDate;
@@ -939,7 +943,7 @@ namespace WPF_LoginForm.ViewModels
             _startDate = new DateTime(s.Year, s.Month, 1);
             _endDate = new DateTime(e.Year, e.Month, DateTime.DaysInMonth(e.Year, e.Month));
 
-            if (_endDate < _startDate) _endDate = _startDate; // Extra safeguard
+            if (_endDate < _startDate) _endDate = _startDate;
 
             OnPropertyChanged(nameof(StartDate));
             OnPropertyChanged(nameof(EndDate));

@@ -6,6 +6,7 @@ using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -111,14 +112,7 @@ namespace WPF_LoginForm.ViewModels
         public DateTime TargetDate
         {
             get => _targetDate;
-            set
-            {
-                if (SetProperty(ref _targetDate, value))
-                {
-                    UpdateHeaderStrings();
-                    _ = LoadDataAsync();
-                }
-            }
+            set { if (SetProperty(ref _targetDate, value)) { UpdateHeaderStrings(); _ = LoadDataAsync(); } }
         }
 
         // Shift State
@@ -169,11 +163,6 @@ namespace WPF_LoginForm.ViewModels
         public ObservableCollection<FavoriteEvent> FavoriteEvents { get; } = new ObservableCollection<FavoriteEvent>();
 
         public ObservableCollection<string> AvailableMachineCodes { get; } = new ObservableCollection<string>();
-        private bool _isManualMachineCodeEnabled;
-        public bool IsManualMachineCodeEnabled { get => _isManualMachineCodeEnabled; set => SetProperty(ref _isManualMachineCodeEnabled, value); }
-
-        public ObservableCollection<TimelineBlockModel> TimelineBlocks { get; } = new ObservableCollection<TimelineBlockModel>();
-        public ObservableCollection<HourMarker> HourMarkers { get; } = new ObservableCollection<HourMarker>();
 
         // Edit Panel Properties
         private bool _isEditPanelVisible;
@@ -194,6 +183,30 @@ namespace WPF_LoginForm.ViewModels
                 }
             }
         }
+
+        // NEW: Machine Code Grouping State
+        private bool _isMachineTypeExtra;
+
+        public bool IsMachineTypeExtra
+        {
+            get => _isMachineTypeExtra;
+            set
+            {
+                if (SetProperty(ref _isMachineTypeExtra, value))
+                {
+                    OnPropertyChanged(nameof(IsMachineTypeNormal));
+
+                    // If toggled to Extra and the current code isn't in the list, set to default
+                    if (value && SelectedBlock?.OriginalEvent != null && !AvailableMachineCodes.Contains(SelectedBlock.OriginalEvent.MachineCode))
+                    {
+                        SelectedBlock.OriginalEvent.MachineCode = AvailableMachineCodes.FirstOrDefault() ?? "00";
+                        OnPropertyChanged(nameof(SelectedBlock));
+                    }
+                }
+            }
+        }
+
+        public bool IsMachineTypeNormal => !_isMachineTypeExtra;
 
         private bool _useEndTimeMode;
         public bool UseEndTimeMode { get => _useEndTimeMode; set => SetProperty(ref _useEndTimeMode, value); }
@@ -222,9 +235,13 @@ namespace WPF_LoginForm.ViewModels
             set { if (SetProperty(ref _editDuration, value)) { if (!UseEndTimeMode) CalculateTime(); } }
         }
 
+        public ObservableCollection<TimelineBlockModel> TimelineBlocks { get; } = new ObservableCollection<TimelineBlockModel>();
+        public ObservableCollection<HourMarker> HourMarkers { get; } = new ObservableCollection<HourMarker>();
+
         // Commands
         public ICommand ToggleEditPanelCommand { get; }
 
+        public ICommand AddNewEventCommand { get; } // NEW
         public ICommand ToggleFavoritesCommand { get; }
         public ICommand BlockClickCommand { get; }
         public ICommand NextDayCommand { get; }
@@ -234,9 +251,7 @@ namespace WPF_LoginForm.ViewModels
         public ICommand SaveAsFavoriteCommand { get; }
         public ICommand RemoveFavoriteCommand { get; }
 
-        // Data Commands
         public ICommand ApplyToTimelineCommand { get; }
-
         public ICommand DeleteEventCommand { get; }
         public ICommand SaveToDatabaseCommand { get; }
         public ICommand UndoCommand { get; }
@@ -245,14 +260,15 @@ namespace WPF_LoginForm.ViewModels
         public DailyTimelineViewModel(IDataRepository repository, string tableName, DateTime targetDate)
         {
             _repository = repository;
-            _dialogService = new DialogService();
             _tableName = tableName;
             _targetDate = targetDate.Date;
             _isNightShift = false;
+            _dialogService = new DialogService();
 
             _configFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WPF_LoginForm", "timeline_config.json");
 
             ToggleEditPanelCommand = new ViewModelCommand(p => IsEditPanelVisible = !IsEditPanelVisible);
+            AddNewEventCommand = new ViewModelCommand(p => ExecuteAddNewEvent());
             ToggleFavoritesCommand = new ViewModelCommand(p => IsFavoritesVisible = !IsFavoritesVisible);
             BlockClickCommand = new ViewModelCommand(ExecuteBlockClick);
             NextDayCommand = new ViewModelCommand(p => TargetDate = TargetDate.AddDays(1));
@@ -311,7 +327,7 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteManageMachineCodes()
         {
-            if (_dialogService.ShowInputDialog("Add Machine Code", "Enter a new machine code:", "", out string newCode))
+            if (_dialogService.ShowInputDialog("Add Machine Code", "Enter a new EXTRAS machine code:", "", out string newCode))
             {
                 string cleanCode = newCode.Trim().ToUpper();
                 if (!string.IsNullOrWhiteSpace(cleanCode) && !AvailableMachineCodes.Contains(cleanCode))
@@ -327,12 +343,26 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
+        private void ExecuteAddNewEvent()
+        {
+            // By passing 0, 0, it creates the event exactly at the start of the shift
+            HandleDropOrClickAdd(null, 40, 30); // Uses canvas padding coordinates
+        }
+
         public void HandleDropOrClickAdd(FavoriteEvent fav, double dropPixelX, double dropPixelY)
         {
             if (CalculatedCanvasWidth <= 0) return;
 
-            double startMin = (dropPixelX / CalculatedCanvasWidth) * 720.0;
-            if (startMin < 0) startMin = 0;
+            // Offset by padding so dropping aligns mathematically
+            double padding = 40.0;
+            double usableWidth = CalculatedCanvasWidth - (padding * 2);
+            if (usableWidth <= 0) usableWidth = 100;
+
+            double relativeX = dropPixelX - padding;
+            if (relativeX < 0) relativeX = 0;
+            if (relativeX > usableWidth) relativeX = usableWidth;
+
+            double startMin = (relativeX / usableWidth) * 720.0;
 
             int lane = (int)((dropPixelY - 30) / 80.0);
             if (lane < 0) lane = 0; if (lane > 5) lane = 5;
@@ -363,7 +393,6 @@ namespace WPF_LoginForm.ViewModels
             SyncEditFields();
             IsEditPanelVisible = true;
 
-            // Instantly apply to visual memory so user sees it
             ExecuteApplyToTimeline();
         }
 
@@ -371,7 +400,7 @@ namespace WPF_LoginForm.ViewModels
         {
             if (obj is FavoriteEvent fav)
             {
-                HandleDropOrClickAdd(fav, 0, 0); // Drop at 08:00 or 20:00 (Lane 0)
+                HandleDropOrClickAdd(fav, 40, 30);
             }
         }
 
@@ -423,10 +452,8 @@ namespace WPF_LoginForm.ViewModels
             CalculateTime();
             SelectedBlock.RefreshUI();
 
-            // Find an empty error column to save into
             if (SelectedBlock.SourceRow == null || string.IsNullOrEmpty(SelectedBlock.SourceColumn))
             {
-                // Assign to current day's row
                 var dateCol = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.ToLower().Contains("date") || c.ColumnName.ToLower().Contains("tarih"));
                 DataRow targetRow = null;
 
@@ -447,7 +474,6 @@ namespace WPF_LoginForm.ViewModels
 
                 SelectedBlock.SourceRow = targetRow;
 
-                // Find first empty error column
                 foreach (string col in _errorColumns)
                 {
                     if (targetRow[col] == DBNull.Value || string.IsNullOrWhiteSpace(targetRow[col].ToString()))
@@ -459,11 +485,10 @@ namespace WPF_LoginForm.ViewModels
 
                 if (string.IsNullOrEmpty(SelectedBlock.SourceColumn) && _errorColumns.Any())
                 {
-                    SelectedBlock.SourceColumn = _errorColumns.Last(); // Overwrite last if full
+                    SelectedBlock.SourceColumn = _errorColumns.Last();
                 }
             }
 
-            // Update underlying DataTable
             if (SelectedBlock.SourceRow != null && !string.IsNullOrEmpty(SelectedBlock.SourceColumn))
             {
                 SelectedBlock.SourceRow[SelectedBlock.SourceColumn] = GenerateDbString(SelectedBlock);
@@ -527,9 +552,21 @@ namespace WPF_LoginForm.ViewModels
         private void SyncEditFields()
         {
             if (SelectedBlock?.OriginalEvent == null) return;
+
             _editStartTime = SelectedBlock.OriginalEvent.StartTime;
             _editEndTime = SelectedBlock.OriginalEvent.EndTime;
             _editDuration = SelectedBlock.OriginalEvent.DurationMinutes;
+
+            // Determine if the code belongs to Extra or Normal
+            if (AvailableMachineCodes.Contains(SelectedBlock.OriginalEvent.MachineCode))
+            {
+                IsMachineTypeExtra = true;
+            }
+            else
+            {
+                IsMachineTypeExtra = false;
+            }
+
             OnPropertyChanged(nameof(EditStartTime)); OnPropertyChanged(nameof(EditEndTime)); OnPropertyChanged(nameof(EditDuration));
         }
 
@@ -591,7 +628,6 @@ namespace WPF_LoginForm.ViewModels
         {
             if (string.IsNullOrEmpty(_tableName)) return;
 
-            // Load DataTable for memory editing
             var result = await _repository.GetTableDataAsync(_tableName, 0);
             if (result.Data != null)
             {
@@ -625,7 +661,6 @@ namespace WPF_LoginForm.ViewModels
                 DateTime rDate = dateCol != null && row[dateCol] != DBNull.Value ? Convert.ToDateTime(row[dateCol]) : DateTime.MinValue;
                 string rShift = shiftCol != null && row[shiftCol] != DBNull.Value ? row[shiftCol].ToString() : "";
 
-                // Look at TargetDate +/- 1 day to catch overlap
                 if (rDate.Date >= TargetDate.AddDays(-1) && rDate.Date <= TargetDate.AddDays(1))
                 {
                     foreach (var eCol in _errorColumns)
@@ -707,17 +742,22 @@ namespace WPF_LoginForm.ViewModels
 
             CalculatedCanvasWidth = _lastViewportWidth * (12.0 / TimeWindowHours);
 
+            // PADDING CALCULATION SO ENDS AREN'T CUT OFF
+            double padding = 40.0;
+            double usableWidth = CalculatedCanvasWidth - (padding * 2);
+            if (usableWidth <= 0) usableWidth = 100;
+
             for (int i = 0; i < HourMarkers.Count; i++)
             {
-                HourMarkers[i].PixelX = (i / 12.0) * CalculatedCanvasWidth;
+                HourMarkers[i].PixelX = padding + (i / 12.0) * usableWidth;
             }
 
             double laneHeight = 80.0;
             foreach (var block in TimelineBlocks)
             {
                 block.UpdateZoom(TimeWindowHours);
-                block.PixelX = (block.StartMinuteInShift / 720.0) * CalculatedCanvasWidth;
-                double w = (block.DurationMinutes / 720.0) * CalculatedCanvasWidth;
+                block.PixelX = padding + (block.StartMinuteInShift / 720.0) * usableWidth;
+                double w = (block.DurationMinutes / 720.0) * usableWidth;
                 block.PixelWidth = Math.Max(w, 5.0);
                 block.PixelY = block.LaneIndex * laneHeight + 35;
             }

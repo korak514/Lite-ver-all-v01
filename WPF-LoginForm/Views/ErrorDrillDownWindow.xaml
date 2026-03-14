@@ -1,4 +1,5 @@
-﻿<Window x:Class="WPF_LoginForm.Views.ErrorDrillDownWindow"
+﻿<!-- Views/ErrorDrillDownWindow.xaml -->
+<Window x:Class="WPF_LoginForm.Views.ErrorDrillDownWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -104,17 +105,11 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="30" />
-            <!-- TitleBar -->
             <RowDefinition Height="Auto" />
-            <!-- Header/Stats -->
             <RowDefinition Height="Auto" />
-            <!-- Active Chips -->
             <RowDefinition Height="Auto" />
-            <!-- Dual Filter Selectors -->
             <RowDefinition Height="*" />
-            <!-- Data Grid -->
             <RowDefinition Height="Auto" />
-            <!-- Footer -->
         </Grid.RowDefinitions>
 
         <!-- ROW 0: TITLE BAR -->
@@ -217,11 +212,9 @@
                         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
-                                    <!-- Compact Mode default height -->
                                     <Setter Property="Height" Value="60" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsFiltersExpanded}" Value="True">
-                                            <!-- Expanded Mode height -->
                                             <Setter Property="Height" Value="170" />
                                         </DataTrigger>
                                     </Style.Triggers>
@@ -257,11 +250,9 @@
                         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
-                                    <!-- Compact Mode default height -->
                                     <Setter Property="Height" Value="60" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsFiltersExpanded}" Value="True">
-                                            <!-- Expanded Mode height -->
                                             <Setter Property="Height" Value="170" />
                                         </DataTrigger>
                                     </Style.Triggers>
@@ -351,7 +342,33 @@
                 <DataGridTextColumn Header="{x:Static p:Resources.Col_Machine}" Binding="{Binding MachineDisplay}" Width="110" FontWeight="Bold" />
                 <DataGridTextColumn Header="{x:Static p:Resources.Col_Timeline}" Binding="{Binding TimeRange}" Width="150" />
                 <DataGridTextColumn Header="{x:Static p:Resources.Col_Duration}" Binding="{Binding DisplayDuration}" SortMemberPath="DurationMinutes" Width="100" FontWeight="Bold" />
-                <DataGridTextColumn Header="{x:Static p:Resources.Col_Description}" Binding="{Binding ErrorDescription}" Width="*" />
+
+                <!-- MODIFIED: Description column now features a Hover-Activated Arrow button -->
+                <DataGridTemplateColumn Header="{x:Static p:Resources.Col_Description}" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Grid Background="Transparent">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding ErrorDescription}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,10,0" />
+                                <Button Grid.Column="1" x:Name="NavButton"
+                                        Command="{Binding DataContext.NavigateToDataCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                        Visibility="Hidden" Padding="15,0" ToolTip="Find in Data Report">
+                                    <fa:IconImage Icon="ArrowRight" Height="14" Foreground="{DynamicResource Theme.Accent}" />
+                                </Button>
+                            </Grid>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+                                    <Setter TargetName="NavButton" Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
 

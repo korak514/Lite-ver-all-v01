@@ -55,9 +55,12 @@ namespace WPF_LoginForm.ViewModels
         public bool IsAdmin => UserSessionService.IsAdmin;
         public bool IsBusy { get => _isBusy; private set => SetProperty(ref _isBusy, value); }
         public bool IsProgressBarVisible => _isBusy;
+
         public string ErrorMessage
         { get => _errorMessage; private set { if (SetProperty(ref _errorMessage, value)) OnPropertyChanged(nameof(HasError)); } }
+
         public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+
         public bool IsDirty
         { get => _isDirty; private set { if (SetProperty(ref _isDirty, value)) (SaveChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); } }
 
@@ -71,7 +74,6 @@ namespace WPF_LoginForm.ViewModels
                     _cts?.Cancel();
                     EditableRows.Clear();
                     UnsubscribeFromTableEvents();
-                    // Trigger load asynchronously
                     _ = LoadDataForSelectedTableAsync();
                 }
             }
@@ -96,8 +98,10 @@ namespace WPF_LoginForm.ViewModels
 
         public string SearchText
         { get => _searchText; set { if (SetProperty(ref _searchText, value)) ApplyCombinedFiltersAsync(); } }
+
         public string SelectedSearchColumn
         { get => _selectedSearchColumn; set { if (SetProperty(ref _selectedSearchColumn, value)) { _isGlobalSearchActive = false; ApplyCombinedFiltersAsync(); } } }
+
         public bool IsGlobalSearchActive
         { get => _isGlobalSearchActive; set { if (SetProperty(ref _isGlobalSearchActive, value)) ApplyCombinedFiltersAsync(); } }
 
@@ -107,20 +111,27 @@ namespace WPF_LoginForm.ViewModels
 
         public bool IsDateFilterVisible { get => _isDateFilterVisible; private set => SetProperty(ref _isDateFilterVisible, value); }
         public bool IsDateFilterPanelVisible { get; set; }
+
         public DateTime? FilterStartDate
         { get => _filterStartDate; set { if (SetProperty(ref _filterStartDate, value)) { ApplyCombinedFiltersAsync(); UpdateSlidersFromDates(); } } }
+
         public DateTime? FilterEndDate
         { get => _filterEndDate; set { if (SetProperty(ref _filterEndDate, value)) { ApplyCombinedFiltersAsync(); UpdateSlidersFromDates(); } } }
+
         public double SliderMaximum { get => _sliderMax; set => SetProperty(ref _sliderMax, value); }
+
         public double StartMonthSliderValue
         { get => _sliderStart; set { if (SetProperty(ref _sliderStart, value)) UpdateDatesFromSliders(); } }
+
         public double EndMonthSliderValue
         { get => _sliderEnd; set { if (SetProperty(ref _sliderEnd, value)) UpdateDatesFromSliders(); } }
 
         public bool IsIdHidden
         { get => _isIdHidden; set { if (SetProperty(ref _isIdHidden, value)) OnPropertyChanged(nameof(IsIdVisible)); } }
+
         public bool IsIdVisible => !_isIdHidden;
         public bool IsAdvancedImportVisible { get; set; }
+
         public double DataGridFontSize
         { get => _dataGridFontSize; set { if (SetProperty(ref _dataGridFontSize, Math.Max(8, Math.Min(24, value)))) { (DecreaseFontSizeCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); (IncreaseFontSizeCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); } } }
 
@@ -166,7 +177,10 @@ namespace WPF_LoginForm.ViewModels
 
             ReloadDataCommand = new ViewModelCommand(p => _ = LoadDataForSelectedTableAsync(), p => !string.IsNullOrEmpty(SelectedTable) && !IsBusy);
             ExportDataCommand = new ViewModelCommand(ExecuteExportData, p => _currentDataTable?.Rows.Count > 0 && !IsBusy);
+
+            // Re-wired and implemented fully:
             ShowFindReplaceCommand = new ViewModelCommand(ExecuteShowFindReplace, p => _currentDataTable != null && !IsBusy);
+
             DecreaseFontSizeCommand = new ViewModelCommand(p => DataGridFontSize--, p => DataGridFontSize > 8);
             IncreaseFontSizeCommand = new ViewModelCommand(p => DataGridFontSize++, p => DataGridFontSize < 24);
             ClearSearchCommand = new ViewModelCommand(p => { SearchText = ""; IsGlobalSearchActive = false; });
@@ -234,7 +248,6 @@ namespace WPF_LoginForm.ViewModels
             });
         });
 
-        // FIX: Changed from 'void' to 'Task' so we can await it in DrillDown scenario
         private async Task LoadDataForSelectedTableAsync()
         {
             if (string.IsNullOrEmpty(SelectedTable)) return;
@@ -263,10 +276,8 @@ namespace WPF_LoginForm.ViewModels
             });
         }
 
-        // FIX: Replaced race-prone delay with explicit await logic
         public async void LoadTableWithFilter(string t, DateTime s, DateTime e, string txt = "")
         {
-            // Bypass setter to avoid double-loading
             _selectedTable = t;
             OnPropertyChanged(nameof(SelectedTable));
 
@@ -274,7 +285,6 @@ namespace WPF_LoginForm.ViewModels
             EditableRows.Clear();
             UnsubscribeFromTableEvents();
 
-            // Await the load completion guarantees data is present
             await LoadDataForSelectedTableAsync();
 
             if (DataTableView != null)
@@ -446,8 +456,74 @@ namespace WPF_LoginForm.ViewModels
         private async void ExecuteRenameColumn(object p)
         { if (_dialogService.ShowInputDialog("Rename", $"Rename '{SelectedSearchColumn}' to:", SelectedSearchColumn, out string n)) await ExecuteLongRunning(async t => { var r = await _dataRepository.RenameColumnAsync(SelectedTable, SelectedSearchColumn, n); if (r.Success) await LoadDataForSelectedTableAsync(); else SetErrorMessage(r.ErrorMessage); }); }
 
+        // --- NEW: Fully implemented Replace Requested Event ---
         private void ExecuteShowFindReplace(object p)
-        { var w = new FindReplaceWindow(); w.FindRequested += (s, e) => { SearchText = w.FindText; IsGlobalSearchActive = true; }; if (Application.Current.MainWindow != null) w.Owner = Application.Current.MainWindow; w.Show(); }
+        {
+            var w = new FindReplaceWindow();
+
+            w.FindRequested += (s, e) =>
+            {
+                SearchText = w.FindText;
+                IsGlobalSearchActive = true;
+            };
+
+            w.ReplaceRequested += (s, e) =>
+            {
+                if (string.IsNullOrEmpty(w.FindText) || _currentDataTable == null || _dataTableView == null) return;
+
+                int replaceCount = 0;
+                string find = w.FindText;
+                string replace = w.ReplaceText ?? "";
+                bool matchCase = w.MatchCase;
+
+                foreach (DataRowView drv in _dataTableView)
+                {
+                    DataRow row = drv.Row;
+                    var cols = _isGlobalSearchActive
+                        ? _currentDataTable.Columns.Cast<DataColumn>()
+                        : new[] { _currentDataTable.Columns[SelectedSearchColumn] }.Where(c => c != null);
+
+                    foreach (var col in cols)
+                    {
+                        if (col.ReadOnly || col.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase)) continue;
+
+                        // Only safely replace strings to avoid crashing int/date fields across the whole DB
+                        if (row[col] != DBNull.Value && row[col] != null && col.DataType == typeof(string))
+                        {
+                            string val = row[col].ToString();
+                            System.StringComparison comp = matchCase ? System.StringComparison.Ordinal : System.StringComparison.OrdinalIgnoreCase;
+
+                            if (val.IndexOf(find, comp) >= 0)
+                            {
+                                string newVal = matchCase
+                                    ? val.Replace(find, replace)
+                                    : System.Text.RegularExpressions.Regex.Replace(
+                                        val,
+                                        System.Text.RegularExpressions.Regex.Escape(find),
+                                        replace.Replace("$", "$$"),
+                                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                                try
+                                {
+                                    row[col] = newVal;
+                                    replaceCount++;
+                                }
+                                catch { }
+                            }
+                        }
+                    }
+                }
+
+                if (replaceCount > 0)
+                {
+                    CheckIfDirty();
+                }
+
+                SetErrorMessage($"Replaced {replaceCount} occurrences.");
+            };
+
+            if (Application.Current.MainWindow != null) w.Owner = Application.Current.MainWindow;
+            w.Show();
+        }
 
         private void CurrentDataTable_RowChanged(object sender, DataRowChangeEventArgs e)
         {

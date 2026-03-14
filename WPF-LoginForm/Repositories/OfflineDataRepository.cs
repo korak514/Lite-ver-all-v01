@@ -277,6 +277,25 @@ namespace WPF_LoginForm.Repositories
             });
         }
 
+        private double ParseDoubleSafe(string val)
+        {
+            if (string.IsNullOrWhiteSpace(val)) return 0;
+            string strVal = val.Trim();
+
+            int lastComma = strVal.LastIndexOf(',');
+            int lastDot = strVal.LastIndexOf('.');
+
+            if (lastComma > lastDot)
+                strVal = strVal.Replace(".", "").Replace(",", ".");
+            else if (lastDot > lastComma && lastComma != -1)
+                strVal = strVal.Replace(",", "");
+            else if (lastComma != -1 && lastDot == -1)
+                strVal = strVal.Replace(",", ".");
+
+            double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double res);
+            return res;
+        }
+
         public async Task<List<ErrorEventModel>> GetErrorDataAsync(DateTime startDate, DateTime endDate, string tableName)
         {
             return await Task.Run(() =>
@@ -296,8 +315,9 @@ namespace WPF_LoginForm.Repositories
                     if (n.Contains("tarih") || n == "date") colDate = c;
                     else if (n.Contains("vardiya") || n == "shift") colShift = c;
                     else if (n.Contains("duraklama") || n.Contains("stop")) colStopDuration = c;
-                    else if (n.Contains("engelemeyen") || n.Contains("kazanımı")) colSavedBreak = c;
-                    else if (n.Contains("mola") && n.Contains("bakım")) colSavedMaint = c;
+                    // FIX: Columns detection aligned exactly with Online Repository
+                    else if (n.Contains("engelemeyen") || (n.Contains("zaman") && n.Contains("kazanımı") && !n.Contains("mola"))) colSavedBreak = c;
+                    else if ((n.Contains("mola") || n.Contains("bakım")) && n.Contains("kazanım")) colSavedMaint = c;
                     else if (n.Contains("fiili") || n.Contains("çalışılan") || n.Contains("work")) colActualWork = c;
                     else if (n.StartsWith("hata_kodu") || n.StartsWith("error_code") || n.StartsWith("code")) errorCols.Add(c);
                 }
@@ -321,8 +341,11 @@ namespace WPF_LoginForm.Repositories
                         if (TimeSpan.TryParse(val, out TimeSpan ts)) rowStopMin = ts.TotalMinutes;
                         else if (DateTime.TryParse(val, out DateTime dVal)) rowStopMin = dVal.TimeOfDay.TotalMinutes;
                     }
-                    if (colSavedBreak != null) double.TryParse(row[colSavedBreak]?.ToString(), out savedBreak);
-                    if (colSavedMaint != null) double.TryParse(row[colSavedMaint]?.ToString(), out savedMaint);
+
+                    // FIX: Implemented safe parsing to avoid 0 values from culture clashes
+                    if (colSavedBreak != null) savedBreak = ParseDoubleSafe(row[colSavedBreak]?.ToString());
+                    if (colSavedMaint != null) savedMaint = ParseDoubleSafe(row[colSavedMaint]?.ToString());
+
                     if (colActualWork != null)
                     {
                         string val = row[colActualWork]?.ToString();

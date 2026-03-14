@@ -28,13 +28,13 @@ namespace WPF_LoginForm.ViewModels
 
         public bool IsActiveView { get; set; } = false;
 
-        public event Action<string, DateTime, DateTime, string> DrillDownRequested;
+        public event Action<string, DateTime, DateTime, string> NavigateToDataReportRequested;
 
         private List<ErrorEventModel> _cachedRawData = new List<ErrorEventModel>();
         private List<string> _fullReasonNames = new List<string>();
         private List<CategoryRule> _activeRules;
 
-        private bool _isSyncing = false; // Protects the slider from ping-ponging
+        private bool _isSyncing = false;
 
         // --- Selection ---
         public ObservableCollection<string> TableNames { get; set; } = new ObservableCollection<string>();
@@ -151,13 +151,19 @@ namespace WPF_LoginForm.ViewModels
         private Func<double, string> _numberFormatter;
         public Func<double, string> NumberFormatter { get => _numberFormatter; set => SetProperty(ref _numberFormatter, value); }
 
-        // --- Axis Steps for Granularity ---
+        // --- Axis Steps & Limits for Granularity ---
         private double _reasonAxisStep = double.NaN;
 
         public double ReasonAxisStep { get => _reasonAxisStep; set => SetProperty(ref _reasonAxisStep, value); }
 
+        private double _reasonAxisMax = double.NaN;
+        public double ReasonAxisMax { get => _reasonAxisMax; set => SetProperty(ref _reasonAxisMax, value); }
+
         private double _severityAxisStep = double.NaN;
         public double SeverityAxisStep { get => _severityAxisStep; set => SetProperty(ref _severityAxisStep, value); }
+
+        private double _severityAxisMax = double.NaN;
+        public double SeverityAxisMax { get => _severityAxisMax; set => SetProperty(ref _severityAxisMax, value); }
 
         // --- PAGE 2 CHARTS ---
         private bool _isSecondPageActive;
@@ -186,8 +192,6 @@ namespace WPF_LoginForm.ViewModels
         public ICommand MoveDateCommand { get; set; }
         public ICommand ConfigureCategoriesCommand { get; }
         public ICommand TogglePageCommand { get; }
-
-        // NEW COMMAND: Daily Timeline
         public ICommand OpenDailyTimelineCommand { get; }
 
         public ErrorManagementViewModel(IDataRepository repository)
@@ -208,8 +212,6 @@ namespace WPF_LoginForm.ViewModels
             MoveDateCommand = new ViewModelCommand(ExecuteMoveDate);
             ConfigureCategoriesCommand = new ViewModelCommand(ExecuteConfigureCategories);
             TogglePageCommand = new ViewModelCommand(p => IsSecondPageActive = !IsSecondPageActive);
-
-            // Hook up new command
             OpenDailyTimelineCommand = new ViewModelCommand(ExecuteOpenDailyTimeline);
 
             UpdateFormatterLogic();
@@ -265,10 +267,7 @@ namespace WPF_LoginForm.ViewModels
                 if (token.IsCancellationRequested || !IsActiveView) return;
                 _cachedRawData = rawData;
 
-                // 1. Dynamic list (responds to global toggle)
                 var filteredList = InputHelper.PreProcessData(rawData, IsMachine00Excluded);
-
-                // 2. Strict list (ALWAYS excludes MA-00) for Cards 1 & 2
                 var strictNoM00List = InputHelper.PreProcessData(rawData, true);
 
                 var reasonStats = InputHelper.GetTopReasons(filteredList, _mappingService, _activeRules, 5);
@@ -277,26 +276,35 @@ namespace WPF_LoginForm.ViewModels
                 var reasonFullNames = reasonStats.Select(x => x.Label).ToList();
                 var machineStats = InputHelper.GetMachineStats(filteredList);
 
-                // 3. Pass both lists into the helper
                 var page2Stats = InputHelper.CalculatePage2Stats(rawData, filteredList, strictNoM00List, StartDate, EndDate, NumberFormatter, IsMachine00Excluded);
-
                 var shiftStats = InputHelper.GetShiftStats(rawData, filteredList);
                 var severityStats = InputHelper.GetSeverityStats(filteredList);
 
                 var uniqueCategories = filteredList.Select(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules)).Distinct().OrderBy(x => x).ToList();
 
+                // --- PAGE 1: Reason Chart Strict Normalization ---
                 double maxReasonVal = reasonStats.Any() ? reasonStats.Max(x => x.Value) : 0;
-                double calculatedReasonStep = CalculateBestStep(maxReasonVal);
+                double calculatedReasonStep = CalculateCleanStep(maxReasonVal);
+                // Multiplying by 1.15 ensures at least a 15% visual gap above the tallest bar before snapping to the grid step
+                double targetReasonMax = Math.Ceiling((maxReasonVal * 1.15) / calculatedReasonStep) * calculatedReasonStep;
+                if (targetReasonMax <= 0) targetReasonMax = 60; // Failsafe 1 hour
 
+                // --- PAGE 2: Severity Chart Strict Normalization ---
                 double maxSeverityVal = severityStats.Any() ? severityStats.Max(x => x.Value) : 0;
-                double calculatedSeverityStep = CalculateBestStep(maxSeverityVal);
+                double calculatedSeverityStep = CalculateCleanStep(maxSeverityVal);
+                double targetSeverityMax = Math.Ceiling((maxSeverityVal * 1.15) / calculatedSeverityStep) * calculatedSeverityStep;
+                if (targetSeverityMax <= 0) targetSeverityMax = 60; // Failsafe 1 hour
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     if (token.IsCancellationRequested || !IsActiveView) return;
 
+                    // Assign Reason properties
                     ReasonAxisStep = calculatedReasonStep;
+                    ReasonAxisMax = targetReasonMax;
+
                     SeverityAxisStep = calculatedSeverityStep;
+                    SeverityAxisMax = targetSeverityMax;
 
                     string prevCat = SelectedErrorCategory;
                     ErrorCategories.Clear();
@@ -307,14 +315,23 @@ namespace WPF_LoginForm.ViewModels
 
                     _fullReasonNames = reasonFullNames;
                     ReasonLabels = reasonLabels;
-                    ReasonSeries = new SeriesCollection { new ColumnSeries { Title = WPF_LoginForm.Properties.Resources.Chart_LongestIncident, Values = reasonValues, DataLabels = true, Fill = Brushes.DodgerBlue } };
+
+                    // --- CHANGED: Added Foreground = Brushes.#CFDDFC here ---
+                    ReasonSeries = new SeriesCollection {
+                        new ColumnSeries {
+                            Title = WPF_LoginForm.Properties.Resources.Chart_LongestIncident,
+                            Values = reasonValues,
+                            DataLabels = true,
+                            Fill = Brushes.DodgerBlue,
+                            Foreground = Brushes.LightSkyBlue
+                        }
+                    };
 
                     var machineColl = new SeriesCollection();
                     foreach (var item in machineStats) machineColl.Add(new PieSeries { Title = $"MA-{item.Label}", Values = new ChartValues<double> { item.Value }, PushOut = 2 });
                     MachineSeries = machineColl;
                     UpdateCategoryMachineChart();
 
-                    // UI Binding assignment
                     AvgNetStopPerDay = page2Stats.AvgNetStopPerDay;
                     AvgErrorPerDay = page2Stats.AvgErrorPerDay;
                     SavedMaintenanceTime = page2Stats.SavedMaintenanceTime;
@@ -327,31 +344,12 @@ namespace WPF_LoginForm.ViewModels
                     string stopText = WPF_LoginForm.Properties.Resources.AnalyticsP2_Stop ?? "Stops";
 
                     EfficiencySeries = new SeriesCollection {
-                        new PieSeries {
-                            Title = errorText,
-                            Values = new ChartValues<double> { page2Stats.TotalErrorDuration },
-                            DataLabels = true,
-                            Fill = Brushes.OrangeRed,
-                            LabelPoint = p => TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat)
-                        },
-                        new PieSeries {
-                            Title = stopText,
-                            Values = new ChartValues<double> { page2Stats.TotalStopDuration },
-                            DataLabels = true,
-                            Fill = Brushes.DodgerBlue,
-                            LabelPoint = p => TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat)
-                        }
+                        new PieSeries { Title = errorText, Values = new ChartValues<double> { page2Stats.TotalErrorDuration }, DataLabels = true, Fill = Brushes.OrangeRed, LabelPoint = p => TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat) },
+                        new PieSeries { Title = stopText, Values = new ChartValues<double> { page2Stats.TotalStopDuration }, DataLabels = true, Fill = Brushes.DodgerBlue, LabelPoint = p => TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat) }
                     };
 
                     var shiftColl = new SeriesCollection();
-                    foreach (var s in shiftStats)
-                        shiftColl.Add(new PieSeries
-                        {
-                            Title = s.Label,
-                            Values = new ChartValues<double> { s.Value },
-                            DataLabels = true,
-                            LabelPoint = p => $"{TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat)} ({p.Participation:P0})"
-                        });
+                    foreach (var s in shiftStats) shiftColl.Add(new PieSeries { Title = s.Label, Values = new ChartValues<double> { s.Value }, DataLabels = true, LabelPoint = p => $"{TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat)} ({p.Participation:P0})" });
                     ShiftImpactSeries = shiftColl;
 
                     var sevColl = new SeriesCollection();
@@ -368,6 +366,9 @@ namespace WPF_LoginForm.ViewModels
                             Values = new ChartValues<double> { s.Value },
                             DataLabels = true,
                             Fill = fill,
+                            Foreground = Brushes.LightSkyBlue,
+                            ColumnPadding = 30,
+                            MaxColumnWidth = 70,
                             LabelPoint = p => TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat)
                         });
                     }
@@ -377,15 +378,22 @@ namespace WPF_LoginForm.ViewModels
             });
         }
 
-        private double CalculateBestStep(double maxVal)
+        // This forces the Y axis to cleanly land on exact hour marks without ugly fractions
+        private double CalculateCleanStep(double maxMinutes)
         {
-            if (maxVal <= 10) return 1;
-            if (maxVal <= 30) return 5;
-            if (maxVal <= 60) return 10;
-            if (maxVal <= 180) return 30; // 30m
-            if (maxVal <= 360) return 60; // 1h
-            if (maxVal <= 720) return 120; // 2h
-            return double.NaN;
+            double maxHours = maxMinutes / 60.0;
+
+            if (maxHours <= 1) return 10;        // 10m, 20m, 30m
+            if (maxHours <= 3) return 30;        // 30m, 1h, 1h30m
+            if (maxHours <= 10) return 2 * 60;   // 2h, 4h, 6h
+            if (maxHours <= 15) return 3 * 60;   // 3h, 6h, 9h, 12h, 15h
+            if (maxHours <= 30) return 5 * 60;   // 5h, 10h, 15h, 20h
+            if (maxHours <= 60) return 10 * 60;  // 10h, 20h, 30h
+            if (maxHours <= 120) return 20 * 60; // 20h, 40h, 60h
+            if (maxHours <= 300) return 50 * 60; // 50h, 100h
+            if (maxHours <= 600) return 100 * 60;// 100h, 200h
+
+            return 200 * 60;
         }
 
         private void UpdateCategoryMachineChart()
@@ -448,6 +456,18 @@ namespace WPF_LoginForm.ViewModels
                     var win = new WPF_LoginForm.Views.ErrorDrillDownWindow();
                     win.SetViewModel(drillDownVm);
 
+                    drillDownVm.OnNavigateRequested = (errorEvent) =>
+                    {
+                        win.DialogResult = true;
+                        win.Close();
+
+                        NavigateToDataReportRequested?.Invoke(
+                            SelectedTable,
+                            errorEvent.Date.Date,
+                            errorEvent.Date.Date.AddDays(1).AddSeconds(-1),
+                            errorEvent.RawData ?? errorEvent.ErrorDescription);
+                    };
+
                     if (Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
                     {
                         win.Owner = Application.Current.MainWindow;
@@ -458,12 +478,10 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        // NEW METHOD: Opens the Daily Timeline Window
         private void ExecuteOpenDailyTimeline(object obj)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                // Pass the Repository, Selected Table, and the currently selected EndDate (as target date)
                 var win = new WPF_LoginForm.Views.DailyTimelineWindow(_repository, SelectedTable, EndDate);
                 if (Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
                 {
