@@ -421,7 +421,7 @@
     <value>Ağırlık Dağılımı</value>
   </data>
   <data name="AnalyticsP2_Card_1" xml:space="preserve">
-    <value>Günlük Ortalma Duruş(Arıza Kaynaklı)</value>
+    <value>Günlük Ortalma Duruş(Arıza Kaynaklı,Molalar Dahil)</value>
   </data>
   <data name="AnalyticsP2_Card_2" xml:space="preserve">
     <value>Günlük Ortalma Arıza</value>

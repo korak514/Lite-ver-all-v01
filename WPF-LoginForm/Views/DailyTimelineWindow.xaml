@@ -1,12 +1,12 @@
-﻿<!-- Views/DailyTimelineWindow.xaml -->
-<Window x:Class="WPF_LoginForm.Views.DailyTimelineWindow"
+﻿<Window x:Class="WPF_LoginForm.Views.DailyTimelineWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:fa="http://schemas.fontawesome.io/icons/"
         xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
-        Title="Daily Timeline" Height="720" Width="1200"
+        Title="Daily Timeline" Height="740" Width="1250"
         WindowStartupLocation="CenterOwner"
-        Background="#09092B">
+        Background="#09092B"
+        MinWidth="950" MinHeight="600">
 
     <Window.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
@@ -88,154 +88,205 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- TOP HEADER -->
+        <!-- TOP HEADER (Split into 2 rows to prevent overlapping on small screens) -->
         <Grid Grid.Row="0" Margin="0,0,0,15">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-            <!-- Date Navigation & Display with Hidden DatePicker -->
-            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button Command="{Binding PrevDayCommand}" Background="Transparent" BorderThickness="0" Cursor="Hand">
-                    <fa:ImageAwesome Icon="ChevronLeft" Height="25" Foreground="Gray" Margin="0,0,10,0" />
-                </Button>
+            <!-- ROW 1: Date & Main Actions -->
+            <Grid Grid.Row="0" Margin="0,0,0,15">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-                <Border Background="#181838" BorderBrush="#3498DB" BorderThickness="2" CornerRadius="8" Padding="15,5">
-                    <StackPanel Orientation="Horizontal">
-                        <Grid>
-                            <!-- Invisible DatePicker mapped to the icon -->
-                            <DatePicker x:Name="HiddenDatePicker" SelectedDate="{Binding TargetDate, Mode=TwoWay}" Width="0" Height="0" Opacity="0" />
-                            <Button Click="OpenDatePicker_Click" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="0,0,10,0" ToolTip="Select Date">
-                                <fa:ImageAwesome Icon="Calendar" Height="25" Foreground="#3498DB" VerticalAlignment="Center" />
-                            </Button>
-                        </Grid>
+                <!-- Date Navigation & Display -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Command="{Binding PrevDayCommand}" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                        <fa:ImageAwesome Icon="ChevronLeft" Height="25" Foreground="Gray" Margin="0,0,10,0" />
+                    </Button>
 
-                        <TextBlock Text="{Binding FormattedDateNumber}" Foreground="White" FontSize="32" FontWeight="ExtraBold" VerticalAlignment="Center" />
-                        <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding FormattedDateMonthYear}" Foreground="#FFC047" FontSize="14" FontWeight="Bold" />
-                            <TextBlock Text="{Binding FormattedDay}" Foreground="LightGray" FontSize="12" />
+                    <Border Background="#181838" BorderBrush="#3498DB" BorderThickness="2" CornerRadius="8" Padding="15,5">
+                        <StackPanel Orientation="Horizontal">
+                            <Grid>
+                                <!-- Invisible DatePicker mapped to the icon -->
+                                <DatePicker x:Name="HiddenDatePicker" SelectedDate="{Binding TargetDate, Mode=TwoWay}" Width="0" Height="0" Opacity="0" />
+                                <Button Click="OpenDatePicker_Click" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="0,0,10,0" ToolTip="Select Date">
+                                    <fa:ImageAwesome Icon="Calendar" Height="25" Foreground="#3498DB" VerticalAlignment="Center" />
+                                </Button>
+                            </Grid>
+
+                            <TextBlock Text="{Binding FormattedDateNumber}" Foreground="White" FontSize="32" FontWeight="ExtraBold" VerticalAlignment="Center" />
+                            <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding FormattedDateMonthYear}" Foreground="#FFC047" FontSize="14" FontWeight="Bold" />
+                                <TextBlock Text="{Binding FormattedDay}" Foreground="LightGray" FontSize="12" />
+                            </StackPanel>
                         </StackPanel>
-                    </StackPanel>
-                </Border>
+                    </Border>
 
-                <Button Command="{Binding NextDayCommand}" Background="Transparent" BorderThickness="0" Cursor="Hand">
-                    <fa:ImageAwesome Icon="ChevronRight" Height="25" Foreground="Gray" Margin="10,0,0,0" />
-                </Button>
-            </StackPanel>
-
-            <!-- Controls (Zoom, Shift, Save/Undo/Refresh, Close) -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-
-                <Border Background="#181838" CornerRadius="4" Margin="0,0,15,0" Padding="10,5">
-                    <StackPanel Orientation="Horizontal">
-                        <fa:ImageAwesome Icon="SearchPlus" Height="14" Foreground="Gray" Margin="0,0,5,0" />
-                        <TextBlock Text="Zoom (Hrs):" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,5,0" />
-                        <Slider Minimum="2" Maximum="12" Value="{Binding TimeWindowHours, Mode=TwoWay}"
-                                Width="100" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
-                        <TextBlock Text="{Binding TimeWindowHours, StringFormat={}{0}h}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" Margin="10,0,0,0" Width="25" />
-                    </StackPanel>
-                </Border>
-
-                <StackPanel Orientation="Horizontal" Margin="0,0,15,0">
-                    <RadioButton Content="☼ Day" IsChecked="{Binding IsNightShift, Converter={StaticResource BooleanInverter}}" Style="{StaticResource DayToggleStyle}" />
-                    <RadioButton Content="☾ Night" IsChecked="{Binding IsNightShift}" Style="{StaticResource NightToggleStyle}" />
+                    <Button Command="{Binding NextDayCommand}" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                        <fa:ImageAwesome Icon="ChevronRight" Height="25" Foreground="Gray" Margin="10,0,0,0" />
+                    </Button>
                 </StackPanel>
 
                 <!-- Data Action Buttons -->
-                <Button Content="⟲"
-        Command="{Binding UndoCommand}"
-        ToolTip="Undo Changes"
-        FontWeight="Bold"
-        Padding="10,8"
-        Margin="0,0,5,0"
-        BorderThickness="0"
-        Cursor="Hand" Width="30.43">
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="⟲" Command="{Binding UndoCommand}" ToolTip="Undo Changes" FontWeight="Bold" Padding="10,8" Margin="0,0,5,0" BorderThickness="0" Cursor="Hand" Width="30.43">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="#7F8C8D" />
+                                <Setter Property="Foreground" Value="White" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="4">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsEnabled" Value="False">
+                                                    <Setter TargetName="border" Property="Background" Value="#407F8C8D" />
+                                                    <Setter Property="Foreground" Value="#80FFFFFF" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Background" Value="#7F8C8D" />
-                            <Setter Property="Foreground" Value="White" />
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="4">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <!-- This trigger keeps the background consistent even when disabled -->
-                                            <Trigger Property="IsEnabled" Value="False">
-                                                <Setter TargetName="border" Property="Background" Value="#407F8C8D" />
-                                                <Setter Property="Foreground" Value="#80FFFFFF" />
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </Button.Style>
-                </Button>
+                    <Button Content="↻" Command="{Binding RefreshCommand}" ToolTip="Refresh from Database" Background="#F39C12" Foreground="White" FontWeight="Bold" Padding="10,8" Margin="0,0,5,0" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                    </Button>
 
-                <Button Content="↻" Command="{Binding RefreshCommand}" ToolTip="Refresh from Database" Background="#F39C12" Foreground="White" FontWeight="Bold" Padding="10,8" Margin="0,0,5,0" BorderThickness="0" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4" />
-                        </Style>
-                    </Button.Resources>
-                </Button>
+                    <Button Content="💾 Save" Command="{Binding SaveToDatabaseCommand}" Background="#003399" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,15,0" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Style.Triggers>
+                                    <Trigger Property="IsEnabled" Value="False">
+                                        <Setter Property="Opacity" Value="0.5" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
 
-                <!-- SAVE BUTTON UPDATED TO DARK BLUE -->
-                <Button Content="💾 Save" Command="{Binding SaveToDatabaseCommand}" Background="#003399" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,15,0" BorderThickness="0" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4" />
-                        </Style>
-                    </Button.Resources>
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Style.Triggers>
-                                <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Opacity" Value="0.5" />
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
+                    <Button Content="★ Favs" Command="{Binding ToggleFavoritesCommand}" Background="#9B59B6" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,5,0" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                    </Button>
 
-                <!-- Layout Buttons -->
-                <Button Content="★ Favs" Command="{Binding ToggleFavoritesCommand}" Background="#9B59B6" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,5,0" BorderThickness="0" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4" />
-                        </Style>
-                    </Button.Resources>
-                </Button>
+                    <Button Content="+ Add New" Command="{Binding AddNewEventCommand}" Background="#27AE60" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,5,0" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                    </Button>
 
-                <!-- NEW ADD EVENT BUTTON -->
-                <Button Content="+ Add New" Command="{Binding AddNewEventCommand}" Background="#27AE60" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,5,0" BorderThickness="0" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4" />
-                        </Style>
-                    </Button.Resources>
-                </Button>
+                    <Button Content="Edit" Command="{Binding ToggleEditPanelCommand}" Background="#3498DB" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                    <Button Content="✕" Click="CloseButton_Click" Background="#E74C3C" Foreground="White" FontWeight="Bold" Padding="15,8" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
+            </Grid>
 
-                <Button Content="Edit" Command="{Binding ToggleEditPanelCommand}" Background="#3498DB" Foreground="White" FontWeight="Bold" Padding="15,8" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4" />
-                        </Style>
-                    </Button.Resources>
-                </Button>
-                <Button Content="✕" Click="CloseButton_Click" Background="#E74C3C" Foreground="White" FontWeight="Bold" Padding="15,8" BorderThickness="0" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4" />
-                        </Style>
-                    </Button.Resources>
-                </Button>
-            </StackPanel>
+            <!-- ROW 2: KPIs & View Controls -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- KPI CARDS -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- KPI 1: Mola / Bakım -->
+                    <Border Background="#1A1A3A" BorderBrush="#2ECC71" BorderThickness="1" CornerRadius="6" Padding="10,5" Margin="0,0,10,0">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <fa:ImageAwesome Icon="Wrench" Height="10" Foreground="Gray" Margin="0,0,5,0" />
+                                <TextBlock Text="Mola/Bakım Kazanımı" Foreground="Gray" FontSize="10" FontWeight="SemiBold" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                <TextBlock Text="{Binding AutoCalculatedMolaKazanimi, StringFormat={}{0}m}" Foreground="#2ECC71" FontSize="16" FontWeight="Bold" />
+                                <TextBlock Text="{Binding RawMolaKazanimi, StringFormat={} DB: {0}m}" Foreground="DarkGray" FontSize="11" VerticalAlignment="Bottom" Margin="5,0,0,2" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- KPI 2: Bypass -->
+                    <Border Background="#1A1A3A" BorderBrush="#8E44AD" BorderThickness="1" CornerRadius="6" Padding="10,5" Margin="0,0,10,0">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <fa:ImageAwesome Icon="Forward" Height="10" Foreground="Gray" Margin="0,0,5,0" />
+                                <TextBlock Text="Duruşu Engellemeyen (Bypass)" Foreground="Gray" FontSize="10" FontWeight="SemiBold" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                <TextBlock Text="{Binding ManualBypassKazanimi, StringFormat={}{0}m}" Foreground="#8E44AD" FontSize="16" FontWeight="Bold" />
+                                <TextBlock Text="{Binding RawBypassKazanimi, StringFormat={} DB: {0}m}" Foreground="DarkGray" FontSize="11" VerticalAlignment="Bottom" Margin="5,0,0,2" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- KPI 3: Fiili Çalışılan Süre -->
+                    <Border Background="#1A1A3A" BorderBrush="#3498DB" BorderThickness="1" CornerRadius="6" Padding="10,5">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <fa:ImageAwesome Icon="Cog" Height="10" Foreground="Gray" Margin="0,0,5,0" />
+                                <TextBlock Text="Fiili Çalışılan Süre" Foreground="Gray" FontSize="10" FontWeight="SemiBold" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                <TextBlock Text="{Binding AutoFiiliSureFormatted}" Foreground="#3498DB" FontSize="16" FontWeight="Bold" />
+                                <TextBlock Text="{Binding RawFiiliSureFormatted, StringFormat={} DB: {0}}" Foreground="DarkGray" FontSize="11" VerticalAlignment="Bottom" Margin="5,0,0,2" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- View Controls (Zoom, Shift) -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#181838" CornerRadius="4" Margin="0,0,15,0" Padding="10,5">
+                        <StackPanel Orientation="Horizontal">
+                            <fa:ImageAwesome Icon="SearchPlus" Height="14" Foreground="Gray" Margin="0,0,5,0" />
+                            <TextBlock Text="Zoom (Hrs):" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,5,0" />
+                            <Slider Minimum="2" Maximum="12" Value="{Binding TimeWindowHours, Mode=TwoWay}"
+                                    Width="100" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
+                            <TextBlock Text="{Binding TimeWindowHours, StringFormat={}{0}h}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" Margin="10,0,0,0" Width="25" />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Content="☼ Day" IsChecked="{Binding IsNightShift, Converter={StaticResource BooleanInverter}}" Style="{StaticResource DayToggleStyle}" />
+                        <RadioButton Content="☾ Night" IsChecked="{Binding IsNightShift}" Style="{StaticResource NightToggleStyle}" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
         </Grid>
 
         <!-- FAVORITES BAR (Collapsible & Draggable) -->
@@ -432,6 +483,7 @@
                                     </Grid.ColumnDefinitions>
                                     <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableMachineCodes}"
                                               SelectedItem="{Binding SelectedBlock.OriginalEvent.MachineCode}"
+                                              IsEditable="False"
                                               Height="30" VerticalContentAlignment="Center" />
 
                                     <Button Grid.Column="1" Command="{Binding ManageMachineCodesCommand}" Width="30" Height="30" Margin="5,0,0,0" Background="#333" BorderThickness="0" Cursor="Hand" ToolTip="Configure Extra Machine Codes">
@@ -447,6 +499,11 @@
 
                             <TextBlock Text="Description" Style="{StaticResource EditLabelStyle}" />
                             <TextBox Text="{Binding SelectedBlock.OriginalEvent.ErrorDescription, UpdateSourceTrigger=PropertyChanged}" Height="80" TextWrapping="Wrap" AcceptsReturn="True" Style="{StaticResource EditBoxStyle}" />
+
+                            <!-- NEW: BYPASS FLAG -->
+                            <CheckBox Content="Flag as Bypass (Did not stop facility)"
+                                      IsChecked="{Binding SelectedBlock.IsBypass, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      Foreground="#FFC047" FontWeight="SemiBold" Margin="0,5,0,15" />
 
                             <Button Content="★ Save as Favorite" Command="{Binding SaveAsFavoriteCommand}" Background="#8E44AD" Foreground="White" FontWeight="Bold" Padding="10,5" Margin="0,5,0,15" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Left">
                                 <Button.Resources>

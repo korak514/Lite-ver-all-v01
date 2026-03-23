@@ -1,4 +1,4 @@
-﻿// ViewModels/DailyTimelineViewModel.cs
+﻿// WPF-LoginForm/ViewModels/DailyTimelineViewModel.cs
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -47,11 +47,17 @@ namespace WPF_LoginForm.ViewModels
         public double DurationMinutes { get; set; }
         public double CurrentZoomHours { get; set; } = 4.0;
 
-        // Database Tracking
         public DataRow SourceRow { get; set; }
-
         public string SourceColumn { get; set; }
         public bool IsNewUnsaved { get; set; }
+
+        private bool _isBypass;
+
+        public bool IsBypass
+        {
+            get => _isBypass;
+            set { if (SetProperty(ref _isBypass, value)) { OnPropertyChanged(nameof(BlockColor)); } }
+        }
 
         private double _pixelX;
         public double PixelX { get => _pixelX; set => SetProperty(ref _pixelX, value); }
@@ -71,6 +77,8 @@ namespace WPF_LoginForm.ViewModels
         private string DetermineColor()
         {
             if (OriginalEvent == null) return "#808080";
+            if (IsBypass) return "#8E44AD";
+
             string desc = OriginalEvent.ErrorDescription?.ToLower() ?? "";
             if (desc.Contains("mola") || desc.Contains("break") || desc.Contains("yemek")) return "#2ECC71";
             if (desc.Contains("bakım") || desc.Contains("maint")) return "#F39C12";
@@ -101,12 +109,9 @@ namespace WPF_LoginForm.ViewModels
         private double _lastViewportWidth = 800;
         private readonly string _configFilePath;
 
-        // DB Data
         private DataTable _currentData;
-
         private List<string> _errorColumns = new List<string>();
 
-        // Date State
         private DateTime _targetDate;
 
         public DateTime TargetDate
@@ -115,7 +120,6 @@ namespace WPF_LoginForm.ViewModels
             set { if (SetProperty(ref _targetDate, value)) { UpdateHeaderStrings(); _ = LoadDataAsync(); } }
         }
 
-        // Shift State
         private bool _isNightShift;
 
         public bool IsNightShift
@@ -124,13 +128,10 @@ namespace WPF_LoginForm.ViewModels
             set { if (SetProperty(ref _isNightShift, value)) { UpdateHeaderStrings(); ParseDataToTimeline(); } }
         }
 
-        // DB States
         private bool _isDirty;
-
         public bool IsDirty { get => _isDirty; set => SetProperty(ref _isDirty, value); }
         public bool IsOnlineMode => !(_repository is OfflineDataRepository);
 
-        // Zoom State
         private double _timeWindowHours = 4.0;
 
         public double TimeWindowHours
@@ -142,9 +143,7 @@ namespace WPF_LoginForm.ViewModels
         private double _calculatedCanvasWidth = 800;
         public double CalculatedCanvasWidth { get => _calculatedCanvasWidth; set => SetProperty(ref _calculatedCanvasWidth, value); }
 
-        // Header Properties
         private string _formattedDateNumber;
-
         public string FormattedDateNumber { get => _formattedDateNumber; set => SetProperty(ref _formattedDateNumber, value); }
 
         private string _formattedDateMonthYear;
@@ -156,17 +155,50 @@ namespace WPF_LoginForm.ViewModels
         private string _shiftTitle;
         public string ShiftTitle { get => _shiftTitle; set => SetProperty(ref _shiftTitle, value); }
 
+        // --- KPI Calculation Properties ---
+        private double _autoCalculatedMolaKazanimi;
+
+        public double AutoCalculatedMolaKazanimi { get => _autoCalculatedMolaKazanimi; set => SetProperty(ref _autoCalculatedMolaKazanimi, value); }
+
+        private double _manualBypassKazanimi;
+        public double ManualBypassKazanimi { get => _manualBypassKazanimi; set => SetProperty(ref _manualBypassKazanimi, value); }
+
+        private double _rawMolaKazanimi;
+        public double RawMolaKazanimi { get => _rawMolaKazanimi; set => SetProperty(ref _rawMolaKazanimi, value); }
+
+        private double _rawBypassKazanimi;
+        public double RawBypassKazanimi { get => _rawBypassKazanimi; set => SetProperty(ref _rawBypassKazanimi, value); }
+
+        // --- Fiili_Çalışılan_Süre Properties ---
+        private double _autoFiiliSure;
+
+        public double AutoFiiliSure
+        {
+            get => _autoFiiliSure;
+            set { if (SetProperty(ref _autoFiiliSure, value)) OnPropertyChanged(nameof(AutoFiiliSureFormatted)); }
+        }
+
+        private double _rawFiiliSure;
+
+        public double RawFiiliSure
+        {
+            get => _rawFiiliSure;
+            set { if (SetProperty(ref _rawFiiliSure, value)) OnPropertyChanged(nameof(RawFiiliSureFormatted)); }
+        }
+
+        // Formats minutes into "09:06" style strings matching the Database
+        public string AutoFiiliSureFormatted => $"{(int)(AutoFiiliSure / 60):D2}:{(int)(AutoFiiliSure % 60):D2}";
+
+        public string RawFiiliSureFormatted => $"{(int)(RawFiiliSure / 60):D2}:{(int)(RawFiiliSure % 60):D2}";
+
         // UI Panels
         private bool _isFavoritesVisible = false;
 
         public bool IsFavoritesVisible { get => _isFavoritesVisible; set => SetProperty(ref _isFavoritesVisible, value); }
         public ObservableCollection<FavoriteEvent> FavoriteEvents { get; } = new ObservableCollection<FavoriteEvent>();
-
         public ObservableCollection<string> AvailableMachineCodes { get; } = new ObservableCollection<string>();
 
-        // Edit Panel Properties
         private bool _isEditPanelVisible;
-
         public bool IsEditPanelVisible { get => _isEditPanelVisible; set => SetProperty(ref _isEditPanelVisible, value); }
 
         private TimelineBlockModel _selectedBlock;
@@ -184,7 +216,6 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        // NEW: Machine Code Grouping State
         private bool _isMachineTypeExtra;
 
         public bool IsMachineTypeExtra
@@ -195,8 +226,6 @@ namespace WPF_LoginForm.ViewModels
                 if (SetProperty(ref _isMachineTypeExtra, value))
                 {
                     OnPropertyChanged(nameof(IsMachineTypeNormal));
-
-                    // If toggled to Extra and the current code isn't in the list, set to default
                     if (value && SelectedBlock?.OriginalEvent != null && !AvailableMachineCodes.Contains(SelectedBlock.OriginalEvent.MachineCode))
                     {
                         SelectedBlock.OriginalEvent.MachineCode = AvailableMachineCodes.FirstOrDefault() ?? "00";
@@ -241,7 +270,7 @@ namespace WPF_LoginForm.ViewModels
         // Commands
         public ICommand ToggleEditPanelCommand { get; }
 
-        public ICommand AddNewEventCommand { get; } // NEW
+        public ICommand AddNewEventCommand { get; }
         public ICommand ToggleFavoritesCommand { get; }
         public ICommand BlockClickCommand { get; }
         public ICommand NextDayCommand { get; }
@@ -250,7 +279,6 @@ namespace WPF_LoginForm.ViewModels
         public ICommand QuickAddFavoriteCommand { get; }
         public ICommand SaveAsFavoriteCommand { get; }
         public ICommand RemoveFavoriteCommand { get; }
-
         public ICommand ApplyToTimelineCommand { get; }
         public ICommand DeleteEventCommand { get; }
         public ICommand SaveToDatabaseCommand { get; }
@@ -264,7 +292,6 @@ namespace WPF_LoginForm.ViewModels
             _targetDate = targetDate.Date;
             _isNightShift = false;
             _dialogService = new DialogService();
-
             _configFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WPF_LoginForm", "timeline_config.json");
 
             ToggleEditPanelCommand = new ViewModelCommand(p => IsEditPanelVisible = !IsEditPanelVisible);
@@ -303,6 +330,8 @@ namespace WPF_LoginForm.ViewModels
                     {
                         foreach (var mc in config.MachineCodes) AvailableMachineCodes.Add(mc);
                         foreach (var f in config.Favorites) FavoriteEvents.Add(f);
+
+                        if (!AvailableMachineCodes.Contains("99")) AvailableMachineCodes.Add("99");
                         return;
                     }
                 }
@@ -310,6 +339,8 @@ namespace WPF_LoginForm.ViewModels
             catch { }
 
             if (!AvailableMachineCodes.Any()) { AvailableMachineCodes.Add("00"); AvailableMachineCodes.Add("01"); }
+            if (!AvailableMachineCodes.Contains("99")) AvailableMachineCodes.Add("99");
+
             if (!FavoriteEvents.Any()) { FavoriteEvents.Add(new FavoriteEvent { Title = "Lunch Break", MachineCode = "00", Description = "Yemek Molası", DefaultDuration = 60, ColorHex = "#2ECC71" }); }
         }
 
@@ -345,15 +376,13 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteAddNewEvent()
         {
-            // By passing 0, 0, it creates the event exactly at the start of the shift
-            HandleDropOrClickAdd(null, 40, 30); // Uses canvas padding coordinates
+            HandleDropOrClickAdd(null, 40, 30);
         }
 
         public void HandleDropOrClickAdd(FavoriteEvent fav, double dropPixelX, double dropPixelY)
         {
             if (CalculatedCanvasWidth <= 0) return;
 
-            // Offset by padding so dropping aligns mathematically
             double padding = 40.0;
             double usableWidth = CalculatedCanvasWidth - (padding * 2);
             if (usableWidth <= 0) usableWidth = 100;
@@ -434,10 +463,6 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        // ==========================================
-        // DATABASE INTERACTION LOGIC
-        // ==========================================
-
         private string GenerateDbString(TimelineBlockModel block)
         {
             var ev = block.OriginalEvent;
@@ -454,7 +479,7 @@ namespace WPF_LoginForm.ViewModels
 
             if (SelectedBlock.SourceRow == null || string.IsNullOrEmpty(SelectedBlock.SourceColumn))
             {
-                var dateCol = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.ToLower().Contains("date") || c.ColumnName.ToLower().Contains("tarih"));
+                var dateCol = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("tarih", StringComparison.OrdinalIgnoreCase) >= 0);
                 DataRow targetRow = null;
 
                 if (dateCol != null)
@@ -499,6 +524,7 @@ namespace WPF_LoginForm.ViewModels
 
             AssignLanes(TimelineBlocks.ToList());
             RefreshDimensions();
+            RecalculateSavings();
         }
 
         private void ExecuteDeleteEvent()
@@ -512,6 +538,7 @@ namespace WPF_LoginForm.ViewModels
                 }
                 TimelineBlocks.Remove(SelectedBlock);
                 SelectedBlock = null;
+                RecalculateSavings();
             }
         }
 
@@ -540,14 +567,150 @@ namespace WPF_LoginForm.ViewModels
             ParseDataToTimeline();
         }
 
+        // ==========================================
+        // KPI CALCULATIONS (Overlap, Bypass, Fiili Süre)
+        // ==========================================
+        private void RecalculateSavings()
+        {
+            if (TimelineBlocks == null) return;
+
+            // 1. Determine Dynamic Shift Duration based on Database values
+            double shiftTotalMinutes = 720; // Default 12h
+            var firstValidBlock = TimelineBlocks.FirstOrDefault(b => b.SourceRow != null && b.SourceRow.Table != null);
+            DataRow dbRow = firstValidBlock?.SourceRow;
+
+            if (dbRow != null)
+            {
+                var dt = dbRow.Table;
+                // FIX: Culture-safe column identification
+                DataColumn startCol = dt.Columns.Cast<DataColumn>().FirstOrDefault(c =>
+                    c.ColumnName.IndexOf("başlangıç", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    c.ColumnName.IndexOf("baslangic", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    c.ColumnName.IndexOf("start", StringComparison.OrdinalIgnoreCase) >= 0);
+
+                DataColumn endCol = dt.Columns.Cast<DataColumn>().FirstOrDefault(c =>
+                    c.ColumnName.IndexOf("bitiş", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    c.ColumnName.IndexOf("bitis", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    c.ColumnName.IndexOf("end", StringComparison.OrdinalIgnoreCase) >= 0);
+
+                if (startCol != null && endCol != null && dbRow[startCol] != DBNull.Value && dbRow[endCol] != DBNull.Value)
+                {
+                    string sTime = dbRow[startCol].ToString();
+                    string eTime = dbRow[endCol].ToString();
+
+                    // Parse TimeSpan or DateTime
+                    TimeSpan tsStart, tsEnd;
+
+                    if (!TimeSpan.TryParse(sTime, out tsStart) && DateTime.TryParse(sTime, out DateTime dStart)) tsStart = dStart.TimeOfDay;
+                    if (!TimeSpan.TryParse(eTime, out tsEnd) && DateTime.TryParse(eTime, out DateTime dEnd)) tsEnd = dEnd.TimeOfDay;
+
+                    if (tsEnd <= tsStart) tsEnd = tsEnd.Add(TimeSpan.FromHours(24));
+                    shiftTotalMinutes = (tsEnd - tsStart).TotalMinutes;
+                }
+            }
+
+            // 2. Setup overlap tracking arrays
+            int arraySize = (int)Math.Max(1440, shiftTotalMinutes + 120);
+            bool[] isStoppedMinute = new bool[arraySize];
+            bool[] isBreakMinute = new bool[arraySize];
+            double manualBypass = 0;
+
+            // Mark stop times and break times
+            foreach (var block in TimelineBlocks)
+            {
+                if (block.IsBypass)
+                {
+                    manualBypass += block.DurationMinutes;
+                    continue; // Bypassed events do NOT stop the facility
+                }
+
+                int start = (int)Math.Max(0, block.StartMinuteInShift);
+                int end = (int)Math.Min(arraySize, block.StartMinuteInShift + block.DurationMinutes);
+                bool isBreak = block.OriginalEvent != null && (block.OriginalEvent.MachineCode == "00" || block.OriginalEvent.MachineCode == "0" || block.OriginalEvent.MachineCode == "MA-00");
+
+                for (int i = start; i < end; i++)
+                {
+                    isStoppedMinute[i] = true;
+                    if (isBreak) isBreakMinute[i] = true;
+                }
+            }
+
+            // 3. Calculate Mola Kazanımı (Overlap between breaks and non-breaks)
+            double autoMola = 0;
+            foreach (var block in TimelineBlocks)
+            {
+                if (block.IsBypass) continue;
+                bool isBreak = block.OriginalEvent != null && (block.OriginalEvent.MachineCode == "00" || block.OriginalEvent.MachineCode == "0" || block.OriginalEvent.MachineCode == "MA-00");
+
+                if (!isBreak)
+                {
+                    int start = (int)Math.Max(0, block.StartMinuteInShift);
+                    int end = (int)Math.Min(arraySize, block.StartMinuteInShift + block.DurationMinutes);
+
+                    for (int i = start; i < end; i++)
+                    {
+                        if (isBreakMinute[i]) autoMola++;
+                    }
+                }
+            }
+
+            // 4. Calculate Fiili Çalışılan Süre
+            int totalStoppedWithinShift = 0;
+            for (int i = 0; i < (int)shiftTotalMinutes; i++)
+            {
+                if (isStoppedMinute[i]) totalStoppedWithinShift++;
+            }
+
+            AutoCalculatedMolaKazanimi = autoMola;
+            ManualBypassKazanimi = manualBypass;
+            AutoFiiliSure = Math.Max(0, shiftTotalMinutes - totalStoppedWithinShift);
+
+            // 5. Fetch DB Raw Values for comparison (Culture Safe string match)
+            if (dbRow != null)
+            {
+                var dt = dbRow.Table;
+                DataColumn colSavedBreak = null, colSavedMaint = null, colFiili = null;
+
+                foreach (DataColumn c in dt.Columns)
+                {
+                    string n = c.ColumnName;
+                    if (n.IndexOf("engelemeyen", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                       (n.IndexOf("zaman", StringComparison.OrdinalIgnoreCase) >= 0 && n.IndexOf("kazanımı", StringComparison.OrdinalIgnoreCase) >= 0 && n.IndexOf("mola", StringComparison.OrdinalIgnoreCase) < 0))
+                        colSavedBreak = c;
+                    else if ((n.IndexOf("mola", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("bakım", StringComparison.OrdinalIgnoreCase) >= 0) && n.IndexOf("kazanım", StringComparison.OrdinalIgnoreCase) >= 0)
+                        colSavedMaint = c;
+                    else if (n.IndexOf("fiili", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("çalışılan", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("calisilan", StringComparison.OrdinalIgnoreCase) >= 0)
+                        colFiili = c;
+                }
+
+                RawMolaKazanimi = (colSavedMaint != null && dbRow[colSavedMaint] != DBNull.Value) ? Convert.ToDouble(dbRow[colSavedMaint]) : 0;
+                RawBypassKazanimi = (colSavedBreak != null && dbRow[colSavedBreak] != DBNull.Value) ? Convert.ToDouble(dbRow[colSavedBreak]) : 0;
+
+                // FIX: Enhanced parsing to handle TimeSpan strings like "09:06" properly without culture errors
+                if (colFiili != null && dbRow[colFiili] != DBNull.Value)
+                {
+                    string fStr = dbRow[colFiili].ToString().Trim();
+                    if (TimeSpan.TryParse(fStr, out TimeSpan fTs)) RawFiiliSure = fTs.TotalMinutes;
+                    else if (DateTime.TryParse(fStr, out DateTime fDt)) RawFiiliSure = fDt.TimeOfDay.TotalMinutes;
+                    else if (double.TryParse(fStr, out double fDbl)) RawFiiliSure = fDbl;
+                    else RawFiiliSure = 0;
+                }
+                else RawFiiliSure = 0;
+            }
+            else
+            {
+                RawMolaKazanimi = 0;
+                RawBypassKazanimi = 0;
+                RawFiiliSure = 0;
+            }
+        }
+
         private void SetDirty()
         {
             IsDirty = true;
             (SaveToDatabaseCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             (UndoCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
         }
-
-        // ==========================================
 
         private void SyncEditFields()
         {
@@ -557,7 +720,6 @@ namespace WPF_LoginForm.ViewModels
             _editEndTime = SelectedBlock.OriginalEvent.EndTime;
             _editDuration = SelectedBlock.OriginalEvent.DurationMinutes;
 
-            // Determine if the code belongs to Extra or Normal
             if (AvailableMachineCodes.Contains(SelectedBlock.OriginalEvent.MachineCode))
             {
                 IsMachineTypeExtra = true;
@@ -651,8 +813,8 @@ namespace WPF_LoginForm.ViewModels
             if (_currentData == null) return;
             var shiftBlocks = new List<TimelineBlockModel>();
 
-            var dateCol = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.ToLower().Contains("date") || c.ColumnName.ToLower().Contains("tarih"));
-            var shiftCol = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.ToLower().Contains("shift") || c.ColumnName.ToLower().Contains("vardiya"));
+            var dateCol = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("tarih", StringComparison.OrdinalIgnoreCase) >= 0);
+            var shiftCol = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("shift", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("vardiya", StringComparison.OrdinalIgnoreCase) >= 0);
 
             foreach (DataRow row in _currentData.Rows)
             {
@@ -703,6 +865,7 @@ namespace WPF_LoginForm.ViewModels
                 TimelineBlocks.Clear();
                 foreach (var b in shiftBlocks) TimelineBlocks.Add(b);
                 RefreshDimensions();
+                RecalculateSavings();
             });
         }
 
@@ -742,7 +905,6 @@ namespace WPF_LoginForm.ViewModels
 
             CalculatedCanvasWidth = _lastViewportWidth * (12.0 / TimeWindowHours);
 
-            // PADDING CALCULATION SO ENDS AREN'T CUT OFF
             double padding = 40.0;
             double usableWidth = CalculatedCanvasWidth - (padding * 2);
             if (usableWidth <= 0) usableWidth = 100;
