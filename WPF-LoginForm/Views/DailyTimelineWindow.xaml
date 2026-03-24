@@ -1,12 +1,13 @@
-﻿<Window x:Class="WPF_LoginForm.Views.DailyTimelineWindow"
+﻿<!-- WPF-LoginForm/Views/DailyTimelineWindow.xaml -->
+<Window x:Class="WPF_LoginForm.Views.DailyTimelineWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:fa="http://schemas.fontawesome.io/icons/"
         xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
-        Title="Daily Timeline" Height="740" Width="1250"
+        Title="Daily Timeline" Height="740" Width="1350"
         WindowStartupLocation="CenterOwner"
         Background="#09092B"
-        MinWidth="950" MinHeight="600">
+        MinWidth="1050" MinHeight="600">
 
     <Window.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
@@ -224,50 +225,81 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!-- KPI CARDS -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <!-- KPI 1: Mola / Bakım -->
-                    <Border Background="#1A1A3A" BorderBrush="#2ECC71" BorderThickness="1" CornerRadius="6" Padding="10,5" Margin="0,0,10,0">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <fa:ImageAwesome Icon="Wrench" Height="10" Foreground="Gray" Margin="0,0,5,0" />
-                                <TextBlock Text="Mola/Bakım Kazanımı" Foreground="Gray" FontSize="10" FontWeight="SemiBold" />
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                <TextBlock Text="{Binding AutoCalculatedMolaKazanimi, StringFormat={}{0}m}" Foreground="#2ECC71" FontSize="16" FontWeight="Bold" />
-                                <TextBlock Text="{Binding RawMolaKazanimi, StringFormat={} DB: {0}m}" Foreground="DarkGray" FontSize="11" VerticalAlignment="Bottom" Margin="5,0,0,2" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
+                <!-- KPI CARDS (Scrollable horizontally if screen gets small) -->
+                <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 
-                    <!-- KPI 2: Bypass -->
-                    <Border Background="#1A1A3A" BorderBrush="#8E44AD" BorderThickness="1" CornerRadius="6" Padding="10,5" Margin="0,0,10,0">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <fa:ImageAwesome Icon="Forward" Height="10" Foreground="Gray" Margin="0,0,5,0" />
-                                <TextBlock Text="Duruşu Engellemeyen (Bypass)" Foreground="Gray" FontSize="10" FontWeight="SemiBold" />
+                        <!-- KPI 1: Mola / Bakım -->
+                        <Border Background="#1A1A3A" BorderBrush="#2ECC71" BorderThickness="1" CornerRadius="6" Padding="10,5" Margin="0,0,10,0">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <fa:ImageAwesome Icon="Wrench" Height="10" Foreground="Gray" Margin="0,0,5,0" />
+                                    <TextBlock Text="Mola/Bakım Kazanımı" Foreground="Gray" FontSize="10" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <TextBlock Text="{Binding AutoCalculatedMolaKazanimi, StringFormat={}{0}m}" Foreground="#2ECC71" FontSize="16" FontWeight="Bold" />
+                                    <TextBlock Text="{Binding RawMolaKazanimi, StringFormat={} DB: {0}m}" Foreground="DarkGray" FontSize="11" VerticalAlignment="Bottom" Margin="5,0,0,2" />
+                                </StackPanel>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                <TextBlock Text="{Binding ManualBypassKazanimi, StringFormat={}{0}m}" Foreground="#8E44AD" FontSize="16" FontWeight="Bold" />
-                                <TextBlock Text="{Binding RawBypassKazanimi, StringFormat={} DB: {0}m}" Foreground="DarkGray" FontSize="11" VerticalAlignment="Bottom" Margin="5,0,0,2" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
+                        </Border>
 
-                    <!-- KPI 3: Fiili Çalışılan Süre -->
-                    <Border Background="#1A1A3A" BorderBrush="#3498DB" BorderThickness="1" CornerRadius="6" Padding="10,5">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <fa:ImageAwesome Icon="Cog" Height="10" Foreground="Gray" Margin="0,0,5,0" />
-                                <TextBlock Text="Fiili Çalışılan Süre" Foreground="Gray" FontSize="10" FontWeight="SemiBold" />
+                        <!-- KPI 2: Bypass -->
+                        <Border Background="#1A1A3A" BorderBrush="#8E44AD" BorderThickness="1" CornerRadius="6" Padding="10,5" Margin="0,0,10,0">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <fa:ImageAwesome Icon="Forward" Height="10" Foreground="Gray" Margin="0,0,5,0" />
+                                    <TextBlock Text="Duruşu Engellemeyen (Bypass)" Foreground="Gray" FontSize="10" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <TextBlock Text="{Binding ManualBypassKazanimi, StringFormat={}{0}m}" Foreground="#8E44AD" FontSize="16" FontWeight="Bold" />
+                                    <TextBlock Text="{Binding RawBypassKazanimi, StringFormat={} DB: {0}m}" Foreground="DarkGray" FontSize="11" VerticalAlignment="Bottom" Margin="5,0,0,2" />
+                                </StackPanel>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                <TextBlock Text="{Binding AutoFiiliSureFormatted}" Foreground="#3498DB" FontSize="16" FontWeight="Bold" />
-                                <TextBlock Text="{Binding RawFiiliSureFormatted, StringFormat={} DB: {0}}" Foreground="DarkGray" FontSize="11" VerticalAlignment="Bottom" Margin="5,0,0,2" />
+                        </Border>
+
+                        <!-- KPI 3: Fiili Çalışılan Süre -->
+                        <Border Background="#1A1A3A" BorderBrush="#3498DB" BorderThickness="1" CornerRadius="6" Padding="10,5" Margin="0,0,10,0">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <fa:ImageAwesome Icon="Cog" Height="10" Foreground="Gray" Margin="0,0,5,0" />
+                                    <TextBlock Text="Fiili Çalışılan Süre" Foreground="Gray" FontSize="10" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <TextBlock Text="{Binding AutoFiiliSureFormatted}" Foreground="#3498DB" FontSize="16" FontWeight="Bold" />
+                                    <TextBlock Text="{Binding RawFiiliSureFormatted, StringFormat={} DB: {0}}" Foreground="DarkGray" FontSize="11" VerticalAlignment="Bottom" Margin="5,0,0,2" />
+                                </StackPanel>
                             </StackPanel>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
+                        </Border>
+
+                        <!-- KPI 4: Yanlış zaman Verisi -->
+                        <Border Background="#1A1A3A" BorderBrush="#E74C3C" BorderThickness="1" CornerRadius="6" Padding="10,5" Margin="0,0,10,0">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <fa:ImageAwesome Icon="ClockOutline" Height="10" Foreground="Gray" Margin="0,0,5,0" />
+                                    <TextBlock Text="Yanlış zaman Verisi" Foreground="Gray" FontSize="10" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <TextBlock Text="{Binding WrongTimeCount}" Foreground="#E74C3C" FontSize="16" FontWeight="Bold" />
+                                    <TextBlock Text=" items" Foreground="DarkGray" FontSize="11" VerticalAlignment="Bottom" Margin="5,0,0,2" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- KPI 5: Bozuk Veri -->
+                        <Border Background="#1A1A3A" BorderBrush="#C0392B" BorderThickness="1" CornerRadius="6" Padding="10,5" Margin="0,0,10,0">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <fa:ImageAwesome Icon="Ban" Height="10" Foreground="Gray" Margin="0,0,5,0" />
+                                    <TextBlock Text="Bozuk veri" Foreground="Gray" FontSize="10" FontWeight="SemiBold" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                    <TextBlock Text="{Binding CorruptedDataCount}" Foreground="#C0392B" FontSize="16" FontWeight="Bold" />
+                                    <TextBlock Text=" items" Foreground="DarkGray" FontSize="11" VerticalAlignment="Bottom" Margin="5,0,0,2" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
 
                 <!-- View Controls (Zoom, Shift) -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
@@ -467,40 +499,29 @@
                                 </StackPanel>
                             </Grid>
 
-                            <!-- UPDATED MACHINE CODE SELECTOR -->
-                            <TextBlock Text="Machine Code Type" Style="{StaticResource EditLabelStyle}" />
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                                <RadioButton Content="Normal (Manual)" IsChecked="{Binding IsMachineTypeNormal, Mode=OneWay}" Foreground="LightGray" Margin="0,0,15,0" />
-                                <RadioButton Content="Extra (Configured)" IsChecked="{Binding IsMachineTypeExtra, Mode=TwoWay}" Foreground="LightGray" />
-                            </StackPanel>
+                            <!-- UNIFIED MACHINE CODE SELECTOR -->
+                            <TextBlock Text="Machine Code" Style="{StaticResource EditLabelStyle}" />
 
                             <Grid Margin="0,0,0,15">
-                                <!-- EXTRA MODE: ComboBox + Gear -->
-                                <Grid Visibility="{Binding IsMachineTypeExtra, Converter={StaticResource BoolToVis}}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableMachineCodes}"
-                                              SelectedItem="{Binding SelectedBlock.OriginalEvent.MachineCode}"
-                                              IsEditable="False"
-                                              Height="30" VerticalContentAlignment="Center" />
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
 
-                                    <Button Grid.Column="1" Command="{Binding ManageMachineCodesCommand}" Width="30" Height="30" Margin="5,0,0,0" Background="#333" BorderThickness="0" Cursor="Hand" ToolTip="Configure Extra Machine Codes">
-                                        <fa:ImageAwesome Icon="Gear" Height="14" Foreground="White" />
-                                    </Button>
-                                </Grid>
+                                <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableMachineCodes}"
+                                          Text="{Binding SelectedBlock.OriginalEvent.MachineCode, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEditable="True"
+                                          Height="30" VerticalContentAlignment="Center" />
 
-                                <!-- NORMAL MODE: TextBox -->
-                                <TextBox Text="{Binding SelectedBlock.OriginalEvent.MachineCode, UpdateSourceTrigger=PropertyChanged}"
-                                         Visibility="{Binding IsMachineTypeExtra, Converter={StaticResource BoolToVis}, ConverterParameter=Inverse}"
-                                         Style="{StaticResource EditBoxStyle}" Margin="0" />
+                                <Button Grid.Column="1" Command="{Binding ManageMachineCodesCommand}" Width="30" Height="30" Margin="5,0,0,0" Background="#333" BorderThickness="0" Cursor="Hand" ToolTip="Configure Saved Machine Codes">
+                                    <fa:ImageAwesome Icon="Gear" Height="14" Foreground="White" />
+                                </Button>
                             </Grid>
 
                             <TextBlock Text="Description" Style="{StaticResource EditLabelStyle}" />
                             <TextBox Text="{Binding SelectedBlock.OriginalEvent.ErrorDescription, UpdateSourceTrigger=PropertyChanged}" Height="80" TextWrapping="Wrap" AcceptsReturn="True" Style="{StaticResource EditBoxStyle}" />
 
-                            <!-- NEW: BYPASS FLAG -->
+                            <!-- BYPASS FLAG -->
                             <CheckBox Content="Flag as Bypass (Did not stop facility)"
                                       IsChecked="{Binding SelectedBlock.IsBypass, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                       Foreground="#FFC047" FontWeight="SemiBold" Margin="0,5,0,15" />

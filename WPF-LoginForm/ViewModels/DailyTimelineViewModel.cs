@@ -6,7 +6,6 @@ using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -169,6 +168,14 @@ namespace WPF_LoginForm.ViewModels
         private double _rawBypassKazanimi;
         public double RawBypassKazanimi { get => _rawBypassKazanimi; set => SetProperty(ref _rawBypassKazanimi, value); }
 
+        // NEW KPI: Corrupted Data & Wrong Time Data Counters
+        private int _corruptedDataCount;
+
+        public int CorruptedDataCount { get => _corruptedDataCount; set => SetProperty(ref _corruptedDataCount, value); }
+
+        private int _wrongTimeCount;
+        public int WrongTimeCount { get => _wrongTimeCount; set => SetProperty(ref _wrongTimeCount, value); }
+
         // --- Fiili_Çalışılan_Süre Properties ---
         private double _autoFiiliSure;
 
@@ -186,9 +193,7 @@ namespace WPF_LoginForm.ViewModels
             set { if (SetProperty(ref _rawFiiliSure, value)) OnPropertyChanged(nameof(RawFiiliSureFormatted)); }
         }
 
-        // Formats minutes into "09:06" style strings matching the Database
         public string AutoFiiliSureFormatted => $"{(int)(AutoFiiliSure / 60):D2}:{(int)(AutoFiiliSure % 60):D2}";
-
         public string RawFiiliSureFormatted => $"{(int)(RawFiiliSure / 60):D2}:{(int)(RawFiiliSure % 60):D2}";
 
         // UI Panels
@@ -215,27 +220,6 @@ namespace WPF_LoginForm.ViewModels
                 }
             }
         }
-
-        private bool _isMachineTypeExtra;
-
-        public bool IsMachineTypeExtra
-        {
-            get => _isMachineTypeExtra;
-            set
-            {
-                if (SetProperty(ref _isMachineTypeExtra, value))
-                {
-                    OnPropertyChanged(nameof(IsMachineTypeNormal));
-                    if (value && SelectedBlock?.OriginalEvent != null && !AvailableMachineCodes.Contains(SelectedBlock.OriginalEvent.MachineCode))
-                    {
-                        SelectedBlock.OriginalEvent.MachineCode = AvailableMachineCodes.FirstOrDefault() ?? "00";
-                        OnPropertyChanged(nameof(SelectedBlock));
-                    }
-                }
-            }
-        }
-
-        public bool IsMachineTypeNormal => !_isMachineTypeExtra;
 
         private bool _useEndTimeMode;
         public bool UseEndTimeMode { get => _useEndTimeMode; set => SetProperty(ref _useEndTimeMode, value); }
@@ -358,7 +342,7 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteManageMachineCodes()
         {
-            if (_dialogService.ShowInputDialog("Add Machine Code", "Enter a new EXTRAS machine code:", "", out string newCode))
+            if (_dialogService.ShowInputDialog("Add Machine Code", "Enter a new Machine code:", "", out string newCode))
             {
                 string cleanCode = newCode.Trim().ToUpper();
                 if (!string.IsNullOrWhiteSpace(cleanCode) && !AvailableMachineCodes.Contains(cleanCode))
@@ -582,7 +566,6 @@ namespace WPF_LoginForm.ViewModels
             if (dbRow != null)
             {
                 var dt = dbRow.Table;
-                // FIX: Culture-safe column identification
                 DataColumn startCol = dt.Columns.Cast<DataColumn>().FirstOrDefault(c =>
                     c.ColumnName.IndexOf("başlangıç", StringComparison.OrdinalIgnoreCase) >= 0 ||
                     c.ColumnName.IndexOf("baslangic", StringComparison.OrdinalIgnoreCase) >= 0 ||
@@ -598,7 +581,6 @@ namespace WPF_LoginForm.ViewModels
                     string sTime = dbRow[startCol].ToString();
                     string eTime = dbRow[endCol].ToString();
 
-                    // Parse TimeSpan or DateTime
                     TimeSpan tsStart, tsEnd;
 
                     if (!TimeSpan.TryParse(sTime, out tsStart) && DateTime.TryParse(sTime, out DateTime dStart)) tsStart = dStart.TimeOfDay;
@@ -609,13 +591,13 @@ namespace WPF_LoginForm.ViewModels
                 }
             }
 
-            // 2. Setup overlap tracking arrays
+            // 2. Setup tracking arrays
             int arraySize = (int)Math.Max(1440, shiftTotalMinutes + 120);
             bool[] isStoppedMinute = new bool[arraySize];
-            bool[] isBreakMinute = new bool[arraySize];
             double manualBypass = 0;
+            double sumOfDurations = 0;
 
-            // Mark stop times and break times
+            // Mark stop times and sum durations (ignoring bypassed items)
             foreach (var block in TimelineBlocks)
             {
                 if (block.IsBypass)
@@ -624,48 +606,30 @@ namespace WPF_LoginForm.ViewModels
                     continue; // Bypassed events do NOT stop the facility
                 }
 
+                sumOfDurations += block.DurationMinutes;
+
                 int start = (int)Math.Max(0, block.StartMinuteInShift);
                 int end = (int)Math.Min(arraySize, block.StartMinuteInShift + block.DurationMinutes);
-                bool isBreak = block.OriginalEvent != null && (block.OriginalEvent.MachineCode == "00" || block.OriginalEvent.MachineCode == "0" || block.OriginalEvent.MachineCode == "MA-00");
 
                 for (int i = start; i < end; i++)
                 {
                     isStoppedMinute[i] = true;
-                    if (isBreak) isBreakMinute[i] = true;
                 }
             }
 
-            // 3. Calculate Mola Kazanımı (Overlap between breaks and non-breaks)
-            double autoMola = 0;
-            foreach (var block in TimelineBlocks)
-            {
-                if (block.IsBypass) continue;
-                bool isBreak = block.OriginalEvent != null && (block.OriginalEvent.MachineCode == "00" || block.OriginalEvent.MachineCode == "0" || block.OriginalEvent.MachineCode == "MA-00");
-
-                if (!isBreak)
-                {
-                    int start = (int)Math.Max(0, block.StartMinuteInShift);
-                    int end = (int)Math.Min(arraySize, block.StartMinuteInShift + block.DurationMinutes);
-
-                    for (int i = start; i < end; i++)
-                    {
-                        if (isBreakMinute[i]) autoMola++;
-                    }
-                }
-            }
-
-            // 4. Calculate Fiili Çalışılan Süre
+            // 3. Calculate Fiili Çalışılan Süre (Actual worked time)
             int totalStoppedWithinShift = 0;
             for (int i = 0; i < (int)shiftTotalMinutes; i++)
             {
                 if (isStoppedMinute[i]) totalStoppedWithinShift++;
             }
 
-            AutoCalculatedMolaKazanimi = autoMola;
+            // Mola Bakım Kazanımı mathematically = Total Durations - Unique Stopped Minutes
+            AutoCalculatedMolaKazanimi = Math.Max(0, sumOfDurations - totalStoppedWithinShift);
             ManualBypassKazanimi = manualBypass;
             AutoFiiliSure = Math.Max(0, shiftTotalMinutes - totalStoppedWithinShift);
 
-            // 5. Fetch DB Raw Values for comparison (Culture Safe string match)
+            // 4. Fetch DB Raw Values for comparison
             if (dbRow != null)
             {
                 var dt = dbRow.Table;
@@ -686,7 +650,6 @@ namespace WPF_LoginForm.ViewModels
                 RawMolaKazanimi = (colSavedMaint != null && dbRow[colSavedMaint] != DBNull.Value) ? Convert.ToDouble(dbRow[colSavedMaint]) : 0;
                 RawBypassKazanimi = (colSavedBreak != null && dbRow[colSavedBreak] != DBNull.Value) ? Convert.ToDouble(dbRow[colSavedBreak]) : 0;
 
-                // FIX: Enhanced parsing to handle TimeSpan strings like "09:06" properly without culture errors
                 if (colFiili != null && dbRow[colFiili] != DBNull.Value)
                 {
                     string fStr = dbRow[colFiili].ToString().Trim();
@@ -719,15 +682,6 @@ namespace WPF_LoginForm.ViewModels
             _editStartTime = SelectedBlock.OriginalEvent.StartTime;
             _editEndTime = SelectedBlock.OriginalEvent.EndTime;
             _editDuration = SelectedBlock.OriginalEvent.DurationMinutes;
-
-            if (AvailableMachineCodes.Contains(SelectedBlock.OriginalEvent.MachineCode))
-            {
-                IsMachineTypeExtra = true;
-            }
-            else
-            {
-                IsMachineTypeExtra = false;
-            }
 
             OnPropertyChanged(nameof(EditStartTime)); OnPropertyChanged(nameof(EditEndTime)); OnPropertyChanged(nameof(EditDuration));
         }
@@ -816,12 +770,26 @@ namespace WPF_LoginForm.ViewModels
             var dateCol = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("tarih", StringComparison.OrdinalIgnoreCase) >= 0);
             var shiftCol = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("shift", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("vardiya", StringComparison.OrdinalIgnoreCase) >= 0);
 
+            int wrongTimeCounter = 0;
+            int corruptedDataCounter = 0;
+
             foreach (DataRow row in _currentData.Rows)
             {
                 if (row.RowState == DataRowState.Deleted) continue;
 
                 DateTime rDate = dateCol != null && row[dateCol] != DBNull.Value ? Convert.ToDateTime(row[dateCol]) : DateTime.MinValue;
                 string rShift = shiftCol != null && row[shiftCol] != DBNull.Value ? row[shiftCol].ToString() : "";
+
+                // FIX: Check Vardiya string to separate Gündüz from Gece rows accurately
+                bool isTargetShiftRow = false;
+                if (rDate.Date == TargetDate.Date)
+                {
+                    bool isRowNightShift = rShift.IndexOf("gece", StringComparison.OrdinalIgnoreCase) >= 0 || rShift.IndexOf("night", StringComparison.OrdinalIgnoreCase) >= 0;
+                    bool isRowDayShift = rShift.IndexOf("gündüz", StringComparison.OrdinalIgnoreCase) >= 0 || rShift.IndexOf("gunduz", StringComparison.OrdinalIgnoreCase) >= 0 || rShift.IndexOf("day", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                    if (IsNightShift && isRowNightShift) isTargetShiftRow = true;
+                    else if (!IsNightShift && isRowDayShift) isTargetShiftRow = true;
+                }
 
                 if (rDate.Date >= TargetDate.AddDays(-1) && rDate.Date <= TargetDate.AddDays(1))
                 {
@@ -830,10 +798,34 @@ namespace WPF_LoginForm.ViewModels
                         string cellData = row[eCol]?.ToString();
                         if (string.IsNullOrWhiteSpace(cellData)) continue;
 
-                        var item = ErrorEventModel.Parse(cellData, rDate, rShift, 0, 0, 0, 0, Guid.NewGuid().ToString());
-                        if (item == null || string.IsNullOrEmpty(item.StartTime) || item.ErrorDescription == "NO_ERROR") continue;
+                        // 1. Detect "Bozuk Veri" (Corrupted Data Format: length/structure check)
+                        var parts = cellData.Split('-');
+                        if (parts.Length < 4 || parts[0].Length != 4)
+                        {
+                            if (isTargetShiftRow) corruptedDataCounter++;
+                            continue;
+                        }
 
-                        if (!TimeSpan.TryParse(item.StartTime, out TimeSpan ts)) continue;
+                        if (!int.TryParse(parts[0].Substring(0, 2), out int hh) || !int.TryParse(parts[0].Substring(2, 2), out int mm) || hh > 23 || mm > 59)
+                        {
+                            if (isTargetShiftRow) corruptedDataCounter++;
+                            continue;
+                        }
+
+                        var item = ErrorEventModel.Parse(cellData, rDate, rShift, 0, 0, 0, 0, Guid.NewGuid().ToString());
+                        if (item == null || string.IsNullOrEmpty(item.StartTime))
+                        {
+                            if (isTargetShiftRow) corruptedDataCounter++;
+                            continue;
+                        }
+
+                        if (item.ErrorDescription == "NO_ERROR") continue;
+
+                        if (!TimeSpan.TryParse(item.StartTime, out TimeSpan ts))
+                        {
+                            if (isTargetShiftRow) corruptedDataCounter++;
+                            continue;
+                        }
 
                         DateTime eventStartFull = item.Date.Date.Add(ts);
                         DateTime shiftStart = IsNightShift ? TargetDate.Date.AddHours(20) : TargetDate.Date.AddHours(8);
@@ -841,6 +833,7 @@ namespace WPF_LoginForm.ViewModels
 
                         if (IsNightShift && ts.Hours < 12) eventStartFull = eventStartFull.AddDays(1);
 
+                        // Check if valid time falls inside the current shift bounds
                         if (eventStartFull >= shiftStart && eventStartFull < shiftEnd)
                         {
                             shiftBlocks.Add(new TimelineBlockModel
@@ -854,6 +847,11 @@ namespace WPF_LoginForm.ViewModels
                                 IsNewUnsaved = false
                             });
                         }
+                        else
+                        {
+                            // 2. Detect "Yanlış zaman Verisi" (Wrong Time Data completely outside bounds)
+                            if (isTargetShiftRow) wrongTimeCounter++;
+                        }
                     }
                 }
             }
@@ -862,6 +860,9 @@ namespace WPF_LoginForm.ViewModels
 
             Application.Current.Dispatcher.Invoke(() =>
             {
+                WrongTimeCount = wrongTimeCounter;
+                CorruptedDataCount = corruptedDataCounter;
+
                 TimelineBlocks.Clear();
                 foreach (var b in shiftBlocks) TimelineBlocks.Add(b);
                 RefreshDimensions();
