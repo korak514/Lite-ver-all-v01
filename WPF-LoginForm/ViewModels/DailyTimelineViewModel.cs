@@ -1,4 +1,4 @@
-﻿// WPF-LoginForm/ViewModels/DailyTimelineViewModel.cs
+﻿// ViewModels/DailyTimelineViewModel.cs
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -50,6 +50,8 @@ namespace WPF_LoginForm.ViewModels
         public string SourceColumn { get; set; }
         public bool IsNewUnsaved { get; set; }
 
+        public bool IsReferenceBlock { get; set; }
+
         private bool _isBypass;
 
         public bool IsBypass
@@ -67,14 +69,16 @@ namespace WPF_LoginForm.ViewModels
         private double _pixelY;
         public double PixelY { get => _pixelY; set => SetProperty(ref _pixelY, value); }
 
-        public string DisplayText => OriginalEvent != null ? $"MA-{OriginalEvent.MachineCode}: {OriginalEvent.ErrorDescription}" : "";
+        public string DisplayText => IsReferenceBlock ? $"Ref: {DurationMinutes}m" : (OriginalEvent != null ? $"MA-{OriginalEvent.MachineCode}: {OriginalEvent.ErrorDescription}" : "");
         public string BlockColor => DetermineColor();
 
-        public bool IsTextVisible => DurationMinutes >= 10 || CurrentZoomHours <= 2.0;
+        public bool IsTextVisible => !IsReferenceBlock && (DurationMinutes >= 10 || CurrentZoomHours <= 2.0);
         public double TextFontSize => (DurationMinutes < 10 && CurrentZoomHours <= 2.0) ? 8.0 : 11.0;
 
         private string DetermineColor()
         {
+            if (IsReferenceBlock) return "#80F39C12"; // Amber/Orange Semi-transparent
+
             if (OriginalEvent == null) return "#808080";
             if (IsBypass) return "#8E44AD";
 
@@ -86,6 +90,9 @@ namespace WPF_LoginForm.ViewModels
 
         public void UpdateZoom(double zoomHours)
         {
+            // PERFORMANCE FIX: Prevent layout thrashing
+            if (Math.Abs(CurrentZoomHours - zoomHours) < 0.01) return;
+
             CurrentZoomHours = zoomHours;
             OnPropertyChanged(nameof(IsTextVisible));
             OnPropertyChanged(nameof(TextFontSize));
@@ -116,7 +123,7 @@ namespace WPF_LoginForm.ViewModels
         public DateTime TargetDate
         {
             get => _targetDate;
-            set { if (SetProperty(ref _targetDate, value)) { UpdateHeaderStrings(); _ = LoadDataAsync(); } }
+            set { if (SetProperty(ref _targetDate, value)) { UpdateHeaderStrings(); _ = LoadDataAsync(); _ = LoadRulerDataAsync(); } }
         }
 
         private bool _isNightShift;
@@ -124,7 +131,7 @@ namespace WPF_LoginForm.ViewModels
         public bool IsNightShift
         {
             get => _isNightShift;
-            set { if (SetProperty(ref _isNightShift, value)) { UpdateHeaderStrings(); ParseDataToTimeline(); } }
+            set { if (SetProperty(ref _isNightShift, value)) { UpdateHeaderStrings(); ParseDataToTimeline(); _ = LoadRulerDataAsync(); } }
         }
 
         private bool _isDirty;
@@ -168,15 +175,12 @@ namespace WPF_LoginForm.ViewModels
         private double _rawBypassKazanimi;
         public double RawBypassKazanimi { get => _rawBypassKazanimi; set => SetProperty(ref _rawBypassKazanimi, value); }
 
-        // NEW KPI: Corrupted Data & Wrong Time Data Counters
         private int _corruptedDataCount;
-
         public int CorruptedDataCount { get => _corruptedDataCount; set => SetProperty(ref _corruptedDataCount, value); }
 
         private int _wrongTimeCount;
         public int WrongTimeCount { get => _wrongTimeCount; set => SetProperty(ref _wrongTimeCount, value); }
 
-        // --- Fiili_Çalışılan_Süre Properties ---
         private double _autoFiiliSure;
 
         public double AutoFiiliSure
@@ -200,6 +204,7 @@ namespace WPF_LoginForm.ViewModels
         private bool _isFavoritesVisible = false;
 
         public bool IsFavoritesVisible { get => _isFavoritesVisible; set => SetProperty(ref _isFavoritesVisible, value); }
+
         public ObservableCollection<FavoriteEvent> FavoriteEvents { get; } = new ObservableCollection<FavoriteEvent>();
         public ObservableCollection<string> AvailableMachineCodes { get; } = new ObservableCollection<string>();
 
@@ -215,8 +220,8 @@ namespace WPF_LoginForm.ViewModels
             {
                 if (SetProperty(ref _selectedBlock, value))
                 {
-                    IsEditPanelVisible = _selectedBlock != null;
-                    if (_selectedBlock != null) SyncEditFields();
+                    IsEditPanelVisible = _selectedBlock != null && !_selectedBlock.IsReferenceBlock;
+                    if (_selectedBlock != null && !_selectedBlock.IsReferenceBlock) SyncEditFields();
                 }
             }
         }
@@ -248,7 +253,21 @@ namespace WPF_LoginForm.ViewModels
             set { if (SetProperty(ref _editDuration, value)) { if (!UseEndTimeMode) CalculateTime(); } }
         }
 
+        // --- NEW: RULER SELECTION ---
+        public ObservableCollection<string> RulerTables { get; } = new ObservableCollection<string>();
+
+        private string _selectedRulerTable;
+
+        public string SelectedRulerTable
+        {
+            get => _selectedRulerTable;
+            set { if (SetProperty(ref _selectedRulerTable, value)) _ = LoadRulerDataAsync(); }
+        }
+
+        // --- TIMELINE COLLECTIONS ---
         public ObservableCollection<TimelineBlockModel> TimelineBlocks { get; } = new ObservableCollection<TimelineBlockModel>();
+
+        public ObservableCollection<TimelineBlockModel> ReferenceBlocks { get; } = new ObservableCollection<TimelineBlockModel>();
         public ObservableCollection<HourMarker> HourMarkers { get; } = new ObservableCollection<HourMarker>();
 
         // Commands
@@ -295,11 +314,24 @@ namespace WPF_LoginForm.ViewModels
 
             SaveToDatabaseCommand = new ViewModelCommand(p => ExecuteSaveToDatabase(), p => IsDirty && IsOnlineMode);
             UndoCommand = new ViewModelCommand(p => ExecuteUndo(), p => IsDirty);
-            RefreshCommand = new ViewModelCommand(p => _ = LoadDataAsync());
+            RefreshCommand = new ViewModelCommand(p => { _ = LoadDataAsync(); _ = LoadRulerDataAsync(); });
 
+            _ = InitializeTablesAsync();
             LoadConfigData();
             UpdateHeaderStrings();
             _ = LoadDataAsync();
+        }
+
+        private async Task InitializeTablesAsync()
+        {
+            var tables = await _repository.GetTableNamesAsync();
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                RulerTables.Clear();
+                RulerTables.Add("None");
+                foreach (var t in tables) RulerTables.Add(t);
+                SelectedRulerTable = "None";
+            });
         }
 
         private void LoadConfigData()
@@ -400,7 +432,8 @@ namespace WPF_LoginForm.ViewModels
                 StartMinuteInShift = startMin,
                 DurationMinutes = dur,
                 CurrentZoomHours = this.TimeWindowHours,
-                IsNewUnsaved = true
+                IsNewUnsaved = true,
+                IsReferenceBlock = false
             };
 
             SyncEditFields();
@@ -457,7 +490,7 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteApplyToTimeline()
         {
-            if (SelectedBlock == null || _currentData == null) return;
+            if (SelectedBlock == null || _currentData == null || SelectedBlock.IsReferenceBlock) return;
             CalculateTime();
             SelectedBlock.RefreshUI();
 
@@ -513,7 +546,7 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteDeleteEvent()
         {
-            if (SelectedBlock != null && TimelineBlocks.Contains(SelectedBlock))
+            if (SelectedBlock != null && TimelineBlocks.Contains(SelectedBlock) && !SelectedBlock.IsReferenceBlock)
             {
                 if (SelectedBlock.SourceRow != null && !string.IsNullOrEmpty(SelectedBlock.SourceColumn))
                 {
@@ -551,15 +584,11 @@ namespace WPF_LoginForm.ViewModels
             ParseDataToTimeline();
         }
 
-        // ==========================================
-        // KPI CALCULATIONS (Overlap, Bypass, Fiili Süre)
-        // ==========================================
         private void RecalculateSavings()
         {
             if (TimelineBlocks == null) return;
 
-            // 1. Determine Dynamic Shift Duration based on Database values
-            double shiftTotalMinutes = 720; // Default 12h
+            double shiftTotalMinutes = 720;
             var firstValidBlock = TimelineBlocks.FirstOrDefault(b => b.SourceRow != null && b.SourceRow.Table != null);
             DataRow dbRow = firstValidBlock?.SourceRow;
 
@@ -591,19 +620,19 @@ namespace WPF_LoginForm.ViewModels
                 }
             }
 
-            // 2. Setup tracking arrays
             int arraySize = (int)Math.Max(1440, shiftTotalMinutes + 120);
             bool[] isStoppedMinute = new bool[arraySize];
             double manualBypass = 0;
             double sumOfDurations = 0;
 
-            // Mark stop times and sum durations (ignoring bypassed items)
             foreach (var block in TimelineBlocks)
             {
+                if (block.IsReferenceBlock) continue;
+
                 if (block.IsBypass)
                 {
                     manualBypass += block.DurationMinutes;
-                    continue; // Bypassed events do NOT stop the facility
+                    continue;
                 }
 
                 sumOfDurations += block.DurationMinutes;
@@ -617,19 +646,16 @@ namespace WPF_LoginForm.ViewModels
                 }
             }
 
-            // 3. Calculate Fiili Çalışılan Süre (Actual worked time)
             int totalStoppedWithinShift = 0;
             for (int i = 0; i < (int)shiftTotalMinutes; i++)
             {
                 if (isStoppedMinute[i]) totalStoppedWithinShift++;
             }
 
-            // Mola Bakım Kazanımı mathematically = Total Durations - Unique Stopped Minutes
             AutoCalculatedMolaKazanimi = Math.Max(0, sumOfDurations - totalStoppedWithinShift);
             ManualBypassKazanimi = manualBypass;
             AutoFiiliSure = Math.Max(0, shiftTotalMinutes - totalStoppedWithinShift);
 
-            // 4. Fetch DB Raw Values for comparison
             if (dbRow != null)
             {
                 var dt = dbRow.Table;
@@ -677,7 +703,7 @@ namespace WPF_LoginForm.ViewModels
 
         private void SyncEditFields()
         {
-            if (SelectedBlock?.OriginalEvent == null) return;
+            if (SelectedBlock?.OriginalEvent == null || SelectedBlock.IsReferenceBlock) return;
 
             _editStartTime = SelectedBlock.OriginalEvent.StartTime;
             _editEndTime = SelectedBlock.OriginalEvent.EndTime;
@@ -688,7 +714,8 @@ namespace WPF_LoginForm.ViewModels
 
         private void CalculateTime()
         {
-            if (SelectedBlock?.OriginalEvent == null) return;
+            if (SelectedBlock?.OriginalEvent == null || SelectedBlock.IsReferenceBlock) return;
+
             if (TimeSpan.TryParse(EditStartTime, out TimeSpan startTs))
             {
                 if (UseEndTimeMode)
@@ -744,7 +771,8 @@ namespace WPF_LoginForm.ViewModels
         {
             if (string.IsNullOrEmpty(_tableName)) return;
 
-            var result = await _repository.GetTableDataAsync(_tableName, 0);
+            // PERFORMANCE FIX: Use Task.Run to fetch data off UI thread
+            var result = await Task.Run(() => _repository.GetTableDataAsync(_tableName, 0));
             if (result.Data != null)
             {
                 _currentData = result.Data;
@@ -758,8 +786,99 @@ namespace WPF_LoginForm.ViewModels
                 }
 
                 IsDirty = false;
-                ParseDataToTimeline();
+                await Task.Run(() => ParseDataToTimeline());
             }
+        }
+
+        // NEW: Load Reference Ruler Data
+        private async Task LoadRulerDataAsync()
+        {
+            if (string.IsNullOrEmpty(SelectedRulerTable) || SelectedRulerTable == "None")
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ReferenceBlocks.Clear();
+                    RefreshDimensions();
+                });
+                return;
+            }
+
+            var result = await Task.Run(() => _repository.GetTableDataAsync(SelectedRulerTable, 0));
+            if (result.Data == null) return;
+
+            await Task.Run(() =>
+            {
+                var dt = result.Data;
+                var masterReferenceBlocks = new List<TimelineBlockModel>();
+
+                var dateCol = dt.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("tarih", StringComparison.OrdinalIgnoreCase) >= 0);
+                var shiftCol = dt.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("shift", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("vardiya", StringComparison.OrdinalIgnoreCase) >= 0);
+
+                var durusColumns = dt.Columns.Cast<DataColumn>()
+                    .Where(c => c.ColumnName.StartsWith("duruş", StringComparison.OrdinalIgnoreCase) ||
+                                c.ColumnName.StartsWith("durus", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                DateTime shiftStart = IsNightShift ? TargetDate.Date.AddHours(20) : TargetDate.Date.AddHours(8);
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    if (row.RowState == DataRowState.Deleted) continue;
+
+                    DateTime rDate = dateCol != null && row[dateCol] != DBNull.Value ? Convert.ToDateTime(row[dateCol]) : DateTime.MinValue;
+                    string rShift = shiftCol != null && row[shiftCol] != DBNull.Value ? row[shiftCol].ToString() : "";
+
+                    bool isTargetShiftRow = false;
+                    if (rDate.Date == TargetDate.Date)
+                    {
+                        bool isRowNightShift = rShift.IndexOf("gece", StringComparison.OrdinalIgnoreCase) >= 0 || rShift.IndexOf("night", StringComparison.OrdinalIgnoreCase) >= 0;
+                        bool isRowDayShift = rShift.IndexOf("gündüz", StringComparison.OrdinalIgnoreCase) >= 0 || rShift.IndexOf("gunduz", StringComparison.OrdinalIgnoreCase) >= 0 || rShift.IndexOf("day", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                        if (IsNightShift && isRowNightShift) isTargetShiftRow = true;
+                        else if (!IsNightShift && isRowDayShift) isTargetShiftRow = true;
+                    }
+
+                    if (isTargetShiftRow)
+                    {
+                        foreach (var col in durusColumns)
+                        {
+                            string rawVal = row[col]?.ToString();
+                            if (string.IsNullOrWhiteSpace(rawVal)) continue;
+
+                            if (rawVal.StartsWith("F-", StringComparison.OrdinalIgnoreCase))
+                                rawVal = rawVal.Substring(2);
+
+                            var parts = rawVal.Split('-');
+                            if (parts.Length >= 2)
+                            {
+                                string timePart = parts[0].Trim();
+                                string durPart = parts[1].Trim();
+
+                                if (TimeSpan.TryParse(timePart, out TimeSpan ts) && int.TryParse(durPart, out int duration))
+                                {
+                                    DateTime eventStartFull = TargetDate.Date.Add(ts);
+                                    if (IsNightShift && ts.Hours < 12) eventStartFull = eventStartFull.AddDays(1);
+
+                                    masterReferenceBlocks.Add(new TimelineBlockModel
+                                    {
+                                        IsReferenceBlock = true,
+                                        StartMinuteInShift = (eventStartFull - shiftStart).TotalMinutes,
+                                        DurationMinutes = duration,
+                                        CurrentZoomHours = this.TimeWindowHours
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ReferenceBlocks.Clear();
+                    foreach (var rb in masterReferenceBlocks) ReferenceBlocks.Add(rb);
+                    RefreshDimensions();
+                });
+            });
         }
 
         private void ParseDataToTimeline()
@@ -773,6 +892,9 @@ namespace WPF_LoginForm.ViewModels
             int wrongTimeCounter = 0;
             int corruptedDataCounter = 0;
 
+            DateTime shiftStart = IsNightShift ? TargetDate.Date.AddHours(20) : TargetDate.Date.AddHours(8);
+            DateTime shiftEnd = shiftStart.AddHours(12);
+
             foreach (DataRow row in _currentData.Rows)
             {
                 if (row.RowState == DataRowState.Deleted) continue;
@@ -780,7 +902,6 @@ namespace WPF_LoginForm.ViewModels
                 DateTime rDate = dateCol != null && row[dateCol] != DBNull.Value ? Convert.ToDateTime(row[dateCol]) : DateTime.MinValue;
                 string rShift = shiftCol != null && row[shiftCol] != DBNull.Value ? row[shiftCol].ToString() : "";
 
-                // FIX: Check Vardiya string to separate Gündüz from Gece rows accurately
                 bool isTargetShiftRow = false;
                 if (rDate.Date == TargetDate.Date)
                 {
@@ -798,7 +919,6 @@ namespace WPF_LoginForm.ViewModels
                         string cellData = row[eCol]?.ToString();
                         if (string.IsNullOrWhiteSpace(cellData)) continue;
 
-                        // 1. Detect "Bozuk Veri" (Corrupted Data Format: length/structure check)
                         var parts = cellData.Split('-');
                         if (parts.Length < 4 || parts[0].Length != 4)
                         {
@@ -828,12 +948,8 @@ namespace WPF_LoginForm.ViewModels
                         }
 
                         DateTime eventStartFull = item.Date.Date.Add(ts);
-                        DateTime shiftStart = IsNightShift ? TargetDate.Date.AddHours(20) : TargetDate.Date.AddHours(8);
-                        DateTime shiftEnd = shiftStart.AddHours(12);
-
                         if (IsNightShift && ts.Hours < 12) eventStartFull = eventStartFull.AddDays(1);
 
-                        // Check if valid time falls inside the current shift bounds
                         if (eventStartFull >= shiftStart && eventStartFull < shiftEnd)
                         {
                             shiftBlocks.Add(new TimelineBlockModel
@@ -844,12 +960,12 @@ namespace WPF_LoginForm.ViewModels
                                 CurrentZoomHours = this.TimeWindowHours,
                                 SourceRow = row,
                                 SourceColumn = eCol,
-                                IsNewUnsaved = false
+                                IsNewUnsaved = false,
+                                IsReferenceBlock = false
                             });
                         }
                         else
                         {
-                            // 2. Detect "Yanlış zaman Verisi" (Wrong Time Data completely outside bounds)
                             if (isTargetShiftRow) wrongTimeCounter++;
                         }
                     }
@@ -865,6 +981,7 @@ namespace WPF_LoginForm.ViewModels
 
                 TimelineBlocks.Clear();
                 foreach (var b in shiftBlocks) TimelineBlocks.Add(b);
+
                 RefreshDimensions();
                 RecalculateSavings();
             });
@@ -872,7 +989,7 @@ namespace WPF_LoginForm.ViewModels
 
         private void AssignLanes(List<TimelineBlockModel> blocks)
         {
-            var sorted = blocks.OrderBy(b => b.StartMinuteInShift).ToList();
+            var sorted = blocks.Where(b => !b.IsReferenceBlock).OrderBy(b => b.StartMinuteInShift).ToList();
             double[] laneEndTimes = new double[6];
 
             foreach (var block in sorted)
@@ -916,6 +1033,7 @@ namespace WPF_LoginForm.ViewModels
             }
 
             double laneHeight = 80.0;
+
             foreach (var block in TimelineBlocks)
             {
                 block.UpdateZoom(TimeWindowHours);
@@ -924,11 +1042,23 @@ namespace WPF_LoginForm.ViewModels
                 block.PixelWidth = Math.Max(w, 5.0);
                 block.PixelY = block.LaneIndex * laneHeight + 35;
             }
+
+            foreach (var rb in ReferenceBlocks)
+            {
+                rb.UpdateZoom(TimeWindowHours);
+                rb.PixelX = padding + (rb.StartMinuteInShift / 720.0) * usableWidth;
+                double w = (rb.DurationMinutes / 720.0) * usableWidth;
+                rb.PixelWidth = Math.Max(w, 2.0);
+                rb.PixelY = 5;
+            }
         }
 
         private void ExecuteBlockClick(object parameter)
         {
-            if (parameter is TimelineBlockModel clickedBlock) SelectedBlock = clickedBlock;
+            if (parameter is TimelineBlockModel clickedBlock)
+            {
+                SelectedBlock = clickedBlock;
+            }
         }
     }
 }

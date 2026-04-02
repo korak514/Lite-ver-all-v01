@@ -441,4 +441,28 @@
   <data name="AnalyticsP2_Card_4" xml:space="preserve">
     <value>Günlük Ortalma çalışma süresi</value>
   </data>
+  <data name="P_date" xml:space="preserve">
+    <value>Tarih</value>
+  </data>
+  <data name="P_Shift" xml:space="preserve">
+    <value>Vardiya</value>
+  </data>
+  <data name="P_Running" xml:space="preserve">
+    <value>Tesis Çalışıyor</value>
+  </data>
+  <data name="P_Meal_and_breaks" xml:space="preserve">
+    <value>Molalar </value>
+  </data>
+  <data name="P_Errors_and_Stops" xml:space="preserve">
+    <value>Arıza ve Duruşlar</value>
+  </data>
+  <data name="P-Overlapping" xml:space="preserve">
+    <value>Paralel Arıza/Bakım</value>
+  </data>
+  <data name="P_Total_Stop" xml:space="preserve">
+    <value>Duruş</value>
+  </data>
+  <data name="P_Working_Time" xml:space="preserve">
+    <value>Çalışma</value>
+  </data>
 </root>

@@ -194,6 +194,9 @@ namespace WPF_LoginForm.ViewModels
         public ICommand TogglePageCommand { get; }
         public ICommand OpenDailyTimelineCommand { get; }
 
+        // NEW: Command to open Print 15-Day Report Window
+        public ICommand OpenPrintReportCommand { get; }
+
         public ErrorManagementViewModel(IDataRepository repository)
         {
             _repository = repository;
@@ -213,6 +216,9 @@ namespace WPF_LoginForm.ViewModels
             ConfigureCategoriesCommand = new ViewModelCommand(ExecuteConfigureCategories);
             TogglePageCommand = new ViewModelCommand(p => IsSecondPageActive = !IsSecondPageActive);
             OpenDailyTimelineCommand = new ViewModelCommand(ExecuteOpenDailyTimeline);
+
+            // NEW: Initialize Print Command
+            OpenPrintReportCommand = new ViewModelCommand(ExecuteOpenPrintReport);
 
             UpdateFormatterLogic();
             InitializeAsync();
@@ -282,24 +288,20 @@ namespace WPF_LoginForm.ViewModels
 
                 var uniqueCategories = filteredList.Select(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules)).Distinct().OrderBy(x => x).ToList();
 
-                // --- PAGE 1: Reason Chart Strict Normalization ---
                 double maxReasonVal = reasonStats.Any() ? reasonStats.Max(x => x.Value) : 0;
                 double calculatedReasonStep = CalculateCleanStep(maxReasonVal);
-                // Multiplying by 1.15 ensures at least a 15% visual gap above the tallest bar before snapping to the grid step
                 double targetReasonMax = Math.Ceiling((maxReasonVal * 1.15) / calculatedReasonStep) * calculatedReasonStep;
-                if (targetReasonMax <= 0) targetReasonMax = 60; // Failsafe 1 hour
+                if (targetReasonMax <= 0) targetReasonMax = 60;
 
-                // --- PAGE 2: Severity Chart Strict Normalization ---
                 double maxSeverityVal = severityStats.Any() ? severityStats.Max(x => x.Value) : 0;
                 double calculatedSeverityStep = CalculateCleanStep(maxSeverityVal);
                 double targetSeverityMax = Math.Ceiling((maxSeverityVal * 1.15) / calculatedSeverityStep) * calculatedSeverityStep;
-                if (targetSeverityMax <= 0) targetSeverityMax = 60; // Failsafe 1 hour
+                if (targetSeverityMax <= 0) targetSeverityMax = 60;
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     if (token.IsCancellationRequested || !IsActiveView) return;
 
-                    // Assign Reason properties
                     ReasonAxisStep = calculatedReasonStep;
                     ReasonAxisMax = targetReasonMax;
 
@@ -316,7 +318,6 @@ namespace WPF_LoginForm.ViewModels
                     _fullReasonNames = reasonFullNames;
                     ReasonLabels = reasonLabels;
 
-                    // --- CHANGED: Added Foreground = Brushes.#CFDDFC here ---
                     ReasonSeries = new SeriesCollection {
                         new ColumnSeries {
                             Title = WPF_LoginForm.Properties.Resources.Chart_LongestIncident,
@@ -378,7 +379,6 @@ namespace WPF_LoginForm.ViewModels
             });
         }
 
-        // This forces the Y axis to cleanly land on exact hour marks without ugly fractions
         private double CalculateCleanStep(double maxMinutes)
         {
             double maxHours = maxMinutes / 60.0;
@@ -488,6 +488,27 @@ namespace WPF_LoginForm.ViewModels
                     win.Owner = Application.Current.MainWindow;
                 }
                 win.Show();
+            });
+        }
+
+        // NEW: Open the 15-Day Printable Report Generator
+        private void ExecuteOpenPrintReport(object obj)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var vm = new PrintTimelineSetupViewModel(_repository, new DialogService());
+
+                // Pre-select the table and date if we are already viewing a specific range
+                vm.SelectedTable = this.SelectedTable;
+                vm.EndDate = this.EndDate;
+                vm.StartDate = this.EndDate.AddDays(-14); // 15 days logic
+
+                var win = new WPF_LoginForm.Views.PrintTimelineSetupWindow(vm);
+                if (Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
+                {
+                    win.Owner = Application.Current.MainWindow;
+                }
+                win.ShowDialog();
             });
         }
 

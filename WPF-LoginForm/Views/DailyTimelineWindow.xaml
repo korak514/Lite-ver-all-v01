@@ -89,7 +89,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- TOP HEADER (Split into 2 rows to prevent overlapping on small screens) -->
+        <!-- TOP HEADER -->
         <Grid Grid.Row="0" Margin="0,0,0,15">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -225,7 +225,7 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!-- KPI CARDS (Scrollable horizontally if screen gets small) -->
+                <!-- KPI CARDS -->
                 <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 
@@ -301,12 +301,22 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- View Controls (Zoom, Shift) -->
+                <!-- View Controls (Zoom, Shift, Ruler) -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Background="#181838" CornerRadius="4" Margin="0,0,15,0" Padding="10,5">
+
+                    <!-- NEW: RULER TABLE SELECTION -->
+                    <Border Background="#181838" CornerRadius="4" Margin="0,0,10,0" Padding="10,5">
+                        <StackPanel Orientation="Horizontal">
+                            <fa:ImageAwesome Icon="Database" Height="14" Foreground="Gray" Margin="0,0,5,0" />
+                            <TextBlock Text="Ref Data:" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,5,0" />
+                            <ComboBox ItemsSource="{Binding RulerTables}" SelectedItem="{Binding SelectedRulerTable, Mode=TwoWay}" Width="110" Height="22" VerticalContentAlignment="Center" Background="#202020" Foreground="White" BorderThickness="0" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#181838" CornerRadius="4" Margin="0,0,10,0" Padding="10,5">
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="SearchPlus" Height="14" Foreground="Gray" Margin="0,0,5,0" />
-                            <TextBlock Text="Zoom (Hrs):" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,5,0" />
+                            <TextBlock Text="Zoom:" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,5,0" />
                             <Slider Minimum="2" Maximum="12" Value="{Binding TimeWindowHours, Mode=TwoWay}"
                                     Width="100" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
                             <TextBlock Text="{Binding TimeWindowHours, StringFormat={}{0}h}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" Margin="10,0,0,0" Width="25" />
@@ -321,7 +331,7 @@
             </Grid>
         </Grid>
 
-        <!-- FAVORITES BAR (Collapsible & Draggable) -->
+        <!-- FAVORITES BAR -->
         <Border Grid.Row="1" Background="#1A1A3A" CornerRadius="6" Padding="10" Margin="0,0,0,15"
                 Visibility="{Binding IsFavoritesVisible, Converter={StaticResource BoolToVis}}">
             <StackPanel>
@@ -384,6 +394,10 @@
                             AllowDrop="True" DragOver="TimelineCanvas_DragOver" Drop="TimelineCanvas_Drop"
                             MouseLeftButtonDown="TimelineCanvas_MouseLeftButtonDown">
 
+                        <!-- RULER HIGHLIGHT BAND -->
+                        <Border Canvas.Top="0" Canvas.Left="0" Width="{Binding CalculatedCanvasWidth}" Height="30" Background="#15FFFFFF" />
+                        <TextBlock Text="Ref" Foreground="#80FFFFFF" FontSize="10" FontWeight="Bold" Canvas.Left="5" Canvas.Top="8" />
+
                         <!-- HORIZONTAL LANE LINES -->
                         <Line X1="0" Y1="30" X2="{Binding CalculatedCanvasWidth}" Y2="30" Stroke="#40FFFFFF" StrokeThickness="2" />
                         <Line X1="0" Y1="110" X2="{Binding CalculatedCanvasWidth}" Y2="110" Stroke="#20FFFFFF" StrokeThickness="1" />
@@ -403,14 +417,39 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Canvas>
-                                        <Line X1="0" Y1="30" X2="0" Y2="510" Stroke="#30FFFFFF" StrokeThickness="1" />
-                                        <TextBlock Text="{Binding Text}" Foreground="LightGray" FontWeight="Bold" Canvas.Top="5" Canvas.Left="-15" Width="35" TextAlignment="Center" />
+                                        <Line X1="0" Y1="0" X2="0" Y2="510" Stroke="#30FFFFFF" StrokeThickness="1" />
+                                        <TextBlock Text="{Binding Text}" Foreground="LightGray" FontWeight="Bold" Canvas.Top="32" Canvas.Left="-15" Width="35" TextAlignment="Center" />
                                     </Canvas>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                             <ItemsControl.ItemContainerStyle>
                                 <Style TargetType="ContentPresenter">
                                     <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                        </ItemsControl>
+
+                        <!-- REFERENCE BLOCKS (MASTER RULER) -->
+                        <ItemsControl ItemsSource="{Binding ReferenceBlocks}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <Canvas />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="{Binding PixelWidth}" Height="20"
+                                            Background="{Binding BlockColor}"
+                                            CornerRadius="2"
+                                            ToolTip="{Binding DisplayText}"
+                                            BorderBrush="#80FFFFFF" BorderThickness="1">
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                    <Setter Property="Canvas.Top" Value="{Binding PixelY}" />
                                 </Style>
                             </ItemsControl.ItemContainerStyle>
                         </ItemsControl>

@@ -763,6 +763,78 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Date.
+        /// </summary>
+        public static string P_date {
+            get {
+                return ResourceManager.GetString("P_date", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Errors &amp; Stops.
+        /// </summary>
+        public static string P_Errors_and_Stops {
+            get {
+                return ResourceManager.GetString("P_Errors_and_Stops", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Meal &amp; Breaks.
+        /// </summary>
+        public static string P_Meal_and_breaks {
+            get {
+                return ResourceManager.GetString("P_Meal_and_breaks", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Overlapping Error.
+        /// </summary>
+        public static string P_Overlapping {
+            get {
+                return ResourceManager.GetString("P-Overlapping", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Running.
+        /// </summary>
+        public static string P_Running {
+            get {
+                return ResourceManager.GetString("P_Running", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shift.
+        /// </summary>
+        public static string P_Shift {
+            get {
+                return ResourceManager.GetString("P_Shift", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Total Stop.
+        /// </summary>
+        public static string P_Total_Stop {
+            get {
+                return ResourceManager.GetString("P_Total_Stop", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Working Time.
+        /// </summary>
+        public static string P_Working_Time {
+            get {
+                return ResourceManager.GetString("P_Working_Time", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Password.
         /// </summary>
         public static string Password {

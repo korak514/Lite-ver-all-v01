@@ -152,7 +152,6 @@
                                 </lvc:Axis>
                             </lvc:CartesianChart.AxisX>
                             <lvc:CartesianChart.AxisY>
-                                <!-- <==== ADDED MaxValue Binding ====> -->
                                 <lvc:Axis LabelFormatter="{Binding NumberFormatter}" Foreground="White" MaxValue="{Binding ReasonAxisMax}">
                                     <lvc:Axis.Separator>
                                         <lvc:Separator Stroke="#303030" Step="{Binding ReasonAxisStep}" />
@@ -368,8 +367,14 @@
 
                     <TextBlock Grid.Column="0" Text="{x:Static p:Resources.Ana_Title}" Foreground="#0078D7" FontSize="18" FontWeight="Bold" TextWrapping="Wrap" VerticalAlignment="Center" />
 
-                    <!-- StackPanel to hold both top right buttons -->
+                    <!-- StackPanel to hold the top right buttons -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
+
+                        <!-- NEW BUTTON: Print 15-Day Report -->
+                        <Button Command="{Binding OpenPrintReportCommand}" Width="35" Height="35" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Print 15-Day Timeline Report" Margin="0,0,5,0">
+                            <fa:ImageAwesome Icon="Print" Foreground="#2ECC71" Width="18" Height="18" />
+                        </Button>
+
                         <!-- BUTTON: Daily Timeline -->
                         <Button Command="{Binding OpenDailyTimelineCommand}" Width="35" Height="35" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Daily Timeline View" Margin="0,0,5,0">
                             <fa:ImageAwesome Icon="SunOutline" Foreground="#3498DB" Width="20" Height="20" />

@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Converters/StringToBrushConverter.cs
+using System;
 using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -9,14 +10,16 @@ namespace WPF_LoginForm.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is string colorString)
+            if (value is string colorString && !string.IsNullOrWhiteSpace(colorString))
             {
                 try
                 {
-                    return new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorString));
+                    var color = (Color)ColorConverter.ConvertFromString(colorString);
+                    return new SolidColorBrush(color);
                 }
                 catch
                 {
+                    // Fallback color if the user types an invalid hex code
                     return Brushes.Gray;
                 }
             }

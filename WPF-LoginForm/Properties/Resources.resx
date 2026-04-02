@@ -442,4 +442,28 @@
   <data name="AnalyticsP2_Card_4" xml:space="preserve">
     <value>Avg Working /Day</value>
   </data>
+  <data name="P_date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="P_Shift" xml:space="preserve">
+    <value>Shift</value>
+  </data>
+  <data name="P_Running" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="P_Meal_and_breaks" xml:space="preserve">
+    <value>Meal &amp; Breaks</value>
+  </data>
+  <data name="P_Errors_and_Stops" xml:space="preserve">
+    <value>Errors &amp; Stops</value>
+  </data>
+  <data name="P-Overlapping" xml:space="preserve">
+    <value>Overlapping Error</value>
+  </data>
+  <data name="P_Total_Stop" xml:space="preserve">
+    <value>Total Stop</value>
+  </data>
+  <data name="P_Working_Time" xml:space="preserve">
+    <value>Working Time</value>
+  </data>
 </root>
