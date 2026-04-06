@@ -11,44 +11,71 @@ namespace WPF_LoginForm.Models
 
     public class PrintTimeBlock : INotifyPropertyChanged
     {
-        public double StartMinute { get; set; }
-        public double DurationMinutes { get; set; }
+        private double _startMinute;
+
+        public double StartMinute
+        {
+            get => _startMinute;
+            set { _startMinute = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelLeft)); }
+        }
+
+        private double _durationMinutes;
+
+        public double DurationMinutes
+        {
+            get => _durationMinutes;
+            set { _durationMinutes = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelWidth)); }
+        }
+
         public PrintBlockType BlockType { get; set; }
 
         private string _colorHex;
+
         public string ColorHex
         { get => _colorHex; set { _colorHex = value; OnPropertyChanged(); } }
 
         private string _label;
+
         public string Label
         { get => _label; set { _label = value; OnPropertyChanged(); } }
 
         private bool _isSelected;
+
         public bool IsSelected
         { get => _isSelected; set { _isSelected = value; OnPropertyChanged(); } }
 
         private bool _isFootnote;
+
         public bool IsFootnote
         { get => _isFootnote; set { _isFootnote = value; OnPropertyChanged(); } }
 
         public List<string> MachineCodes { get; set; } = new List<string>();
 
         private string _textDescription;
+
         public string TextDescription
         { get => _textDescription; set { _textDescription = value; OnPropertyChanged(); } }
 
         private string _machineCode;
+
         public string MachineCode
         { get => _machineCode; set { _machineCode = value; OnPropertyChanged(); } }
 
         private string _originalDescription;
+
         public string OriginalDescription
         { get => _originalDescription; set { _originalDescription = value; OnPropertyChanged(); } }
 
         // Real-time data mapped for the Editor Panel
-        public string DisplayStartTime { get; set; }
+        private string _displayStartTime;
 
-        public string DisplayEndTime { get; set; }
+        public string DisplayStartTime
+        { get => _displayStartTime; set { _displayStartTime = value; OnPropertyChanged(); } }
+
+        private string _displayEndTime;
+
+        public string DisplayEndTime
+        { get => _displayEndTime; set { _displayEndTime = value; OnPropertyChanged(); } }
 
         public double WidthMultiplier { get; set; } = 1.0;
         public double HeightMultiplier { get; set; } = 1.0;

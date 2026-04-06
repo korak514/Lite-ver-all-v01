@@ -1,9 +1,7 @@
-﻿// ViewModels/PrintTimelineSetupViewModel.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -22,9 +20,13 @@ namespace WPF_LoginForm.ViewModels
     {
         private readonly IDataRepository _dataRepository;
         private readonly IDialogService _dialogService;
-        private readonly CategoryMappingService _mappingService;
-        private readonly List<CategoryRule> _activeRules;
+        private readonly ITimelineReportGenerator _reportGenerator;
         private readonly string _settingsFilePath;
+
+        // Caching
+        private DataTable _cachedData;
+
+        private string _cachedTableName;
 
         private string LocTotalStop => WPF_LoginForm.Properties.Resources.P_Total_Stop ?? "Total Stop / Toplam Duruş";
         private string LocActualWork => WPF_LoginForm.Properties.Resources.P_Working_Time ?? "Actual Work / Çalışma Süresi";
@@ -34,11 +36,13 @@ namespace WPF_LoginForm.ViewModels
         public ObservableCollection<string> AvailableTables { get; } = new ObservableCollection<string>();
 
         private string _selectedTable;
-        public string SelectedTable { get => _selectedTable; set => SetProperty(ref _selectedTable, value); }
+        public string SelectedTable
+        { get => _selectedTable; set { SetProperty(ref _selectedTable, value); _cachedData = null; } } // Reset cache if table changes
 
         private string _excelFilePath;
         public string ExcelFilePath
         { get => _excelFilePath; set { if (SetProperty(ref _excelFilePath, value)) OnPropertyChanged(nameof(HasExcelFile)); } }
+
         public bool HasExcelFile => !string.IsNullOrEmpty(ExcelFilePath);
 
         private DateTime _startDate = DateTime.Today.AddDays(-16);
@@ -123,6 +127,12 @@ namespace WPF_LoginForm.ViewModels
         private string _editBlockTimeData;
         public string EditBlockTimeData { get => _editBlockTimeData; set => SetProperty(ref _editBlockTimeData, value); }
 
+        private string _editBlockStartTime;
+        public string EditBlockStartTime { get => _editBlockStartTime; set => SetProperty(ref _editBlockStartTime, value); }
+
+        private string _editBlockEndTime;
+        public string EditBlockEndTime { get => _editBlockEndTime; set => SetProperty(ref _editBlockEndTime, value); }
+
         public ObservableCollection<string> AvailableBlockCategories { get; } = new ObservableCollection<string>();
         private string _selectedBlockCategory;
         public string SelectedBlockCategory
@@ -132,7 +142,8 @@ namespace WPF_LoginForm.ViewModels
         public ICommand ApplyBlockEditCommand { get; }
         public ICommand CancelBlockEditCommand { get; }
 
-        public PrintReportConfig ReportConfig { get; private set; }
+        private PrintReportConfig _reportConfig;
+        public PrintReportConfig ReportConfig { get => _reportConfig; set => SetProperty(ref _reportConfig, value); }
         public ObservableCollection<PrintShiftRow> ReportRows { get; } = new ObservableCollection<PrintShiftRow>();
 
         public ICommand BrowseExcelCommand { get; }
@@ -144,8 +155,7 @@ namespace WPF_LoginForm.ViewModels
         {
             _dataRepository = dataRepository;
             _dialogService = dialogService;
-            _mappingService = new CategoryMappingService();
-            _activeRules = _mappingService.LoadRules();
+            _reportGenerator = new TimelineReportGenerator(); // Inject Service
             _settingsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WPF_LoginForm", "print_report_settings.json");
 
             ResetExtraOptions();
@@ -181,6 +191,8 @@ namespace WPF_LoginForm.ViewModels
                 EditBlockIsFootnote = block.IsFootnote;
 
                 EditBlockTimeData = $"{block.DisplayStartTime} - {block.DisplayEndTime} ({block.DurationMinutes:F0} mins)";
+                EditBlockStartTime = block.DisplayStartTime;
+                EditBlockEndTime = block.DisplayEndTime;
 
                 RefreshBlockCategories(true);
 
@@ -264,6 +276,10 @@ namespace WPF_LoginForm.ViewModels
             SelectedBlock.MachineCode = EditBlockMachine;
             SelectedBlock.OriginalDescription = EditBlockDesc;
             SelectedBlock.IsFootnote = EditBlockIsFootnote;
+            SelectedBlock.DisplayStartTime = EditBlockStartTime;
+            SelectedBlock.DisplayEndTime = EditBlockEndTime;
+
+            EditBlockTimeData = $"{EditBlockStartTime} - {EditBlockEndTime} ({SelectedBlock.DurationMinutes:F0} mins)";
 
             SelectedBlock.IsSelected = false;
             SelectedBlock = null;
@@ -476,17 +492,25 @@ namespace WPF_LoginForm.ViewModels
             SelectedBlock = null;
             ZoomScale = 1.0;
 
-            ReportRows.Clear();
             SaveState();
 
             try
             {
-                var result = await _dataRepository.GetTableDataAsync(SelectedTable, 0);
-                if (result.Data == null || result.Data.Rows.Count == 0)
+                // ✨ DB CACHING LOGIC
+                if (_cachedData == null || _cachedTableName != SelectedTable)
                 {
-                    MessageBox.Show("No data found in the selected database table.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
+                    var result = await _dataRepository.GetTableDataAsync(SelectedTable, 0);
+                    if (result.Data == null || result.Data.Rows.Count == 0)
+                    {
+                        MessageBox.Show("No data found in the selected database table.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        IsBusy = false;
+                        return;
+                    }
+                    _cachedData = result.Data;
+                    _cachedTableName = SelectedTable;
                 }
+
+                ReportRows.Clear(); // Only clear the UI once data is secure.
 
                 bool show1 = ExtraCol1Selection != "None";
                 bool show2 = ExtraCol2Selection != "None";
@@ -495,7 +519,38 @@ namespace WPF_LoginForm.ViewModels
                 if (!show1) timelineWidth += 90;
                 if (!show2) timelineWidth += 90;
 
-                await ProcessDataForReportAsync(result.Data, timelineWidth);
+                // Setup Context for Service
+                var context = new TimelineGenerationContext
+                {
+                    StartDate = this.StartDate,
+                    EndDate = this.EndDate,
+                    TimelineWidth = timelineWidth,
+                    ExcelFilePath = this.ExcelFilePath,
+                    HasExcelFile = this.HasExcelFile,
+                    ShowValuesInHours = this.ShowValuesInHours,
+                    HideGenelTemizlik = this.HideGenelTemizlik,
+                    DetailedOverlapView = this.DetailedOverlapView,
+                    ExtraCol1Selection = this.ExtraCol1Selection,
+                    ExtraCol2Selection = this.ExtraCol2Selection,
+
+                    ColorMa00Genel = this.ColorMa00Genel.ToString(),
+                    ColorMa00Cay = this.ColorMa00Cay.ToString(),
+                    ColorMa00Yemek = this.ColorMa00Yemek.ToString(),
+                    ColorMa00Other = this.ColorMa00Other.ToString(),
+                    BreakColor = this.BreakColor.ToString(),
+                    ErrorColor = this.ErrorColor.ToString(),
+                    ErrorColor2 = this.ErrorColor2.ToString(),
+                    RunningColor = this.RunningColor.ToString(),
+                    FacilityStopColor = this.FacilityStopColor.ToString()
+                };
+
+                // Inject processing into Service
+                var newRows = await _reportGenerator.GenerateReportAsync(_cachedData, context);
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    foreach (var r in newRows) ReportRows.Add(r);
+                });
 
                 string resDate = WPF_LoginForm.Properties.Resources.P_date ?? "Date";
                 string resShift = WPF_LoginForm.Properties.Resources.P_Shift ?? "Shift";
@@ -558,11 +613,11 @@ namespace WPF_LoginForm.ViewModels
                     LegendBreak = resBreak,
                     LegendError = resErr,
                     LegendError2 = resErr2,
-                    LegendFacilityStop = "Duruş (Facility Stop)",
-                    LegendMa00Genel = "00 Genel Temizlik",
-                    LegendMa00Cay = "00 Çay Molası",
-                    LegendMa00Yemek = "00 Yemek Molası",
-                    LegendMa00Other = "00 Diğer",
+                    LegendFacilityStop = "Duruş",
+                    LegendMa00Genel = "Genel Temizlik",
+                    LegendMa00Cay = "Çay Molası",
+                    LegendMa00Yemek = "Yemek Molası",
+                    LegendMa00Other = "Diğer",
                     LegendItems = legendList,
                     AxisTicks = ticks,
                     Footnotes = new List<string>()
@@ -581,324 +636,5 @@ namespace WPF_LoginForm.ViewModels
                 (PrintCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             }
         }
-
-        private int ComputeLevenshteinDistance(string s, string t)
-        {
-            if (string.IsNullOrEmpty(s)) return t?.Length ?? 0;
-            if (string.IsNullOrEmpty(t)) return s.Length;
-            int n = s.Length;
-            int m = t.Length;
-            int[,] d = new int[n + 1, m + 1];
-            for (int i = 0; i <= n; d[i, 0] = i++) { }
-            for (int j = 0; j <= m; d[0, j] = j++) { }
-            for (int i = 1; i <= n; i++)
-            {
-                for (int j = 1; j <= m; j++)
-                {
-                    int cost = (t[j - 1] == s[i - 1]) ? 0 : 1;
-                    d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1), d[i - 1, j - 1] + cost);
-                }
-            }
-            return d[n, m];
-        }
-
-        private async Task ProcessDataForReportAsync(DataTable dbData, double timelineWidth)
-        {
-            await Task.Run(() =>
-            {
-                var dateCol = dbData.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("tarih", StringComparison.OrdinalIgnoreCase) >= 0);
-                var shiftCol = dbData.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("shift", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("vardiya", StringComparison.OrdinalIgnoreCase) >= 0);
-                var endCol = dbData.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("bitiş", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("bitis", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("end", StringComparison.OrdinalIgnoreCase) >= 0);
-                var errorCols = dbData.Columns.Cast<DataColumn>().Where(c => c.ColumnName.StartsWith("hata_kodu", StringComparison.OrdinalIgnoreCase) || c.ColumnName.StartsWith("error_code", StringComparison.OrdinalIgnoreCase)).ToList();
-
-                if (dateCol == null || shiftCol == null) return;
-
-                var excelLookup = new Dictionary<(DateTime date, string shift), Dictionary<string, string>>();
-                if (HasExcelFile && File.Exists(ExcelFilePath))
-                {
-                    try
-                    {
-                        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-                        using (var stream = new FileStream(ExcelFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                        using (var package = new ExcelPackage(stream))
-                        {
-                            var ws = package.Workbook.Worksheets.FirstOrDefault();
-                            if (ws != null && ws.Dimension != null)
-                            {
-                                int colDate = -1, colShift = -1;
-                                var headers = new Dictionary<int, string>();
-                                for (int c = 1; c <= ws.Dimension.End.Column; c++)
-                                {
-                                    string header = ws.Cells[1, c].Text.Trim();
-                                    headers[c] = header;
-                                    if (header.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0 || header.IndexOf("tarih", StringComparison.OrdinalIgnoreCase) >= 0) colDate = c;
-                                    if (header.IndexOf("shift", StringComparison.OrdinalIgnoreCase) >= 0 || header.IndexOf("vardiya", StringComparison.OrdinalIgnoreCase) >= 0) colShift = c;
-                                }
-                                if (colDate != -1 && colShift != -1)
-                                {
-                                    for (int r = 2; r <= ws.Dimension.End.Row; r++)
-                                    {
-                                        if (DateTime.TryParse(ws.Cells[r, colDate].Text, out DateTime exDate))
-                                        {
-                                            var key = (exDate.Date, FormatShiftName(ws.Cells[r, colShift].Text));
-                                            var rowData = new Dictionary<string, string>();
-                                            for (int c = 1; c <= ws.Dimension.End.Column; c++)
-                                                if (c != colDate && c != colShift) rowData[headers[c]] = ws.Cells[r, c].Text;
-                                            excelLookup[key] = rowData;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    catch { }
-                }
-
-                var groupedRows = dbData.AsEnumerable()
-                    .Where(r => r.RowState != DataRowState.Deleted && r[dateCol] != DBNull.Value)
-                    .Select(r => new { Date = Convert.ToDateTime(r[dateCol]).Date, Shift = r[shiftCol].ToString(), Row = r })
-                    .Where(x => x.Date >= StartDate.Date && x.Date <= EndDate.Date)
-                    .GroupBy(x => new { x.Date, Shift = FormatShiftName(x.Shift) })
-                    .OrderBy(g => g.Key.Date).ThenBy(g => g.Key.Shift)
-                    .ToList();
-
-                var processedRows = new List<PrintShiftRow>();
-                DateTime? lastDateProcessed = null;
-                bool altBackgroundToggle = false;
-                double widthMultiplier = timelineWidth / 720.0;
-
-                foreach (var group in groupedRows)
-                {
-                    if (lastDateProcessed != null && lastDateProcessed != group.Key.Date) altBackgroundToggle = !altBackgroundToggle;
-
-                    bool isNight = group.Key.Shift == "Night";
-                    DateTime shiftStart = isNight ? group.Key.Date.AddHours(20) : group.Key.Date.AddHours(8);
-
-                    var shiftRow = new PrintShiftRow { Date = group.Key.Date, ShiftName = group.Key.Shift, ShowDate = lastDateProcessed != group.Key.Date, IsAlternateBackground = altBackgroundToggle };
-                    lastDateProcessed = group.Key.Date;
-
-                    double activeShiftMinutes = 720;
-                    if (endCol != null)
-                    {
-                        var firstRowWithEnd = group.FirstOrDefault(x => x.Row[endCol] != DBNull.Value);
-                        if (firstRowWithEnd != null)
-                        {
-                            string eTime = firstRowWithEnd.Row[endCol].ToString();
-                            if (TimeSpan.TryParse(eTime, out TimeSpan tsEnd) || DateTime.TryParse(eTime, out DateTime dEnd) && (tsEnd = dEnd.TimeOfDay) != default)
-                            {
-                                DateTime eventEndFull = group.Key.Date.Add(tsEnd);
-                                if (isNight && tsEnd.Hours < 12) eventEndFull = eventEndFull.AddDays(1);
-                                else if (!isNight && tsEnd.Hours < 8) eventEndFull = eventEndFull.AddDays(1);
-                                double diff = (eventEndFull - shiftStart).TotalMinutes;
-                                if (diff > 0 && diff < 720) activeShiftMinutes = diff;
-                            }
-                        }
-                    }
-
-                    shiftRow.Blocks.Add(new PrintTimeBlock
-                    {
-                        StartMinute = 0,
-                        DurationMinutes = activeShiftMinutes,
-                        BlockType = PrintBlockType.Running,
-                        ColorHex = RunningColor.ToString(),
-                        WidthMultiplier = widthMultiplier,
-                        DisplayStartTime = shiftStart.ToString("HH:mm"),
-                        DisplayEndTime = shiftStart.AddMinutes(activeShiftMinutes).ToString("HH:mm")
-                    });
-
-                    if (activeShiftMinutes < 720)
-                    {
-                        shiftRow.Blocks.Add(new PrintTimeBlock
-                        {
-                            StartMinute = activeShiftMinutes,
-                            DurationMinutes = 720 - activeShiftMinutes,
-                            BlockType = PrintBlockType.FacilityStop,
-                            ColorHex = FacilityStopColor.ToString(),
-                            WidthMultiplier = widthMultiplier,
-                            DisplayStartTime = shiftStart.AddMinutes(activeShiftMinutes).ToString("HH:mm"),
-                            DisplayEndTime = shiftStart.AddMinutes(720).ToString("HH:mm")
-                        });
-                    }
-
-                    double totalStopMins = 0;
-                    var breaks = new List<PrintTimeBlock>();
-                    var rawErrors = new List<PrintTimeBlock>();
-
-                    foreach (var item in group)
-                    {
-                        foreach (var eCol in errorCols)
-                        {
-                            string cellData = item.Row[eCol]?.ToString();
-                            if (string.IsNullOrWhiteSpace(cellData)) continue;
-
-                            var errModel = ErrorEventModel.Parse(cellData, item.Date, item.Shift, 0, 0, 0, 0, "");
-                            if (errModel == null || errModel.ErrorDescription == "NO_ERROR") continue;
-
-                            if (TimeSpan.TryParse(errModel.StartTime, out TimeSpan ts))
-                            {
-                                DateTime eventStartFull = item.Date.Add(ts);
-                                if (isNight && ts.Hours < 12) eventStartFull = eventStartFull.AddDays(1);
-                                double startMin = (eventStartFull - shiftStart).TotalMinutes;
-                                double duration = errModel.DurationMinutes;
-
-                                if (startMin < 0) { duration += startMin; startMin = 0; }
-                                if (startMin + duration > 720) duration = 720 - startMin;
-
-                                if (duration > 0 && startMin < 720)
-                                {
-                                    totalStopMins += duration;
-
-                                    string machine = errModel.MachineCode?.Replace("MA-", "") ?? "";
-                                    if (machine == "0") machine = "00";
-
-                                    bool isMa00Group1 = false, isMa00Group2 = false, isMa00Group3 = false, isMa00Group4 = false, isNormalBreak = false;
-
-                                    if (machine == "00")
-                                    {
-                                        string cleanDesc = errModel.ErrorDescription.ToUpper(new CultureInfo("tr-TR")).Replace(" ", "").Replace("-", "").Replace("MA00", "").Replace("00", "").Trim();
-                                        if (ComputeLevenshteinDistance(cleanDesc, "GENELTEMİZLİK") <= 1) isMa00Group1 = true;
-                                        else if (ComputeLevenshteinDistance(cleanDesc, "ÇAYMOLASI") <= 1) isMa00Group2 = true;
-                                        else if (ComputeLevenshteinDistance(cleanDesc, "YEMEKMOLASI") <= 1) isMa00Group3 = true;
-                                        else isMa00Group4 = true;
-                                    }
-                                    else
-                                    {
-                                        isNormalBreak = errModel.ErrorDescription.IndexOf("mola", StringComparison.OrdinalIgnoreCase) >= 0 || errModel.ErrorDescription.IndexOf("yemek", StringComparison.OrdinalIgnoreCase) >= 0;
-                                    }
-
-                                    var block = new PrintTimeBlock
-                                    {
-                                        StartMinute = startMin,
-                                        DurationMinutes = duration,
-                                        BlockType = isMa00Group1 ? PrintBlockType.Cleaning : (isMa00Group2 || isMa00Group3 || isNormalBreak ? PrintBlockType.Break : (isMa00Group4 ? PrintBlockType.OtherIdle : PrintBlockType.Error)),
-                                        OriginalDescription = errModel.ErrorDescription,
-                                        MachineCode = machine,
-                                        WidthMultiplier = widthMultiplier,
-                                        HeightMultiplier = 1.0,
-                                        TopOffset = 0,
-                                        DisplayStartTime = shiftStart.AddMinutes(startMin).ToString("HH:mm"),
-                                        DisplayEndTime = shiftStart.AddMinutes(startMin + duration).ToString("HH:mm")
-                                    };
-
-                                    if (isMa00Group1) { block.ColorHex = ColorMa00Genel.ToString(); breaks.Add(block); }
-                                    else if (isMa00Group2) { block.ColorHex = ColorMa00Cay.ToString(); breaks.Add(block); }
-                                    else if (isMa00Group3) { block.ColorHex = ColorMa00Yemek.ToString(); breaks.Add(block); }
-                                    else if (isMa00Group4) { block.ColorHex = ColorMa00Other.ToString(); breaks.Add(block); }
-                                    else if (isNormalBreak) { block.ColorHex = BreakColor.ToString(); breaks.Add(block); }
-                                    else rawErrors.Add(block);
-                                }
-                            }
-                        }
-                    }
-
-                    rawErrors = rawErrors.OrderByDescending(e => e.DurationMinutes).ToList();
-                    var placedPrimaries = new List<PrintTimeBlock>();
-
-                    foreach (var err in rawErrors)
-                    {
-                        var overlappedPrimary = placedPrimaries.FirstOrDefault(p => err.StartMinute < (p.StartMinute + p.DurationMinutes) && (err.StartMinute + err.DurationMinutes) > p.StartMinute);
-
-                        if (overlappedPrimary != null)
-                        {
-                            err.ColorHex = ErrorColor2.ToString();
-                            err.HeightMultiplier = 0.35;
-                            err.TopOffset = 0;
-                            if (err.DurationMinutes >= 19 && !string.IsNullOrEmpty(err.MachineCode)) overlappedPrimary.MachineCodes.Add(err.MachineCode);
-                        }
-                        else
-                        {
-                            err.ColorHex = ErrorColor.ToString();
-                            err.HeightMultiplier = 1.0;
-                            err.TopOffset = 0;
-
-                            if (err.DurationMinutes >= 19 && err.DurationMinutes < 20)
-                            {
-                                if (!string.IsNullOrEmpty(err.MachineCode)) err.MachineCodes.Add(err.MachineCode);
-                            }
-                            else if (err.DurationMinutes >= 20 && err.DurationMinutes < 90)
-                            {
-                                if (!string.IsNullOrEmpty(err.MachineCode)) err.MachineCodes.Add(err.MachineCode);
-                                err.IsFootnote = true;
-                            }
-                            else if (err.DurationMinutes >= 90)
-                            {
-                                if (!string.IsNullOrEmpty(err.MachineCode)) err.MachineCodes.Add(err.MachineCode);
-                                if (!string.IsNullOrEmpty(err.OriginalDescription))
-                                {
-                                    var words = err.OriginalDescription.Split(new char[] { ' ', '-' }, StringSplitOptions.RemoveEmptyEntries);
-                                    if (words.Length >= 2) err.TextDescription = $"{words[0]} {words[1]}";
-                                    else if (words.Length == 1) err.TextDescription = words[0];
-                                }
-                            }
-                            placedPrimaries.Add(err);
-                        }
-                        shiftRow.Blocks.Add(err);
-                    }
-
-                    foreach (var b in breaks)
-                    {
-                        var overlappedPrimaryError = placedPrimaries.FirstOrDefault(p => b.StartMinute < (p.StartMinute + p.DurationMinutes) && (b.StartMinute + b.DurationMinutes) > p.StartMinute);
-                        if (overlappedPrimaryError != null) { b.HeightMultiplier = 0.35; b.TopOffset = 0; }
-                        else { b.HeightMultiplier = 1.0; b.TopOffset = 0; }
-                        shiftRow.Blocks.Add(b);
-                    }
-
-                    foreach (var block in shiftRow.Blocks)
-                    {
-                        if (block.IsFootnote) continue;
-
-                        if (block.MachineCodes.Any() || !string.IsNullOrEmpty(block.TextDescription))
-                        {
-                            var distinctCodes = block.MachineCodes.Distinct().ToList();
-                            if (HideGenelTemizlik) distinctCodes.RemoveAll(c => c == "00" || c == "0");
-
-                            string codesStr = "";
-                            if (distinctCodes.Any())
-                            {
-                                if (DetailedOverlapView && distinctCodes.Count > 1) codesStr = string.Join(", ", distinctCodes.Take(distinctCodes.Count - 1)) + " & " + distinctCodes.Last();
-                                else codesStr = string.Join(" & ", distinctCodes);
-                            }
-
-                            if (string.IsNullOrWhiteSpace(block.TextDescription)) block.Label = codesStr;
-                            else if (string.IsNullOrWhiteSpace(codesStr)) block.Label = block.TextDescription;
-                            else block.Label = $"{codesStr} {block.TextDescription}";
-                        }
-                    }
-
-                    shiftRow.ExtraValue1 = CalculateExtraValue(ExtraCol1Selection, totalStopMins, group.Key.Date, group.Key.Shift, excelLookup);
-                    shiftRow.ExtraValue2 = CalculateExtraValue(ExtraCol2Selection, totalStopMins, group.Key.Date, group.Key.Shift, excelLookup);
-                    processedRows.Add(shiftRow);
-                }
-
-                Application.Current.Dispatcher.Invoke(() => { foreach (var r in processedRows) ReportRows.Add(r); });
-            });
-        }
-
-        private string CalculateExtraValue(string selection, double totalStop, DateTime date, string shift, Dictionary<(DateTime, string), Dictionary<string, string>> excelLookup)
-        {
-            if (selection == "None" || string.IsNullOrEmpty(selection)) return "";
-            if (selection == LocTotalStop || selection == "Total Stop" || selection == LocActualWork || selection == "Actual Work")
-            {
-                double val = (selection == LocTotalStop || selection == "Total Stop") ? totalStop : Math.Max(0, 720 - totalStop);
-                if (ShowValuesInHours) return TimeFormatHelper.FormatDuration(val, true);
-                return val.ToString("F0");
-            }
-            if (selection.StartsWith("[Excel] "))
-            {
-                string headerName = selection.Replace("[Excel] ", "");
-                var key = (date, shift);
-                if (excelLookup.ContainsKey(key) && excelLookup[key].ContainsKey(headerName))
-                {
-                    string rawExcelVal = excelLookup[key][headerName];
-                    if (double.TryParse(rawExcelVal, out double numVal)) return numVal.ToString("G");
-                    return rawExcelVal;
-                }
-                return "-";
-            }
-            return "";
-        }
-
-        private string FormatShiftName(string raw)
-        { return string.IsNullOrEmpty(raw) ? "Day" : (raw.IndexOf("gece", StringComparison.OrdinalIgnoreCase) >= 0 || raw.IndexOf("night", StringComparison.OrdinalIgnoreCase) >= 0 ? "Night" : "Day"); }
     }
 }

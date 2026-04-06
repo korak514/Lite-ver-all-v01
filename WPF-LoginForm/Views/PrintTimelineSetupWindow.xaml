@@ -209,6 +209,9 @@
                         <TextBlock Text="Manual Block Editor" FontSize="18" FontWeight="Bold" Foreground="#E67E22" Margin="0,0,0,5" />
                         <TextBlock Text="Edit exactly what prints for this block. Changes are lost if you click 'Generate Preview' again." FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,0,0,15" />
 
+                        <TextBlock Text="Block Time Info" Style="{StaticResource HeaderStyle}" Foreground="#E67E22" />
+                        <TextBlock Text="{Binding EditBlockTimeData}" FontSize="13" FontWeight="SemiBold" Foreground="#34495E" Margin="0,0,0,15" />
+
                         <TextBlock Text="Forced Category Assignment" Style="{StaticResource HeaderStyle}" />
                         <ComboBox ItemsSource="{Binding AvailableBlockCategories}" SelectedItem="{Binding SelectedBlockCategory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="25" Margin="0,0,0,15" />
 
@@ -245,7 +248,7 @@
         <Grid Grid.Column="1" Background="#E0E0E0">
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
 
-                <!-- NEW: Zoom Wrapper Grid -->
+                <!-- Zoom Wrapper Grid -->
                 <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Margin="30">
                     <Grid.LayoutTransform>
                         <ScaleTransform ScaleX="{Binding ZoomScale}" ScaleY="{Binding ZoomScale}" />
@@ -257,12 +260,20 @@
                         </Border.Effect>
 
                         <Grid>
+                            <!-- UPDATED ROW DEFINITIONS FOR GAP FIX -->
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
+                                <!-- 0: Header -->
                                 <RowDefinition Height="Auto" />
+                                <!-- 1: Top Ruler -->
+                                <RowDefinition Height="Auto" />
+                                <!-- 2: Data Rows (Changed from * to Auto to snap to top) -->
+                                <RowDefinition Height="Auto" />
+                                <!-- 3: Bottom Ruler -->
+                                <RowDefinition Height="Auto" />
+                                <!-- 4: Footnotes -->
                                 <RowDefinition Height="*" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
+                                <!-- 5: Empty space to consume the rest of A4 -->
                             </Grid.RowDefinitions>
 
                             <Grid Grid.Row="0" Margin="0,0,0,15">
@@ -377,6 +388,7 @@
                                 </Canvas>
                             </Grid>
 
+                            <!-- Data Rows Grid.Row="2" -->
                             <ItemsControl Grid.Row="2" ItemsSource="{Binding ReportRows}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -420,8 +432,19 @@
                                                         </ItemsControl.ItemsPanel>
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate>
-                                                                <!-- NEW: x:Null allows click-through on transparent areas -->
+                                                                <!-- ADDED TOOLTIP BINDING HERE -->
                                                                 <Border Width="{Binding PixelWidth}" Height="{Binding DataContext.ReportConfig.RowHeight, RelativeSource={RelativeSource AncestorType=Window}}" Background="{x:Null}" Cursor="Hand" RenderTransformOrigin="0.5,0.5">
+                                                                    <Border.ToolTip>
+                                                                        <ToolTip Background="#FDFDFD" BorderBrush="#CCC">
+                                                                            <TextBlock>
+                                                                                <Run Text="{Binding DisplayStartTime}" FontWeight="Bold" Foreground="#333" />
+                                                                                <Run Text=" - " FontWeight="Bold" Foreground="#333" />
+                                                                                <Run Text="{Binding DisplayEndTime}" FontWeight="Bold" Foreground="#333" />
+                                                                                <LineBreak />
+                                                                                <Run Text="{Binding OriginalDescription}" Foreground="#555" />
+                                                                            </TextBlock>
+                                                                        </ToolTip>
+                                                                    </Border.ToolTip>
                                                                     <Border.RenderTransform>
                                                                         <ScaleTransform ScaleY="{Binding HeightMultiplier}" />
                                                                     </Border.RenderTransform>
@@ -450,7 +473,6 @@
                                                                 <Setter Property="Canvas.Left" Value="{Binding PixelLeft}" />
                                                                 <Setter Property="Canvas.Top" Value="0" />
                                                                 <Setter Property="Panel.ZIndex" Value="0" />
-                                                                <!-- NEW: Make selected item pop to the very front so it's not hidden -->
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                                         <Setter Property="Panel.ZIndex" Value="99" />
@@ -578,7 +600,6 @@
                 </Grid>
             </ScrollViewer>
 
-            <!-- NEW: Floating Zoom Overlay -->
             <Border HorizontalAlignment="Right" VerticalAlignment="Top" Background="#AA000000" CornerRadius="5" Padding="10,5" Margin="20">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="🔍 Zoom:" Foreground="White" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,10,0" />

@@ -134,6 +134,7 @@
     <Compile Include="Services\PasswordHelper.cs" />
     <Compile Include="Services\SmartLabelService.cs" />
     <Compile Include="Services\TimeFormatHelper.cs" />
+    <Compile Include="Services\TimelineReportGenerator.cs" />
     <Compile Include="Services\UserSessionService.cs" />
     <Compile Include="ViewModels\CategoryConfigViewModel.cs" />
     <Compile Include="ViewModels\DailyTimelineViewModel.cs" />

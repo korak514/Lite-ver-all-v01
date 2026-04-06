@@ -421,10 +421,10 @@
     <value>Ağırlık Dağılımı</value>
   </data>
   <data name="AnalyticsP2_Card_1" xml:space="preserve">
-    <value>Günlük Ortalma Duruş(Arıza Kaynaklı,Molalar Dahil)</value>
+    <value>Günlük Ortalma Duruş(Arıza Kaynaklı,Molalar Hariç)</value>
   </data>
   <data name="AnalyticsP2_Card_2" xml:space="preserve">
-    <value>Günlük Ortalma Arıza</value>
+    <value>Günlük Ortalma Arıza(Molalar Hariç)</value>
   </data>
   <data name="AnalyticsP2_Card_3" xml:space="preserve">
     <value>Mola-Bakım süre kazanımı</value>

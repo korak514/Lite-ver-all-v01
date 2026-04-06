@@ -309,7 +309,7 @@
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="Database" Height="14" Foreground="Gray" Margin="0,0,5,0" />
                             <TextBlock Text="Ref Data:" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,5,0" />
-                            <ComboBox ItemsSource="{Binding RulerTables}" SelectedItem="{Binding SelectedRulerTable, Mode=TwoWay}" Width="110" Height="22" VerticalContentAlignment="Center" Background="#202020" Foreground="White" BorderThickness="0" />
+                            <ComboBox ItemsSource="{Binding RulerTables}" SelectedItem="{Binding SelectedRulerTable, Mode=TwoWay}" Width="110" Height="22" VerticalContentAlignment="Center" Background="#202020" Foreground="DarkBlue" BorderThickness="0" />
                         </StackPanel>
                     </Border>
 
