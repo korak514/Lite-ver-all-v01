@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿// Services/CategoryMappingService.cs
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -17,7 +18,10 @@ namespace WPF_LoginForm.Services
             try
             {
                 string json = File.ReadAllText(FilePath);
-                return JsonConvert.DeserializeObject<List<CategoryRule>>(json) ?? new List<CategoryRule>();
+                var rules = JsonConvert.DeserializeObject<List<CategoryRule>>(json);
+
+                // CRITICAL: Sort by Priority descending so spelling corrections run FIRST
+                return (rules ?? new List<CategoryRule>()).OrderByDescending(r => r.Priority).ToList();
             }
             catch
             {
@@ -27,9 +31,12 @@ namespace WPF_LoginForm.Services
 
         public void SaveRules(List<CategoryRule> rules)
         {
+            if (rules == null) return;
             try
             {
-                string json = JsonConvert.SerializeObject(rules, Formatting.Indented);
+                // Ensure saved order reflects Priority
+                var orderedRules = rules.OrderByDescending(r => r.Priority).ToList();
+                string json = JsonConvert.SerializeObject(orderedRules, Formatting.Indented);
                 File.WriteAllText(FilePath, json);
             }
             catch (Exception ex)
@@ -42,7 +49,7 @@ namespace WPF_LoginForm.Services
         {
             if (string.IsNullOrWhiteSpace(rawDescription)) return "Unknown";
 
-            // 1. Check against user-defined rules (Priority 1)
+            // 1. Check against user-defined rules (Priority runs first because LoadRules sorted them)
             if (rules != null)
             {
                 foreach (var rule in rules)
@@ -55,20 +62,15 @@ namespace WPF_LoginForm.Services
                 }
             }
 
-            // 2. Default Fallback (Priority 2)
-            // Logic: Include the FIRST and SECOND part of the name if available.
+            // 2. Default Fallback (Standard Data Format Handling)
             // Example: "TAMBUR-TEMIZLIGI-YAPILDI" -> "TAMBUR-TEMIZLIGI"
-            // Example: "ACIL-STOP" -> "ACIL-STOP"
-
             var parts = rawDescription.Split('-');
 
             if (parts.Length >= 2)
             {
-                // Return "Part1-Part2"
                 return $"{parts[0].Trim()}-{parts[1].Trim()}".ToUpper();
             }
 
-            // Fallback for single words
             return parts[0].Trim().ToUpper();
         }
     }

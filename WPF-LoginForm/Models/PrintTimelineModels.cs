@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows;
 
 namespace WPF_LoginForm.Models
 {
@@ -11,75 +12,81 @@ namespace WPF_LoginForm.Models
 
     public class PrintTimeBlock : INotifyPropertyChanged
     {
-        private double _startMinute;
+        public string Fingerprint { get; set; }
 
+        // NEW: Tracks the original un-sliced event to prevent drawing separator lines inside the same event
+        public string BaseFingerprint { get; set; }
+
+        // NEW: Remembers original duration so the <20m and <90m rules apply to the whole event, not the tiny sliced pieces
+        public double OriginalDurationMinutes { get; set; }
+
+        private double _startMinute;
         public double StartMinute
-        {
-            get => _startMinute;
-            set { _startMinute = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelLeft)); }
-        }
+        { get => _startMinute; set { _startMinute = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelLeft)); } }
 
         private double _durationMinutes;
-
         public double DurationMinutes
-        {
-            get => _durationMinutes;
-            set { _durationMinutes = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelWidth)); }
-        }
+        { get => _durationMinutes; set { _durationMinutes = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelWidth)); } }
 
         public PrintBlockType BlockType { get; set; }
 
         private string _colorHex;
-
         public string ColorHex
         { get => _colorHex; set { _colorHex = value; OnPropertyChanged(); } }
 
-        private string _label;
+        private int _panelZIndex = 10;
+        public int PanelZIndex
+        { get => _panelZIndex; set { _panelZIndex = value; OnPropertyChanged(); } }
 
+        private double _widthMultiplier = 1.0;
+        public double WidthMultiplier
+        { get => _widthMultiplier; set { _widthMultiplier = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelLeft)); OnPropertyChanged(nameof(PixelWidth)); } }
+
+        private double _heightMultiplier = 1.0;
+        public double HeightMultiplier
+        { get => _heightMultiplier; set { _heightMultiplier = value; OnPropertyChanged(); } }
+
+        private double _topOffset = 0.0;
+        public double TopOffset
+        { get => _topOffset; set { _topOffset = value; OnPropertyChanged(); } }
+
+        private string _label;
         public string Label
         { get => _label; set { _label = value; OnPropertyChanged(); } }
 
         private bool _isSelected;
-
         public bool IsSelected
         { get => _isSelected; set { _isSelected = value; OnPropertyChanged(); } }
 
         private bool _isFootnote;
-
         public bool IsFootnote
         { get => _isFootnote; set { _isFootnote = value; OnPropertyChanged(); } }
+
+        private Thickness _blockBorder = new Thickness(0);
+        public Thickness BlockBorder
+        { get => _blockBorder; set { _blockBorder = value; OnPropertyChanged(); } }
 
         public List<string> MachineCodes { get; set; } = new List<string>();
 
         private string _textDescription;
-
         public string TextDescription
         { get => _textDescription; set { _textDescription = value; OnPropertyChanged(); } }
 
         private string _machineCode;
-
         public string MachineCode
         { get => _machineCode; set { _machineCode = value; OnPropertyChanged(); } }
 
         private string _originalDescription;
-
         public string OriginalDescription
         { get => _originalDescription; set { _originalDescription = value; OnPropertyChanged(); } }
 
-        // Real-time data mapped for the Editor Panel
         private string _displayStartTime;
-
         public string DisplayStartTime
         { get => _displayStartTime; set { _displayStartTime = value; OnPropertyChanged(); } }
 
         private string _displayEndTime;
-
         public string DisplayEndTime
         { get => _displayEndTime; set { _displayEndTime = value; OnPropertyChanged(); } }
-
-        public double WidthMultiplier { get; set; } = 1.0;
-        public double HeightMultiplier { get; set; } = 1.0;
-        public double TopOffset { get; set; } = 0.0;
 
         public double PixelLeft => StartMinute * WidthMultiplier;
         public double PixelWidth => DurationMinutes * WidthMultiplier;
@@ -119,7 +126,7 @@ namespace WPF_LoginForm.Models
 
     public class PrintReportConfig
     {
-        public string ReportTitle { get; set; } = "17-Day Shift Timeline Report";
+        public string ReportTitle { get; set; } = "Shift Timeline Report";
         public string DateRangeText { get; set; }
         public string ExtraTitle1 { get; set; }
         public string ExtraTitle2 { get; set; }
@@ -137,15 +144,12 @@ namespace WPF_LoginForm.Models
         public string ColorMa00Yemek { get; set; }
         public string ColorMa00Other { get; set; }
         public string InnerLabelColor { get; set; }
-
         public double RowHeight { get; set; } = 14;
         public double FootnoteFontSize { get; set; } = 10;
-
         public double TimelineWidth { get; set; } = 778;
         public double TextFontSize => Math.Max(7, RowHeight * 0.75);
         public double SymbolFontSize => Math.Max(9, RowHeight * 0.90);
         public double InnerLabelFontSize => Math.Max(5.5, RowHeight * 0.50);
-
         public string HeaderDate { get; set; }
         public string HeaderShift { get; set; }
         public string LegendRunning { get; set; }
@@ -157,7 +161,6 @@ namespace WPF_LoginForm.Models
         public string LegendMa00Cay { get; set; }
         public string LegendMa00Yemek { get; set; }
         public string LegendMa00Other { get; set; }
-
         public List<MachineLegendItem> LegendItems { get; set; } = new List<MachineLegendItem>();
         public List<PrintAxisTick> AxisTicks { get; set; } = new List<PrintAxisTick>();
         public List<string> Footnotes { get; set; } = new List<string>();
@@ -186,5 +189,15 @@ namespace WPF_LoginForm.Models
         public bool HideGenelTemizlik { get; set; }
         public string ExtraCol1Selection { get; set; }
         public string ExtraCol2Selection { get; set; }
+        public int LayerRunning { get; set; }
+        public int LayerBypass { get; set; }
+        public int LayerBreaks { get; set; }
+        public int LayerErrors { get; set; }
+
+        // NEW: Threshold & Cascade properties
+        public double OverlapCascadeStep { get; set; }
+
+        public double MinLabelMinutes { get; set; }
+        public double MinFootnoteMinutes { get; set; }
     }
 }

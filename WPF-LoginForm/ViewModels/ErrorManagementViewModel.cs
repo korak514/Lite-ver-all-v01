@@ -186,6 +186,8 @@ namespace WPF_LoginForm.ViewModels
         private string _savedNonCriticalTime; public string SavedNonCriticalTime { get => _savedNonCriticalTime; set => SetProperty(ref _savedNonCriticalTime, value); }
 
         // --- Commands ---
+        public ICommand CopyCategoriesCommand { get; }
+
         public ICommand LoadDataCommand { get; set; }
 
         public ICommand ChartClickCommand { get; set; }
@@ -196,6 +198,43 @@ namespace WPF_LoginForm.ViewModels
 
         // NEW: Command to open Print 15-Day Report Window
         public ICommand OpenPrintReportCommand { get; }
+
+        private void ExecuteCopyCategories()
+        {
+            try
+            {
+                if (ErrorCategories != null && ErrorCategories.Count > 0)
+                {
+                    // Join the categories line by line
+                    string textToCopy = string.Join(Environment.NewLine, ErrorCategories);
+
+                    // Force execution on the UI thread and use SetDataObject for better reliability
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        Clipboard.SetDataObject(textToCopy, true);
+                    });
+
+                    MessageBox.Show("Categories copied to clipboard successfully!",
+                                    "Copied",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show("There are no categories to copy. Please load data first.",
+                                    "Empty",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to copy to clipboard. Error: {ex.Message}",
+                                "Error",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+            }
+        }
 
         public ErrorManagementViewModel(IDataRepository repository)
         {
@@ -216,6 +255,9 @@ namespace WPF_LoginForm.ViewModels
             ConfigureCategoriesCommand = new ViewModelCommand(ExecuteConfigureCategories);
             TogglePageCommand = new ViewModelCommand(p => IsSecondPageActive = !IsSecondPageActive);
             OpenDailyTimelineCommand = new ViewModelCommand(ExecuteOpenDailyTimeline);
+
+            // FIX: Initialize Copy Command
+            CopyCategoriesCommand = new ViewModelCommand(p => ExecuteCopyCategories());
 
             // NEW: Initialize Print Command
             OpenPrintReportCommand = new ViewModelCommand(ExecuteOpenPrintReport);
@@ -491,7 +533,6 @@ namespace WPF_LoginForm.ViewModels
             });
         }
 
-        // NEW: Open the 15-Day Printable Report Generator
         private void ExecuteOpenPrintReport(object obj)
         {
             Application.Current.Dispatcher.Invoke(() =>

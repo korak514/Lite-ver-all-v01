@@ -7,7 +7,7 @@
         xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         mc:Ignorable="d"
-        Title="Printable 17-Day Timeline Report" Height="760" Width="1300"
+        Title="Printable Timeline Report" Height="760" Width="1300"
         WindowStartupLocation="CenterOwner" Background="#F0F2F5">
 
     <Window.Resources>
@@ -54,19 +54,7 @@
                         <TextBlock Text="Primary Database Table" Style="{StaticResource HeaderStyle}" />
                         <ComboBox ItemsSource="{Binding AvailableTables}" SelectedItem="{Binding SelectedTable}" Height="25" Margin="0,0,0,10" />
 
-                        <TextBlock Text="Merge Extra Data from Excel" Style="{StaticResource HeaderStyle}" />
-                        <Grid Margin="0,0,0,10">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox Text="{Binding ExcelFilePath}" IsReadOnly="True" Height="25" VerticalContentAlignment="Center" />
-                            <Button Grid.Column="1" Content="..." Command="{Binding BrowseExcelCommand}" Width="25" Margin="5,0,0,0" ToolTip="Select Excel" />
-                            <Button Grid.Column="2" Content="X" Command="{Binding ClearExcelCommand}" Width="25" Margin="5,0,0,0" Foreground="Red" ToolTip="Clear Excel" />
-                        </Grid>
-
-                        <TextBlock Text="Date Range (17 Days max for A4)" Style="{StaticResource HeaderStyle}" />
+                        <TextBlock Text="Date Range (Auto 12-Days, Max 20)" Style="{StaticResource HeaderStyle}" />
                         <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -77,12 +65,6 @@
                             <TextBlock Grid.Column="1" Text="-" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             <DatePicker Grid.Column="2" SelectedDate="{Binding EndDate}" />
                         </Grid>
-
-                        <TextBlock Text="Extra Information Columns" Style="{StaticResource HeaderStyle}" />
-                        <TextBlock Text="Column 1:" Foreground="Gray" FontSize="11" Margin="0,5,0,0" />
-                        <ComboBox ItemsSource="{Binding AvailableExtraOptions}" SelectedItem="{Binding ExtraCol1Selection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="25" Margin="0,0,0,5" />
-                        <TextBlock Text="Column 2:" Foreground="Gray" FontSize="11" />
-                        <ComboBox ItemsSource="{Binding AvailableExtraOptions}" SelectedItem="{Binding ExtraCol2Selection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="25" Margin="0,0,0,15" />
 
                         <Expander Header="Visual &amp; Global Colors" IsExpanded="False" Background="#F8F9FA" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,5">
                             <StackPanel Margin="0,10,0,0">
@@ -115,8 +97,8 @@
                                         <ColumnDefinition Width="105" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Normal Breaks:" VerticalAlignment="Center" />
-                                    <xctk:ColorPicker Grid.Column="1" SelectedColor="{Binding BreakColor, Mode=TwoWay}" Height="24" />
+                                    <TextBlock Text="Bypass (Çalışıyor):" VerticalAlignment="Center" FontWeight="Bold" Foreground="#666" />
+                                    <xctk:ColorPicker Grid.Column="1" SelectedColor="{Binding BypassColor, Mode=TwoWay}" Height="24" />
                                 </Grid>
                                 <Grid Margin="0,0,0,5">
                                     <Grid.ColumnDefinitions>
@@ -174,24 +156,91 @@
                             </StackPanel>
                         </Expander>
 
-                        <TextBlock Text="Timeline Row Height" Style="{StaticResource HeaderStyle}" />
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Slider Minimum="8" Maximum="32" Value="{Binding RowHeight, Mode=TwoWay}" Width="160" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
-                            <TextBlock Text="{Binding RowHeight}" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold" />
-                        </StackPanel>
+                        <Expander Header="Default Layers &amp; Text Rules" IsExpanded="False" Background="#FFF5E6" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,10">
+                            <StackPanel Margin="0,5,0,0">
+                                <TextBlock Text="Higher layers draw on top of lower layers. If multiple errors happen, their layer automatically increments (e.g., 10, 11, 12)." TextWrapping="Wrap" FontSize="10" Foreground="#555" Margin="0,0,0,10" />
 
-                        <TextBlock Text="Configuration Toggles" Style="{StaticResource HeaderStyle}" />
-                        <CheckBox Content="Display DB numeric values in Hours" IsChecked="{Binding ShowValuesInHours, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
-                        <CheckBox Content="Show Machine ID &amp; Texts on Errors" IsChecked="{Binding ShowMajorErrorLabels, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
-                        <CheckBox Content="Detailed View for Overlaps (ex: 21, 02)" IsChecked="{Binding DetailedOverlapView, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
-                        <CheckBox Content="Hide 'Genel Temizlik' Labels (MA-00)" IsChecked="{Binding HideGenelTemizlik, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
-                        <CheckBox Content="Show Machine Legend Top-Right" IsChecked="{Binding ShowMachineLegend, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
+                                <TextBlock Text="Running (Canvas) Layer:" FontSize="11" Foreground="#555" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                    <Slider Minimum="1" Maximum="20" Value="{Binding LayerRunning, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                    <TextBlock Text="{Binding LayerRunning}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
+                                </StackPanel>
+
+                                <TextBlock Text="Bypass Layer:" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                    <Slider Minimum="1" Maximum="20" Value="{Binding LayerBypass, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                    <TextBlock Text="{Binding LayerBypass}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
+                                </StackPanel>
+
+                                <TextBlock Text="Breaks &amp; Cleaning Layer:" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                    <Slider Minimum="1" Maximum="20" Value="{Binding LayerBreaks, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                    <TextBlock Text="{Binding LayerBreaks}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
+                                </StackPanel>
+
+                                <TextBlock Text="Errors Layer (Base):" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <Slider Minimum="1" Maximum="20" Value="{Binding LayerErrors, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                    <TextBlock Text="{Binding LayerErrors}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
+                                </StackPanel>
+
+                                <Border BorderBrush="#DDD" BorderThickness="0,1,0,0" Margin="0,5,0,5" />
+                                <TextBlock Text="Dynamic Height &amp; Text Rules:" FontWeight="Bold" Foreground="#333" Margin="0,0,0,5" />
+
+                                <TextBlock Text="Overlap Cascade Step (% drop):" FontSize="11" Foreground="#555" ToolTip="How much smaller the next overlapping block gets. Larger % gives more visibility to events behind." />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                    <Slider Minimum="0.05" Maximum="0.5" Value="{Binding OverlapCascadeStep, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="0.05" />
+                                    <TextBlock Text="{Binding OverlapCascadeStep, StringFormat={}{0:P0}}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
+                                </StackPanel>
+
+                                <TextBlock Text="Min. Minutes for Label:" FontSize="11" Foreground="#555" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                    <Slider Minimum="30" Maximum="240" Value="{Binding MinLabelMinutes, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="10" />
+                                    <TextBlock Text="{Binding MinLabelMinutes, StringFormat={}{0}m}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
+                                </StackPanel>
+
+                                <TextBlock Text="Min. Minutes for Footnote:" FontSize="11" Foreground="#555" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                    <Slider Minimum="5" Maximum="90" Value="{Binding MinFootnoteMinutes, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="5" />
+                                    <TextBlock Text="{Binding MinFootnoteMinutes, StringFormat={}{0}m}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Expander>
+
+                        <Expander Header="Advanced Layout Toggles &amp; Excel Data" IsExpanded="False" Background="#FFFDF5" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,10">
+                            <StackPanel Margin="0,5,0,0">
+
+                                <TextBlock Text="Excel Overrides (Col 1 &amp; 2)" Style="{StaticResource HeaderStyle}" Margin="0,0,0,2" />
+                                <Grid Margin="0,0,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding ExcelFilePath}" IsReadOnly="True" Height="22" VerticalContentAlignment="Center" />
+                                    <Button Grid.Column="1" Content="..." Command="{Binding BrowseExcelCommand}" Width="22" Margin="5,0,0,0" />
+                                    <Button Grid.Column="2" Content="X" Command="{Binding ClearExcelCommand}" Width="22" Margin="5,0,0,0" Foreground="Red" />
+                                </Grid>
+                                <ComboBox ItemsSource="{Binding AvailableExtraOptions}" SelectedItem="{Binding ExtraCol1Selection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="22" Margin="0,0,0,5" />
+                                <ComboBox ItemsSource="{Binding AvailableExtraOptions}" SelectedItem="{Binding ExtraCol2Selection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="22" Margin="0,0,0,15" />
+
+                                <TextBlock Text="Timeline Row Height" Style="{StaticResource HeaderStyle}" Margin="0,0,0,2" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                    <Slider Minimum="8" Maximum="32" Value="{Binding RowHeight, Mode=TwoWay}" Width="160" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                    <TextBlock Text="{Binding RowHeight}" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold" />
+                                </StackPanel>
+
+                                <CheckBox Content="Display DB numeric values in Hours" IsChecked="{Binding ShowValuesInHours, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
+                                <CheckBox Content="Show Machine ID &amp; Texts on Errors" IsChecked="{Binding ShowMajorErrorLabels, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
+                                <CheckBox Content="Hide 'Genel Temizlik' Labels (MA-00)" IsChecked="{Binding HideGenelTemizlik, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
+                                <CheckBox Content="Show Machine Legend on Top" IsChecked="{Binding ShowMachineLegend, Mode=TwoWay}" Margin="0,0,0,15" Foreground="#555" />
+                            </StackPanel>
+                        </Expander>
 
                         <ProgressBar IsIndeterminate="True" Height="5" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" Margin="0,10,0,0" />
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- SPECIFIC BLOCK EDITOR PANEL -->
                 <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0" Background="#FFFDF5">
                     <ScrollViewer.Style>
                         <Style TargetType="ScrollViewer">
@@ -206,8 +255,8 @@
                     <StackPanel>
                         <Button Content="⬅ Back to Configuration" Command="{Binding CancelBlockEditCommand}" Background="Transparent" Foreground="#0056B3" BorderThickness="0" HorizontalAlignment="Left" Margin="0,0,0,10" FontWeight="Bold" Cursor="Hand" />
 
-                        <TextBlock Text="Manual Block Editor" FontSize="18" FontWeight="Bold" Foreground="#E67E22" Margin="0,0,0,5" />
-                        <TextBlock Text="Edit exactly what prints for this block. Changes are lost if you click 'Generate Preview' again." FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,0,0,15" />
+                        <TextBlock Text="Live Visual Editor" FontSize="18" FontWeight="Bold" Foreground="#E67E22" Margin="0,0,0,5" />
+                        <TextBlock Text="Edit exactly what prints for this block. Changes are automatically saved as overrides when you click Apply." FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,0,0,15" />
 
                         <TextBlock Text="Block Time Info" Style="{StaticResource HeaderStyle}" Foreground="#E67E22" />
                         <TextBlock Text="{Binding EditBlockTimeData}" FontSize="13" FontWeight="SemiBold" Foreground="#34495E" Margin="0,0,0,15" />
@@ -215,14 +264,33 @@
                         <TextBlock Text="Forced Category Assignment" Style="{StaticResource HeaderStyle}" />
                         <ComboBox ItemsSource="{Binding AvailableBlockCategories}" SelectedItem="{Binding SelectedBlockCategory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="25" Margin="0,0,0,15" />
 
-                        <TextBlock Text="Block Fill Color (Auto-set by Category)" Style="{StaticResource HeaderStyle}" />
-                        <xctk:ColorPicker SelectedColor="{Binding EditBlockColor, Mode=TwoWay}" Height="25" Margin="0,0,0,15" />
+                        <TextBlock Text="Block Fill Color" Style="{StaticResource HeaderStyle}" />
+                        <xctk:ColorPicker SelectedColor="{Binding EditBlockColor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="25" Margin="0,0,0,15" />
 
                         <TextBlock Text="Inner Block Text (Label)" Style="{StaticResource HeaderStyle}" />
                         <TextBox Text="{Binding EditBlockLabel, UpdateSourceTrigger=PropertyChanged}" Height="25" Margin="0,0,0,15" VerticalContentAlignment="Center" />
 
-                        <TextBlock Text="Machine Code (for footnotes)" Style="{StaticResource HeaderStyle}" />
-                        <TextBox Text="{Binding EditBlockMachine, UpdateSourceTrigger=PropertyChanged}" Height="25" Margin="0,0,0,15" VerticalContentAlignment="Center" ToolTip="Typing '00' automatically swaps the Forced Category list." />
+                        <Expander Header="Advanced Layout &amp; Layering" IsExpanded="False" Background="#FAFAFA" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,15">
+                            <StackPanel Margin="0,5,0,0">
+                                <TextBlock Text="Layer Z-Index (1 to 20 Scale):" FontSize="11" Foreground="#555" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                    <Slider Minimum="1" Maximum="20" Value="{Binding EditBlockZIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                    <TextBlock Text="{Binding EditBlockZIndex}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
+                                </StackPanel>
+
+                                <TextBlock Text="Height Scale (1.0 = Full Row):" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                    <Slider Minimum="0.1" Maximum="1.0" Value="{Binding EditBlockHeightMultiplier, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="0.05" />
+                                    <TextBlock Text="{Binding EditBlockHeightMultiplier, StringFormat={}{0:F2}}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
+                                </StackPanel>
+
+                                <TextBlock Text="Push Down Offset (Pixels):" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                    <Slider Minimum="0" Maximum="32" Value="{Binding EditBlockTopOffset, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                    <TextBlock Text="{Binding EditBlockTopOffset}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Expander>
 
                         <Border Background="#F5F5F5" BorderBrush="#DDD" BorderThickness="1" Padding="10" Margin="0,5,0,15">
                             <StackPanel>
@@ -233,11 +301,12 @@
                         </Border>
 
                         <Button Content="✓ Apply Overrides" Command="{Binding ApplyBlockEditCommand}" Height="35" Background="#28A745" Foreground="White" FontWeight="Bold" Margin="0,15,0,10" />
-                        <Button Content="✗ Cancel &amp; Go Back" Command="{Binding CancelBlockEditCommand}" Height="30" Background="#E74C3C" Foreground="White" FontWeight="Bold" />
+                        <Button Content="✗ Cancel &amp; Revert" Command="{Binding CancelBlockEditCommand}" Height="30" Background="#E74C3C" Foreground="White" FontWeight="Bold" />
                     </StackPanel>
                 </ScrollViewer>
 
                 <StackPanel Grid.Row="1" Margin="0,15,0,0">
+                    <Button Content="Reset Manual Edits" Command="{Binding ResetOverridesCommand}" Height="28" Background="#6C757D" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" ToolTip="Clear all manual color, text, and layout overrides you made." />
                     <Button Content="Generate Preview (Saves Settings)" Command="{Binding GeneratePreviewCommand}" Height="35" Background="#0056B3" Foreground="White" FontWeight="Bold" Margin="0,0,0,10" />
                     <Button Content="🖨 Print to A4 Landscape" Command="{Binding PrintCommand}" Height="35" Background="#2ECC71" Foreground="White" FontWeight="Bold" />
                 </StackPanel>
@@ -247,8 +316,6 @@
         <!-- RIGHT PANEL: A4 PREVIEW WITH ZOOM -->
         <Grid Grid.Column="1" Background="#E0E0E0">
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-
-                <!-- Zoom Wrapper Grid -->
                 <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Margin="30">
                     <Grid.LayoutTransform>
                         <ScaleTransform ScaleX="{Binding ZoomScale}" ScaleY="{Binding ZoomScale}" />
@@ -260,20 +327,12 @@
                         </Border.Effect>
 
                         <Grid>
-                            <!-- UPDATED ROW DEFINITIONS FOR GAP FIX -->
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
-                                <!-- 0: Header -->
                                 <RowDefinition Height="Auto" />
-                                <!-- 1: Top Ruler -->
                                 <RowDefinition Height="Auto" />
-                                <!-- 2: Data Rows (Changed from * to Auto to snap to top) -->
                                 <RowDefinition Height="Auto" />
-                                <!-- 3: Bottom Ruler -->
-                                <RowDefinition Height="Auto" />
-                                <!-- 4: Footnotes -->
                                 <RowDefinition Height="*" />
-                                <!-- 5: Empty space to consume the rest of A4 -->
                             </Grid.RowDefinitions>
 
                             <Grid Grid.Row="0" Margin="0,0,0,15">
@@ -282,6 +341,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
+
                                 <StackPanel>
                                     <TextBlock Text="{Binding ReportConfig.ReportTitle}" FontSize="24" FontWeight="Bold" Foreground="#333" />
                                     <TextBlock Text="{Binding ReportConfig.DateRangeText}" FontSize="14" Foreground="#666" Margin="0,2,0,0" />
@@ -326,7 +386,8 @@
                                     </WrapPanel>
                                 </StackPanel>
 
-                                <Border Grid.Column="2" Visibility="{Binding ReportConfig.ShowMachineLegend, Converter={StaticResource BoolToVis}}" BorderBrush="Black" BorderThickness="1" Background="#FAFAFA" Padding="4,2" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                                <!-- UPGRADED LEGEND LOOK -->
+                                <Border Grid.Column="2" Visibility="{Binding ReportConfig.ShowMachineLegend, Converter={StaticResource BoolToVis}}" BorderBrush="#DDD" BorderThickness="1" CornerRadius="4" Background="#F9FAFB" Padding="8,4" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,0,0">
                                     <ItemsControl ItemsSource="{Binding ReportConfig.LegendItems}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
@@ -335,13 +396,13 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Grid Margin="2,1">
+                                                <Grid Margin="5,2">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="20" />
                                                         <ColumnDefinition Width="Auto" MinWidth="90" />
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="{Binding Code}" FontSize="8" FontWeight="Bold" Foreground="#444" />
-                                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="8" Foreground="#333" />
+                                                    <TextBlock Grid.Column="0" Text="{Binding Code}" FontSize="9" FontWeight="Bold" Foreground="#444" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="9" Foreground="#333" />
                                                 </Grid>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -388,163 +449,196 @@
                                 </Canvas>
                             </Grid>
 
-                            <!-- Data Rows Grid.Row="2" -->
-                            <ItemsControl Grid.Row="2" ItemsSource="{Binding ReportRows}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border BorderBrush="#EEE" BorderThickness="0,0,0,1" Margin="0,0">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="White" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsAlternateBackground}" Value="True">
-                                                            <Setter Property="Background" Value="#F2F4F7" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
+                            <!-- TIMELINE CONTENT -->
+                            <Grid Grid.Row="2">
+                                <!-- Dashed Guidelines Behind the Timeline -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="50" />
+                                        <ColumnDefinition Width="40" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="2" Width="90" Visibility="{Binding ReportConfig.ShowExtra1, Converter={StaticResource BoolToVis}}" />
+                                    <Border Grid.Column="3" Width="90" Visibility="{Binding ReportConfig.ShowExtra2, Converter={StaticResource BoolToVis}}" />
+
+                                    <Canvas Grid.Column="4" Width="{Binding ReportConfig.TimelineWidth}" Margin="15,0,0,0">
+                                        <ItemsControl ItemsSource="{Binding ReportConfig.AxisTicks}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <Canvas />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Line X1="0" Y1="0" X2="0" Y2="1000" Stroke="#20000000" StrokeThickness="1" StrokeDashArray="4 2" IsHitTestVisible="False" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                            <ItemsControl.ItemContainerStyle>
+                                                <Style TargetType="ContentPresenter">
+                                                    <Setter Property="Canvas.Left" Value="{Binding PixelLeft}" />
+                                                    <Setter Property="Canvas.Top" Value="0" />
                                                 </Style>
-                                            </Border.Style>
+                                            </ItemsControl.ItemContainerStyle>
+                                        </ItemsControl>
+                                    </Canvas>
+                                </Grid>
 
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="50" />
-                                                    <ColumnDefinition Width="40" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
+                                <!-- Actual Rows -->
+                                <ItemsControl ItemsSource="{Binding ReportRows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="#EEE" BorderThickness="0,0,0,1" Margin="0,0">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#FDFDFD" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsAlternateBackground}" Value="True">
+                                                                <Setter Property="Background" Value="#F2F4F7" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
 
-                                                <TextBlock Grid.Column="0" Text="{Binding DisplayDate}" FontSize="{Binding DataContext.ReportConfig.TextFontSize, RelativeSource={RelativeSource AncestorType=Window}}" Padding="5,0" VerticalAlignment="Center" Visibility="{Binding ShowDate, Converter={StaticResource BoolToVis}}" />
-                                                <TextBlock Grid.Column="1" Text="{Binding DisplayShift}" FontSize="{Binding DataContext.ReportConfig.SymbolFontSize, RelativeSource={RelativeSource AncestorType=Window}}" Padding="5,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                <Border Grid.Column="2" Width="90" Visibility="{Binding DataContext.ReportConfig.ShowExtra1, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}">
-                                                    <TextBlock Text="{Binding ExtraValue1}" FontSize="{Binding DataContext.ReportConfig.TextFontSize, RelativeSource={RelativeSource AncestorType=Window}}" Padding="5,0" TextAlignment="Right" VerticalAlignment="Center" />
-                                                </Border>
-                                                <Border Grid.Column="3" Width="90" Visibility="{Binding DataContext.ReportConfig.ShowExtra2, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}">
-                                                    <TextBlock Text="{Binding ExtraValue2}" FontSize="{Binding DataContext.ReportConfig.TextFontSize, RelativeSource={RelativeSource AncestorType=Window}}" Padding="5,0" TextAlignment="Right" VerticalAlignment="Center" />
-                                                </Border>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="50" />
+                                                        <ColumnDefinition Width="40" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
 
-                                                <Canvas Grid.Column="4" Width="{Binding DataContext.ReportConfig.TimelineWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="{Binding DataContext.ReportConfig.RowHeight, RelativeSource={RelativeSource AncestorType=Window}}" Margin="15,2,0,2" HorizontalAlignment="Left">
+                                                    <TextBlock Grid.Column="0" Text="{Binding DisplayDate}" FontSize="{Binding DataContext.ReportConfig.TextFontSize, RelativeSource={RelativeSource AncestorType=Window}}" Padding="5,0" VerticalAlignment="Center" Visibility="{Binding ShowDate, Converter={StaticResource BoolToVis}}" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding DisplayShift}" FontSize="{Binding DataContext.ReportConfig.SymbolFontSize, RelativeSource={RelativeSource AncestorType=Window}}" Padding="5,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    <Border Grid.Column="2" Width="90" Visibility="{Binding DataContext.ReportConfig.ShowExtra1, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock Text="{Binding ExtraValue1}" FontSize="{Binding DataContext.ReportConfig.TextFontSize, RelativeSource={RelativeSource AncestorType=Window}}" Padding="5,0" TextAlignment="Right" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <Border Grid.Column="3" Width="90" Visibility="{Binding DataContext.ReportConfig.ShowExtra2, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock Text="{Binding ExtraValue2}" FontSize="{Binding DataContext.ReportConfig.TextFontSize, RelativeSource={RelativeSource AncestorType=Window}}" Padding="5,0" TextAlignment="Right" VerticalAlignment="Center" />
+                                                    </Border>
 
-                                                    <ItemsControl ItemsSource="{Binding Blocks}">
-                                                        <ItemsControl.ItemsPanel>
-                                                            <ItemsPanelTemplate>
-                                                                <Canvas />
-                                                            </ItemsPanelTemplate>
-                                                        </ItemsControl.ItemsPanel>
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <!-- ADDED TOOLTIP BINDING HERE -->
-                                                                <Border Width="{Binding PixelWidth}" Height="{Binding DataContext.ReportConfig.RowHeight, RelativeSource={RelativeSource AncestorType=Window}}" Background="{x:Null}" Cursor="Hand" RenderTransformOrigin="0.5,0.5">
-                                                                    <Border.ToolTip>
-                                                                        <ToolTip Background="#FDFDFD" BorderBrush="#CCC">
-                                                                            <TextBlock>
-                                                                                <Run Text="{Binding DisplayStartTime}" FontWeight="Bold" Foreground="#333" />
-                                                                                <Run Text=" - " FontWeight="Bold" Foreground="#333" />
-                                                                                <Run Text="{Binding DisplayEndTime}" FontWeight="Bold" Foreground="#333" />
-                                                                                <LineBreak />
-                                                                                <Run Text="{Binding OriginalDescription}" Foreground="#555" />
-                                                                            </TextBlock>
-                                                                        </ToolTip>
-                                                                    </Border.ToolTip>
-                                                                    <Border.RenderTransform>
-                                                                        <ScaleTransform ScaleY="{Binding HeightMultiplier}" />
-                                                                    </Border.RenderTransform>
-                                                                    <Border.InputBindings>
-                                                                        <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.SelectBlockCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
-                                                                    </Border.InputBindings>
-                                                                    <Border.Style>
-                                                                        <Style TargetType="Border">
-                                                                            <Setter Property="BorderThickness" Value="0" />
-                                                                            <Style.Triggers>
-                                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                                                    <Setter Property="BorderThickness" Value="2" />
-                                                                                    <Setter Property="BorderBrush" Value="Black" />
-                                                                                    <Setter Property="Margin" Value="0,-1,0,-1" />
-                                                                                </DataTrigger>
-                                                                            </Style.Triggers>
-                                                                        </Style>
-                                                                    </Border.Style>
+                                                    <Canvas Grid.Column="4" Width="{Binding DataContext.ReportConfig.TimelineWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="{Binding DataContext.ReportConfig.RowHeight, RelativeSource={RelativeSource AncestorType=Window}}" Margin="15,2,0,2" HorizontalAlignment="Left">
 
-                                                                    <Rectangle Fill="{Binding ColorHex, Converter={StaticResource StringToBrush}}" StrokeThickness="0" />
-                                                                </Border>
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                        <ItemsControl.ItemContainerStyle>
-                                                            <Style TargetType="ContentPresenter">
-                                                                <Setter Property="Canvas.Left" Value="{Binding PixelLeft}" />
-                                                                <Setter Property="Canvas.Top" Value="0" />
-                                                                <Setter Property="Panel.ZIndex" Value="0" />
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                                        <Setter Property="Panel.ZIndex" Value="99" />
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </ItemsControl.ItemContainerStyle>
-                                                    </ItemsControl>
+                                                        <!-- BACKGROUND BLOCKS -->
+                                                        <ItemsControl ItemsSource="{Binding Blocks}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <Canvas />
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <!-- FIX: BorderBrush is now Semi-Transparent Soft Black (#40000000) -->
+                                                                    <Border Width="{Binding PixelWidth}" Height="{Binding DataContext.ReportConfig.RowHeight, RelativeSource={RelativeSource AncestorType=Window}}" Background="{Binding ColorHex, Converter={StaticResource StringToBrush}}" CornerRadius="2" BorderThickness="{Binding BlockBorder}" BorderBrush="#40000000" Cursor="Hand" RenderTransformOrigin="0.5,0">
+                                                                        <Border.ToolTip>
+                                                                            <ToolTip Background="#FDFDFD" BorderBrush="#CCC">
+                                                                                <TextBlock>
+                                                                                    <Run Text="{Binding DisplayStartTime}" FontWeight="Bold" Foreground="#333" />
+                                                                                    <Run Text=" - " FontWeight="Bold" Foreground="#333" />
+                                                                                    <Run Text="{Binding DisplayEndTime}" FontWeight="Bold" Foreground="#333" />
+                                                                                    <LineBreak />
+                                                                                    <Run Text="{Binding OriginalDescription}" Foreground="#555" />
+                                                                                </TextBlock>
+                                                                            </ToolTip>
+                                                                        </Border.ToolTip>
+                                                                        <Border.RenderTransform>
+                                                                            <ScaleTransform ScaleY="{Binding HeightMultiplier}" />
+                                                                        </Border.RenderTransform>
+                                                                        <Border.InputBindings>
+                                                                            <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.SelectBlockCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                                                        </Border.InputBindings>
+                                                                        <Border.Style>
+                                                                            <Style TargetType="Border">
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                                        <!-- Force solid black if manually selected -->
+                                                                                        <Setter Property="BorderThickness" Value="2" />
+                                                                                        <Setter Property="BorderBrush" Value="Black" />
+                                                                                        <Setter Property="Margin" Value="0,-1,0,-1" />
+                                                                                        <Setter Property="Panel.ZIndex" Value="99" />
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </Border.Style>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                            <ItemsControl.ItemContainerStyle>
+                                                                <Style TargetType="ContentPresenter">
+                                                                    <Setter Property="Canvas.Left" Value="{Binding PixelLeft}" />
+                                                                    <Setter Property="Canvas.Top" Value="{Binding TopOffset}" />
+                                                                    <Setter Property="Panel.ZIndex" Value="{Binding PanelZIndex}" />
+                                                                </Style>
+                                                            </ItemsControl.ItemContainerStyle>
+                                                        </ItemsControl>
 
-                                                    <ItemsControl ItemsSource="{Binding DataContext.ReportConfig.AxisTicks, RelativeSource={RelativeSource AncestorType=Window}}">
-                                                        <ItemsControl.ItemsPanel>
-                                                            <ItemsPanelTemplate>
-                                                                <Canvas />
-                                                            </ItemsPanelTemplate>
-                                                        </ItemsControl.ItemsPanel>
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <Line X1="0" Y1="0" X2="0" Y2="{Binding RowHeight}" Stroke="#40000000" StrokeThickness="1" IsHitTestVisible="False" />
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                        <ItemsControl.ItemContainerStyle>
-                                                            <Style TargetType="ContentPresenter">
-                                                                <Setter Property="Canvas.Left" Value="{Binding PixelLeft}" />
-                                                                <Setter Property="Canvas.Top" Value="0" />
-                                                                <Setter Property="Panel.ZIndex" Value="5" />
-                                                            </Style>
-                                                        </ItemsControl.ItemContainerStyle>
-                                                    </ItemsControl>
+                                                        <ItemsControl ItemsSource="{Binding DataContext.ReportConfig.AxisTicks, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <Canvas />
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Line X1="0" Y1="0" X2="0" Y2="{Binding RowHeight}" Stroke="#40000000" StrokeThickness="1" IsHitTestVisible="False" />
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                            <ItemsControl.ItemContainerStyle>
+                                                                <Style TargetType="ContentPresenter">
+                                                                    <Setter Property="Canvas.Left" Value="{Binding PixelLeft}" />
+                                                                    <Setter Property="Canvas.Top" Value="0" />
+                                                                    <Setter Property="Panel.ZIndex" Value="100" />
+                                                                </Style>
+                                                            </ItemsControl.ItemContainerStyle>
+                                                        </ItemsControl>
 
-                                                    <ItemsControl ItemsSource="{Binding Blocks}">
-                                                        <ItemsControl.ItemsPanel>
-                                                            <ItemsPanelTemplate>
-                                                                <Canvas />
-                                                            </ItemsPanelTemplate>
-                                                        </ItemsControl.ItemsPanel>
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <TextBlock Text="{Binding Label}" IsHitTestVisible="False" Foreground="{Binding DataContext.ReportConfig.InnerLabelColor, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringToBrush}}" FontWeight="Bold" Height="{Binding DataContext.ReportConfig.RowHeight, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="{Binding DataContext.ReportConfig.InnerLabelFontSize, RelativeSource={RelativeSource AncestorType=Window}}" Width="{Binding PixelWidth}" TextAlignment="Center" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis">
-                                                                    <TextBlock.Effect>
-                                                                        <DropShadowEffect Color="Black" BlurRadius="3" ShadowDepth="1" Opacity="0.8" />
-                                                                    </TextBlock.Effect>
-                                                                    <TextBlock.Style>
-                                                                        <Style TargetType="TextBlock">
-                                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                                            <Style.Triggers>
-                                                                                <MultiDataTrigger>
-                                                                                    <MultiDataTrigger.Conditions>
-                                                                                        <Condition Binding="{Binding DataContext.ReportConfig.ShowMajorErrorLabels, RelativeSource={RelativeSource AncestorType=Window}}" Value="True" />
-                                                                                        <Condition Binding="{Binding Label, Converter={StaticResource IsNullOrEmptyConverter}}" Value="False" />
-                                                                                    </MultiDataTrigger.Conditions>
-                                                                                    <Setter Property="Visibility" Value="Visible" />
-                                                                                </MultiDataTrigger>
-                                                                            </Style.Triggers>
-                                                                        </Style>
-                                                                    </TextBlock.Style>
-                                                                </TextBlock>
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                        <ItemsControl.ItemContainerStyle>
-                                                            <Style TargetType="ContentPresenter">
-                                                                <Setter Property="Canvas.Left" Value="{Binding PixelLeft}" />
-                                                                <Setter Property="Canvas.Top" Value="{Binding TopOffset}" />
-                                                                <Setter Property="Panel.ZIndex" Value="10" />
-                                                            </Style>
-                                                        </ItemsControl.ItemContainerStyle>
-                                                    </ItemsControl>
-                                                </Canvas>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                                                        <!-- TEXT OVERLAYS -->
+                                                        <ItemsControl ItemsSource="{Binding Blocks}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <Canvas />
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <TextBlock Text="{Binding Label}" IsHitTestVisible="False" Foreground="{Binding DataContext.ReportConfig.InnerLabelColor, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringToBrush}}" FontWeight="Bold" Height="{Binding DataContext.ReportConfig.RowHeight, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="{Binding DataContext.ReportConfig.InnerLabelFontSize, RelativeSource={RelativeSource AncestorType=Window}}" Width="{Binding PixelWidth}" TextAlignment="Center" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis">
+                                                                        <TextBlock.Effect>
+                                                                            <DropShadowEffect Color="Black" BlurRadius="3" ShadowDepth="1" Opacity="0.8" />
+                                                                        </TextBlock.Effect>
+                                                                        <TextBlock.Style>
+                                                                            <Style TargetType="TextBlock">
+                                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                                                <Style.Triggers>
+                                                                                    <MultiDataTrigger>
+                                                                                        <MultiDataTrigger.Conditions>
+                                                                                            <Condition Binding="{Binding DataContext.ReportConfig.ShowMajorErrorLabels, RelativeSource={RelativeSource AncestorType=Window}}" Value="True" />
+                                                                                            <Condition Binding="{Binding Label, Converter={StaticResource IsNullOrEmptyConverter}}" Value="False" />
+                                                                                        </MultiDataTrigger.Conditions>
+                                                                                        <Setter Property="Visibility" Value="Visible" />
+                                                                                    </MultiDataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </TextBlock.Style>
+                                                                    </TextBlock>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                            <ItemsControl.ItemContainerStyle>
+                                                                <Style TargetType="ContentPresenter">
+                                                                    <Setter Property="Canvas.Left" Value="{Binding PixelLeft}" />
+                                                                    <Setter Property="Canvas.Top" Value="{Binding TopOffset}" />
+                                                                    <Setter Property="Panel.ZIndex" Value="80" />
+                                                                </Style>
+                                                            </ItemsControl.ItemContainerStyle>
+                                                        </ItemsControl>
+                                                    </Canvas>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
 
                             <Grid Grid.Row="3" Background="#F5F5F5">
                                 <Grid.ColumnDefinitions>
@@ -579,17 +673,21 @@
                                 </Canvas>
                             </Grid>
 
+                            <!-- IMPROVED FOOTNOTES DESIGN -->
                             <Grid Grid.Row="4" Margin="0,15,0,0">
                                 <ItemsControl ItemsSource="{Binding ReportConfig.Footnotes}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
-                                            <WrapPanel Orientation="Horizontal" />
+                                            <WrapPanel Orientation="Horizontal" Margin="0,5,0,0" />
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="#F9F9F9" BorderBrush="#DDD" BorderThickness="1" CornerRadius="2" Padding="4,2" Margin="0,0,10,5">
-                                                <TextBlock Text="{Binding}" FontSize="10" Foreground="#444" />
+                                            <Border Background="#FFFFFA" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="6,3" Margin="0,0,8,8">
+                                                <Border.Effect>
+                                                    <DropShadowEffect Color="Black" BlurRadius="2" Opacity="0.05" ShadowDepth="1" />
+                                                </Border.Effect>
+                                                <TextBlock Text="{Binding}" FontSize="{Binding DataContext.ReportConfig.FootnoteFontSize, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="#333" />
                                             </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>

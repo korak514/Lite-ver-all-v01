@@ -1,40 +1,34 @@
-﻿using System.ComponentModel;
-using System.Runtime.CompilerServices;
+﻿// Models/CategoryRule.cs
+using System;
 
 namespace WPF_LoginForm.Models
 {
-    // Adding INotifyPropertyChanged ensures the UI updates instantly when you type
-    public class CategoryRule : INotifyPropertyChanged
+    public class CategoryRule
     {
-        private string _startsWith;
-        private string _mapTo;
+        /// <summary>
+        /// The raw string found in the database (even with typos).
+        /// </summary>
+        public string StartsWith { get; set; }
 
-        // PROPERTY (Must have get/set)
-        public string StartsWith
-        {
-            get => _startsWith;
-            set { _startsWith = value; OnPropertyChanged(); }
-        }
+        /// <summary>
+        /// The corrected/standardized category name.
+        /// </summary>
+        public string MapTo { get; set; }
 
-        // PROPERTY (Must have get/set)
-        public string MapTo
-        {
-            get => _mapTo;
-            set { _mapTo = value; OnPropertyChanged(); }
-        }
+        /// <summary>
+        /// Higher value = higher priority.
+        /// Use higher priority for specific spelling corrections.
+        /// </summary>
+        public int Priority { get; set; } = 0;
 
         public CategoryRule()
-        {
-            StartsWith = "";
-            MapTo = "";
-        }
+        { }
 
-        // Boilerplate for UI updates
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected void OnPropertyChanged([CallerMemberName] string name = null)
+        public CategoryRule(string startsWith, string mapTo, int priority = 0)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            StartsWith = startsWith;
+            MapTo = mapTo;
+            Priority = priority;
         }
     }
 }

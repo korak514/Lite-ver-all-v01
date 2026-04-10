@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Services/TimelineReportGenerator.cs
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
@@ -32,6 +33,19 @@ namespace WPF_LoginForm.Services
         public string ErrorColor2 { get; set; }
         public string RunningColor { get; set; }
         public string FacilityStopColor { get; set; }
+
+        // User configured Layers
+        public int LayerRunning { get; set; } = 1;
+
+        public int LayerBypass { get; set; } = 2;
+        public int LayerBreaks { get; set; } = 3;
+        public int LayerErrors { get; set; } = 4;
+
+        // User configured Thresholds
+        public double OverlapCascadeStep { get; set; } = 0.20;
+
+        public double MinLabelMinutes { get; set; } = 90.0;
+        public double MinFootnoteMinutes { get; set; } = 20.0;
     }
 
     public interface ITimelineReportGenerator
@@ -112,6 +126,13 @@ namespace WPF_LoginForm.Services
                 bool altBackgroundToggle = false;
                 double widthMultiplier = context.TimelineWidth / 720.0;
 
+                // PRE-CALCULATE DYNAMIC CASCADE HEIGHTS
+                double[] cascadeHeights = new double[6];
+                for (int i = 0; i < 6; i++)
+                {
+                    cascadeHeights[i] = Math.Max(0.05, 1.0 - (i * context.OverlapCascadeStep));
+                }
+
                 foreach (var group in groupedRows)
                 {
                     if (lastDateProcessed != null && lastDateProcessed != group.Key.Date) altBackgroundToggle = !altBackgroundToggle;
@@ -140,8 +161,7 @@ namespace WPF_LoginForm.Services
                         }
                     }
 
-                    var breaks = new List<PrintTimeBlock>();
-                    var rawErrors = new List<PrintTimeBlock>();
+                    var allRawEvents = new List<PrintTimeBlock>();
 
                     foreach (var item in group)
                     {
@@ -183,48 +203,57 @@ namespace WPF_LoginForm.Services
                                         isNormalBreak = errModel.ErrorDescription.IndexOf("mola", StringComparison.OrdinalIgnoreCase) >= 0 || errModel.ErrorDescription.IndexOf("yemek", StringComparison.OrdinalIgnoreCase) >= 0;
                                     }
 
+                                    string dStartStr = shiftStart.AddMinutes(startMin).ToString("HH:mm");
+                                    string dEndStr = shiftStart.AddMinutes(startMin + duration).ToString("HH:mm");
+                                    string uniqueFP = $"{group.Key.Date:yyyyMMdd}_{group.Key.Shift}_{dStartStr}_{dEndStr}_{errModel.ErrorDescription}";
+
                                     var block = new PrintTimeBlock
                                     {
+                                        Fingerprint = uniqueFP,
+                                        BaseFingerprint = uniqueFP,
+                                        OriginalDurationMinutes = duration,
                                         StartMinute = startMin,
                                         DurationMinutes = duration,
-                                        BlockType = isMa00Group1 ? PrintBlockType.Cleaning : (isMa00Group2 || isMa00Group3 || isNormalBreak ? PrintBlockType.Break : (isMa00Group4 ? PrintBlockType.OtherIdle : PrintBlockType.Error)),
                                         OriginalDescription = errModel.ErrorDescription,
                                         MachineCode = machine,
                                         WidthMultiplier = widthMultiplier,
-                                        HeightMultiplier = 1.0,
-                                        TopOffset = 0,
-                                        DisplayStartTime = shiftStart.AddMinutes(startMin).ToString("HH:mm"),
-                                        DisplayEndTime = shiftStart.AddMinutes(startMin + duration).ToString("HH:mm")
+                                        DisplayStartTime = dStartStr,
+                                        DisplayEndTime = dEndStr
                                     };
 
-                                    if (isMa00Group1) { block.ColorHex = context.ColorMa00Genel; breaks.Add(block); }
-                                    else if (isMa00Group2) { block.ColorHex = context.ColorMa00Cay; breaks.Add(block); }
-                                    else if (isMa00Group3) { block.ColorHex = context.ColorMa00Yemek; breaks.Add(block); }
-                                    else if (isMa00Group4) { block.ColorHex = context.ColorMa00Other; breaks.Add(block); }
-                                    else if (isNormalBreak) { block.ColorHex = context.BreakColor; breaks.Add(block); }
-                                    else rawErrors.Add(block);
+                                    if (isMa00Group1) { block.ColorHex = context.ColorMa00Genel; block.BlockType = PrintBlockType.Cleaning; }
+                                    else if (isMa00Group2) { block.ColorHex = context.ColorMa00Cay; block.BlockType = PrintBlockType.Break; }
+                                    else if (isMa00Group3) { block.ColorHex = context.ColorMa00Yemek; block.BlockType = PrintBlockType.Break; }
+                                    else if (isMa00Group4) { block.ColorHex = context.ColorMa00Other; block.BlockType = PrintBlockType.OtherIdle; }
+                                    else if (isNormalBreak) { block.ColorHex = context.BreakColor; block.BlockType = PrintBlockType.Break; }
+                                    else { block.ColorHex = context.ErrorColor; block.BlockType = PrintBlockType.Error; }
+
+                                    allRawEvents.Add(block);
                                 }
                             }
                         }
                     }
 
-                    // Precise Error Interval Slicing
-                    rawErrors = rawErrors.OrderByDescending(e => e.DurationMinutes).ToList();
-                    var placedPrimaries = new List<PrintTimeBlock>();
-                    var errorBlocksList = new List<PrintTimeBlock>();
+                    var bypassEvents = new List<PrintTimeBlock>();
+                    var normalEvents = new List<PrintTimeBlock>();
 
-                    foreach (var err in rawErrors)
+                    foreach (var e in allRawEvents)
                     {
-                        double eStart = err.StartMinute;
-                        double eEnd = err.StartMinute + err.DurationMinutes;
+                        if (e.MachineCode == "33" || e.MachineCode == "34" || e.MachineCode == "35" || e.MachineCode == "36" || e.MachineCode == "37")
+                            bypassEvents.Add(e);
+                        else
+                            normalEvents.Add(e);
+                    }
 
-                        var boundaries = new List<double> { eStart, eEnd };
-                        foreach (var p in placedPrimaries)
+                    var finalEventBlocks = new List<PrintTimeBlock>();
+
+                    if (normalEvents.Any())
+                    {
+                        var boundaries = new List<double>();
+                        foreach (var e in normalEvents)
                         {
-                            double pStart = p.StartMinute;
-                            double pEnd = p.StartMinute + p.DurationMinutes;
-                            if (pStart > eStart && pStart < eEnd) boundaries.Add(pStart);
-                            if (pEnd > eStart && pEnd < eEnd) boundaries.Add(pEnd);
+                            boundaries.Add(e.StartMinute);
+                            boundaries.Add(e.StartMinute + e.DurationMinutes);
                         }
                         boundaries = boundaries.Distinct().OrderBy(x => x).ToList();
 
@@ -233,169 +262,176 @@ namespace WPF_LoginForm.Services
                             double s = boundaries[i];
                             double e = boundaries[i + 1];
                             if (e - s <= 0.001) continue;
-
                             double mid = (s + e) / 2.0;
-                            var overlappingPrimary = placedPrimaries.FirstOrDefault(p => mid >= p.StartMinute && mid <= (p.StartMinute + p.DurationMinutes));
 
-                            var slice = new PrintTimeBlock
+                            var activeEvents = normalEvents.Where(x => x.StartMinute <= mid && (x.StartMinute + x.DurationMinutes) >= mid)
+                                                           .OrderByDescending(x => x.DurationMinutes)
+                                                           .Take(6)
+                                                           .ToList();
+
+                            for (int j = 0; j < activeEvents.Count; j++)
                             {
-                                StartMinute = s,
-                                DurationMinutes = e - s,
-                                BlockType = err.BlockType,
-                                OriginalDescription = err.OriginalDescription,
-                                MachineCode = err.MachineCode,
-                                WidthMultiplier = err.WidthMultiplier,
-                                HeightMultiplier = 1.0,
-                                TopOffset = 0,
-                                DisplayStartTime = shiftStart.AddMinutes(s).ToString("HH:mm"),
-                                DisplayEndTime = shiftStart.AddMinutes(e).ToString("HH:mm")
-                            };
+                                var orig = activeEvents[j];
 
-                            if (overlappingPrimary != null)
-                            {
-                                slice.ColorHex = context.ErrorColor2;
-                                slice.HeightMultiplier = 0.35;
+                                int baseZ = (orig.BlockType == PrintBlockType.Break || orig.BlockType == PrintBlockType.Cleaning)
+                                            ? context.LayerBreaks
+                                            : context.LayerErrors;
 
-                                if (err.DurationMinutes >= 20 && !string.IsNullOrEmpty(err.MachineCode))
+                                var slice = new PrintTimeBlock
                                 {
-                                    if (!overlappingPrimary.MachineCodes.Contains(err.MachineCode))
-                                        overlappingPrimary.MachineCodes.Add(err.MachineCode);
-                                }
-                            }
-                            else
-                            {
-                                slice.ColorHex = context.ErrorColor;
+                                    Fingerprint = orig.Fingerprint + $"_slice_{i}_{j}",
+                                    BaseFingerprint = orig.BaseFingerprint,
+                                    OriginalDurationMinutes = orig.OriginalDurationMinutes,
+                                    StartMinute = s,
+                                    DurationMinutes = e - s,
+                                    BlockType = orig.BlockType,
+                                    OriginalDescription = orig.OriginalDescription,
+                                    MachineCode = orig.MachineCode,
+                                    WidthMultiplier = widthMultiplier,
+                                    HeightMultiplier = cascadeHeights[j],
+                                    TopOffset = 0,
+                                    PanelZIndex = baseZ + j,
+                                    DisplayStartTime = shiftStart.AddMinutes(s).ToString("HH:mm"),
+                                    DisplayEndTime = shiftStart.AddMinutes(e).ToString("HH:mm")
+                                };
 
-                                if (err.DurationMinutes >= 20 && err.DurationMinutes < 30)
+                                if (j > 0 && slice.BlockType == PrintBlockType.Error)
+                                    slice.ColorHex = context.ErrorColor2;
+                                else
+                                    slice.ColorHex = orig.ColorHex;
+
+                                if (j == activeEvents.Count - 1)
                                 {
-                                    if (!string.IsNullOrEmpty(slice.MachineCode)) slice.MachineCodes.Add(slice.MachineCode);
-                                }
-                                else if (err.DurationMinutes >= 30 && err.DurationMinutes < 90)
-                                {
-                                    if (!string.IsNullOrEmpty(slice.MachineCode)) slice.MachineCodes.Add(slice.MachineCode);
-                                    slice.IsFootnote = true;
-                                }
-                                else if (err.DurationMinutes >= 90)
-                                {
-                                    if (!string.IsNullOrEmpty(slice.MachineCode)) slice.MachineCodes.Add(slice.MachineCode);
-                                    if (!string.IsNullOrEmpty(slice.OriginalDescription))
+                                    if (!string.IsNullOrEmpty(orig.OriginalDescription))
                                     {
-                                        var words = slice.OriginalDescription.Split(new char[] { ' ', '-' }, StringSplitOptions.RemoveEmptyEntries);
-                                        if (words.Length >= 2) slice.TextDescription = $"{words[0]} {words[1]}";
-                                        else if (words.Length == 1) slice.TextDescription = words[0];
+                                        var words = orig.OriginalDescription.Split(new char[] { ' ', '-' }, StringSplitOptions.RemoveEmptyEntries);
+                                        slice.TextDescription = words.Length >= 2 ? $"{words[0]} {words[1]}" : words[0];
                                     }
+                                    if (!string.IsNullOrEmpty(orig.MachineCode))
+                                        slice.MachineCodes.Add(orig.MachineCode);
                                 }
 
-                                placedPrimaries.Add(slice);
+                                finalEventBlocks.Add(slice);
                             }
-                            errorBlocksList.Add(slice);
                         }
                     }
 
-                    var breakBlocksList = new List<PrintTimeBlock>();
-                    foreach (var b in breaks)
-                    {
-                        b.HeightMultiplier = 1.0;
-                        b.TopOffset = 0;
-                        breakBlocksList.Add(b);
-                    }
+                    var finalBypassBlocks = new List<PrintTimeBlock>();
 
-                    var allEventsForGaps = breakBlocksList.Concat(errorBlocksList).OrderBy(e => e.StartMinute).ToList();
-                    var mergedIntervals = new List<(double Start, double End)>();
-
-                    foreach (var ev in allEventsForGaps)
+                    if (bypassEvents.Any())
                     {
-                        double start = ev.StartMinute;
-                        double end = start + ev.DurationMinutes;
-                        if (mergedIntervals.Count == 0) mergedIntervals.Add((start, end));
-                        else
+                        var rawBypassIntervals = MergeIntervals(bypassEvents);
+                        var normalIntervals = MergeIntervals(normalEvents);
+                        var validBypassIntervals = SubtractIntervals(rawBypassIntervals, normalIntervals);
+
+                        foreach (var interval in validBypassIntervals)
                         {
-                            var last = mergedIntervals.Last();
-                            if (start <= last.End) mergedIntervals[mergedIntervals.Count - 1] = (last.Start, Math.Max(last.End, end));
-                            else mergedIntervals.Add((start, end));
-                        }
-                    }
+                            if (interval.End - interval.Start <= 0.001) continue;
 
-                    // ✨ NEW LOGIC FIX: Accurately calculate STOP TIME directly from merged overlaps!
-                    double totalStopMins = 0;
-                    foreach (var interval in mergedIntervals)
-                    {
-                        double start = Math.Max(0, interval.Start);
-                        double end = Math.Min(720, interval.End);
-                        if (end > start)
-                        {
-                            totalStopMins += (end - start);
-                        }
-                    }
-
-                    var backgroundBlocks = new List<PrintTimeBlock>();
-                    double currentMin = 0;
-
-                    foreach (var interval in mergedIntervals)
-                    {
-                        if (interval.Start > currentMin)
-                        {
-                            double duration = interval.Start - currentMin;
-                            if (duration > 0 && currentMin < activeShiftMinutes)
+                            finalBypassBlocks.Add(new PrintTimeBlock
                             {
-                                double actualDur = Math.Min(duration, activeShiftMinutes - currentMin);
-                                if (actualDur > 0)
-                                {
-                                    backgroundBlocks.Add(new PrintTimeBlock
-                                    {
-                                        StartMinute = currentMin,
-                                        DurationMinutes = actualDur,
-                                        BlockType = PrintBlockType.Running,
-                                        ColorHex = context.RunningColor,
-                                        WidthMultiplier = widthMultiplier,
-                                        HeightMultiplier = 1.0,
-                                        DisplayStartTime = shiftStart.AddMinutes(currentMin).ToString("HH:mm"),
-                                        DisplayEndTime = shiftStart.AddMinutes(currentMin + actualDur).ToString("HH:mm")
-                                    });
-                                }
-                            }
+                                Fingerprint = $"{group.Key.Date:yyyyMMdd}_{group.Key.Shift}_BYPASS_{interval.Start}",
+                                BaseFingerprint = "BYPASS_BASE",
+                                OriginalDurationMinutes = interval.End - interval.Start,
+                                StartMinute = interval.Start,
+                                DurationMinutes = interval.End - interval.Start,
+                                BlockType = PrintBlockType.Break,
+                                ColorHex = context.BreakColor,
+                                WidthMultiplier = widthMultiplier,
+                                HeightMultiplier = 0.30,
+                                TopOffset = 0,
+                                PanelZIndex = context.LayerBypass,
+                                DisplayStartTime = shiftStart.AddMinutes(interval.Start).ToString("HH:mm"),
+                                DisplayEndTime = shiftStart.AddMinutes(interval.End).ToString("HH:mm")
+                            });
                         }
-                        currentMin = Math.Max(currentMin, interval.End);
                     }
 
-                    if (currentMin < activeShiftMinutes)
+                    // FIX: Create one SOLID running canvas to perfectly eliminate white holes
+                    var backgroundBlocks = new List<PrintTimeBlock>
                     {
-                        double duration = activeShiftMinutes - currentMin;
-                        backgroundBlocks.Add(new PrintTimeBlock
+                        new PrintTimeBlock
                         {
-                            StartMinute = currentMin,
-                            DurationMinutes = duration,
+                            Fingerprint = $"{group.Key.Date:yyyyMMdd}_{group.Key.Shift}_RUNNING_CANVAS",
+                            BaseFingerprint = "RUNNING_BASE",
+                            OriginalDurationMinutes = activeShiftMinutes,
+                            StartMinute = 0,
+                            DurationMinutes = activeShiftMinutes,
                             BlockType = PrintBlockType.Running,
                             ColorHex = context.RunningColor,
                             WidthMultiplier = widthMultiplier,
                             HeightMultiplier = 1.0,
-                            DisplayStartTime = shiftStart.AddMinutes(currentMin).ToString("HH:mm"),
-                            DisplayEndTime = shiftStart.AddMinutes(currentMin + duration).ToString("HH:mm")
-                        });
-                    }
+                            TopOffset = 0,
+                            PanelZIndex = context.LayerRunning,
+                            DisplayStartTime = shiftStart.ToString("HH:mm"),
+                            DisplayEndTime = shiftStart.AddMinutes(activeShiftMinutes).ToString("HH:mm")
+                        }
+                    };
 
                     if (activeShiftMinutes < 720)
                     {
                         backgroundBlocks.Add(new PrintTimeBlock
                         {
+                            Fingerprint = $"{group.Key.Date:yyyyMMdd}_{group.Key.Shift}_FacStop",
+                            BaseFingerprint = "FACSTOP_BASE",
+                            OriginalDurationMinutes = 720 - activeShiftMinutes,
                             StartMinute = activeShiftMinutes,
                             DurationMinutes = 720 - activeShiftMinutes,
                             BlockType = PrintBlockType.FacilityStop,
                             ColorHex = context.FacilityStopColor,
                             WidthMultiplier = widthMultiplier,
                             HeightMultiplier = 1.0,
+                            TopOffset = 0,
+                            PanelZIndex = 20,
                             DisplayStartTime = shiftStart.AddMinutes(activeShiftMinutes).ToString("HH:mm"),
                             DisplayEndTime = shiftStart.AddMinutes(720).ToString("HH:mm")
                         });
                     }
 
                     foreach (var bg in backgroundBlocks) shiftRow.Blocks.Add(bg);
-                    foreach (var err in errorBlocksList) shiftRow.Blocks.Add(err);
-                    foreach (var brk in breakBlocksList) shiftRow.Blocks.Add(brk);
+                    foreach (var bp in finalBypassBlocks) shiftRow.Blocks.Add(bp);
+                    foreach (var ev in finalEventBlocks) shiftRow.Blocks.Add(ev);
+
+                    // --- STEP 4: Rule Enforcement (<20 Min, <90 Min, Cleaning Strips) ---
+                    foreach (var block in shiftRow.Blocks)
+                    {
+                        if (block.BlockType == PrintBlockType.Running || block.BlockType == PrintBlockType.FacilityStop) continue;
+
+                        if (block.BlockType == PrintBlockType.Cleaning || block.BlockType == PrintBlockType.Break || block.BlockType == PrintBlockType.OtherIdle)
+                        {
+                            block.IsFootnote = false;
+                            block.Label = "";
+                            block.TextDescription = "";
+                            block.MachineCodes.Clear();
+                            continue;
+                        }
+
+                        double evalDur = block.OriginalDurationMinutes > 0 ? block.OriginalDurationMinutes : block.DurationMinutes;
+
+                        if (evalDur < context.MinFootnoteMinutes)
+                        {
+                            block.IsFootnote = false;
+                            block.Label = "";
+                            block.TextDescription = "";
+                            block.MachineCodes.Clear();
+                        }
+                        else if (evalDur >= context.MinFootnoteMinutes && evalDur < context.MinLabelMinutes)
+                        {
+                            if (block.HeightMultiplier >= 0.8) block.IsFootnote = true;
+                            else block.IsFootnote = false;
+
+                            block.Label = "";
+                            block.TextDescription = "";
+                        }
+                        else
+                        {
+                            block.IsFootnote = false;
+                        }
+                    }
 
                     foreach (var block in shiftRow.Blocks)
                     {
-                        if (block.IsFootnote) continue;
+                        if (block.IsFootnote || string.IsNullOrEmpty(block.Fingerprint)) continue;
 
                         if ((block.MachineCodes != null && block.MachineCodes.Any()) || !string.IsNullOrEmpty(block.TextDescription))
                         {
@@ -415,8 +451,38 @@ namespace WPF_LoginForm.Services
                         }
                     }
 
-                    shiftRow.ExtraValue1 = CalculateExtraValue(context.ExtraCol1Selection, totalStopMins, group.Key.Date, group.Key.Shift, excelLookup, context.ShowValuesInHours);
-                    shiftRow.ExtraValue2 = CalculateExtraValue(context.ExtraCol2Selection, totalStopMins, group.Key.Date, group.Key.Shift, excelLookup, context.ShowValuesInHours);
+                    // --- STEP 5: Add Soft Vertical Separators ---
+                    var groupedByZ = shiftRow.Blocks.GroupBy(b => b.PanelZIndex);
+                    foreach (var zGroup in groupedByZ)
+                    {
+                        var sorted = zGroup.OrderBy(b => b.StartMinute).ToList();
+                        for (int i = 0; i < sorted.Count - 1; i++)
+                        {
+                            var current = sorted[i];
+                            var next = sorted[i + 1];
+
+                            if (Math.Abs((current.StartMinute + current.DurationMinutes) - next.StartMinute) < 1.0 &&
+                                current.ColorHex == next.ColorHex &&
+                                current.BaseFingerprint != next.BaseFingerprint &&
+                                current.BlockType != PrintBlockType.Running &&
+                                current.BlockType != PrintBlockType.FacilityStop)
+                            {
+                                current.BlockBorder = new System.Windows.Thickness(0, 0, 1, 0);
+                            }
+                        }
+                    }
+
+                    double totalStopMins = 0;
+                    var stopIntervals = MergeIntervals(normalEvents);
+                    foreach (var interval in stopIntervals)
+                    {
+                        double start = Math.Max(0, interval.Start);
+                        double end = Math.Min(activeShiftMinutes, interval.End);
+                        if (end > start) totalStopMins += (end - start);
+                    }
+
+                    shiftRow.ExtraValue1 = CalculateExtraValue(context.ExtraCol1Selection, totalStopMins, activeShiftMinutes, group.Key.Date, group.Key.Shift, excelLookup, context.ShowValuesInHours);
+                    shiftRow.ExtraValue2 = CalculateExtraValue(context.ExtraCol2Selection, totalStopMins, activeShiftMinutes, group.Key.Date, group.Key.Shift, excelLookup, context.ShowValuesInHours);
 
                     processedRows.Add(shiftRow);
                 }
@@ -425,7 +491,53 @@ namespace WPF_LoginForm.Services
             });
         }
 
-        private string CalculateExtraValue(string selection, double totalStop, DateTime date, string shift, Dictionary<(DateTime, string), Dictionary<string, string>> excelLookup, bool showHours)
+        private List<(double Start, double End)> MergeIntervals(List<PrintTimeBlock> events)
+        {
+            if (!events.Any()) return new List<(double Start, double End)>();
+            var sorted = events.OrderBy(e => e.StartMinute).ToList();
+            var merged = new List<(double Start, double End)>();
+
+            foreach (var ev in sorted)
+            {
+                double s = ev.StartMinute;
+                double e = s + ev.DurationMinutes;
+                if (merged.Count == 0) merged.Add((s, e));
+                else
+                {
+                    var last = merged.Last();
+                    if (s <= last.End) merged[merged.Count - 1] = (last.Start, Math.Max(last.End, e));
+                    else merged.Add((s, e));
+                }
+            }
+            return merged;
+        }
+
+        private List<(double Start, double End)> SubtractIntervals(List<(double Start, double End)> sources, List<(double Start, double End)> subtractions)
+        {
+            var result = new List<(double Start, double End)>();
+            foreach (var src in sources)
+            {
+                var currentPieces = new List<(double Start, double End)> { src };
+                foreach (var sub in subtractions)
+                {
+                    var nextPieces = new List<(double Start, double End)>();
+                    foreach (var p in currentPieces)
+                    {
+                        if (sub.End <= p.Start || sub.Start >= p.End) nextPieces.Add(p);
+                        else
+                        {
+                            if (p.Start < sub.Start) nextPieces.Add((p.Start, sub.Start));
+                            if (p.End > sub.End) nextPieces.Add((sub.End, p.End));
+                        }
+                    }
+                    currentPieces = nextPieces;
+                }
+                result.AddRange(currentPieces);
+            }
+            return result;
+        }
+
+        private string CalculateExtraValue(string selection, double totalStop, double activeShiftMins, DateTime date, string shift, Dictionary<(DateTime, string), Dictionary<string, string>> excelLookup, bool showHours)
         {
             if (selection == "None" || string.IsNullOrEmpty(selection)) return "";
 
@@ -434,8 +546,7 @@ namespace WPF_LoginForm.Services
 
             if (selection == locTotalStop || selection == "Total Stop" || selection == locActualWork || selection == "Actual Work")
             {
-                double val = (selection == locTotalStop || selection == "Total Stop") ? totalStop : Math.Max(0, 720 - totalStop);
-
+                double val = (selection == locTotalStop || selection == "Total Stop") ? totalStop : Math.Max(0, activeShiftMins - totalStop);
                 if (showHours)
                 {
                     TimeSpan ts = TimeSpan.FromMinutes(val);

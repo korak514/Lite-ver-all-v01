@@ -23,8 +23,11 @@ namespace WPF_LoginForm.Views
             // Create a standard WPF Print Dialog
             var printDialog = new System.Windows.Controls.PrintDialog();
 
-            // FIX: Explicitly use System.Printing to avoid clashing with Excel libraries
-            printDialog.PrintTicket.PageOrientation = System.Printing.PageOrientation.Landscape;
+            // FIX: Safely assign orientation. If PrintTicket is null (happens with some virtual PDF printers), bypass it to avoid crash.
+            if (printDialog.PrintTicket != null)
+            {
+                printDialog.PrintTicket.PageOrientation = System.Printing.PageOrientation.Landscape;
+            }
 
             if (printDialog.ShowDialog() == true)
             {
@@ -41,7 +44,7 @@ namespace WPF_LoginForm.Views
                     PrintArea.Arrange(new Rect(new Point(0, 0), PrintArea.DesiredSize));
 
                     // Execute Print
-                    printDialog.PrintVisual(PrintArea, "15-Day Timeline Report");
+                    printDialog.PrintVisual(PrintArea, "Timeline Report");
                 }
                 catch (Exception ex)
                 {
