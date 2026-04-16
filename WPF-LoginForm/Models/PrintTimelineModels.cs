@@ -1,6 +1,6 @@
-﻿// Models/PrintTimelineModels.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -10,91 +10,136 @@ namespace WPF_LoginForm.Models
     public enum PrintBlockType
     { Running, Error, Break, FacilityStop, Cleaning, OtherIdle }
 
+    // NEW: Guarantee WPF Binding never fails for footnote texts
+    public class PrintFootnote
+    {
+        public string Text { get; set; }
+    }
+
     public class PrintTimeBlock : INotifyPropertyChanged
     {
         public string Fingerprint { get; set; }
-
-        // NEW: Tracks the original un-sliced event to prevent drawing separator lines inside the same event
         public string BaseFingerprint { get; set; }
-
-        // NEW: Remembers original duration so the <20m and <90m rules apply to the whole event, not the tiny sliced pieces
         public double OriginalDurationMinutes { get; set; }
+        public bool IsFirstSlice { get; set; }
 
         private double _startMinute;
+
         public double StartMinute
-        { get => _startMinute; set { _startMinute = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelLeft)); } }
+        { get => _startMinute; set { _startMinute = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelLeft)); OnPropertyChanged(nameof(VisualPixelLeft)); } }
 
         private double _durationMinutes;
+
         public double DurationMinutes
-        { get => _durationMinutes; set { _durationMinutes = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelWidth)); } }
+        { get => _durationMinutes; set { _durationMinutes = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelWidth)); OnPropertyChanged(nameof(VisualPixelWidth)); } }
 
         public PrintBlockType BlockType { get; set; }
 
         private string _colorHex;
+
         public string ColorHex
         { get => _colorHex; set { _colorHex = value; OnPropertyChanged(); } }
 
         private int _panelZIndex = 10;
+
         public int PanelZIndex
         { get => _panelZIndex; set { _panelZIndex = value; OnPropertyChanged(); } }
 
         private double _widthMultiplier = 1.0;
+
         public double WidthMultiplier
-        { get => _widthMultiplier; set { _widthMultiplier = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelLeft)); OnPropertyChanged(nameof(PixelWidth)); } }
+        { get => _widthMultiplier; set { _widthMultiplier = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelLeft)); OnPropertyChanged(nameof(PixelWidth)); OnPropertyChanged(nameof(VisualPixelLeft)); OnPropertyChanged(nameof(VisualPixelWidth)); } }
 
         private double _heightMultiplier = 1.0;
+
         public double HeightMultiplier
-        { get => _heightMultiplier; set { _heightMultiplier = value; OnPropertyChanged(); } }
+        { get => _heightMultiplier; set { _heightMultiplier = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelHeight)); } }
+
+        private double _rowHeight = 14.0;
+
+        public double RowHeight
+        { get => _rowHeight; set { _rowHeight = value; OnPropertyChanged(); OnPropertyChanged(nameof(PixelHeight)); } }
 
         private double _topOffset = 0.0;
+
         public double TopOffset
         { get => _topOffset; set { _topOffset = value; OnPropertyChanged(); } }
 
         private string _label;
+
         public string Label
         { get => _label; set { _label = value; OnPropertyChanged(); } }
 
         private bool _isSelected;
+
         public bool IsSelected
         { get => _isSelected; set { _isSelected = value; OnPropertyChanged(); } }
 
         private bool _isFootnote;
+
         public bool IsFootnote
         { get => _isFootnote; set { _isFootnote = value; OnPropertyChanged(); } }
 
         private Thickness _blockBorder = new Thickness(0);
+
         public Thickness BlockBorder
         { get => _blockBorder; set { _blockBorder = value; OnPropertyChanged(); } }
+
+        private CornerRadius _cornerRadius = new CornerRadius(0);
+
+        public CornerRadius CornerRadius
+        { get => _cornerRadius; set { _cornerRadius = value; OnPropertyChanged(); } }
 
         public List<string> MachineCodes { get; set; } = new List<string>();
 
         private string _textDescription;
+
         public string TextDescription
         { get => _textDescription; set { _textDescription = value; OnPropertyChanged(); } }
 
         private string _machineCode;
+
         public string MachineCode
         { get => _machineCode; set { _machineCode = value; OnPropertyChanged(); } }
 
         private string _originalDescription;
+
         public string OriginalDescription
         { get => _originalDescription; set { _originalDescription = value; OnPropertyChanged(); } }
 
         private string _displayStartTime;
+
         public string DisplayStartTime
         { get => _displayStartTime; set { _displayStartTime = value; OnPropertyChanged(); } }
 
         private string _displayEndTime;
+
         public string DisplayEndTime
         { get => _displayEndTime; set { _displayEndTime = value; OnPropertyChanged(); } }
 
+        // CORE GEOMETRY
         public double PixelLeft => StartMinute * WidthMultiplier;
+
         public double PixelWidth => DurationMinutes * WidthMultiplier;
+        public double PixelHeight => RowHeight * HeightMultiplier;
+
+        // NEW: VISUAL GEOMETRY FOR CATCHER EDGES
+        private double _visualLeftOffset = 0.0;
+
+        public double VisualLeftOffset
+        { get => _visualLeftOffset; set { _visualLeftOffset = value; OnPropertyChanged(); OnPropertyChanged(nameof(VisualPixelLeft)); OnPropertyChanged(nameof(VisualPixelWidth)); } }
+
+        private double _visualWidthOffset = 0.0;
+
+        public double VisualWidthOffset
+        { get => _visualWidthOffset; set { _visualWidthOffset = value; OnPropertyChanged(); OnPropertyChanged(nameof(VisualPixelWidth)); } }
+
+        public double VisualPixelLeft => PixelLeft + VisualLeftOffset;
+        public double VisualPixelWidth => Math.Max(0, PixelWidth + VisualWidthOffset);
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
     public class PrintAxisTick
@@ -150,6 +195,7 @@ namespace WPF_LoginForm.Models
         public double TextFontSize => Math.Max(7, RowHeight * 0.75);
         public double SymbolFontSize => Math.Max(9, RowHeight * 0.90);
         public double InnerLabelFontSize => Math.Max(5.5, RowHeight * 0.50);
+
         public string HeaderDate { get; set; }
         public string HeaderShift { get; set; }
         public string LegendRunning { get; set; }
@@ -163,7 +209,9 @@ namespace WPF_LoginForm.Models
         public string LegendMa00Other { get; set; }
         public List<MachineLegendItem> LegendItems { get; set; } = new List<MachineLegendItem>();
         public List<PrintAxisTick> AxisTicks { get; set; } = new List<PrintAxisTick>();
-        public List<string> Footnotes { get; set; } = new List<string>();
+
+        // FIX: Footnotes list uses Object to force WPF binding correctly
+        public ObservableCollection<PrintFootnote> Footnotes { get; set; } = new ObservableCollection<PrintFootnote>();
     }
 
     public class PrintReportSettingsState
@@ -193,11 +241,12 @@ namespace WPF_LoginForm.Models
         public int LayerBypass { get; set; }
         public int LayerBreaks { get; set; }
         public int LayerErrors { get; set; }
-
-        // NEW: Threshold & Cascade properties
         public double OverlapCascadeStep { get; set; }
-
         public double MinLabelMinutes { get; set; }
         public double MinFootnoteMinutes { get; set; }
+
+        public bool EnableSoftCorners { get; set; }
+        public bool EnableBlockBorders { get; set; }
+        public bool DisableSoftCornersUnder5Min { get; set; }
     }
 }
