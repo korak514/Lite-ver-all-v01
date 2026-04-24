@@ -29,6 +29,9 @@ namespace WPF_LoginForm.ViewModels
         public double HeightMultiplier { get; set; }
         public double TopOffset { get; set; }
         public int PanelZIndex { get; set; }
+        public double LabelOffsetX { get; set; }
+        public double LabelOffsetY { get; set; }
+        public double BlockFontSize { get; set; }
     }
 
     public class PrintTimelineSetupViewModel : ViewModelBase
@@ -41,7 +44,6 @@ namespace WPF_LoginForm.ViewModels
         private readonly Dictionary<string, BlockOverride> _blockOverrides = new Dictionary<string, BlockOverride>();
 
         private BlockOverride _originalBlockState;
-
         private DataTable _cachedData;
         private string _cachedTableName;
 
@@ -53,15 +55,12 @@ namespace WPF_LoginForm.ViewModels
         public ObservableCollection<string> AvailableTables { get; } = new ObservableCollection<string>();
 
         private string _selectedTable;
-
         public string SelectedTable
         { get => _selectedTable; set { SetProperty(ref _selectedTable, value); _cachedData = null; } }
 
         private string _excelFilePath;
-
         public string ExcelFilePath
         { get => _excelFilePath; set { if (SetProperty(ref _excelFilePath, value)) OnPropertyChanged(nameof(HasExcelFile)); } }
-
         public bool HasExcelFile => !string.IsNullOrEmpty(ExcelFilePath);
 
         private bool _isUpdatingDates = false;
@@ -75,9 +74,7 @@ namespace WPF_LoginForm.ViewModels
             {
                 if (SetProperty(ref _startDate, value) && !_isUpdatingDates)
                 {
-                    _isUpdatingDates = true;
-                    EndDate = _startDate.AddDays(12);
-                    _isUpdatingDates = false;
+                    _isUpdatingDates = true; EndDate = _startDate.AddDays(12); _isUpdatingDates = false;
                 }
             }
         }
@@ -92,10 +89,8 @@ namespace WPF_LoginForm.ViewModels
                 if (SetProperty(ref _endDate, value) && !_isUpdatingDates)
                 {
                     _isUpdatingDates = true;
-                    if ((_endDate - _startDate).TotalDays > 20)
-                        EndDate = _startDate.AddDays(20);
-                    else if (_endDate < _startDate)
-                        EndDate = _startDate;
+                    if ((_endDate - _startDate).TotalDays > 20) EndDate = _startDate.AddDays(20);
+                    else if (_endDate < _startDate) EndDate = _startDate;
                     _isUpdatingDates = false;
                 }
             }
@@ -133,9 +128,10 @@ namespace WPF_LoginForm.ViewModels
         private double _footnoteFontSize = 8.0;
         public double FootnoteFontSize { get => _footnoteFontSize; set => SetProperty(ref _footnoteFontSize, value); }
 
-        // TASK 1 FIX: Default Z-Indexes strictly bound under 100
-        private int _layerRunning = 1;
+        private double _innerLabelFontSize = 6.5;
+        public double InnerLabelFontSize { get => _innerLabelFontSize; set => SetProperty(ref _innerLabelFontSize, value); }
 
+        private int _layerRunning = 1;
         public int LayerRunning { get => _layerRunning; set => SetProperty(ref _layerRunning, value); }
         private int _layerBypass = 2;
         public int LayerBypass { get => _layerBypass; set => SetProperty(ref _layerBypass, value); }
@@ -149,7 +145,6 @@ namespace WPF_LoginForm.ViewModels
 
         private double _minLabelMinutes = 90.0;
         public double MinLabelMinutes { get => _minLabelMinutes; set => SetProperty(ref _minLabelMinutes, value); }
-
         private double _minFootnoteMinutes = 20.0;
         public double MinFootnoteMinutes { get => _minFootnoteMinutes; set => SetProperty(ref _minFootnoteMinutes, value); }
 
@@ -159,12 +154,13 @@ namespace WPF_LoginForm.ViewModels
         public bool ShowMajorErrorLabels { get => _showMajorErrorLabels; set => SetProperty(ref _showMajorErrorLabels, value); }
         private bool _showMachineLegend = true;
         public bool ShowMachineLegend { get => _showMachineLegend; set => SetProperty(ref _showMachineLegend, value); }
+        private bool _showMonthSummary = true; // NEW
+        public bool ShowMonthSummary { get => _showMonthSummary; set => SetProperty(ref _showMonthSummary, value); }
+
         private bool _detailedOverlapView = true;
         public bool DetailedOverlapView { get => _detailedOverlapView; set => SetProperty(ref _detailedOverlapView, value); }
         private bool _hideGenelTemizlik = true;
         public bool HideGenelTemizlik { get => _hideGenelTemizlik; set => SetProperty(ref _hideGenelTemizlik, value); }
-        private bool _autoFootnoteSmallErrors = true;
-        public bool AutoFootnoteSmallErrors { get => _autoFootnoteSmallErrors; set => SetProperty(ref _autoFootnoteSmallErrors, value); }
 
         private bool _enableSoftCorners = true;
         public bool EnableSoftCorners { get => _enableSoftCorners; set => SetProperty(ref _enableSoftCorners, value); }
@@ -189,81 +185,78 @@ namespace WPF_LoginForm.ViewModels
         public PrintTimeBlock SelectedBlock { get => _selectedBlock; set => SetProperty(ref _selectedBlock, value); }
 
         private Color _editBlockColor;
-
         public Color EditBlockColor
         { get => _editBlockColor; set { if (SetProperty(ref _editBlockColor, value) && SelectedBlock != null) SelectedBlock.ColorHex = value.ToString(); } }
 
         private string _editBlockLabel;
-
         public string EditBlockLabel
         { get => _editBlockLabel; set { if (SetProperty(ref _editBlockLabel, value) && SelectedBlock != null) SelectedBlock.Label = value; } }
 
         private string _editBlockMachine;
-
         public string EditBlockMachine
         { get => _editBlockMachine; set { if (SetProperty(ref _editBlockMachine, value)) { RefreshBlockCategories(false); if (SelectedBlock != null) SelectedBlock.MachineCode = value; } } }
 
         private string _editBlockDesc;
-
         public string EditBlockDesc
         { get => _editBlockDesc; set { if (SetProperty(ref _editBlockDesc, value) && SelectedBlock != null) SelectedBlock.OriginalDescription = value; } }
 
         private bool _editBlockIsFootnote;
-
         public bool EditBlockIsFootnote
         { get => _editBlockIsFootnote; set { if (SetProperty(ref _editBlockIsFootnote, value) && SelectedBlock != null) SelectedBlock.IsFootnote = value; } }
 
         private string _editBlockTimeData;
         public string EditBlockTimeData { get => _editBlockTimeData; set => SetProperty(ref _editBlockTimeData, value); }
-        private string _editBlockStartTime;
-        public string EditBlockStartTime { get => _editBlockStartTime; set => SetProperty(ref _editBlockStartTime, value); }
-        private string _editBlockEndTime;
-        public string EditBlockEndTime { get => _editBlockEndTime; set => SetProperty(ref _editBlockEndTime, value); }
-        private double _editBlockHeightMultiplier = 1.0;
 
+        private double _editBlockHeightMultiplier = 1.0;
         public double EditBlockHeightMultiplier
         { get => _editBlockHeightMultiplier; set { if (SetProperty(ref _editBlockHeightMultiplier, value) && SelectedBlock != null) SelectedBlock.HeightMultiplier = value; } }
 
         private double _editBlockTopOffset = 0;
-
         public double EditBlockTopOffset
         { get => _editBlockTopOffset; set { if (SetProperty(ref _editBlockTopOffset, value) && SelectedBlock != null) SelectedBlock.TopOffset = value; } }
 
         private int _editBlockZIndex = 20;
-
         public int EditBlockZIndex
         { get => _editBlockZIndex; set { if (SetProperty(ref _editBlockZIndex, value) && SelectedBlock != null) SelectedBlock.PanelZIndex = value; } }
 
         public ObservableCollection<string> AvailableBlockCategories { get; } = new ObservableCollection<string>();
         private string _selectedBlockCategory;
-
         public string SelectedBlockCategory
         { get => _selectedBlockCategory; set { if (SetProperty(ref _selectedBlockCategory, value)) UpdateColorFromCategory(value); } }
+
+        private double _editBlockLabelOffsetX;
+        public double EditBlockLabelOffsetX
+        { get => _editBlockLabelOffsetX; set { if (SetProperty(ref _editBlockLabelOffsetX, value) && SelectedBlock != null) SelectedBlock.LabelOffsetX = value; } }
+
+        private double _editBlockLabelOffsetY;
+        public double EditBlockLabelOffsetY
+        { get => _editBlockLabelOffsetY; set { if (SetProperty(ref _editBlockLabelOffsetY, value) && SelectedBlock != null) SelectedBlock.LabelOffsetY = value; } }
+
+        private double _editBlockFontSize;
+        public double EditBlockFontSize
+        { get => _editBlockFontSize; set { if (SetProperty(ref _editBlockFontSize, value) && SelectedBlock != null) SelectedBlock.BlockFontSize = value; } }
 
         public ICommand SelectBlockCommand { get; }
         public ICommand ApplyBlockEditCommand { get; }
         public ICommand CancelBlockEditCommand { get; }
         public ICommand ResetOverridesCommand { get; }
-
-        private PrintReportConfig _reportConfig;
-        public PrintReportConfig ReportConfig { get => _reportConfig; set => SetProperty(ref _reportConfig, value); }
-        public ObservableCollection<PrintShiftRow> ReportRows { get; } = new ObservableCollection<PrintShiftRow>();
-
         public ICommand BrowseExcelCommand { get; }
         public ICommand ClearExcelCommand { get; }
         public ICommand GeneratePreviewCommand { get; }
         public ICommand PrintCommand { get; }
 
+        private PrintReportConfig _reportConfig;
+        public PrintReportConfig ReportConfig { get => _reportConfig; set => SetProperty(ref _reportConfig, value); }
+        public ObservableCollection<PrintShiftRow> ReportRows { get; } = new ObservableCollection<PrintShiftRow>();
+
         public PrintTimelineSetupViewModel(IDataRepository dataRepository, IDialogService dialogService)
         {
-            _dataRepository = dataRepository;
-            _dialogService = dialogService;
+            _dataRepository = dataRepository; _dialogService = dialogService;
             _reportGenerator = new TimelineReportGenerator();
             _settingsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WPF_LoginForm", "print_report_settings.json");
 
             ResetExtraOptions();
-            _extraCol1Selection = LocTotalStop;
-            _extraCol2Selection = LocActualWork;
+            _extraCol1Selection = LocTotalStop; _extraCol2Selection = LocActualWork;
 
             BrowseExcelCommand = new ViewModelCommand(ExecuteBrowseExcel);
             ClearExcelCommand = new ViewModelCommand(p => { ExcelFilePath = ""; ResetExtraOptions(); });
@@ -273,7 +266,6 @@ namespace WPF_LoginForm.ViewModels
             SelectBlockCommand = new ViewModelCommand(ExecuteSelectBlock);
             ApplyBlockEditCommand = new ViewModelCommand(ExecuteApplyBlockEdit);
             CancelBlockEditCommand = new ViewModelCommand(ExecuteCancelBlockEdit);
-
             ResetOverridesCommand = new ViewModelCommand(ExecuteResetOverrides, p => _blockOverrides.Count > 0);
 
             _ = InitializeAsync();
@@ -281,9 +273,7 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteResetOverrides(object obj)
         {
-            _blockOverrides.Clear();
-            (ResetOverridesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
-
+            _blockOverrides.Clear(); (ResetOverridesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             if (GeneratePreviewCommand.CanExecute(null)) GeneratePreviewCommand.Execute(null);
         }
 
@@ -293,8 +283,7 @@ namespace WPF_LoginForm.ViewModels
             {
                 if (SelectedBlock != null && IsEditingBlock) ExecuteCancelBlockEdit(null);
 
-                SelectedBlock = block;
-                SelectedBlock.IsSelected = true;
+                SelectedBlock = block; SelectedBlock.IsSelected = true;
 
                 _originalBlockState = new BlockOverride
                 {
@@ -307,53 +296,52 @@ namespace WPF_LoginForm.ViewModels
                     DisplayEndTime = block.DisplayEndTime,
                     HeightMultiplier = block.HeightMultiplier,
                     TopOffset = block.TopOffset,
-                    PanelZIndex = block.PanelZIndex
+                    PanelZIndex = block.PanelZIndex,
+                    LabelOffsetX = block.LabelOffsetX,
+                    LabelOffsetY = block.LabelOffsetY,
+                    BlockFontSize = block.BlockFontSize
                 };
 
-                _editBlockMachine = block.MachineCode;
-                OnPropertyChanged(nameof(EditBlockMachine));
-
-                EditBlockLabel = block.Label;
-                EditBlockDesc = block.OriginalDescription;
-                EditBlockIsFootnote = block.IsFootnote;
-
+                _editBlockMachine = block.MachineCode; OnPropertyChanged(nameof(EditBlockMachine));
+                EditBlockLabel = block.Label; EditBlockDesc = block.OriginalDescription; EditBlockIsFootnote = block.IsFootnote;
                 EditBlockTimeData = $"{block.DisplayStartTime} - {block.DisplayEndTime} ({block.DurationMinutes:F0} mins)";
-                EditBlockStartTime = block.DisplayStartTime;
-                EditBlockEndTime = block.DisplayEndTime;
+                EditBlockHeightMultiplier = block.HeightMultiplier; EditBlockTopOffset = block.TopOffset; EditBlockZIndex = block.PanelZIndex;
 
-                EditBlockHeightMultiplier = block.HeightMultiplier;
-                EditBlockTopOffset = block.TopOffset;
-                EditBlockZIndex = block.PanelZIndex;
+                _editBlockLabelOffsetX = block.LabelOffsetX; OnPropertyChanged(nameof(EditBlockLabelOffsetX));
+                _editBlockLabelOffsetY = block.LabelOffsetY; OnPropertyChanged(nameof(EditBlockLabelOffsetY));
+                _editBlockFontSize = block.BlockFontSize; OnPropertyChanged(nameof(EditBlockFontSize));
 
                 RefreshBlockCategories(true);
-
-                string currentCategory = "";
-                string mCode = (EditBlockMachine ?? "").Replace("MA-", "").Trim();
-                bool isMa00 = (mCode == "00" || mCode == "0");
-
-                if (isMa00)
-                {
-                    if (block.ColorHex == ColorMa00Genel.ToString()) currentCategory = "Genel Temizlik";
-                    else if (block.ColorHex == ColorMa00Cay.ToString()) currentCategory = "Çay Molası";
-                    else if (block.ColorHex == ColorMa00Yemek.ToString()) currentCategory = "Yemek Molası";
-                    else currentCategory = "Diğer MA-00";
-                }
-                else
-                {
-                    if (block.ColorHex == RunningColor.ToString()) currentCategory = "Running";
-                    else if (block.ColorHex == ErrorColor.ToString()) currentCategory = "Primary Error";
-                    else if (block.ColorHex == ErrorColor2.ToString()) currentCategory = "Overlap Error";
-                    else if (block.ColorHex == BypassColor.ToString()) currentCategory = "Bypass";
-                    else if (block.ColorHex == FacilityStopColor.ToString()) currentCategory = "Facility Stop";
-                    else currentCategory = "Primary Error";
-                }
-
-                _selectedBlockCategory = currentCategory;
-                OnPropertyChanged(nameof(SelectedBlockCategory));
-                EditBlockColor = (Color)ColorConverter.ConvertFromString(block.ColorHex);
+                DetermineCurrentCategory(block);
 
                 IsEditingBlock = true;
             }
+        }
+
+        private void DetermineCurrentCategory(PrintTimeBlock block)
+        {
+            string currentCategory = ""; string mCode = (EditBlockMachine ?? "").Replace("MA-", "").Trim();
+            bool isMa00 = (mCode == "00" || mCode == "0");
+
+            if (isMa00)
+            {
+                if (block.ColorHex == ColorMa00Genel.ToString()) currentCategory = "Genel Temizlik";
+                else if (block.ColorHex == ColorMa00Cay.ToString()) currentCategory = "Çay Molası";
+                else if (block.ColorHex == ColorMa00Yemek.ToString()) currentCategory = "Yemek Molası";
+                else currentCategory = "Diğer MA-00";
+            }
+            else
+            {
+                if (block.ColorHex == RunningColor.ToString()) currentCategory = "Running";
+                else if (block.ColorHex == ErrorColor.ToString()) currentCategory = "Primary Error";
+                else if (block.ColorHex == ErrorColor2.ToString()) currentCategory = "Overlap Error";
+                else if (block.ColorHex == BypassColor.ToString()) currentCategory = "Bypass";
+                else if (block.ColorHex == FacilityStopColor.ToString()) currentCategory = "Facility Stop";
+                else currentCategory = "Primary Error";
+            }
+
+            _selectedBlockCategory = currentCategory; OnPropertyChanged(nameof(SelectedBlockCategory));
+            EditBlockColor = (Color)ColorConverter.ConvertFromString(block.ColorHex);
         }
 
         private void RefreshBlockCategories(bool initialLoad = false)
@@ -410,13 +398,14 @@ namespace WPF_LoginForm.ViewModels
                 DisplayEndTime = SelectedBlock.DisplayEndTime,
                 HeightMultiplier = SelectedBlock.HeightMultiplier,
                 TopOffset = SelectedBlock.TopOffset,
-                PanelZIndex = SelectedBlock.PanelZIndex
+                PanelZIndex = SelectedBlock.PanelZIndex,
+                LabelOffsetX = SelectedBlock.LabelOffsetX,
+                LabelOffsetY = SelectedBlock.LabelOffsetY,
+                BlockFontSize = SelectedBlock.BlockFontSize
             };
 
             (ResetOverridesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
-
-            SelectedBlock.IsSelected = false; SelectedBlock = null; _originalBlockState = null; IsEditingBlock = false;
-            RebuildFootnotesAndLabels();
+            SelectedBlock.IsSelected = false; SelectedBlock = null; _originalBlockState = null; IsEditingBlock = false; RebuildFootnotesAndLabels();
         }
 
         private void ExecuteCancelBlockEdit(object obj)
@@ -427,6 +416,9 @@ namespace WPF_LoginForm.ViewModels
                 SelectedBlock.MachineCode = _originalBlockState.MachineCode; SelectedBlock.OriginalDescription = _originalBlockState.Description;
                 SelectedBlock.IsFootnote = _originalBlockState.IsFootnote; SelectedBlock.HeightMultiplier = _originalBlockState.HeightMultiplier;
                 SelectedBlock.TopOffset = _originalBlockState.TopOffset; SelectedBlock.PanelZIndex = _originalBlockState.PanelZIndex;
+                SelectedBlock.LabelOffsetX = _originalBlockState.LabelOffsetX;
+                SelectedBlock.LabelOffsetY = _originalBlockState.LabelOffsetY;
+                SelectedBlock.BlockFontSize = _originalBlockState.BlockFontSize;
                 SelectedBlock.IsSelected = false;
             }
             SelectedBlock = null; _originalBlockState = null; IsEditingBlock = false;
@@ -435,8 +427,7 @@ namespace WPF_LoginForm.ViewModels
         private void RebuildFootnotesAndLabels()
         {
             if (ReportConfig == null) return;
-            var newFootnotes = new List<string>();
-            int counter = 1;
+            var newFootnotes = new List<string>(); int counter = 1;
 
             foreach (var row in ReportRows)
             {
@@ -446,20 +437,12 @@ namespace WPF_LoginForm.ViewModels
                 var clusters = new List<List<PrintTimeBlock>>();
                 foreach (var b in sortedFootnotes)
                 {
-                    double center = b.StartMinute + (b.DurationMinutes / 2.0);
-                    bool added = false;
-
+                    double center = b.StartMinute + (b.DurationMinutes / 2.0); bool added = false;
                     if (clusters.Any())
                     {
                         var lastCluster = clusters.Last();
                         var lastCenter = lastCluster.First().StartMinute + (lastCluster.First().DurationMinutes / 2.0);
-
-                        // Merge logic: Groups perfectly overlapping footnotes within 25 mins
-                        if (Math.Abs(center - lastCenter) <= 25.0)
-                        {
-                            lastCluster.Add(b);
-                            added = true;
-                        }
+                        if (Math.Abs(center - lastCenter) <= 25.0) { lastCluster.Add(b); added = true; }
                     }
                     if (!added) clusters.Add(new List<PrintTimeBlock> { b });
                 }
@@ -467,34 +450,24 @@ namespace WPF_LoginForm.ViewModels
                 foreach (var cluster in clusters)
                 {
                     var markers = new List<int>();
-
                     foreach (var b in cluster)
                     {
-                        markers.Add(counter);
-                        string markerStr = $"[{counter}]";
+                        markers.Add(counter); string markerStr = $"[{counter}]";
                         string desc = string.IsNullOrEmpty(b.OriginalDescription) ? "Arıza/Bakım" : b.OriginalDescription;
+                        if (desc.Length > 20) desc = desc.Substring(0, 20).TrimEnd() + "...";
                         string mCode = string.IsNullOrEmpty(b.MachineCode) ? "" : $"{b.MachineCode} - ";
-
                         newFootnotes.Add($"{markerStr} {mCode}{desc} ({b.DurationMinutes:F0}dk)");
                         counter++;
                     }
 
                     string combinedMarker = string.Join("-", markers.Select(m => $"[{m}]"));
-
-                    // The overlay with the largest visible duration holds the unified [3]-[4] label
                     var targetBlock = cluster.OrderByDescending(b => b.DurationMinutes).First();
-                    foreach (var b in cluster)
-                    {
-                        b.Label = (b == targetBlock) ? combinedMarker : "";
-                    }
+                    foreach (var b in cluster) b.Label = (b == targetBlock) ? combinedMarker : "";
                 }
             }
 
             ReportConfig.Footnotes.Clear();
-            foreach (var footnote in newFootnotes)
-            {
-                ReportConfig.Footnotes.Add(new PrintFootnote { Text = footnote });
-            }
+            foreach (var footnote in newFootnotes) ReportConfig.Footnotes.Add(new PrintFootnote { Text = footnote });
         }
 
         private async Task InitializeAsync()
@@ -502,9 +475,7 @@ namespace WPF_LoginForm.ViewModels
             var tables = await _dataRepository.GetTableNamesAsync();
             Application.Current.Dispatcher.Invoke(() =>
             {
-                AvailableTables.Clear();
-                foreach (var t in tables) AvailableTables.Add(t);
-                LoadState();
+                AvailableTables.Clear(); foreach (var t in tables) AvailableTables.Add(t); LoadState();
                 if (string.IsNullOrEmpty(SelectedTable) && AvailableTables.Any()) SelectedTable = AvailableTables[0];
             });
         }
@@ -529,9 +500,11 @@ namespace WPF_LoginForm.ViewModels
                     InnerLabelColor = this.InnerLabelColor.ToString(),
                     RowHeight = this.RowHeight,
                     FootnoteFontSize = this.FootnoteFontSize,
+                    InnerLabelFontSize = this.InnerLabelFontSize,
                     ShowValuesInHours = this.ShowValuesInHours,
                     ShowMajorErrorLabels = this.ShowMajorErrorLabels,
                     ShowMachineLegend = this.ShowMachineLegend,
+                    ShowMonthSummary = this.ShowMonthSummary,
                     DetailedOverlapView = this.DetailedOverlapView,
                     HideGenelTemizlik = this.HideGenelTemizlik,
                     ExtraCol1Selection = this.ExtraCol1Selection,
@@ -579,15 +552,13 @@ namespace WPF_LoginForm.ViewModels
 
                         if (state.RowHeight >= 8 && state.RowHeight <= 32) RowHeight = state.RowHeight;
                         if (state.FootnoteFontSize >= 6 && state.FootnoteFontSize <= 16) FootnoteFontSize = state.FootnoteFontSize; else FootnoteFontSize = 8.0;
+                        if (state.InnerLabelFontSize >= 4 && state.InnerLabelFontSize <= 14) InnerLabelFontSize = state.InnerLabelFontSize; else InnerLabelFontSize = 6.5;
 
                         ShowValuesInHours = state.ShowValuesInHours; ShowMajorErrorLabels = state.ShowMajorErrorLabels;
-                        ShowMachineLegend = state.ShowMachineLegend; DetailedOverlapView = state.DetailedOverlapView;
-                        HideGenelTemizlik = state.HideGenelTemizlik;
+                        ShowMachineLegend = state.ShowMachineLegend; ShowMonthSummary = state.ShowMonthSummary;
+                        DetailedOverlapView = state.DetailedOverlapView; HideGenelTemizlik = state.HideGenelTemizlik;
+                        EnableSoftCorners = state.EnableSoftCorners; EnableBlockBorders = state.EnableBlockBorders; DisableSoftCornersUnder5Min = state.DisableSoftCornersUnder5Min;
 
-                        EnableSoftCorners = state.EnableSoftCorners; EnableBlockBorders = state.EnableBlockBorders;
-                        DisableSoftCornersUnder5Min = state.DisableSoftCornersUnder5Min;
-
-                        // Bounds protection ensuring layers do not exceed max layout (1-100)
                         LayerRunning = state.LayerRunning > 0 ? Math.Min(state.LayerRunning, 100) : 1;
                         LayerBypass = state.LayerBypass > 0 ? Math.Min(state.LayerBypass, 100) : 2;
                         LayerBreaks = state.LayerBreaks > 0 ? Math.Min(state.LayerBreaks, 100) : 10;
@@ -615,7 +586,6 @@ namespace WPF_LoginForm.ViewModels
             catch { }
             if (!AvailableExtraOptions.Contains(ExtraCol1Selection)) ExtraCol1Selection = LocTotalStop;
             if (!AvailableExtraOptions.Contains(ExtraCol2Selection)) ExtraCol2Selection = LocActualWork;
-            if (FootnoteFontSize < 6) FootnoteFontSize = 8.0;
         }
 
         private void ResetExtraOptions()
@@ -640,8 +610,7 @@ namespace WPF_LoginForm.ViewModels
             {
                 var headers = await Task.Run(() =>
                 {
-                    var list = new List<string>();
-                    ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                    var list = new List<string>(); ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
                     using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                     using (var package = new ExcelPackage(stream))
                     {
@@ -669,19 +638,14 @@ namespace WPF_LoginForm.ViewModels
                     if (!AvailableExtraOptions.Contains(ExtraCol2Selection)) ExtraCol2Selection = LocActualWork;
                 });
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to read Excel headers: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                ExcelFilePath = "";
-            }
+            catch (Exception ex) { MessageBox.Show($"Failed to read Excel headers: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error); ExcelFilePath = ""; }
             finally { IsBusy = false; }
         }
 
         private async void ExecuteGeneratePreview(object obj)
         {
             IsBusy = true; IsEditingBlock = false;
-            if (SelectedBlock != null) SelectedBlock.IsSelected = false;
-            SelectedBlock = null; ZoomScale = 1.0;
+            if (SelectedBlock != null) SelectedBlock.IsSelected = false; SelectedBlock = null; ZoomScale = 1.0;
 
             SaveState();
 
@@ -699,12 +663,11 @@ namespace WPF_LoginForm.ViewModels
                 }
 
                 ReportRows.Clear();
-
                 bool show1 = ExtraCol1Selection != "None"; bool show2 = ExtraCol2Selection != "None";
 
-                double timelineWidth = 790;
-                if (!show1) timelineWidth += 70;
-                if (!show2) timelineWidth += 70;
+                double timelineWidth = 958.0;
+                if (show1) timelineWidth -= 90.0;
+                if (show2) timelineWidth -= 90.0;
 
                 var context = new TimelineGenerationContext
                 {
@@ -737,7 +700,9 @@ namespace WPF_LoginForm.ViewModels
                     EnableBlockBorders = this.EnableBlockBorders,
                     RowHeight = this.RowHeight,
                     EnableSoftCorners = this.EnableSoftCorners,
-                    DisableSoftCornersUnder5Min = this.DisableSoftCornersUnder5Min
+                    DisableSoftCornersUnder5Min = this.DisableSoftCornersUnder5Min,
+                    InnerLabelFontSize = this.InnerLabelFontSize,
+                    ShowMonthSummary = this.ShowMonthSummary // NEW
                 };
 
                 var newRows = await _reportGenerator.GenerateReportAsync(_cachedData, context);
@@ -750,19 +715,15 @@ namespace WPF_LoginForm.ViewModels
                         if (!string.IsNullOrEmpty(checkFp) && _blockOverrides.TryGetValue(checkFp, out var overrideData))
                         {
                             block.ColorHex = overrideData.ColorHex;
-
-                            // Prevent text application to invisible geometrical hitboxes if any still existed
                             if (block.PanelZIndex >= 80 || block.PanelZIndex <= 20)
                             {
-                                block.Label = overrideData.Label;
-                                block.MachineCode = overrideData.MachineCode;
-                                block.OriginalDescription = overrideData.Description;
-                                block.IsFootnote = overrideData.IsFootnote;
-                                block.DisplayStartTime = overrideData.DisplayStartTime;
-                                block.DisplayEndTime = overrideData.DisplayEndTime;
-                                block.HeightMultiplier = overrideData.HeightMultiplier;
-                                block.TopOffset = overrideData.TopOffset;
+                                block.Label = overrideData.Label; block.MachineCode = overrideData.MachineCode;
+                                block.OriginalDescription = overrideData.Description; block.IsFootnote = overrideData.IsFootnote;
+                                block.DisplayStartTime = overrideData.DisplayStartTime; block.DisplayEndTime = overrideData.DisplayEndTime;
+                                block.HeightMultiplier = overrideData.HeightMultiplier; block.TopOffset = overrideData.TopOffset;
                                 block.PanelZIndex = overrideData.PanelZIndex;
+                                block.LabelOffsetX = overrideData.LabelOffsetX; block.LabelOffsetY = overrideData.LabelOffsetY;
+                                block.BlockFontSize = overrideData.BlockFontSize;
                             }
                         }
                     }
@@ -770,24 +731,19 @@ namespace WPF_LoginForm.ViewModels
 
                 Application.Current.Dispatcher.Invoke(() => { foreach (var r in newRows) ReportRows.Add(r); });
 
-                string resDate = WPF_LoginForm.Properties.Resources.P_date ?? "Date";
-                string resShift = WPF_LoginForm.Properties.Resources.P_Shift ?? "Shift";
-                string resRun = WPF_LoginForm.Properties.Resources.P_Running ?? "Running";
-                string resErr = WPF_LoginForm.Properties.Resources.P_Errors_and_Stops ?? "Errors & Stops";
+                string resDate = WPF_LoginForm.Properties.Resources.P_date ?? "Date"; string resShift = WPF_LoginForm.Properties.Resources.P_Shift ?? "Shift";
+                string resRun = WPF_LoginForm.Properties.Resources.P_Running ?? "Tesis Çalışıyor"; string resErr = WPF_LoginForm.Properties.Resources.P_Errors_and_Stops ?? "Arıza ve Duruşlar";
                 string resErr2 = WPF_LoginForm.Properties.Resources.P_Overlapping ?? "Paralel Arıza/Bakım";
 
                 string uom = ShowValuesInHours ? "(sa)" : "(min)";
                 string t1 = (ExtraCol1Selection ?? "").Replace("[Excel] ", ""); string t2 = (ExtraCol2Selection ?? "").Replace("[Excel] ", "");
-
                 if (show1 && (t1 == LocTotalStop || t1 == "Total Stop" || t1 == LocActualWork || t1 == "Actual Work")) t1 += $" {uom}";
                 if (show2 && (t2 == LocTotalStop || t2 == "Total Stop" || t2 == LocActualWork || t2 == "Actual Work")) t2 += $" {uom}";
 
                 var legendList = new List<MachineLegendItem>
                 {
-                    new MachineLegendItem { Code = "99", Name = "HABERLEŞME" },
-                    new MachineLegendItem { Code = "98", Name = "POLİP" },
-                    new MachineLegendItem { Code = "97", Name = "KAMYON" },
-                    new MachineLegendItem { Code = "96", Name = "BESLEME-KONVEYÖR" }
+                    new MachineLegendItem { Code = "99", Name = "HABERLEŞME" }, new MachineLegendItem { Code = "98", Name = "POLİP" },
+                    new MachineLegendItem { Code = "97", Name = "KAMYON" }, new MachineLegendItem { Code = "96", Name = "BESLEME-KONVEYÖR" }
                 };
 
                 var ticks = new List<PrintAxisTick>
@@ -816,11 +772,13 @@ namespace WPF_LoginForm.ViewModels
                     InnerLabelColor = this.InnerLabelColor.ToString(),
                     RowHeight = this.RowHeight,
                     FootnoteFontSize = this.FootnoteFontSize,
+                    InnerLabelFontSize = this.InnerLabelFontSize,
                     TimelineWidth = timelineWidth,
                     ShowExtra1 = show1,
                     ShowExtra2 = show2,
                     ShowMajorErrorLabels = this.ShowMajorErrorLabels,
                     ShowMachineLegend = this.ShowMachineLegend,
+                    ShowMonthSummary = this.ShowMonthSummary, // NEW
                     ExtraTitle1 = show1 ? t1 : "",
                     ExtraTitle2 = show2 ? t2 : "",
                     HeaderDate = resDate,
@@ -835,13 +793,11 @@ namespace WPF_LoginForm.ViewModels
                     LegendMa00Yemek = "Yemek Molası",
                     LegendMa00Other = "Diğer",
                     LegendItems = legendList,
-                    AxisTicks = ticks
+                    AxisTicks = ticks,
+                    MonthlySummary = context.MonthlySummaryData // NEW
                 };
 
-                ReportConfig = config;
-                RebuildFootnotesAndLabels();
-
-                OnPropertyChanged(nameof(ReportConfig));
+                ReportConfig = config; RebuildFootnotesAndLabels(); OnPropertyChanged(nameof(ReportConfig));
             }
             catch (Exception ex) { MessageBox.Show($"Error generating report: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error); }
             finally { IsBusy = false; (PrintCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); }

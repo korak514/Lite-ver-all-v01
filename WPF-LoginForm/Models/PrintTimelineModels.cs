@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Models/PrintModels.cs
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -10,10 +11,18 @@ namespace WPF_LoginForm.Models
     public enum PrintBlockType
     { Running, Error, Break, FacilityStop, Cleaning, OtherIdle }
 
-    // NEW: Guarantee WPF Binding never fails for footnote texts
     public class PrintFootnote
     {
         public string Text { get; set; }
+    }
+
+    public class PrintMonthlySummary
+    {
+        public string Title { get; set; }
+        public string AvgDailyWorkStr { get; set; }
+        public string AvgDailyStopStr { get; set; }
+        public string NoOvertimeShifts { get; set; }
+        public string NotWorkedShifts { get; set; } // Changed to Shifts
     }
 
     public class PrintTimeBlock : INotifyPropertyChanged
@@ -64,6 +73,34 @@ namespace WPF_LoginForm.Models
 
         public double TopOffset
         { get => _topOffset; set { _topOffset = value; OnPropertyChanged(); } }
+
+        private double _labelOffsetX = 0.0;
+
+        public double LabelOffsetX
+        {
+            get => _labelOffsetX;
+            set { _labelOffsetX = value; OnPropertyChanged(); OnPropertyChanged(nameof(LabelMargin)); }
+        }
+
+        private double _labelOffsetY = 0.0;
+
+        public double LabelOffsetY
+        {
+            get => _labelOffsetY;
+            set { _labelOffsetY = value; OnPropertyChanged(); OnPropertyChanged(nameof(LabelMargin)); }
+        }
+
+        public Thickness LabelMargin => new Thickness(LabelOffsetX, LabelOffsetY, -LabelOffsetX, -LabelOffsetY);
+
+        private double _blockFontSize = 7.0;
+
+        public double BlockFontSize
+        { get => _blockFontSize; set { _blockFontSize = value; OnPropertyChanged(); } }
+
+        private VerticalAlignment _textVerticalAlignment = VerticalAlignment.Center;
+
+        public VerticalAlignment TextVerticalAlignment
+        { get => _textVerticalAlignment; set { _textVerticalAlignment = value; OnPropertyChanged(); } }
 
         private string _label;
 
@@ -117,13 +154,10 @@ namespace WPF_LoginForm.Models
         public string DisplayEndTime
         { get => _displayEndTime; set { _displayEndTime = value; OnPropertyChanged(); } }
 
-        // CORE GEOMETRY
         public double PixelLeft => StartMinute * WidthMultiplier;
-
         public double PixelWidth => DurationMinutes * WidthMultiplier;
         public double PixelHeight => RowHeight * HeightMultiplier;
 
-        // NEW: VISUAL GEOMETRY FOR CATCHER EDGES
         private double _visualLeftOffset = 0.0;
 
         public double VisualLeftOffset
@@ -135,7 +169,7 @@ namespace WPF_LoginForm.Models
         { get => _visualWidthOffset; set { _visualWidthOffset = value; OnPropertyChanged(); OnPropertyChanged(nameof(VisualPixelWidth)); } }
 
         public double VisualPixelLeft => PixelLeft + VisualLeftOffset;
-        public double VisualPixelWidth => Math.Max(0, PixelWidth + VisualWidthOffset);
+        public double VisualPixelWidth => Math.Max(0, PixelWidth + 0.5 + VisualWidthOffset);
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -179,6 +213,8 @@ namespace WPF_LoginForm.Models
         public bool ShowExtra2 { get; set; }
         public bool ShowMajorErrorLabels { get; set; }
         public bool ShowMachineLegend { get; set; }
+        public bool ShowMonthSummary { get; set; }
+
         public string RunningColor { get; set; }
         public string ErrorColor { get; set; }
         public string ErrorColor2 { get; set; }
@@ -194,7 +230,7 @@ namespace WPF_LoginForm.Models
         public double TimelineWidth { get; set; } = 778;
         public double TextFontSize => Math.Max(7, RowHeight * 0.75);
         public double SymbolFontSize => Math.Max(9, RowHeight * 0.90);
-        public double InnerLabelFontSize => Math.Max(5.5, RowHeight * 0.50);
+        public double InnerLabelFontSize { get; set; } = 7.0;
 
         public string HeaderDate { get; set; }
         public string HeaderShift { get; set; }
@@ -207,10 +243,11 @@ namespace WPF_LoginForm.Models
         public string LegendMa00Cay { get; set; }
         public string LegendMa00Yemek { get; set; }
         public string LegendMa00Other { get; set; }
+
+        public PrintMonthlySummary MonthlySummary { get; set; }
         public List<MachineLegendItem> LegendItems { get; set; } = new List<MachineLegendItem>();
         public List<PrintAxisTick> AxisTicks { get; set; } = new List<PrintAxisTick>();
 
-        // FIX: Footnotes list uses Object to force WPF binding correctly
         public ObservableCollection<PrintFootnote> Footnotes { get; set; } = new ObservableCollection<PrintFootnote>();
     }
 
@@ -230,9 +267,11 @@ namespace WPF_LoginForm.Models
         public string InnerLabelColor { get; set; }
         public double RowHeight { get; set; }
         public double FootnoteFontSize { get; set; }
+        public double InnerLabelFontSize { get; set; }
         public bool ShowValuesInHours { get; set; }
         public bool ShowMajorErrorLabels { get; set; }
         public bool ShowMachineLegend { get; set; }
+        public bool ShowMonthSummary { get; set; }
         public bool DetailedOverlapView { get; set; }
         public bool HideGenelTemizlik { get; set; }
         public string ExtraCol1Selection { get; set; }
