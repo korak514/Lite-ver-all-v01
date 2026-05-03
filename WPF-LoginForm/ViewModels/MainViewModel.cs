@@ -48,6 +48,9 @@ namespace WPF_LoginForm.ViewModels
         private SettingsViewModel _settingsViewModel;
         private HelpViewModel _helpViewModel;
 
+        // --- NEW: Detailed Maximize ViewModel ---
+        private ChartDetailViewModel _chartDetailViewModel;
+
         // --- Properties ---
         public UserAccountModel CurrentUserAccount
         { get => _currentUserAccount; set { _currentUserAccount = value; OnPropertyChanged(); } }
@@ -170,11 +173,15 @@ namespace WPF_LoginForm.ViewModels
             {
                 _homeViewModel.Deactivate();
                 _homeViewModel.DrillDownRequested -= OnDashboardDrillDown;
+                _homeViewModel.OpenChartDetailAction -= OnOpenChartDetail;
             }
 
             _homeViewModel = new HomeViewModel(_dataRepository, _dialogService, _logger);
             _homeViewModel.DrillDownRequested += OnDashboardDrillDown;
             _homeViewModel.ReturnToPortalAction = () => ExecuteShowHomeViewCommand(null);
+
+            // --- NEW: Hooking up the Maximize Navigation ---
+            _homeViewModel.OpenChartDetailAction = OnOpenChartDetail;
 
             CurrentChildView = _homeViewModel;
             Caption = "Dashboard Module";
@@ -185,6 +192,29 @@ namespace WPF_LoginForm.ViewModels
                 if (_homeViewModel != null)
                     _homeViewModel.SelectedDashboardFile = targetFileName;
             }));
+        }
+
+        // --- NEW: Triggered when "Maximize" is clicked on a chart ---
+        private void OnOpenChartDetail(int position, DashboardConfiguration config)
+        {
+            if (_chartDetailViewModel == null)
+            {
+                _chartDetailViewModel = new ChartDetailViewModel(_dataRepository, _logger);
+            }
+
+            _chartDetailViewModel.Initialize(config, _homeViewModel.StartDate, _homeViewModel.EndDate);
+
+            // Allows the detailed view to jump back to the Home Dashboard
+            _chartDetailViewModel.GoBackAction = () =>
+            {
+                CurrentChildView = _homeViewModel;
+                Caption = "Dashboard Module";
+                Icon = IconChar.ChartPie;
+            };
+
+            CurrentChildView = _chartDetailViewModel;
+            Caption = $"Advanced Chart Detail - Position {position}";
+            Icon = IconChar.ChartArea;
         }
 
         private void OnDashboardDrillDown(string tableName, DateTime start, DateTime end)
@@ -242,8 +272,6 @@ namespace WPF_LoginForm.ViewModels
             }
 
             _errorViewModel = new ErrorManagementViewModel(_dataRepository);
-
-            // --- NEW: Hook up event to handle navigation jumps ---
             _errorViewModel.NavigateToDataReportRequested += OnNavigateToDataReport;
 
             CurrentChildView = _errorViewModel;
@@ -251,13 +279,9 @@ namespace WPF_LoginForm.ViewModels
             Icon = IconChar.PieChart;
         }
 
-        // --- NEW: The method that processes the jump to the Data Report ---
         private void OnNavigateToDataReport(string tableName, DateTime start, DateTime end, string searchText)
         {
-            // Switch current view to Datarep
             ExecuteShowReportsViewCommand(null);
-
-            // Execute the filter injection in DatarepViewModel
             if (_datarepViewModel != null)
             {
                 _datarepViewModel.LoadTableWithFilter(tableName, start, end, searchText);
@@ -272,6 +296,7 @@ namespace WPF_LoginForm.ViewModels
             _portalViewModel = null; _homeViewModel = null; _customerViewModel = null; _datarepViewModel = null;
             _inventoryViewModel = null; _settingsViewModel = null; _helpViewModel = null;
             if (_errorViewModel != null) { _errorViewModel = null; }
+            if (_chartDetailViewModel != null) { _chartDetailViewModel = null; }
             CurrentChildView = null;
 
             var loginView = new LoginView();

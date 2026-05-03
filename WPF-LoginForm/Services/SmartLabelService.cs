@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Services/SmartLabelService.cs
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using WPF_LoginForm.Models;
@@ -7,52 +8,32 @@ namespace WPF_LoginForm.Services
 {
     public static class SmartLabelService
     {
-        // =========================================================================
-        // 🎛️ FINE-TUNING CONSTANTS
-        // =========================================================================
         public static class Config
         {
-            // 🚨 FIX: Reduced Top Gaps to stop labels from floating above the line
             public static double PeakGapY = 6;
-
             public static double ValleyGapY = 10;
             public static double DefaultTopGapY = 6;
             public static double DefaultBottomGapY = 10;
-
             public static double PeakOffsetX = 0;
             public static double PeakOffsetY = 0;
             public static double ValleyOffsetX = 0;
             public static double ValleyOffsetY = 0;
-
             public static double GapX = 8;
-
             public static double FarGapY_Add = 20;
             public static double FarGapX_Add = 15;
-
-            // Tighter diagonal tucks to bring NE/NW closer
             public static double DiagonalSnugY = 4;
-
             public static double DiagonalSnugX = 4;
-
             public static double FirstLabelOffsetX = 0;
             public static double FirstLabelOffsetY = 0;
-
-            // 🚨 FIX: Reduced from 42 to 36.
-            // 36 perfectly balances 2-line collision detection WITHOUT over-offsetting Top labels.
             public static double CharWidth = 7.0;
-
             public static double BoxPaddingX = 16;
             public static double BoxHeight = 36;
-
             public static double CollisionPadX = 2;
             public static double CollisionPadY = 2;
-
             public static double SteepSlope = 0.08;
             public static double FlatSlope = 0.06;
-
             public static double VirtualWidthPerPoint = 100.0;
             public static double VirtualHeight = 450.0;
-
             public static double BarLabelGapY = 10.0;
         }
 
@@ -91,7 +72,6 @@ namespace WPF_LoginForm.Services
         {
             if (points == null || points.Count == 0) return;
 
-            // --- BAR CHART LOGIC ---
             if (string.Equals(seriesType, "Bar", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(seriesType, "Column", StringComparison.OrdinalIgnoreCase))
             {
@@ -124,7 +104,12 @@ namespace WPF_LoginForm.Services
 
                     if (indicesToLabel.Contains(i) && p.Y != 0)
                     {
-                        p.Label = FormatKiloMega(p.Y);
+                        // ONLY generate default label if a custom blueprint label wasn't passed in
+                        if (string.IsNullOrEmpty(p.Label))
+                        {
+                            p.Label = FormatKiloMega(p.Y);
+                        }
+
                         double w = (p.Label.Length * Config.CharWidth) + Config.BoxPaddingX;
                         p.LabelDx = -w / 2.0;
                         p.LabelDy = -Config.BoxHeight - Config.BarLabelGapY;
@@ -139,9 +124,8 @@ namespace WPF_LoginForm.Services
                 return;
             }
 
-            // --- LINE CHART SMART LABEL LOGIC ---
             int countLine = points.Count;
-            var validPoints = points.Where(p => p != null).ToList();
+            var validPoints = points.Where(p => p != null && !double.IsNaN(p.Y)).ToList();
             if (validPoints.Count == 0) return;
 
             double minY = validPoints.Min(p => p.Y);
@@ -159,20 +143,25 @@ namespace WPF_LoginForm.Services
             for (int i = 0; i < countLine; i++)
             {
                 var p = points[i];
-                if (p == null) continue;
+                if (p == null || double.IsNaN(p.Y)) continue;
 
-                string vStr = FormatKiloMega(p.Y);
-                string dStr = isDateAxis
-                    ? new DateTime((long)p.X).ToString("MMM yyyy")
-                    : (xAxisLabels != null && p.X >= 0 && p.X < xAxisLabels.Count ? xAxisLabels[(int)p.X] : "");
+                // BUGFIX: Respect the custom label. If null, it means it's a standard chart, so generate default.
+                if (string.IsNullOrEmpty(p.Label))
+                {
+                    string vStr = FormatKiloMega(p.Y);
+                    string dStr = isDateAxis
+                        ? new DateTime((long)p.X).ToString("MMM yyyy")
+                        : (xAxisLabels != null && p.X >= 0 && p.X < xAxisLabels.Count ? xAxisLabels[(int)p.X] : "");
 
-                p.Label = string.IsNullOrEmpty(dStr?.Trim()) ? vStr : $"{vStr}\n{dStr.Trim()}";
+                    p.Label = string.IsNullOrEmpty(dStr?.Trim()) ? vStr : $"{vStr}\n{dStr.Trim()}";
+                }
+
                 p.ShowLabel = false;
                 p.IsImportant = true;
 
                 double curr = p.Y;
-                double prev = i > 0 && points[i - 1] != null ? points[i - 1].Y : curr;
-                double next = i < countLine - 1 && points[i + 1] != null ? points[i + 1].Y : curr;
+                double prev = i > 0 && points[i - 1] != null && !double.IsNaN(points[i - 1].Y) ? points[i - 1].Y : curr;
+                double next = i < countLine - 1 && points[i + 1] != null && !double.IsNaN(points[i + 1].Y) ? points[i + 1].Y : curr;
 
                 isPeakArray[i] = (curr >= prev && curr >= next) && (curr > prev || curr > next);
                 isValleyArray[i] = (curr <= prev && curr <= next) && (curr < prev || curr < next);
@@ -180,7 +169,7 @@ namespace WPF_LoginForm.Services
 
             for (int i = 0; i < countLine; i++)
             {
-                if (points[i] == null) continue;
+                if (points[i] == null || double.IsNaN(points[i].Y)) continue;
                 importance[i] = 50;
                 if (isPeakArray[i] || isValleyArray[i]) importance[i] = 80;
                 if (points[i].Y == maxY || points[i].Y == minY) importance[i] = 90;
@@ -198,14 +187,14 @@ namespace WPF_LoginForm.Services
             foreach (int i in sortedIndices)
             {
                 var p = points[i];
-                if (p == null) continue;
+                if (p == null || double.IsNaN(p.Y)) continue;
 
                 bool isFirstPoint = (i == 0);
                 bool isLastPoint = (i == countLine - 1);
 
                 double curr = p.Y;
-                double prev = i > 0 && points[i - 1] != null ? points[i - 1].Y : curr;
-                double next = i < countLine - 1 && points[i + 1] != null ? points[i + 1].Y : curr;
+                double prev = i > 0 && points[i - 1] != null && !double.IsNaN(points[i - 1].Y) ? points[i - 1].Y : curr;
+                double next = i < countLine - 1 && points[i + 1] != null && !double.IsNaN(points[i + 1].Y) ? points[i + 1].Y : curr;
 
                 bool isPeak = isPeakArray[i];
                 bool isValley = isValleyArray[i];
@@ -225,14 +214,16 @@ namespace WPF_LoginForm.Services
                 }
 
                 double w = (maxCharCount * Config.CharWidth) + Config.BoxPaddingX;
-                double h = Config.BoxHeight;
+                // Dynamically scale height of hitboxes so multi-line combination labels don't overlap lines
+                double linesCount = !string.IsNullOrEmpty(p.Label) ? p.Label.Split('\n').Length : 2;
+                double h = (linesCount * 14) + 10;
 
                 double px = countLine > 1 ? ((points[i].X - minX) / rangeX) * VIRTUAL_WIDTH : VIRTUAL_WIDTH / 2;
                 double py = rangeY > 0 ? VIRTUAL_HEIGHT - (((curr - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2;
                 double prevPx = i > 0 && points[i - 1] != null ? ((points[i - 1].X - minX) / rangeX) * VIRTUAL_WIDTH : px;
-                double prevPy = i > 0 && points[i - 1] != null ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[i - 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : py;
+                double prevPy = i > 0 && points[i - 1] != null && !double.IsNaN(points[i - 1].Y) ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[i - 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : py;
                 double nextPx = i < countLine - 1 && points[i + 1] != null ? ((points[i + 1].X - minX) / rangeX) * VIRTUAL_WIDTH : px;
-                double nextPy = i < countLine - 1 && points[i + 1] != null ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[i + 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : py;
+                double nextPy = i < countLine - 1 && points[i + 1] != null && !double.IsNaN(points[i + 1].Y) ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[i + 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : py;
 
                 List<Dir> candidates = GetCandidates(i, countLine, curr, prev, next, isPeak, isValley, hasFlatSide, seriesType, rangeY);
                 var placement = new LabelPlacement { Index = i, Show = false };
@@ -366,11 +357,7 @@ namespace WPF_LoginForm.Services
                 placements.Add(placement);
             }
 
-            // =========================================================================
-            // THE LEAPFROG ZIPPER
-            // =========================================================================
             double[] shiftsX = new double[] { 0, -5, 5, -15, 15, -25, 25 };
-            // Adjusted slightly for the 36px box height
             double[] shiftsY = new double[] { 0, -12, 12, -26, 26, -40, 40, -60, 60, -85, 85 };
             int maxPasses = 6;
 
@@ -397,9 +384,9 @@ namespace WPF_LoginForm.Services
                         double cy = rangeY > 0 ? VIRTUAL_HEIGHT - (((points[idx].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2;
 
                         double prevPx = idx > 0 && points[idx - 1] != null ? ((points[idx - 1].X - minX) / rangeX) * VIRTUAL_WIDTH : cx;
-                        double prevPy = idx > 0 && points[idx - 1] != null ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[idx - 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : cy;
+                        double prevPy = idx > 0 && points[idx - 1] != null && !double.IsNaN(points[idx - 1].Y) ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[idx - 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : cy;
                         double nextPx = idx < countLine - 1 && points[idx + 1] != null ? ((points[idx + 1].X - minX) / rangeX) * VIRTUAL_WIDTH : cx;
-                        double nextPy = idx < countLine - 1 && points[idx + 1] != null ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[idx + 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : cy;
+                        double nextPy = idx < countLine - 1 && points[idx + 1] != null && !double.IsNaN(points[idx + 1].Y) ? (rangeY > 0 ? VIRTUAL_HEIGHT - (((points[idx + 1].Y - minY) / rangeY) * VIRTUAL_HEIGHT) : VIRTUAL_HEIGHT / 2) : cy;
 
                         bool foundPerfect = false;
 
@@ -543,31 +530,17 @@ namespace WPF_LoginForm.Services
                 return list;
             }
 
-            // 🚨 CRITICAL FIX: "Index 1 Anti-Collision Protocol"
             if (i == 1)
             {
-                if (prev > curr)
-                {
-                    list.AddRange(new[] { Dir.S, Dir.SW, Dir.SE, Dir.N, Dir.NE });
-                    return list;
-                }
-                else
-                {
-                    list.AddRange(new[] { Dir.N, Dir.NW, Dir.NE, Dir.S, Dir.SE });
-                    return list;
-                }
+                if (prev > curr) list.AddRange(new[] { Dir.S, Dir.SW, Dir.SE, Dir.N, Dir.NE });
+                else list.AddRange(new[] { Dir.N, Dir.NW, Dir.NE, Dir.S, Dir.SE });
+                return list;
             }
 
             if (i == 0)
             {
-                if (curr <= next)
-                {
-                    list.AddRange(new[] { Dir.SE, Dir.S, Dir.NE, Dir.N });
-                }
-                else
-                {
-                    list.AddRange(new[] { Dir.NE, Dir.N, Dir.SE, Dir.S });
-                }
+                if (curr <= next) list.AddRange(new[] { Dir.SE, Dir.S, Dir.NE, Dir.N });
+                else list.AddRange(new[] { Dir.NE, Dir.N, Dir.SE, Dir.S });
                 return list;
             }
 
@@ -604,18 +577,9 @@ namespace WPF_LoginForm.Services
             if (isRiseToFlat) { list.AddRange(new[] { Dir.S, Dir.SE, Dir.NW, Dir.N, Dir.Far_N }); return list; }
             if (isFlatToDive) { list.AddRange(new[] { Dir.NE, Dir.NW, Dir.N, Dir.E }); return list; }
 
-            if (isSteepRise)
-            {
-                list.AddRange(new[] { Dir.N, Dir.SE, Dir.NW, Dir.S, Dir.NE, Dir.SW });
-            }
-            else if (isSteepFall)
-            {
-                list.AddRange(new[] { Dir.NE, Dir.E, Dir.N, Dir.SW, Dir.S, Dir.NW });
-            }
-            else
-            {
-                list.AddRange(new[] { Dir.N, Dir.NE, Dir.NW, Dir.S });
-            }
+            if (isSteepRise) list.AddRange(new[] { Dir.N, Dir.SE, Dir.NW, Dir.S, Dir.NE, Dir.SW });
+            else if (isSteepFall) list.AddRange(new[] { Dir.NE, Dir.E, Dir.N, Dir.SW, Dir.S, Dir.NW });
+            else list.AddRange(new[] { Dir.N, Dir.NE, Dir.NW, Dir.S });
 
             return list;
         }
@@ -637,10 +601,7 @@ namespace WPF_LoginForm.Services
             else if (isBottom) gY = isValley ? Config.ValleyGapY : Config.DefaultBottomGapY;
             else gY = Config.DefaultTopGapY;
 
-            if (hasFlatSide)
-            {
-                gY += 6.0;
-            }
+            if (hasFlatSide) gY += 6.0;
 
             double gX = Config.GapX;
 
@@ -652,58 +613,21 @@ namespace WPF_LoginForm.Services
 
             switch (dir)
             {
-                case Dir.N:
-                    dx = (-w / 2) + (isPeak ? 0 : 4.0) + (isFlatToDive ? -6 : 0);
-                    dy = -h - gY + (isPeak ? Config.PeakOffsetY : 0);
-                    break;
-
+                case Dir.N: dx = (-w / 2) + (isPeak ? 0 : 4.0) + (isFlatToDive ? -6 : 0); dy = -h - gY + (isPeak ? Config.PeakOffsetY : 0); break;
                 case Dir.N_Up5: dx = (-w / 2) + 4.0; dy = -h - gY - 5; break;
                 case Dir.N_Up7: dx = (-w / 2) + 4.0; dy = -h - gY - 7; break;
                 case Dir.N_Up10: dx = (-w / 2) + 4.0; dy = -h - gY - 10; break;
-
-                case Dir.S:
-                    dx = (-w / 2) + (isValley ? 0 : 4.0) + (isDiveToFlat ? 4 : 0);
-                    dy = gY + (isValley ? Config.ValleyOffsetY : 0);
-                    break;
-
+                case Dir.S: dx = (-w / 2) + (isValley ? 0 : 4.0) + (isDiveToFlat ? 4 : 0); dy = gY + (isValley ? Config.ValleyOffsetY : 0); break;
                 case Dir.S_Down5: dx = (-w / 2) + 4.0; dy = gY + 5; break;
                 case Dir.S_Down7: dx = (-w / 2) + 4.0; dy = gY + 7; break;
                 case Dir.S_Down10: dx = (-w / 2) + 4.0; dy = gY + 10; break;
-
-                case Dir.E:
-                    dx = gX + 6;
-                    dy = -h / 2;
-                    break;
-
-                case Dir.W:
-                    dx = -w - gX;
-                    dy = -h / 2;
-                    break;
-
-                case Dir.NE:
-                    dx = isFirstPoint ? 2.0 : (gX - Config.DiagonalSnugX);
-                    dy = isFirstPoint ? (-h - gY) : (-h - gY + Config.DiagonalSnugY);
-                    break;
-
-                case Dir.NW:
-                    dx = -w - gX + Config.DiagonalSnugX;
-                    dy = -h - gY + Config.DiagonalSnugY;
-                    break;
-
-                case Dir.SE:
-                    dx = isFirstPoint ? 2.0 : (gX - Config.DiagonalSnugX) + (isSharpRise ? 4 : 0);
-                    dy = isFirstPoint ? gY : (gY - Config.DiagonalSnugY);
-                    break;
-
-                case Dir.SW:
-                    dx = -w - gX + Config.DiagonalSnugX;
-                    dy = gY - Config.DiagonalSnugY;
-                    break;
-
-                default:
-                    dx = (-w / 2) + 4.0;
-                    dy = -h - gY;
-                    break;
+                case Dir.E: dx = gX + 6; dy = -h / 2; break;
+                case Dir.W: dx = -w - gX; dy = -h / 2; break;
+                case Dir.NE: dx = isFirstPoint ? 2.0 : (gX - Config.DiagonalSnugX); dy = isFirstPoint ? (-h - gY) : (-h - gY + Config.DiagonalSnugY); break;
+                case Dir.NW: dx = -w - gX + Config.DiagonalSnugX; dy = -h - gY + Config.DiagonalSnugY; break;
+                case Dir.SE: dx = isFirstPoint ? 2.0 : (gX - Config.DiagonalSnugX) + (isSharpRise ? 4 : 0); dy = isFirstPoint ? gY : (gY - Config.DiagonalSnugY); break;
+                case Dir.SW: dx = -w - gX + Config.DiagonalSnugX; dy = gY - Config.DiagonalSnugY; break;
+                default: dx = (-w / 2) + 4.0; dy = -h - gY; break;
             }
         }
 

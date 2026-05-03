@@ -1,0 +1,413 @@
+﻿<!-- Views/NodeEditorWindow.xaml -->
+<Window x:Class="WPF_LoginForm.Views.NodeEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:fa="http://schemas.fontawesome.io/icons/"
+        xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
+        xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+        mc:Ignorable="d"
+        Title="Combination Label Blueprint Editor"
+        Height="760" Width="1300"
+        WindowStartupLocation="CenterOwner"
+        Background="#F4F6F9"
+        d:DataContext="{d:DesignInstance Type=viewModels:NodeEditorViewModel, IsDesignTimeCreatable=False}">
+
+    <Window.Resources>
+        <converters:EqualityConverter x:Key="EqualityConverter" />
+
+        <!-- Node Header Color Definitions -->
+        <SolidColorBrush x:Key="DataColor" Color="#3498DB" />
+        <SolidColorBrush x:Key="TextColor" Color="#27AE60" />
+        <SolidColorBrush x:Key="DateColor" Color="#E67E22" />
+        <SolidColorBrush x:Key="SeriesColor" Color="#9B59B6" />
+        <SolidColorBrush x:Key="NewLineColor" Color="#34495E" />
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="260" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="360" />
+        </Grid.ColumnDefinitions>
+
+        <!-- LEFT PANEL: NODE SELECTION & ZONES -->
+        <Border Grid.Column="0" Background="White" BorderBrush="#D1D9E6" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,10,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="Node Toolbox" FontWeight="Bold" FontSize="14" Foreground="#2C3E50" Margin="0,0,0,10" />
+
+                <!-- ZONE SELECTOR (TABS) -->
+                <Border Grid.Row="1" Margin="0,0,0,15" Background="#F8F9FA" CornerRadius="4" Padding="10">
+                    <StackPanel>
+                        <TextBlock Text="Edit Tooltip Zone:" FontWeight="Bold" Foreground="#2C3E50" Margin="0,0,0,5" />
+                        <RadioButton Content="1. Top Header Zone" Command="{Binding SetZoneCommand}" CommandParameter="1" Margin="0,2" Foreground="#8E44AD" FontWeight="SemiBold" />
+                        <RadioButton Content="2. Left Side Zone" Command="{Binding SetZoneCommand}" CommandParameter="2" Margin="0,2" Foreground="#3498DB" FontWeight="SemiBold" />
+                        <RadioButton Content="3. Right Side Zone" IsChecked="True" Command="{Binding SetZoneCommand}" CommandParameter="3" Margin="0,2" Foreground="#E67E22" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Border>
+
+                <!-- TOOLBOX BUTTONS -->
+                <Button Grid.Row="2" Command="{Binding AddDateNodeCommand}" Background="{StaticResource DateColor}" Foreground="White" BorderThickness="0" Padding="10" Margin="0,0,0,8" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                    <StackPanel Orientation="Horizontal">
+                        <fa:ImageAwesome Icon="Calendar" Height="14" Foreground="White" Margin="0,0,8,0" />
+                        <TextBlock Text="+ Add Date / Category" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Row="3" Command="{Binding AddSeriesNameNodeCommand}" Background="{StaticResource SeriesColor}" Foreground="White" BorderThickness="0" Padding="10" Margin="0,0,0,8" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                    <StackPanel Orientation="Horizontal">
+                        <fa:ImageAwesome Icon="Tag" Height="14" Foreground="White" Margin="0,0,8,0" />
+                        <TextBlock Text="+ Add Chart Label" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Row="4" Command="{Binding AddTextNodeCommand}" Background="{StaticResource TextColor}" Foreground="White" BorderThickness="0" Padding="10" Margin="0,0,0,8" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                    <StackPanel Orientation="Horizontal">
+                        <fa:ImageAwesome Icon="Font" Height="14" Foreground="White" Margin="0,0,8,0" />
+                        <TextBlock Text="+ Add Static Text" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Row="5" Command="{Binding AddNewLineNodeCommand}" Background="{StaticResource NewLineColor}" Foreground="White" BorderThickness="0" Padding="10" Margin="0,0,0,15" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4" />
+                        </Style>
+                    </Button.Resources>
+                    <StackPanel Orientation="Horizontal">
+                        <fa:ImageAwesome Icon="LevelDown" Height="14" Foreground="White" Margin="0,0,8,0" />
+                        <TextBlock Text="+ Add New Line (Enter)" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
+
+                <ScrollViewer Grid.Row="6" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Data Columns (Values):" Foreground="Gray" FontSize="12" Margin="0,0,0,8" />
+                        <ItemsControl ItemsSource="{Binding AvailableColumns}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding DataContext.AddDataNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"
+                                            Background="{StaticResource DataColor}" Foreground="White" BorderThickness="0" Padding="8" Margin="0,0,0,6" Cursor="Hand">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="4" />
+                                            </Style>
+                                        </Button.Resources>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                            <fa:ImageAwesome Icon="Database" Height="12" Foreground="White" Margin="0,0,8,0" />
+                                            <TextBlock Text="{Binding}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="180" ToolTip="{Binding}" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- MIDDLE PANEL: SINGLE UNIFIED CANVAS -->
+        <Border Grid.Column="1" Background="#E8ECEF" BorderBrush="#D1D9E6" BorderThickness="1" CornerRadius="5" Padding="15" Margin="0,0,10,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="{Binding ActiveZoneTitle}" FontWeight="Bold" FontSize="18" Foreground="#34495E" HorizontalAlignment="Center" Margin="0,0,0,15" />
+
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding ActiveFlow}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <!-- Reduced MinHeight to 75 to keep cards sleek since text was removed -->
+                                    <Border Width="210" MinHeight="75" Background="White" BorderThickness="1" CornerRadius="8" Margin="5" VerticalAlignment="Center">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="BorderBrush" Value="#BDC3C7" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding NodeType}" Value="DataColumn">
+                                                        <Setter Property="BorderBrush" Value="{StaticResource DataColor}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding NodeType}" Value="StaticText">
+                                                        <Setter Property="BorderBrush" Value="{StaticResource TextColor}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding NodeType}" Value="XAxis">
+                                                        <Setter Property="BorderBrush" Value="{StaticResource DateColor}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding NodeType}" Value="SeriesName">
+                                                        <Setter Property="BorderBrush" Value="{StaticResource SeriesColor}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding NodeType}" Value="NewLine">
+                                                        <Setter Property="BorderBrush" Value="{StaticResource NewLineColor}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="Black" BlurRadius="6" Opacity="0.15" ShadowDepth="3" />
+                                        </Border.Effect>
+
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="*" />
+                                            </Grid.RowDefinitions>
+
+                                            <!-- Card Header -->
+                                            <Border Grid.Row="0" CornerRadius="7,7,0,0" Padding="8,5">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#BDC3C7" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding NodeType}" Value="DataColumn">
+                                                                <Setter Property="Background" Value="{StaticResource DataColor}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding NodeType}" Value="StaticText">
+                                                                <Setter Property="Background" Value="{StaticResource TextColor}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding NodeType}" Value="XAxis">
+                                                                <Setter Property="Background" Value="{StaticResource DateColor}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding NodeType}" Value="SeriesName">
+                                                                <Setter Property="Background" Value="{StaticResource SeriesColor}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding NodeType}" Value="NewLine">
+                                                                <Setter Property="Background" Value="{StaticResource NewLineColor}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Grid>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <fa:ImageAwesome Height="12" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center">
+                                                            <fa:ImageAwesome.Style>
+                                                                <Style TargetType="fa:ImageAwesome">
+                                                                    <Setter Property="Icon" Value="Circle" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding NodeType}" Value="DataColumn">
+                                                                            <Setter Property="Icon" Value="Database" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding NodeType}" Value="StaticText">
+                                                                            <Setter Property="Icon" Value="Font" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding NodeType}" Value="XAxis">
+                                                                            <Setter Property="Icon" Value="Calendar" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding NodeType}" Value="SeriesName">
+                                                                            <Setter Property="Icon" Value="Tag" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding NodeType}" Value="NewLine">
+                                                                            <Setter Property="Icon" Value="LevelDown" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </fa:ImageAwesome.Style>
+                                                        </fa:ImageAwesome>
+
+                                                        <TextBlock Foreground="White" FontSize="11" FontWeight="Bold" VerticalAlignment="Center">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Text" Value="Node" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding NodeType}" Value="DataColumn">
+                                                                            <Setter Property="Text" Value="Data Column" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding NodeType}" Value="StaticText">
+                                                                            <Setter Property="Text" Value="Static Text" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding NodeType}" Value="XAxis">
+                                                                            <Setter Property="Text" Value="Date / Category" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding NodeType}" Value="SeriesName">
+                                                                            <Setter Property="Text" Value="Chart Label" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding NodeType}" Value="NewLine">
+                                                                            <Setter Property="Text" Value="Line Break" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </StackPanel>
+
+                                                    <Button HorizontalAlignment="Right" Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                                            Command="{Binding DataContext.RemoveNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}">
+                                                        <fa:ImageAwesome Icon="Times" Height="14" Foreground="White" ToolTip="Remove Node" />
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+
+                                            <!-- Card Body -->
+                                            <!-- The SeriesName and NewLine stackpanels were totally removed here to remove their inner text -->
+                                            <StackPanel Grid.Row="1" Margin="12">
+
+                                                <StackPanel Visibility="{Binding NodeType, ConverterParameter=DataColumn, Converter={StaticResource EqualityConverter}}">
+                                                    <TextBlock Text="{Binding Value}" FontWeight="Bold" FontSize="13" Foreground="#2C3E50" TextTrimming="CharacterEllipsis" ToolTip="{Binding Value}" Margin="0,0,0,10" />
+                                                    <TextBlock Text="Aggregation:" FontSize="10" Foreground="Gray" />
+                                                    <ComboBox SelectedValue="{Binding Aggregation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Content" Margin="0,2,0,0" Padding="4">
+                                                        <ComboBoxItem Content="Sum" />
+                                                        <ComboBoxItem Content="Average" />
+                                                    </ComboBox>
+                                                </StackPanel>
+
+                                                <StackPanel Visibility="{Binding NodeType, ConverterParameter=StaticText, Converter={StaticResource EqualityConverter}}">
+                                                    <TextBlock Text="Text/Symbol:" FontSize="10" Foreground="Gray" />
+                                                    <TextBox Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,0" Padding="4" />
+                                                </StackPanel>
+
+                                                <StackPanel Visibility="{Binding NodeType, ConverterParameter=XAxis, Converter={StaticResource EqualityConverter}}">
+                                                    <TextBlock Text="Date Format:" FontSize="10" Foreground="Gray" />
+                                                    <ComboBox ItemsSource="{Binding DataContext.DateFormats, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                              SelectedItem="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,0" Padding="4" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <fa:ImageAwesome Icon="ArrowRight" Height="18" Foreground="#BDC3C7" Margin="5,0,5,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- RIGHT PANEL: PREVIEW & ACTION BUTTONS -->
+        <Border Grid.Column="2" Background="White" BorderBrush="#D1D9E6" BorderThickness="1" CornerRadius="5" Padding="15">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="0,0,0,20">
+                    <TextBlock Text="Blueprint State Profile" FontWeight="Bold" FontSize="14" Foreground="#2C3E50" Margin="0,0,0,5" />
+                    <ComboBox SelectedIndex="{Binding SelectedStateIndex, Mode=TwoWay}" Height="28">
+                        <ComboBoxItem Content="State 1 (Default)" />
+                        <ComboBoxItem Content="State 2" />
+                        <ComboBoxItem Content="State 3" />
+                    </ComboBox>
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Margin="0,0,0,25">
+                    <TextBlock Text="Chart Interaction Settings" FontWeight="Bold" FontSize="14" Foreground="#2C3E50" Margin="0,0,0,10" />
+
+                    <TextBlock Text="Custom Detail View Title:" FontSize="11" Foreground="Gray" Margin="0,0,0,2" />
+                    <TextBox Text="{Binding CustomChartTitle, Mode=TwoWay}" Padding="4" Margin="0,0,0,10" />
+
+                    <TextBlock Text="Label Display Mode:" FontSize="11" Foreground="Gray" Margin="0,0,0,2" />
+                    <RadioButton Content="Always Show Labels (If small enough)" IsChecked="{Binding ShowOnlyHoverLabels, Converter={StaticResource EqualityConverter}, ConverterParameter=False}" Margin="0,2" Foreground="#444" FontSize="12" />
+                    <RadioButton Content="Show on Hover/Tooltip Only" IsChecked="{Binding ShowOnlyHoverLabels}" Margin="0,2" Foreground="#444" FontSize="12" />
+                </StackPanel>
+
+                <!-- BRAND NEW: Authentic Live Tooltip Preview -->
+                <StackPanel Grid.Row="2" Margin="0,0,0,15" VerticalAlignment="Top">
+                    <TextBlock Text="Live Tooltip Preview" FontWeight="Bold" FontSize="14" Foreground="#2C3E50" Margin="0,0,0,10" />
+
+                    <Border Background="#F2000025" BorderBrush="#50FFFFFF" BorderThickness="1" CornerRadius="6" Padding="10">
+                        <Border.Effect>
+                            <DropShadowEffect Color="Black" BlurRadius="10" Opacity="0.6" ShadowDepth="4" />
+                        </Border.Effect>
+
+                        <Grid MinWidth="180">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- PART 1: HEADER -->
+                            <Border Grid.Row="0" Grid.ColumnSpan="2" BorderBrush="#30FFFFFF" BorderThickness="0,0,0,1" Margin="0,0,0,8" Padding="0,0,0,8">
+                                <TextBlock Text="{Binding PreviewHeader}"
+                                           Foreground="White" FontWeight="Bold" FontSize="13"
+                                           HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+                            </Border>
+
+                            <!-- PART 2: LEFT SIDE -->
+                            <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,15,0">
+                                <Ellipse Width="10" Height="10" Fill="#2ECC71" Stroke="WhiteSmoke" StrokeThickness="1.5" Margin="0,0,8,0" VerticalAlignment="Top" />
+                                <TextBlock Text="{Binding PreviewLeft}"
+                                           Foreground="WhiteSmoke" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <!-- PART 3: RIGHT SIDE -->
+                            <Border Grid.Row="1" Grid.Column="1" BorderBrush="#30FFFFFF" BorderThickness="1,0,0,0" Padding="15,0,0,0">
+                                <TextBlock Text="{Binding PreviewRight}"
+                                           Foreground="White" FontWeight="Bold" FontSize="12"
+                                           HorizontalAlignment="Right" VerticalAlignment="Center" TextAlignment="Right" TextWrapping="Wrap" />
+                            </Border>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Actions -->
+                <StackPanel Grid.Row="3" Margin="0,10,0,0">
+                    <Button Command="{Binding SaveCommand}" Background="#0078D7" Foreground="White" FontWeight="Bold" BorderThickness="0" Padding="12" Margin="0,0,0,10" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                        <StackPanel Orientation="Horizontal">
+                            <fa:ImageAwesome Icon="Save" Height="14" Foreground="White" Margin="0,0,8,0" />
+                            <TextBlock Text="Save &amp; Apply Blueprint" />
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding CancelCommand}" Background="#E74C3C" Foreground="White" FontWeight="Bold" BorderThickness="0" Padding="12" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4" />
+                            </Style>
+                        </Button.Resources>
+                        <StackPanel Orientation="Horizontal">
+                            <fa:ImageAwesome Icon="Times" Height="14" Foreground="White" Margin="0,0,8,0" />
+                            <TextBlock Text="Cancel" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

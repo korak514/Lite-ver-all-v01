@@ -137,6 +137,7 @@
     <Compile Include="Services\TimelineReportGenerator.cs" />
     <Compile Include="Services\UserSessionService.cs" />
     <Compile Include="ViewModels\CategoryConfigViewModel.cs" />
+    <Compile Include="ViewModels\ChartDetailViewModel.cs" />
     <Compile Include="ViewModels\DailyTimelineViewModel.cs" />
     <Compile Include="ViewModels\DashboardPortalViewModel.cs" />
     <Compile Include="ViewModels\ErrorDrillDownViewModel.cs" />
@@ -145,9 +146,16 @@
     <Compile Include="ViewModels\HelpTopic.cs" />
     <Compile Include="ViewModels\HelpViewModel.cs" />
     <Compile Include="ViewModels\HierarchyImportViewModel.cs" />
+    <Compile Include="ViewModels\NodeEditorViewModel.cs" />
     <Compile Include="ViewModels\PrintTimelineSetupViewModel.cs" />
     <Compile Include="Views\CategoryConfigWindow.xaml.cs">
       <DependentUpon>CategoryConfigWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\ChartDetailView.xaml.cs">
+      <DependentUpon>ChartDetailView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\CustomChartTooltip.xaml.cs">
+      <DependentUpon>CustomChartTooltip.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\DailyTimelineWindow.xaml.cs">
       <DependentUpon>DailyTimelineWindow.xaml</DependentUpon>
@@ -172,6 +180,9 @@
     </Compile>
     <Compile Include="Views\InputWindow.xaml.cs">
       <DependentUpon>InputWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\NodeEditorWindow.xaml.cs">
+      <DependentUpon>NodeEditorWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\PortalSettingsWindow.xaml.cs">
       <DependentUpon>PortalSettingsWindow.xaml</DependentUpon>
@@ -313,6 +324,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Views\ChartDetailView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Views\ConfigurationView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -342,6 +357,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\CreateTableWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\CustomChartTooltip.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -402,6 +421,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\MainView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\NodeEditorWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

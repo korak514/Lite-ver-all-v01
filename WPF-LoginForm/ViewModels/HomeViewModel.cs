@@ -1,4 +1,5 @@
 ﻿// ViewModels/HomeViewModel.cs
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -51,7 +52,6 @@ namespace WPF_LoginForm.ViewModels
 
         private List<DashboardConfiguration> _dashboardConfigurations;
 
-        // FIX: Binding synchronization semaphore
         private bool _isSyncing = false;
 
         private DateTime _minSliderDate;
@@ -64,6 +64,8 @@ namespace WPF_LoginForm.ViewModels
         private ConcurrentDictionary<string, double> _kpiPrevTotals;
 
         private string _currentLoadedFilePath;
+
+        public Action<int, DashboardConfiguration> OpenChartDetailAction { get; set; }
 
         public Action ReturnToPortalAction { get; set; }
         public ICommand GoBackCommand { get; }
@@ -334,7 +336,18 @@ namespace WPF_LoginForm.ViewModels
             RecolorChartsCommand = new ViewModelCommand(p => LoadAllChartsData()); ToggleFilterModeCommand = new ViewModelCommand(p => IsFilterByDate = !IsFilterByDate); ChartClickCommand = new ViewModelCommand(ExecuteChartClick);
             TogglePageCommand = new ViewModelCommand(p => IsSecondPageActive = !IsSecondPageActive);
 
-            MaximizeChartCommand = new ViewModelCommand(p => { if (int.TryParse(p?.ToString(), out int i)) { MaximizedChartIndex = i; } });
+            MaximizeChartCommand = new ViewModelCommand(p =>
+            {
+                if (int.TryParse(p?.ToString(), out int i))
+                {
+                    var config = _dashboardConfigurations.FirstOrDefault(c => c.ChartPosition == i);
+                    if (config != null)
+                    {
+                        OpenChartDetailAction?.Invoke(i, config);
+                    }
+                }
+            });
+
             CloseMaximizeCommand = new ViewModelCommand(p => { MaximizedChartIndex = 0; });
 
             CopyImageCommand = new ViewModelCommand(ExecuteCopyImage); ExportChartDataCommand = new ViewModelCommand(ExecuteExportChartData);
@@ -364,6 +377,7 @@ namespace WPF_LoginForm.ViewModels
             if (lastComma > lastDot) strVal = strVal.Replace(".", "").Replace(",", ".");
             else if (lastDot > lastComma && lastComma != -1) strVal = strVal.Replace(",", "");
             else if (lastComma != -1 && lastDot == -1) strVal = strVal.Replace(",", ".");
+            else if (lastDot != -1 && lastComma == -1) strVal = strVal.Replace(".", "");
             double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double res);
             return res;
         }
@@ -391,7 +405,7 @@ namespace WPF_LoginForm.ViewModels
                     ClearAndReinitializeAxes(); _kpiTotals.Clear(); _kpiPrevTotals.Clear();
                 });
 
-                var validConfigs = _dashboardConfigurations.Where(c => c.IsEnabled && !string.IsNullOrEmpty(c.TableName) && c.Series.Any(s => !string.IsNullOrEmpty(s.ColumnName))).ToList();
+                var validConfigs = _dashboardConfigurations.Where(c => c.IsEnabled && !string.IsNullOrEmpty(c.TableName) && c.Series.Any(s => !string.IsNullOrEmpty(s.ColumnName) || s.IsCombinationLabel)).ToList();
                 var tasks = validConfigs.Select(config => ProcessChartConfigurationAsync(config, colorMap, token)).ToList();
 
                 await Task.WhenAll(tasks);
@@ -432,17 +446,12 @@ namespace WPF_LoginForm.ViewModels
             {
                 if (seriesCol == null) return;
                 bool isMaximized = (MaximizedChartIndex == index);
+
                 foreach (var series in seriesCol)
                 {
                     if (series is LineSeries lineSeries)
                     {
                         bool isSmall = lineSeries.Values != null && lineSeries.Values.Count <= 35;
-                        lineSeries.DataLabels = isMaximized && isSmall;
-                    }
-                    else if (series is ColumnSeries colSeries)
-                    {
-                        bool isSmall = colSeries.Values != null && colSeries.Values.Count <= 35;
-                        colSeries.DataLabels = isMaximized && isSmall;
                     }
                 }
             }
@@ -455,16 +464,35 @@ namespace WPF_LoginForm.ViewModels
             if (token.IsCancellationRequested || !_isActive) return;
             try
             {
-                var cols = config.Series.Select(ser => ser.ColumnName).ToList();
+                var cols = new HashSet<string>();
                 if (!string.IsNullOrEmpty(config.DateColumn)) cols.Add(config.DateColumn);
                 if (!string.IsNullOrEmpty(config.SplitByColumn)) cols.Add(config.SplitByColumn);
+
+                foreach (var series in config.Series)
+                {
+                    if (series.IsCombinationLabel && series.SavedStates != null && series.ActiveStateIndex >= 0 && series.SavedStates.Count > series.ActiveStateIndex)
+                    {
+                        var state = series.SavedStates[series.ActiveStateIndex];
+                        if (state != null && state.Nodes != null)
+                        {
+                            foreach (var node in state.Nodes.Where(n => n.NodeType == "DataColumn"))
+                            {
+                                if (!string.IsNullOrEmpty(node.Value)) cols.Add(node.Value);
+                            }
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(series.ColumnName))
+                    {
+                        cols.Add(series.ColumnName);
+                    }
+                }
 
                 DateTime safeStart = StartDate < new DateTime(1753, 1, 1) ? new DateTime(1753, 1, 1) : StartDate;
                 DateTime safeEnd = EndDate < safeStart ? safeStart : EndDate;
                 DateTime? filterStart = (IsFilterByDate && config.DataStructureType == "Daily Date") ? (DateTime?)safeStart : null;
                 DateTime? filterEnd = (IsFilterByDate && config.DataStructureType == "Daily Date") ? (DateTime?)safeEnd : null;
 
-                var dt = await _dataRepository.GetDataAsync(config.TableName, cols.Distinct().ToList(), config.DateColumn, filterStart, filterEnd);
+                var dt = await _dataRepository.GetDataAsync(config.TableName, cols.ToList(), config.DateColumn, filterStart, filterEnd);
                 if (token.IsCancellationRequested || !_isActive || dt == null) return;
 
                 DataTable dtPrev = null;
@@ -472,7 +500,7 @@ namespace WPF_LoginForm.ViewModels
                 {
                     TimeSpan duration = safeEnd - safeStart;
                     if (duration.TotalDays > 0 && duration.TotalDays <= 180)
-                        dtPrev = await _dataRepository.GetDataAsync(config.TableName, cols.Distinct().ToList(), config.DateColumn, safeStart.Subtract(duration), safeStart.AddDays(-1));
+                        dtPrev = await _dataRepository.GetDataAsync(config.TableName, cols.ToList(), config.DateColumn, safeStart.Subtract(duration), safeStart.AddDays(-1));
                 }
 
                 bool isAvg = string.Equals(config.ValueAggregation, "Average", StringComparison.OrdinalIgnoreCase);
@@ -480,7 +508,7 @@ namespace WPF_LoginForm.ViewModels
 
                 foreach (var seriesConfig in config.Series)
                 {
-                    if (dt.Columns.Contains(seriesConfig.ColumnName))
+                    if (!seriesConfig.IsCombinationLabel && dt.Columns.Contains(seriesConfig.ColumnName))
                     {
                         var validRows = dt.AsEnumerable().Where(r => r[seriesConfig.ColumnName] != DBNull.Value).ToList();
                         if (validRows.Any())
@@ -519,27 +547,26 @@ namespace WPF_LoginForm.ViewModels
 
         private void SetSeriesCollection(int pos, SeriesCollection collection)
         {
-            switch (pos)
-            {
-                case 1: Chart1Series = collection; break;
-                case 2: Chart2Series = collection; break;
-                case 3: Chart3Series = collection; break;
-                case 4: Chart4Series = collection; break;
-                case 5: Chart5Series = collection; break;
-                case 6: Chart6Series = collection; break;
-            }
+            switch (pos) { case 1: Chart1Series = collection; break; case 2: Chart2Series = collection; break; case 3: Chart3Series = collection; break; case 4: Chart4Series = collection; break; case 5: Chart5Series = collection; break; case 6: Chart6Series = collection; break; }
+        }
+
+        private void SetXAxes(int pos, AxesCollection ax)
+        {
+            switch (pos) { case 1: Chart1X = ax; break; case 2: Chart2X = ax; break; case 3: Chart3X = ax; break; case 5: Chart5X = ax; break; }
+        }
+
+        private void SetYAxes(int pos, AxesCollection ax)
+        {
+            switch (pos) { case 1: Chart1Y = ax; break; case 2: Chart2Y = ax; break; case 3: Chart3Y = ax; break; case 5: Chart5Y = ax; break; }
         }
 
         private void ApplyChartResultToUI(int position, DashboardChartService.ChartResultDto result)
         {
-            var targetX = GetXAxes(position);
-            var targetY = GetYAxes(position);
-
             if (result == null || result.Series == null) return;
 
             var newSeries = new SeriesCollection();
             var axisColor = Brushes.WhiteSmoke;
-            var xyMapper = Mappers.Xy<DashboardDataPoint>().X(p => p.X).Y(p => p.Y);
+            var xyMapper = Mappers.Xy<DashboardDataPoint>().X(p => p != null ? p.X : 0).Y(p => p != null ? p.Y : 0);
 
             foreach (var s in result.Series)
             {
@@ -550,10 +577,24 @@ namespace WPF_LoginForm.ViewModels
                 if (s.SeriesType == "Pie")
                 {
                     string hoverName = string.IsNullOrEmpty(s.FullName) ? s.Title : s.FullName;
+
+                    var pieMapper = Mappers.Pie<DashboardDataPoint>().Value(p => p.Y);
+                    var pieCv = new ChartValues<DashboardDataPoint>
+                    {
+                        new DashboardDataPoint
+                        {
+                            Y = s.PieValues.FirstOrDefault(),
+                            TooltipHeader = hoverName,
+                            TooltipLeft = "Total:",
+                            TooltipRight = DashboardChartService.FormatKiloMega(s.PieValues.FirstOrDefault())
+                        }
+                    };
+
                     newSeries.Add(new PieSeries
                     {
                         Title = s.Title,
-                        Values = new ChartValues<double>(s.PieValues),
+                        Values = pieCv,
+                        Configuration = pieMapper,
                         DataLabels = false,
                         LabelPoint = p => $"{hoverName}\n{DashboardChartService.FormatKiloMega(p.Y)} ({p.Participation:P0})",
                         Fill = colorBrush
@@ -562,14 +603,12 @@ namespace WPF_LoginForm.ViewModels
                 else
                 {
                     var cv = new ChartValues<DashboardDataPoint>();
-                    if (s.Points != null)
-                    {
-                        foreach (var pt in s.Points) cv.Add(pt);
-                    }
+                    if (s.Points != null) foreach (var pt in s.Points) cv.Add(pt);
 
                     bool isMaximized = (position == MaximizedChartIndex);
                     bool isSmall = cv.Count <= 35;
-                    bool showLabels = isMaximized && isSmall;
+
+                    bool showLabels = isMaximized && isSmall && !s.ShowOnlyHoverLabels;
 
                     if (s.SeriesType == "Line")
                     {
@@ -585,7 +624,12 @@ namespace WPF_LoginForm.ViewModels
                             Fill = Brushes.Transparent,
                             DataLabels = showLabels,
                             Foreground = Brushes.WhiteSmoke,
-                            LabelPoint = p => DashboardChartService.FormatKiloMega(p.Y),
+                            LabelPoint = p =>
+                            {
+                                if (p == null) return "";
+                                var ddp = p.Instance as DashboardDataPoint;
+                                return (ddp != null && !string.IsNullOrEmpty(ddp.Label)) ? ddp.Label : DashboardChartService.FormatKiloMega(p.Y);
+                            },
                             DataLabelsTemplate = _smartLabelTemplate
                         });
                     }
@@ -599,16 +643,22 @@ namespace WPF_LoginForm.ViewModels
                             Fill = colorBrush,
                             DataLabels = showLabels,
                             Foreground = Brushes.WhiteSmoke,
-                            LabelPoint = p => DashboardChartService.FormatKiloMega(p.Y),
+                            LabelPoint = p =>
+                            {
+                                if (p == null) return "";
+                                var ddp = p.Instance as DashboardDataPoint;
+                                return (ddp != null && !string.IsNullOrEmpty(ddp.Label)) ? ddp.Label : DashboardChartService.FormatKiloMega(p.Y);
+                            },
                             DataLabelsTemplate = _smartLabelTemplate
                         });
                     }
                 }
             }
 
-            SetSeriesCollection(position, newSeries);
+            var newX = new AxesCollection();
+            var newY = new AxesCollection();
 
-            if (targetX != null && targetY != null && result.Series.Any(x => x.SeriesType != "Pie"))
+            if (result.Series.Any(x => x.SeriesType != "Pie"))
             {
                 double minVal = double.MaxValue;
                 double maxVal = double.MinValue;
@@ -621,86 +671,118 @@ namespace WPF_LoginForm.ViewModels
                 {
                     if (s.Points != null && s.Points.Any())
                     {
-                        double sMin = s.Points.Min(p => p.Y);
-                        double sMax = s.Points.Max(p => p.Y);
-                        if (sMin < minVal) minVal = sMin;
-                        if (sMax > maxVal) maxVal = sMax;
+                        var validPts = s.Points.Where(p => !double.IsNaN(p.Y)).ToList();
+                        if (validPts.Any())
+                        {
+                            double sMin = validPts.Min(p => p.Y);
+                            double sMax = validPts.Max(p => p.Y);
+                            if (sMin < minVal) minVal = sMin;
+                            if (sMax > maxVal) maxVal = sMax;
 
-                        double sMinX = s.Points.Min(p => p.X);
-                        double sMaxX = s.Points.Max(p => p.X);
-                        if (sMinX < minX) minX = sMinX;
-                        if (sMaxX > maxX) maxX = sMaxX;
+                            double sMinX = validPts.Min(p => p.X);
+                            double sMaxX = validPts.Max(p => p.X);
+                            if (sMinX < minX) minX = sMinX;
+                            if (sMaxX > maxX) maxX = sMaxX;
 
-                        if (s.Points.Count > maxPointCount) maxPointCount = s.Points.Count;
-                        hasValues = true;
+                            if (s.Points.Count > maxPointCount) maxPointCount = s.Points.Count;
+                            hasValues = true;
+                        }
                     }
                 }
 
-                var yAxis = targetY[0];
-                yAxis.Title = "Values";
-                yAxis.LabelFormatter = NumberFormatter;
-                yAxis.Foreground = axisColor;
-                yAxis.FontSize = 12;
-
-                if (hasValues)
+                var yAxis = new Axis
                 {
-                    bool hasColumnSeries = result.Series.Any(x => x.SeriesType == "Column");
-                    bool forceMinZero = hasColumnSeries && minVal >= 0;
+                    Title = "Values",
+                    LabelFormatter = NumberFormatter,
+                    Foreground = axisColor,
+                    FontSize = 12
+                };
 
-                    // FIX: Ensures negative columns hang from the 0 line correctly
+                if (hasValues && !double.IsNaN(minVal) && !double.IsNaN(maxVal))
+                {
+                    bool hasColumnSeries = result.Series.Any(x => x.SeriesType == "Column" || x.SeriesType == "Bar");
+                    bool forceMinZero = hasColumnSeries && minVal >= 0;
                     bool forceMaxZero = hasColumnSeries && maxVal <= 0;
 
                     double dataRange = maxVal - minVal;
-                    // FIX: Safer fallback so range calculates cleanly even if all values are identical negative numbers
-                    if (dataRange == 0) dataRange = Math.Abs(minVal) > 0 ? Math.Abs(minVal) * 0.2 : 1;
+                    if (Math.Abs(dataRange) < 0.0001)
+                    {
+                        dataRange = Math.Abs(minVal) > 0 ? Math.Abs(minVal) * 0.2 : 10;
+                    }
 
-                    double topBuffer = 0.25 * dataRange;
-
-                    // FIX: Use Math.Abs(minVal) to guarantee padding applies beneath the lowest negative value
-                    double bottomBuffer = forceMinZero ? 0 : Math.Max(0.45 * dataRange, Math.Abs(minVal) * 0.15);
+                    double topBuffer = 0.15 * dataRange;
+                    double bottomBuffer = forceMinZero ? 0 : Math.Max(0.20 * dataRange, Math.Abs(minVal) * 0.1);
 
                     double desiredMin = forceMinZero ? 0 : minVal - bottomBuffer;
                     double desiredMax = maxVal + topBuffer;
 
-                    // FIX: Clamp upper bound to 0 for negative column charts
-                    if (forceMaxZero && desiredMax < 0)
+                    if (maxVal <= 0 && minVal < 0)
                     {
-                        desiredMax = 0;
+                        double rawRequiredMax = Math.Abs(minVal) / 5.0;
+                        if (rawRequiredMax > 0)
+                        {
+                            double magMax = Math.Pow(10, Math.Floor(Math.Log10(rawRequiredMax)));
+                            double relMax = rawRequiredMax / magMax;
+
+                            double niceMax;
+                            if (relMax <= 1.5) niceMax = 1.5;
+                            else if (relMax <= 3.0) niceMax = 3.0;
+                            else if (relMax <= 5.0) niceMax = 5.0;
+                            else niceMax = 10.0;
+
+                            double roundedMax = niceMax * magMax;
+
+                            if (desiredMax < roundedMax)
+                            {
+                                desiredMax = roundedMax;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (forceMaxZero && desiredMax < 0) desiredMax = 0;
+                        if (forceMinZero && desiredMin > 0) desiredMin = 0;
+                    }
+
+                    if (desiredMax <= desiredMin)
+                    {
+                        desiredMax = desiredMin + Math.Max(1, Math.Abs(desiredMin) * 0.1);
                     }
 
                     double range = desiredMax - desiredMin;
-                    if (range <= 0) range = 1; // Failsafe
 
                     double targetTicks = 6.0;
                     double rawStep = range / targetTicks;
-                    if (rawStep <= 0) rawStep = 1; // Prevent Math.Log10(<=0) returning NaN
+                    if (rawStep <= 0) rawStep = 1;
 
                     double mag = Math.Pow(10, Math.Floor(Math.Log10(rawStep)));
                     double relStep = rawStep / mag;
 
-                    double niceStep;
-                    if (relStep <= 1.5) niceStep = 1;
-                    else if (relStep <= 3.5) niceStep = 2;
-                    else if (relStep <= 7.5) niceStep = 5;
-                    else niceStep = 10;
-
+                    double niceStep = relStep <= 1.2 ? 1.0 : relStep <= 2.0 ? 2.0 : relStep <= 3.5 ? 3.0 : relStep <= 7.5 ? 5.0 : 10.0;
                     double finalStep = niceStep * mag;
 
                     yAxis.MinValue = Math.Floor(desiredMin / finalStep) * finalStep;
                     yAxis.MaxValue = Math.Ceiling(desiredMax / finalStep) * finalStep;
 
-                    if (yAxis.Separator == null) yAxis.Separator = new LiveCharts.Wpf.Separator();
-                    yAxis.Separator.Step = finalStep;
-                    yAxis.Separator.StrokeThickness = 1;
-                    yAxis.Separator.Stroke = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255));
+                    if (yAxis.MaxValue <= yAxis.MinValue)
+                    {
+                        yAxis.MaxValue = yAxis.MinValue + finalStep;
+                    }
+
+                    yAxis.Separator = new LiveCharts.Wpf.Separator { Step = finalStep, StrokeThickness = 1, Stroke = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)) };
+                }
+                else
+                {
+                    yAxis.MinValue = -0.5;
+                    yAxis.MaxValue = 0.5;
+                    yAxis.Separator = new LiveCharts.Wpf.Separator { Step = 0.5, StrokeThickness = 1, Stroke = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)) };
                 }
 
-                var xAxis = targetX[0];
-                xAxis.Foreground = axisColor;
-
-                if (xAxis.Separator == null) xAxis.Separator = new LiveCharts.Wpf.Separator();
-                xAxis.Separator.StrokeThickness = 0;
-                xAxis.Separator.Stroke = Brushes.Transparent;
+                var xAxis = new Axis
+                {
+                    Foreground = axisColor,
+                    Separator = new LiveCharts.Wpf.Separator { StrokeThickness = 0, Stroke = Brushes.Transparent }
+                };
 
                 if (result.IsDateAxis)
                 {
@@ -725,30 +807,27 @@ namespace WPF_LoginForm.ViewModels
                         xAxis.MinValue = minX - 0.15;
                     }
                 }
+
+                newY.Add(yAxis);
+                newX.Add(xAxis);
             }
+            else
+            {
+                newX.Add(new Axis());
+                newY.Add(new Axis());
+            }
+
+            SetSeriesCollection(position, newSeries);
+            SetXAxes(position, newX);
+            SetYAxes(position, newY);
         }
 
         private void ClearAndReinitializeAxes()
         {
-            void Reset(AxesCollection ax)
-            {
-                if (ax != null && ax.Count > 0)
-                {
-                    ax[0].Labels = null;
-                    ax[0].LabelFormatter = null;
-                    ax[0].MinValue = double.NaN;
-                    ax[0].MaxValue = double.NaN;
-                    if (ax[0].Separator != null)
-                    {
-                        ax[0].Separator.Step = double.NaN;
-                    }
-                }
-            }
-
-            Reset(Chart1X); Reset(Chart1Y);
-            Reset(Chart2X); Reset(Chart2Y);
-            Reset(Chart3X); Reset(Chart3Y);
-            Reset(Chart5X); Reset(Chart5Y);
+            Chart1X = new AxesCollection { new Axis() }; Chart1Y = new AxesCollection { new Axis() };
+            Chart2X = new AxesCollection { new Axis() }; Chart2Y = new AxesCollection { new Axis() };
+            Chart3X = new AxesCollection { new Axis() }; Chart3Y = new AxesCollection { new Axis() };
+            Chart5X = new AxesCollection { new Axis() }; Chart5Y = new AxesCollection { new Axis() };
         }
 
         private void ExecuteCopyImage(object parameter)
@@ -799,40 +878,17 @@ namespace WPF_LoginForm.ViewModels
 
         private SeriesCollection GetSeriesCollection(int pos)
         {
-            switch (pos)
-            {
-                case 1: return Chart1Series;
-                case 2: return Chart2Series;
-                case 3: return Chart3Series;
-                case 4: return Chart4Series;
-                case 5: return Chart5Series;
-                case 6: return Chart6Series;
-                default: return null;
-            }
+            switch (pos) { case 1: return Chart1Series; case 2: return Chart2Series; case 3: return Chart3Series; case 4: return Chart4Series; case 5: return Chart5Series; case 6: return Chart6Series; default: return null; }
         }
 
         private AxesCollection GetXAxes(int pos)
         {
-            switch (pos)
-            {
-                case 1: return Chart1X;
-                case 2: return Chart2X;
-                case 3: return Chart3X;
-                case 5: return Chart5X;
-                default: return null;
-            }
+            switch (pos) { case 1: return Chart1X; case 2: return Chart2X; case 3: return Chart3X; case 5: return Chart5X; default: return null; }
         }
 
         private AxesCollection GetYAxes(int pos)
         {
-            switch (pos)
-            {
-                case 1: return Chart1Y;
-                case 2: return Chart2Y;
-                case 3: return Chart3Y;
-                case 5: return Chart5Y;
-                default: return null;
-            }
+            switch (pos) { case 1: return Chart1Y; case 2: return Chart2Y; case 3: return Chart3Y; case 5: return Chart5Y; default: return null; }
         }
 
         private async void ShowConfigurationWindow()
@@ -851,12 +907,9 @@ namespace WPF_LoginForm.ViewModels
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                Chart1Series = new SeriesCollection();
-                Chart2Series = new SeriesCollection();
-                Chart3Series = new SeriesCollection();
-                Chart4Series = new SeriesCollection();
-                Chart5Series = new SeriesCollection();
-                Chart6Series = new SeriesCollection();
+                Chart1Series = new SeriesCollection(); Chart2Series = new SeriesCollection();
+                Chart3Series = new SeriesCollection(); Chart4Series = new SeriesCollection();
+                Chart5Series = new SeriesCollection(); Chart6Series = new SeriesCollection();
                 ClearAndReinitializeAxes();
             });
         }
@@ -990,6 +1043,25 @@ namespace WPF_LoginForm.ViewModels
 
             try
             {
+                // BUG FIX: Clean up any corrupted States array immediately upon load so the UI doesn't crash on empty duplicates
+                if (s.Configurations != null)
+                {
+                    foreach (var config in s.Configurations)
+                    {
+                        if (config.Series != null)
+                        {
+                            foreach (var series in config.Series)
+                            {
+                                if (series.SavedStates != null && series.SavedStates.Count > 3)
+                                {
+                                    // Take the last 3 items which represent the actual loaded data (due to the Newtonsoft append bug)
+                                    series.SavedStates = series.SavedStates.Skip(series.SavedStates.Count - 3).ToList();
+                                }
+                            }
+                        }
+                    }
+                }
+
                 _dashboardConfigurations = s.Configurations; IsFilterByDate = s.IsFilterByDate; IgnoreNonDateData = s.IgnoreNonDateData; UseIdToDateConversion = s.UseIdToDateConversion; GlobalIgnoreAfterHyphen = s.GlobalIgnoreAfterHyphen;
                 if (s.InitialDateForConversion != default) InitialDateForConversion = s.InitialDateForConversion;
 

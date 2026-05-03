@@ -131,7 +131,6 @@
                                 <Button Grid.Column="1" Content="Clear" Command="{Binding ClearSplitByCommand}" Margin="5,0,0,0" Padding="10,0" Background="#F0F0F0" BorderBrush="#CCC" BorderThickness="1" Cursor="Hand" />
                             </Grid>
 
-                            <!-- FIX: Replaced StackPanel with Grid to enforce ScrollViewer bounds -->
                             <Expander Header="Select specific items to display" IsExpanded="False" FontSize="11" Foreground="#0056B3" Margin="0,4,0,0"
                                       Visibility="{Binding HasSplitByColumn, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Border Background="#FDFDFD" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="4" Height="180" Margin="0,2,0,0">
@@ -181,10 +180,28 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
+                                                <!-- The && button -->
+                                                <ColumnDefinition Width="Auto" />
+                                                <!-- The X button -->
                                             </Grid.ColumnDefinitions>
+
                                             <ComboBox Grid.Column="0" ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                       SelectedItem="{Binding ColumnName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                            <Button Grid.Column="1" Content=" ✕ " Foreground="White" Background="#D14545" FontWeight="Bold" Margin="5,0,0,0" Padding="6,0" BorderThickness="0"
+
+                                            <!-- NEW: Combination Label Node Editor Button -->
+                                            <Button Grid.Column="1" Content="&amp;&amp;" ToolTip="Combination Label / Node Editor"
+                                                    Foreground="White" Background="#F39C12" FontWeight="Bold" Margin="5,0,0,0" Padding="6,0" BorderThickness="0"
+                                                    Command="{Binding DataContext.CurrentConfiguration.OpenNodeEditorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}" Cursor="Hand">
+                                                <Button.Resources>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="CornerRadius" Value="3" />
+                                                    </Style>
+                                                </Button.Resources>
+                                            </Button>
+
+                                            <!-- Remove Series Button -->
+                                            <Button Grid.Column="2" Content=" ✕ " Foreground="White" Background="#D14545" FontWeight="Bold" Margin="5,0,0,0" Padding="6,0" BorderThickness="0"
                                                     Command="{Binding DataContext.CurrentConfiguration.RemoveSeriesCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}" Cursor="Hand">
                                                 <Button.Resources>
@@ -200,7 +217,6 @@
                             <Button Content="+ Add Value Column" Margin="0,4,0,0" Padding="6,4" HorizontalAlignment="Left" FontSize="11"
                                     Command="{Binding AddSeriesCommand}" Background="#E5F1FB" Foreground="#0078D7" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand" />
 
-                            <!-- NEW: Aggregation -->
                             <StackPanel Margin="0,10,0,0">
                                 <TextBlock Text="Value Aggregation (Sum/Avg)" Style="{StaticResource HeaderTextStyle}" />
                                 <ComboBox ItemsSource="{Binding ValueAggregationOptions}" SelectedItem="{Binding ValueAggregation}" />
@@ -232,7 +248,6 @@
                                 <Button Grid.Column="1" Content="Clear" Command="{Binding ClearSplitByCommand}" Margin="5,0,0,0" Padding="12,0" Background="#F0F0F0" BorderBrush="#CCC" BorderThickness="1" Cursor="Hand" />
                             </Grid>
 
-                            <!-- FIX: Replaced StackPanel with Grid to enforce ScrollViewer bounds -->
                             <Expander Header="Select specific slices to display" IsExpanded="False" FontSize="11" Foreground="#0056B3" Margin="0,4,0,0"
                                       Visibility="{Binding HasSplitByColumn, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Border Background="#FDFDFD" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="4" Height="180" Margin="0,2,0,0">
@@ -273,10 +288,26 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
+                                                <!-- && Button -->
+                                                <ColumnDefinition Width="Auto" />
+                                                <!-- X Button -->
                                             </Grid.ColumnDefinitions>
                                             <ComboBox Grid.Column="0" ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                       SelectedItem="{Binding ColumnName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                            <Button Grid.Column="1" Content=" ✕ " Foreground="White" Background="#D14545" FontWeight="Bold" Margin="5,0,0,0" Padding="6,0" BorderThickness="0"
+
+                                            <!-- NEW: Combination Label Node Editor Button -->
+                                            <Button Grid.Column="1" Content="&amp;&amp;" ToolTip="Combination Label / Node Editor"
+                                                    Foreground="White" Background="#F39C12" FontWeight="Bold" Margin="5,0,0,0" Padding="6,0" BorderThickness="0"
+                                                    Command="{Binding DataContext.CurrentConfiguration.OpenNodeEditorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}" Cursor="Hand">
+                                                <Button.Resources>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="CornerRadius" Value="3" />
+                                                    </Style>
+                                                </Button.Resources>
+                                            </Button>
+
+                                            <Button Grid.Column="2" Content=" ✕ " Foreground="White" Background="#D14545" FontWeight="Bold" Margin="5,0,0,0" Padding="6,0" BorderThickness="0"
                                                     Command="{Binding DataContext.CurrentConfiguration.RemoveSeriesCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}" Cursor="Hand">
                                                 <Button.Resources>
@@ -293,7 +324,6 @@
                             <Button Content="+ Add Data Column" Margin="0,4,0,0" Padding="6,4" HorizontalAlignment="Left" FontSize="11"
                                     Command="{Binding AddSeriesCommand}" Background="#E5F1FB" Foreground="#0078D7" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand" />
 
-                            <!-- NEW: Aggregation for Pie Charts too -->
                             <StackPanel Margin="0,10,0,0">
                                 <TextBlock Text="Value Aggregation (Sum/Avg)" Style="{StaticResource HeaderTextStyle}" />
                                 <ComboBox ItemsSource="{Binding ValueAggregationOptions}" SelectedItem="{Binding ValueAggregation}" />

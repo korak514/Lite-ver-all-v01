@@ -9,7 +9,36 @@ namespace WPF_LoginForm.Models
     {
         public double X { get; set; }
         public double Y { get; set; }
+
         public string Label { get; set; }
+
+        // --- NEW PROPERTIES FOR CUSTOM 3-PART TOOLTIP ---
+        private string _tooltipHeader;
+
+        public string TooltipHeader
+        {
+            get => _tooltipHeader;
+            set { if (_tooltipHeader != value) { _tooltipHeader = value; OnPropertyChanged(); } }
+        }
+
+        private string _tooltipLeft;
+
+        public string TooltipLeft
+        {
+            get => _tooltipLeft;
+            set { if (_tooltipLeft != value) { _tooltipLeft = value; OnPropertyChanged(); } }
+        }
+
+        private string _tooltipRight;
+
+        public string TooltipRight
+        {
+            get => _tooltipRight;
+            set { if (_tooltipRight != value) { _tooltipRight = value; OnPropertyChanged(); } }
+        }
+
+        // ------------------------------------------------
+
         public bool IsImportant { get; set; }
         public bool HasLeaderLine { get; set; }
         public double LeaderLineX2 { get; set; }

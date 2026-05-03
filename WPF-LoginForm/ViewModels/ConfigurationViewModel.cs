@@ -24,6 +24,9 @@ namespace WPF_LoginForm.ViewModels
         public List<string> AvailableColumns { get; private set; }
 
         public Action CloseAction { get; set; }
+
+        public Action<SeriesConfiguration, List<string>> OpenNodeEditorAction { get; set; }
+
         public bool WasApplied { get; private set; }
         public bool IsConfigurationVisible => CurrentConfiguration != null;
 
@@ -68,7 +71,7 @@ namespace WPF_LoginForm.ViewModels
                 var configForSlot = existingConfigs.FirstOrDefault(c => c.ChartPosition == i)
                                  ?? new DashboardConfiguration { ChartPosition = i, IsEnabled = false };
 
-                var configVM = new DashboardConfigurationViewModel(configForSlot, _dataRepository);
+                var configVM = new DashboardConfigurationViewModel(configForSlot, _dataRepository, OnChildRequestedNodeEditor);
                 configVM.PropertyChanged += OnCurrentConfigPropertyChanged;
                 ChartConfigurations.Add(configVM);
             }
@@ -76,6 +79,11 @@ namespace WPF_LoginForm.ViewModels
             var selected = ChartConfigurations.FirstOrDefault(c => c.IsSelected) ?? ChartConfigurations.First();
             selected.IsSelected = true;
             CurrentConfiguration = selected;
+        }
+
+        private void OnChildRequestedNodeEditor(SeriesConfiguration series)
+        {
+            OpenNodeEditorAction?.Invoke(series, AvailableColumns);
         }
 
         private void OnCurrentConfigPropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -123,11 +131,20 @@ namespace WPF_LoginForm.ViewModels
                     if (result.Data != null)
                     {
                         DataTable dataTable = result.Data;
-                        AvailableColumns = dataTable.Columns
+                        var cols = dataTable.Columns
                             .Cast<DataColumn>()
                             .Select(c => c.ColumnName)
                             .Where(name => !name.Equals("ID", StringComparison.OrdinalIgnoreCase))
                             .ToList();
+
+                        // --- FIX FOR BLANK Y-AXIS DROPDOWN ---
+                        // Inject the combination label states so the Combobox can bind to them properly
+                        cols.Insert(0, "[Combined] State 3");
+                        cols.Insert(0, "[Combined] State 2");
+                        cols.Insert(0, "[Combined] State 1");
+                        // -------------------------------------
+
+                        AvailableColumns = cols;
                     }
                     else
                     {
@@ -159,12 +176,14 @@ namespace WPF_LoginForm.ViewModels
     {
         private readonly DashboardConfiguration _model;
         private readonly IDataRepository _dataRepository;
+        private readonly Action<SeriesConfiguration> _openNodeEditorAction;
         private bool _isUpdatingCategories = false;
 
-        public DashboardConfigurationViewModel(DashboardConfiguration model, IDataRepository dataRepository)
+        public DashboardConfigurationViewModel(DashboardConfiguration model, IDataRepository dataRepository, Action<SeriesConfiguration> openNodeEditorAction)
         {
             _model = model;
             _dataRepository = dataRepository;
+            _openNodeEditorAction = openNodeEditorAction;
 
             if (_model.ChartPosition == 4 || _model.ChartPosition == 6)
             {
@@ -174,6 +193,8 @@ namespace WPF_LoginForm.ViewModels
             Series = new ObservableCollection<SeriesConfiguration>(_model.Series);
             AddSeriesCommand = new ViewModelCommand(ExecuteAddSeries, CanExecuteAddSeries);
             RemoveSeriesCommand = new ViewModelCommand(ExecuteRemoveSeries);
+
+            OpenNodeEditorCommand = new ViewModelCommand(ExecuteOpenNodeEditor);
 
             ClearSplitByCommand = new ViewModelCommand(p =>
             {
@@ -203,13 +224,13 @@ namespace WPF_LoginForm.ViewModels
         public ICommand AddSeriesCommand { get; }
         public ICommand RemoveSeriesCommand { get; }
         public ICommand ClearSplitByCommand { get; }
+        public ICommand OpenNodeEditorCommand { get; }
 
         public List<string> ChartTypes { get; } = new List<string> { "Line", "Bar", "Price Trend (Line)" };
         public List<string> AggregationOptions { get; } = new List<string> { "Daily", "Weekly", "Monthly" };
         public List<string> AvailableDataStructures { get; } = new List<string> { "Daily Date", "Monthly Date", "ID", "General" };
         public List<int> AvailableIgnoreCounts { get; } = Enumerable.Range(0, 10).ToList();
 
-        // --- NEW: Value Aggregation Settings ---
         public List<string> ValueAggregationOptions { get; } = new List<string> { "Sum", "Average" };
 
         public string ValueAggregation
@@ -398,8 +419,8 @@ namespace WPF_LoginForm.ViewModels
         {
             if (IsPieChart) return Series.Count < 1;
             if (IsPriceTrendChart) return Series.Count < 2;
-            if (string.Equals(ChartType, "Line", StringComparison.OrdinalIgnoreCase)) return Series.Count < 3;
-            if (string.Equals(ChartType, "Bar", StringComparison.OrdinalIgnoreCase)) return Series.Count < 2;
+            if (string.Equals(ChartType, "Line", StringComparison.OrdinalIgnoreCase)) return Series.Count < 5;
+            if (string.Equals(ChartType, "Bar", StringComparison.OrdinalIgnoreCase)) return Series.Count < 5;
             return false;
         }
 
@@ -418,6 +439,14 @@ namespace WPF_LoginForm.ViewModels
             {
                 Series.Remove(seriesToRemove);
                 (AddSeriesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+            }
+        }
+
+        private void ExecuteOpenNodeEditor(object obj)
+        {
+            if (obj is SeriesConfiguration series)
+            {
+                _openNodeEditorAction?.Invoke(series);
             }
         }
     }

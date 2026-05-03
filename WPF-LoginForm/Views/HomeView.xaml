@@ -18,21 +18,23 @@
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
-        <!-- GLOBAL SEPARATOR STYLE (Horizontal Lines Visible, Vertical Hidden) -->
+        <!-- THE CUSTOM TOOLTIP INSTANCE (x:Shared="False" prevents WPF rendering crashes) -->
+        <local:CustomChartTooltip x:Key="CustomTooltip" x:Shared="False" />
+
+        <!-- SMART LABEL FOR ON-CHART TEXT -->
+        <DataTemplate x:Key="SmartLabelTemplate">
+            <Border Background="#E6000030" CornerRadius="4" Padding="6,4" BorderBrush="#80FFFFFF" BorderThickness="1">
+                <TextBlock Text="{Binding ChartPoint.Instance.Label}"
+                           Foreground="White"
+                           FontSize="10"
+                           FontWeight="Bold"
+                           TextAlignment="Center" />
+            </Border>
+        </DataTemplate>
+
         <Style TargetType="lvc:Separator">
             <Setter Property="StrokeThickness" Value="1" />
             <Setter Property="Stroke" Value="#30FFFFFF" />
-        </Style>
-
-        <Style TargetType="lvc:DefaultTooltip">
-            <Setter Property="Background" Value="#E6000030" />
-            <Setter Property="Foreground" Value="WhiteSmoke" />
-            <Setter Property="BorderBrush" Value="#80FFFFFF" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Padding" Value="12,10" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="SelectionMode" Value="OnlySender" />
         </Style>
 
         <Style x:Key="GearToggleStyle" TargetType="ToggleButton">
@@ -93,14 +95,9 @@
             </Style.Triggers>
         </Style>
 
-        <!-- ================================================================= -->
-        <!-- NEW MODERN CLOSE BUTTON STYLE (Floating Circle + Glass Effect)    -->
-        <!-- ================================================================= -->
         <Style x:Key="CompactCloseButtonStyle" TargetType="Button">
-            <!-- Semi-transparent Dark Background by Default -->
             <Setter Property="Background" Value="#66000000" />
             <Setter Property="Foreground" Value="White" />
-            <!-- Thin White Border for visibility against dark charts -->
             <Setter Property="BorderBrush" Value="#40FFFFFF" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Width" Value="32" />
@@ -108,7 +105,6 @@
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="HorizontalAlignment" Value="Right" />
             <Setter Property="VerticalAlignment" Value="Top" />
-            <!-- Floating Margin -->
             <Setter Property="Margin" Value="0,8,8,0" />
             <Setter Property="Visibility" Value="Collapsed" />
             <Setter Property="Panel.ZIndex" Value="200" />
@@ -116,17 +112,10 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="20">
-                            <!-- Using CornerRadius=20 (Half of Width 40) makes it a perfect circle -->
-                            <fa:ImageAwesome Icon="Times" Height="16" Width="16" Foreground="{TemplateBinding Foreground}"
-                                             VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="20">
+                            <fa:ImageAwesome Icon="Times" Height="16" Width="16" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" HorizontalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
-                            <!-- Hover Effect: Turns Red and Removes Border -->
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Background" Value="#D14545" />
                                 <Setter Property="BorderBrush" Value="Transparent" />
@@ -148,7 +137,6 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Top Control Bar -->
         <Grid Grid.Row="0" Margin="5,5,10,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -163,24 +151,19 @@
                             <TextBlock Text="Hub" Foreground="#FFC047" FontWeight="Bold" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-
                     <ToggleButton IsChecked="{Binding ShowMaximizeButtons}" Style="{StaticResource GearToggleStyle}" Margin="0,0,15,0" ToolTip="Toggle Fullscreen Buttons">
                         <fa:ImageAwesome Icon="ArrowsAlt" Height="16" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                     </ToggleButton>
-
                     <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsFilterByDate}">
                         <TextBlock Text="Start:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke" />
                         <DatePicker SelectedDate="{Binding StartDate, Mode=TwoWay}" VerticalAlignment="Center" Width="100" />
                         <TextBlock Text="End:" VerticalAlignment="Center" Margin="10,0,5,0" Foreground="WhiteSmoke" />
                         <DatePicker SelectedDate="{Binding EndDate, Mode=TwoWay}" VerticalAlignment="Center" Width="100" />
                     </StackPanel>
-
                     <ToggleButton x:Name="FilterConfigToggle" Margin="15,0,0,0" ToolTip="Filter Settings" Style="{StaticResource GearToggleStyle}">
                         <fa:ImageAwesome Icon="Gear" Height="16" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                     </ToggleButton>
-
                     <ComboBox ItemsSource="{Binding DashboardFiles}" SelectedItem="{Binding SelectedDashboardFile, Mode=TwoWay}" Width="150" Height="22" Margin="15,0,0,0" Visibility="{Binding IsDashboardSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
-
                     <Button Command="{Binding TogglePageCommand}" Width="30" Height="22" Margin="15,0,0,0" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Switch to Advanced Summary">
                         <Grid>
                             <Path Fill="#FFC047" Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.59,12L15,13.41L12,10.41L9,13.41L7.41,12L12,7.41L16.59,12Z">
@@ -200,38 +183,29 @@
                             </Path>
                         </Grid>
                     </Button>
-
-                    <!-- Popup Settings -->
                     <Popup IsOpen="{Binding IsChecked, ElementName=FilterConfigToggle}" StaysOpen="False" PlacementTarget="{Binding ElementName=FilterConfigToggle}" Placement="Bottom">
                         <Border Background="#030347" BorderBrush="#49A956" BorderThickness="1" CornerRadius="4" Padding="10">
                             <StackPanel MinWidth="220">
                                 <TextBlock Text="Label Settings (Global)" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
                                 <CheckBox Content="On label ignore after '-'" IsChecked="{Binding GlobalIgnoreAfterHyphen, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" ToolTip="Truncates text after the hyphen to prevent overlaps." />
-
                                 <Separator Background="#49A956" Margin="0,5,0,5" />
-
                                 <TextBlock Text="Filter Mode" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
                                 <CheckBox Content="Filter by Date" IsChecked="{Binding IsFilterByDate, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" />
                                 <CheckBox Content="Ignore Rows with No Date" IsChecked="{Binding IgnoreNonDateData, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" />
-
                                 <Separator Background="#49A956" Margin="0,5,0,5" />
-
                                 <TextBlock Text="Virtual Date (ID to Date)" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
                                 <CheckBox Content="Use Initial Date for Drill-Down" IsChecked="{Binding UseIdToDateConversion, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
                                 <StackPanel Orientation="Horizontal" IsEnabled="{Binding UseIdToDateConversion}">
                                     <TextBlock Text="Initial Date:" Foreground="WhiteSmoke" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11" />
                                     <DatePicker SelectedDate="{Binding InitialDateForConversion, Mode=TwoWay}" Width="100" />
                                 </StackPanel>
-
                                 <Separator Background="#49A956" Margin="0,10,0,5" />
-
                                 <TextBlock Text="Slider Tick Step" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
                                 <ComboBox ItemsSource="{Binding TickOptions}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding SliderTickFrequency, Mode=TwoWay}" Height="26" Margin="0,0,0,5" />
                             </StackPanel>
                         </Border>
                     </Popup>
                 </StackPanel>
-
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                     <TextBlock Text="Range:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke" />
                     <xctk:RangeSlider MinWidth="450" VerticalAlignment="Center" Minimum="0" Maximum="{Binding SliderMaximum}" LowerValue="{Binding StartMonthSliderValue, Mode=TwoWay}" HigherValue="{Binding EndMonthSliderValue, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="{Binding SliderTickFrequency}" AutoToolTipPlacement="TopLeft" AutoToolTipPrecision="0" />
@@ -249,7 +223,6 @@
             </StackPanel>
         </Grid>
 
-        <!-- PAGE 1: CHARTS -->
         <Grid Grid.Row="1">
             <Grid x:Name="Page1" RenderTransformOrigin="0.5,0.5">
                 <Grid.Style>
@@ -303,8 +276,6 @@
                         <Style TargetType="Grid">
                             <Setter Property="Grid.Row" Value="0" />
                             <Setter Property="Grid.Column" Value="0" />
-                            <Setter Property="Grid.RowSpan" Value="1" />
-                            <Setter Property="Grid.ColumnSpan" Value="1" />
                             <Setter Property="Panel.ZIndex" Value="1" />
                             <Setter Property="Margin" Value="5" />
                             <Style.Triggers>
@@ -320,17 +291,9 @@
                         </Style>
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
-                        <Border.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="Copy Chart Image" Command="{Binding DataContext.CopyImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                                <MenuItem Header="Export Chart Data (CSV)" Command="{Binding DataContext.ExportChartDataCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="1" />
-                            </ContextMenu>
-                        </Border.ContextMenu>
-
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" Hoverable="False" />
+                            <lvc:CartesianChart Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" Hoverable="False" DataTooltip="{StaticResource CustomTooltip}" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="1" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                            <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
@@ -352,8 +315,6 @@
                         <Style TargetType="Grid">
                             <Setter Property="Grid.Row" Value="0" />
                             <Setter Property="Grid.Column" Value="1" />
-                            <Setter Property="Grid.RowSpan" Value="1" />
-                            <Setter Property="Grid.ColumnSpan" Value="1" />
                             <Setter Property="Panel.ZIndex" Value="1" />
                             <Setter Property="Margin" Value="5" />
                             <Style.Triggers>
@@ -369,16 +330,9 @@
                         </Style>
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
-                        <Border.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="Copy Chart Image" Command="{Binding DataContext.CopyImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                                <MenuItem Header="Export Chart Data (CSV)" Command="{Binding DataContext.ExportChartDataCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="2" />
-                            </ContextMenu>
-                        </Border.ContextMenu>
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4"  Hoverable="False" />
+                            <lvc:CartesianChart Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" Hoverable="False" DataTooltip="{StaticResource CustomTooltip}" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="2" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                            <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
@@ -400,8 +354,6 @@
                         <Style TargetType="Grid">
                             <Setter Property="Grid.Row" Value="0" />
                             <Setter Property="Grid.Column" Value="2" />
-                            <Setter Property="Grid.RowSpan" Value="1" />
-                            <Setter Property="Grid.ColumnSpan" Value="1" />
                             <Setter Property="Panel.ZIndex" Value="1" />
                             <Setter Property="Margin" Value="5" />
                             <Style.Triggers>
@@ -417,16 +369,9 @@
                         </Style>
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
-                        <Border.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="Copy Chart Image" Command="{Binding DataContext.CopyImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                                <MenuItem Header="Export Chart Data (CSV)" Command="{Binding DataContext.ExportChartDataCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="3" />
-                            </ContextMenu>
-                        </Border.ContextMenu>
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4"  Hoverable="False" />
+                            <lvc:CartesianChart Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" Hoverable="False" DataTooltip="{StaticResource CustomTooltip}" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="3" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                            <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
@@ -448,8 +393,6 @@
                         <Style TargetType="Grid">
                             <Setter Property="Grid.Row" Value="1" />
                             <Setter Property="Grid.Column" Value="0" />
-                            <Setter Property="Grid.RowSpan" Value="1" />
-                            <Setter Property="Grid.ColumnSpan" Value="1" />
                             <Setter Property="Panel.ZIndex" Value="1" />
                             <Setter Property="Margin" Value="5" />
                             <Style.Triggers>
@@ -465,16 +408,9 @@
                         </Style>
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
-                        <Border.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="Copy Chart Image" Command="{Binding DataContext.CopyImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                                <MenuItem Header="Export Chart Data (CSV)" Command="{Binding DataContext.ExportChartDataCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="4" />
-                            </ContextMenu>
-                        </Border.ContextMenu>
                         <Grid>
-                            <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" Hoverable="True" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" />
+                            <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" Hoverable="True" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" DataTooltip="{StaticResource CustomTooltip}" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="4" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                            <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
@@ -496,7 +432,6 @@
                         <Style TargetType="Grid">
                             <Setter Property="Grid.Row" Value="1" />
                             <Setter Property="Grid.Column" Value="1" />
-                            <Setter Property="Grid.RowSpan" Value="1" />
                             <Setter Property="Grid.ColumnSpan" Value="2" />
                             <Setter Property="Panel.ZIndex" Value="1" />
                             <Setter Property="Margin" Value="5" />
@@ -513,16 +448,9 @@
                         </Style>
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
-                        <Border.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="Copy Chart Image" Command="{Binding DataContext.CopyImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                                <MenuItem Header="Export Chart Data (CSV)" Command="{Binding DataContext.ExportChartDataCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="5" />
-                            </ContextMenu>
-                        </Border.ContextMenu>
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" Hoverable="False" />
+                            <lvc:CartesianChart Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" Hoverable="False" DataTooltip="{StaticResource CustomTooltip}" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="5" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                            <!-- Updated Close Button -->
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
@@ -588,14 +516,11 @@
                         <Style TargetType="Grid">
                             <Setter Property="Grid.Row" Value="0" />
                             <Setter Property="Grid.Column" Value="0" />
-                            <Setter Property="Grid.RowSpan" Value="1" />
-                            <Setter Property="Grid.ColumnSpan" Value="1" />
                             <Setter Property="Panel.ZIndex" Value="1" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="6">
                                     <Setter Property="Grid.Row" Value="0" />
                                     <Setter Property="Grid.Column" Value="0" />
-                                    <Setter Property="Grid.RowSpan" Value="1" />
                                     <Setter Property="Grid.ColumnSpan" Value="2" />
                                     <Setter Property="Panel.ZIndex" Value="100" />
                                     <Setter Property="Margin" Value="20" />
@@ -604,12 +529,6 @@
                         </Style>
                     </Grid.Style>
                     <Border Background="#10FFFFFF" CornerRadius="10" Margin="10">
-                        <Border.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="Copy Chart Image" Command="{Binding DataContext.CopyImageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                                <MenuItem Header="Export Chart Data (CSV)" Command="{Binding DataContext.ExportChartDataCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="6" />
-                            </ContextMenu>
-                        </Border.ContextMenu>
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -620,7 +539,6 @@
 
                             <Grid Grid.Row="0" Grid.RowSpan="2">
                                 <Button Command="{Binding MaximizeChartCommand}" CommandParameter="6" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" />
-                                <!-- Updated Close Button -->
                                 <Button Command="{Binding CloseMaximizeCommand}">
                                     <Button.Style>
                                         <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
@@ -634,7 +552,7 @@
                                 </Button>
                             </Grid>
 
-                            <lvc:PieChart Grid.Row="1" Series="{Binding Chart6Series}" LegendLocation="Bottom" InnerRadius="80" Margin="20,10,20,20" Hoverable="True" AnimationsSpeed="0:0:0.4">
+                            <lvc:PieChart Grid.Row="1" Series="{Binding Chart6Series}" LegendLocation="Bottom" InnerRadius="80" Margin="20,10,20,20" Hoverable="True" AnimationsSpeed="0:0:0.4" DataTooltip="{StaticResource CustomTooltip}">
                                 <lvc:PieChart.ChartLegend>
                                     <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="13" />
                                 </lvc:PieChart.ChartLegend>
