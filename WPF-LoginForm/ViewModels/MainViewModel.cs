@@ -202,7 +202,7 @@ namespace WPF_LoginForm.ViewModels
                 _chartDetailViewModel = new ChartDetailViewModel(_dataRepository, _logger);
             }
 
-            _chartDetailViewModel.Initialize(config, _homeViewModel.StartDate, _homeViewModel.EndDate, _homeViewModel.GlobalIgnoreAfterHyphen, _homeViewModel.GlobalIgnoreNumbers);
+            _chartDetailViewModel.Initialize(config, _homeViewModel.StartDate, _homeViewModel.EndDate, _homeViewModel.GlobalIgnoreAfterHyphen, _homeViewModel.GlobalIgnoreNumbers, _homeViewModel.ColorMap);
 
             // Allows the detailed view to jump back to the Home Dashboard
             _chartDetailViewModel.GoBackAction = () =>

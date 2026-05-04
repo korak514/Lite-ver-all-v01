@@ -1,4 +1,4 @@
-﻿// Models/SeriesConfiguration.cs
+// Models/SeriesConfiguration.cs
 
 using System;
 using System.Collections.Generic;
@@ -25,6 +25,7 @@ namespace WPF_LoginForm.Models
         public bool ShowOnlyHoverLabels { get; set; }
         public string TooltipDateFormat { get; set; } = "MMM yyyy";
         public bool IncludeSeriesName { get; set; } = true;
+        public string SeriesColorHex { get; set; }
 
         // BUG FIX: Forces JSON to replace the default items instead of infinitely appending to them.
         [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]

@@ -63,6 +63,8 @@ namespace WPF_LoginForm.ViewModels
         private CancellationTokenSource _fileLoadCts;
         private ConcurrentDictionary<string, double> _kpiTotals;
         private ConcurrentDictionary<string, double> _kpiPrevTotals;
+        private ConcurrentDictionary<(int, string), string> _colorMap = new ConcurrentDictionary<(int, string), string>();
+        public ConcurrentDictionary<(int, string), string> ColorMap => _colorMap;
 
         private string _currentLoadedFilePath;
 
@@ -340,7 +342,7 @@ namespace WPF_LoginForm.ViewModels
             _dashboardConfigurations = new List<DashboardConfiguration>(); _kpiTotals = new ConcurrentDictionary<string, double>(); _kpiPrevTotals = new ConcurrentDictionary<string, double>();
 
             ConfigureCommand = new ViewModelCommand(p => ShowConfigurationWindow()); ImportCommand = new ViewModelCommand(p => ImportConfiguration()); ExportCommand = new ViewModelCommand(p => ExportConfiguration());
-            RecolorChartsCommand = new ViewModelCommand(p => LoadAllChartsData()); ToggleFilterModeCommand = new ViewModelCommand(p => IsFilterByDate = !IsFilterByDate); ChartClickCommand = new ViewModelCommand(ExecuteChartClick);
+            RecolorChartsCommand = new ViewModelCommand(p => ExecuteRefreshCommand()); ToggleFilterModeCommand = new ViewModelCommand(p => IsFilterByDate = !IsFilterByDate); ChartClickCommand = new ViewModelCommand(ExecuteChartClick);
             TogglePageCommand = new ViewModelCommand(p => IsSecondPageActive = !IsSecondPageActive);
 
             TickOptions.Add(new TickOption { Label = "1 Month", Value = 1 });
@@ -394,7 +396,7 @@ namespace WPF_LoginForm.ViewModels
             return res;
         }
 
-        private async void LoadAllChartsData(Dictionary<(int, string), string> colorMap = null)
+        private async void LoadAllChartsData()
         {
             if (_cts != null) { _cts.Cancel(); _cts.Dispose(); }
             _cts = new CancellationTokenSource();
@@ -418,7 +420,7 @@ namespace WPF_LoginForm.ViewModels
                 });
 
                 var validConfigs = _dashboardConfigurations.Where(c => c.IsEnabled && !string.IsNullOrEmpty(c.TableName) && c.Series.Any(s => !string.IsNullOrEmpty(s.ColumnName) || s.IsCombinationLabel)).ToList();
-                var tasks = validConfigs.Select(config => ProcessChartConfigurationAsync(config, colorMap, token)).ToList();
+                var tasks = validConfigs.Select(config => ProcessChartConfigurationAsync(config, token)).ToList();
 
                 await Task.WhenAll(tasks);
 
@@ -481,7 +483,7 @@ namespace WPF_LoginForm.ViewModels
             UpdateSeries(Chart4Series, 4); UpdateSeries(Chart5Series, 5); UpdateSeries(Chart6Series, 6);
         }
 
-        private async Task ProcessChartConfigurationAsync(DashboardConfiguration config, Dictionary<(int, string), string> colorMap, CancellationToken token)
+        private async Task ProcessChartConfigurationAsync(DashboardConfiguration config, CancellationToken token)
         {
             if (token.IsCancellationRequested || !_isActive) return;
             try
@@ -555,7 +557,20 @@ namespace WPF_LoginForm.ViewModels
                     }
                 }
 
-                var chartResult = await Task.Run(() => _chartService.ProcessChartData(dt, config, IsFilterByDate, IgnoreNonDateData, StartMonthSliderValue, EndMonthSliderValue, SliderMaximum, colorMap, GlobalIgnoreAfterHyphen, GlobalIgnoreNumbers), token);
+                // Pre-populate fixed colors for this config's series
+                foreach (var ser in config.Series)
+                {
+                    if (!string.IsNullOrEmpty(ser.SeriesColorHex))
+                    {
+                        // Match the title logic used in DashboardChartService
+                        string title = ser.IsCombinationLabel ? (ser.CustomDetailTitle ?? ser.ColumnName) : ser.ColumnName;
+                        if (string.IsNullOrEmpty(title)) title = "Series";
+
+                        _colorMap.AddOrUpdate((config.ChartPosition, title), ser.SeriesColorHex, (key, old) => ser.SeriesColorHex);
+                    }
+                }
+
+                var chartResult = await Task.Run(() => _chartService.ProcessChartData(dt, config, IsFilterByDate, IgnoreNonDateData, StartMonthSliderValue, EndMonthSliderValue, SliderMaximum, _colorMap, GlobalIgnoreAfterHyphen, GlobalIgnoreNumbers), token);
                 if (token.IsCancellationRequested || !_isActive) return;
 
                 Application.Current.Dispatcher.Invoke(() =>
@@ -1100,6 +1115,12 @@ namespace WPF_LoginForm.ViewModels
                 if (wasActive) { _isActive = true; _ = InitializeDashboardAsync(); }
             }
             finally { if (wasActive && !_isActive) _isActive = true; }
+        }
+
+        private void ExecuteRefreshCommand()
+        {
+            _colorMap.Clear();
+            LoadAllChartsData();
         }
 
         private void ExecuteChartClick(object parameter)

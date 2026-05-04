@@ -6,6 +6,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
              xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=viewModels:ConfigurationViewModel, IsDesignTimeCreatable=False}"
              Width="Auto" Height="Auto">
@@ -13,6 +14,7 @@
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+        <converters:ColorToHexConverter x:Key="ColorToHexConverter" />
         <converters:EqualityConverter x:Key="EqualityConverter" />
 
         <Style TargetType="TextBlock" x:Key="HeaderTextStyle">
@@ -197,9 +199,8 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
-                                                <!-- The && button -->
                                                 <ColumnDefinition Width="Auto" />
-                                                <!-- The X button -->
+                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
 
                                             <ComboBox Grid.Column="0" ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -215,7 +216,7 @@
                                                         <Setter Property="Background" Value="#95A5A6" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsCombinationLabel}" Value="True">
-                                                                <Setter Property="Background" Value="#27AE60" />
+                                                                 <Setter Property="Background" Value="#27AE60" />
                                                             </DataTrigger>
                                                             <Trigger Property="IsMouseOver" Value="True">
                                                                 <Setter Property="Background" Value="#F39C12" />
@@ -245,8 +246,16 @@
                                                 </StackPanel>
                                             </Button>
 
+                                            <!-- Fixed Color Picker -->
+                                            <Border Grid.Column="2" Width="55" Height="26" Margin="5,0,0,0" VerticalAlignment="Center" BorderBrush="#CCC" BorderThickness="1" CornerRadius="3">
+                                                <xctk:ColorPicker SelectedColor="{Binding SeriesColorHex, Mode=TwoWay, Converter={StaticResource ColorToHexConverter}}"
+                                                                  ToolTip="Set Fixed Color for this Series"
+                                                                  VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                                                                  ShowRecentColors="True" UsingAlphaChannel="False" />
+                                            </Border>
+
                                             <!-- Remove Series Button -->
-                                            <Button Grid.Column="2" Content=" ✕ " Foreground="White" Background="#D14545" FontWeight="Bold" Margin="5,0,0,0" Padding="6,0" BorderThickness="0"
+                                            <Button Grid.Column="3" Content=" ✕ " Foreground="White" Background="#D14545" FontWeight="Bold" Margin="5,0,0,0" Padding="6,0" BorderThickness="0"
                                                     Command="{Binding DataContext.CurrentConfiguration.RemoveSeriesCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}" Cursor="Hand">
                                                 <Button.Resources>

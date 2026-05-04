@@ -1,5 +1,6 @@
 // ViewModels/ChartDetailViewModel.cs
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -84,14 +85,16 @@ namespace WPF_LoginForm.ViewModels
 
         private bool _globalIgnoreAfterHyphen;
         private bool _globalIgnoreNumbers;
+        private ConcurrentDictionary<(int, string), string> _colorMap;
 
-        public async void Initialize(DashboardConfiguration config, DateTime startDate, DateTime endDate, bool ignoreHyphen, bool ignoreNumbers)
+        public async void Initialize(DashboardConfiguration config, DateTime startDate, DateTime endDate, bool ignoreHyphen, bool ignoreNumbers, ConcurrentDictionary<(int, string), string> colorMap)
         {
             if (config == null || string.IsNullOrEmpty(config.TableName)) return;
 
             _config = config;
             _globalIgnoreAfterHyphen = ignoreHyphen;
             _globalIgnoreNumbers = ignoreNumbers;
+            _colorMap = colorMap;
             OnPropertyChanged(nameof(CurrentConfiguration));
 
             // --- CUSTOM TITLE LOGIC APPLIED ---
@@ -152,7 +155,7 @@ namespace WPF_LoginForm.ViewModels
                 if (dt == null || dt.Rows.Count == 0) return;
 
                 var chartResult = await Task.Run(() => _chartService.ProcessChartData(
-                    dt, _config, true, true, 0, 100, 100, null, _globalIgnoreAfterHyphen, _globalIgnoreNumbers));
+                    dt, _config, true, true, 0, 100, 100, _colorMap, _globalIgnoreAfterHyphen, _globalIgnoreNumbers));
 
                 Application.Current.Dispatcher.Invoke(() => ApplyChartResultToUI(chartResult));
             }
