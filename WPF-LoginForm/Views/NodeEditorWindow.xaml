@@ -1,4 +1,4 @@
-﻿<!-- Views/NodeEditorWindow.xaml -->
+<!-- Views/NodeEditorWindow.xaml -->
 <Window x:Class="WPF_LoginForm.Views.NodeEditorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -265,11 +265,23 @@
                                                         </TextBlock>
                                                     </StackPanel>
 
-                                                    <Button HorizontalAlignment="Right" Background="Transparent" BorderThickness="0" Cursor="Hand"
-                                                            Command="{Binding DataContext.RemoveNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                            CommandParameter="{Binding}">
-                                                        <fa:ImageAwesome Icon="Times" Height="14" Foreground="White" ToolTip="Remove Node" />
-                                                    </Button>
+                                                    <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                                                        <Button Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="0,0,5,0"
+                                                                Command="{Binding DataContext.MoveNodeLeftCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                CommandParameter="{Binding}">
+                                                            <fa:ImageAwesome Icon="ChevronLeft" Height="12" Foreground="White" ToolTip="Move Left" />
+                                                        </Button>
+                                                        <Button Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="0,0,10,0"
+                                                                Command="{Binding DataContext.MoveNodeRightCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                CommandParameter="{Binding}">
+                                                            <fa:ImageAwesome Icon="ChevronRight" Height="12" Foreground="White" ToolTip="Move Right" />
+                                                        </Button>
+                                                        <Button Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                                                Command="{Binding DataContext.RemoveNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                CommandParameter="{Binding}">
+                                                            <fa:ImageAwesome Icon="Times" Height="14" Foreground="White" ToolTip="Remove Node" />
+                                                        </Button>
+                                                    </StackPanel>
                                                 </Grid>
                                             </Border>
 
@@ -277,7 +289,17 @@
                                             <!-- The SeriesName and NewLine stackpanels were totally removed here to remove their inner text -->
                                             <StackPanel Grid.Row="1" Margin="12">
 
-                                                <StackPanel Visibility="{Binding NodeType, ConverterParameter=DataColumn, Converter={StaticResource EqualityConverter}}">
+                                                <StackPanel>
+                                                    <StackPanel.Style>
+                                                        <Style TargetType="StackPanel">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding NodeType}" Value="DataColumn">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </StackPanel.Style>
                                                     <TextBlock Text="{Binding Value}" FontWeight="Bold" FontSize="13" Foreground="#2C3E50" TextTrimming="CharacterEllipsis" ToolTip="{Binding Value}" Margin="0,0,0,10" />
                                                     <TextBlock Text="Aggregation:" FontSize="10" Foreground="Gray" />
                                                     <ComboBox SelectedValue="{Binding Aggregation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Content" Margin="0,2,0,0" Padding="4">
@@ -286,12 +308,32 @@
                                                     </ComboBox>
                                                 </StackPanel>
 
-                                                <StackPanel Visibility="{Binding NodeType, ConverterParameter=StaticText, Converter={StaticResource EqualityConverter}}">
+                                                <StackPanel>
+                                                    <StackPanel.Style>
+                                                        <Style TargetType="StackPanel">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding NodeType}" Value="StaticText">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </StackPanel.Style>
                                                     <TextBlock Text="Text/Symbol:" FontSize="10" Foreground="Gray" />
                                                     <TextBox Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,0" Padding="4" />
                                                 </StackPanel>
 
-                                                <StackPanel Visibility="{Binding NodeType, ConverterParameter=XAxis, Converter={StaticResource EqualityConverter}}">
+                                                <StackPanel>
+                                                    <StackPanel.Style>
+                                                        <Style TargetType="StackPanel">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding NodeType}" Value="XAxis">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </StackPanel.Style>
                                                     <TextBlock Text="Date Format:" FontSize="10" Foreground="Gray" />
                                                     <ComboBox ItemsSource="{Binding DataContext.DateFormats, RelativeSource={RelativeSource AncestorType=Window}}"
                                                               SelectedItem="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,0" Padding="4" />

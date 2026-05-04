@@ -1,8 +1,10 @@
-﻿// Views/CustomChartTooltip.xaml.cs
+// Views/CustomChartTooltip.xaml.cs
+using System.Linq;
 using System.ComponentModel;
 using System.Windows.Controls;
 using LiveCharts;
 using LiveCharts.Wpf;
+using WPF_LoginForm.Models;
 
 namespace WPF_LoginForm.Views
 {
@@ -24,10 +26,28 @@ namespace WPF_LoginForm.Views
             {
                 _data = value;
                 OnPropertyChanged(nameof(Data));
+                OnPropertyChanged(nameof(GlobalHeader));
+                OnPropertyChanged(nameof(SharedTooltipLeft));
             }
         }
 
         public TooltipSelectionMode? SelectionMode { get; set; }
+
+        public string GlobalHeader => Data?.Points?.FirstOrDefault()?.ChartPoint?.Instance is DashboardDataPoint dp ? dp.TooltipHeader : "";
+
+        public string SharedTooltipLeft
+        {
+            get
+            {
+                if (Data?.Points == null || !Data.Points.Any()) return "";
+                var first = (Data.Points.FirstOrDefault()?.ChartPoint?.Instance as DashboardDataPoint)?.TooltipLeft;
+                if (Data.Points.All(p => (p.ChartPoint?.Instance as DashboardDataPoint)?.TooltipLeft == first))
+                {
+                    return first;
+                }
+                return null; // Not shared
+            }
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
 

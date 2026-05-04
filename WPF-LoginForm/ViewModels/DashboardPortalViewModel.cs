@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Views;
 using WPF_LoginForm.Properties; // Required for Settings.Default
+using WPF_LoginForm.Services;
 
 namespace WPF_LoginForm.ViewModels
 {
@@ -45,7 +46,8 @@ namespace WPF_LoginForm.ViewModels
             AvailableDashboardFiles.Clear();
             AvailableDashboardFiles.Add(""); // Add an empty option so users can clear a slot
 
-            string path = Settings.Default.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : Settings.Default.ImportAbsolutePath;
+            var cfg = GeneralSettingsManager.Instance.Current;
+            string path = cfg.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : cfg.ImportAbsolutePath;
 
             if (Directory.Exists(path))
             {

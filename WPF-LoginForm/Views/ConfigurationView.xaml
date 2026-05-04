@@ -1,4 +1,4 @@
-﻿<!-- Views/ConfigurationView.xaml -->
+<!-- Views/ConfigurationView.xaml -->
 <UserControl x:Class="WPF_LoginForm.Views.ConfigurationView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -12,6 +12,7 @@
 
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
         <converters:EqualityConverter x:Key="EqualityConverter" />
 
         <Style TargetType="TextBlock" x:Key="HeaderTextStyle">
@@ -105,8 +106,13 @@
                             <ComboBox ItemsSource="{Binding ChartTypes}" SelectedItem="{Binding ChartType}"
                                       IsEnabled="{Binding CanChangeChartType}"
                                       Visibility="{Binding IsCartesianChart, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                            <TextBlock Text="Pie Chart (Fixed for this position)" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="Gray" FontStyle="Italic" FontSize="12"
-                                       Visibility="{Binding IsPieChart, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            <StackPanel Orientation="Horizontal" Visibility="{Binding IsPieChart, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="Pie Chart (Fixed for this position)" VerticalAlignment="Center" Margin="5,0,10,0" Foreground="Gray" FontStyle="Italic" FontSize="12" />
+                                <CheckBox Content="Show as KPI Cards instead of Pie Chart" 
+                                          IsChecked="{Binding ShowAsKpiCards, Mode=TwoWay}"
+                                          Visibility="{Binding IsKpiSlot, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                          Foreground="WhiteSmoke" VerticalAlignment="Center" />
+                            </StackPanel>
                         </Grid>
 
                         <!-- ========================================== -->
@@ -158,6 +164,17 @@
                                 </Border>
                             </Expander>
 
+                            <!-- 5.5 Labeling Mode (Hover vs Fixed) -->
+                            <TextBlock Text="Labeling Mode:" Style="{StaticResource HeaderTextStyle}" Margin="0,15,0,5" />
+                            <StackPanel Orientation="Horizontal" Margin="5,0,0,10">
+                                <RadioButton Content="Hover Tooltips" GroupName="LabelingMode" 
+                                             IsChecked="{Binding ShowLabelsOnChart, Mode=TwoWay, Converter={StaticResource InverseBooleanConverter}}"
+                                             Margin="0,0,20,0" Foreground="#555" FontWeight="SemiBold" />
+                                <RadioButton Content="Fixed Labels" GroupName="LabelingMode" 
+                                             IsChecked="{Binding ShowLabelsOnChart, Mode=TwoWay}"
+                                             Foreground="#555" FontWeight="SemiBold" />
+                            </StackPanel>
+
                             <!-- 6. Value Columns (Y axis) -->
                             <TextBlock>
                                 <TextBlock.Style>
@@ -188,16 +205,44 @@
                                             <ComboBox Grid.Column="0" ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                       SelectedItem="{Binding ColumnName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-                                            <!-- NEW: Combination Label Node Editor Button -->
-                                            <Button Grid.Column="1" Content="&amp;&amp;" ToolTip="Combination Label / Node Editor"
-                                                    Foreground="White" Background="#F39C12" FontWeight="Bold" Margin="5,0,0,0" Padding="6,0" BorderThickness="0"
+                                            <!-- Combination Label Node Editor Button -->
+                                            <Button Grid.Column="1" ToolTip="Combination Label / Node Editor"
+                                                    Foreground="White" FontWeight="Bold" Margin="5,0,0,0" Padding="6,2" BorderThickness="0"
                                                     Command="{Binding DataContext.CurrentConfiguration.OpenNodeEditorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}" Cursor="Hand">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Background" Value="#95A5A6" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsCombinationLabel}" Value="True">
+                                                                <Setter Property="Background" Value="#27AE60" />
+                                                            </DataTrigger>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#F39C12" />
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
                                                 <Button.Resources>
                                                     <Style TargetType="Border">
                                                         <Setter Property="CornerRadius" Value="3" />
                                                     </Style>
                                                 </Button.Resources>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="⚡" FontSize="12" Margin="0,0,3,0" VerticalAlignment="Center" />
+                                                    <TextBlock FontSize="11" VerticalAlignment="Center">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Text" Value="Mix" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsCombinationLabel}" Value="True">
+                                                                        <Setter Property="Text" Value="✓ Mix" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
                                             </Button>
 
                                             <!-- Remove Series Button -->
@@ -295,16 +340,44 @@
                                             <ComboBox Grid.Column="0" ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                       SelectedItem="{Binding ColumnName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-                                            <!-- NEW: Combination Label Node Editor Button -->
-                                            <Button Grid.Column="1" Content="&amp;&amp;" ToolTip="Combination Label / Node Editor"
-                                                    Foreground="White" Background="#F39C12" FontWeight="Bold" Margin="5,0,0,0" Padding="6,0" BorderThickness="0"
+                                            <!-- Combination Label Node Editor Button -->
+                                            <Button Grid.Column="1" ToolTip="Combination Label / Node Editor"
+                                                    Foreground="White" FontWeight="Bold" Margin="5,0,0,0" Padding="6,2" BorderThickness="0"
                                                     Command="{Binding DataContext.CurrentConfiguration.OpenNodeEditorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}" Cursor="Hand">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Background" Value="#95A5A6" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsCombinationLabel}" Value="True">
+                                                                <Setter Property="Background" Value="#27AE60" />
+                                                            </DataTrigger>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#F39C12" />
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
                                                 <Button.Resources>
                                                     <Style TargetType="Border">
                                                         <Setter Property="CornerRadius" Value="3" />
                                                     </Style>
                                                 </Button.Resources>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="⚡" FontSize="12" Margin="0,0,3,0" VerticalAlignment="Center" />
+                                                    <TextBlock FontSize="11" VerticalAlignment="Center">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Text" Value="Mix" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsCombinationLabel}" Value="True">
+                                                                        <Setter Property="Text" Value="✓ Mix" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
                                             </Button>
 
                                             <Button Grid.Column="2" Content=" ✕ " Foreground="White" Background="#D14545" FontWeight="Bold" Margin="5,0,0,0" Padding="6,0" BorderThickness="0"

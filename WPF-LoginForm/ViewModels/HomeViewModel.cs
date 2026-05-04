@@ -1,4 +1,4 @@
-﻿// ViewModels/HomeViewModel.cs
+// ViewModels/HomeViewModel.cs
 
 using System;
 using System.Collections.Concurrent;
@@ -51,6 +51,7 @@ namespace WPF_LoginForm.ViewModels
         private readonly DataTemplate _smartLabelTemplate;
 
         private List<DashboardConfiguration> _dashboardConfigurations;
+        public List<DashboardConfiguration> DashboardConfigs => _dashboardConfigurations;
 
         private bool _isSyncing = false;
 
@@ -101,6 +102,7 @@ namespace WPF_LoginForm.ViewModels
         public ObservableCollection<string> ErrorCategories { get; set; } = new ObservableCollection<string>();
         public ObservableCollection<string> DashboardFiles { get; } = new ObservableCollection<string>();
         public ObservableCollection<KpiModel> KpiCards { get; } = new ObservableCollection<KpiModel>();
+        public List<TickOption> TickOptions { get; } = new List<TickOption>();
 
         private string _selectedErrorCategory;
 
@@ -159,7 +161,7 @@ namespace WPF_LoginForm.ViewModels
             catch (TaskCanceledException) { }
         }
 
-        public bool IsDashboardSelectorVisible => Settings.Default.AutoImportEnabled && DashboardFiles.Any();
+        public bool IsDashboardSelectorVisible => GeneralSettingsManager.Instance.Current.AutoImportEnabled && DashboardFiles.Any();
 
         public event Action<string, DateTime, DateTime> DrillDownRequested;
 
@@ -194,20 +196,25 @@ namespace WPF_LoginForm.ViewModels
         { get => _initialDateForConversion; set { if (SetProperty(ref _initialDateForConversion, value)) AutoSave(); } }
 
         private bool _globalIgnoreAfterHyphen = false;
-
         public bool GlobalIgnoreAfterHyphen
         { get => _globalIgnoreAfterHyphen; set { if (SetProperty(ref _globalIgnoreAfterHyphen, value)) { LoadAllChartsData(); AutoSave(); } } }
 
-        public bool IsDateFilterVisible => Settings.Default.ShowDashboardDateFilter;
+        private bool _globalIgnoreNumbers = false;
+        public bool GlobalIgnoreNumbers
+        { get => _globalIgnoreNumbers; set { if (SetProperty(ref _globalIgnoreNumbers, value)) { LoadAllChartsData(); AutoSave(); } } }
+
+        public bool IsDateFilterVisible => GeneralSettingsManager.Instance.Current.ShowDashboardDateFilter;
 
         public int SliderTickFrequency
         {
-            get => Settings.Default.DashboardDateTickSize;
-            set { if (Settings.Default.DashboardDateTickSize != value) { Settings.Default.DashboardDateTickSize = value; Settings.Default.Save(); OnPropertyChanged(); } }
+            get => GeneralSettingsManager.Instance.Current.DashboardDateTickSize;
+            set { if (GeneralSettingsManager.Instance.Current.DashboardDateTickSize != value) { GeneralSettingsManager.Instance.Current.DashboardDateTickSize = value; GeneralSettingsManager.Instance.Save(); OnPropertyChanged(); } }
         }
 
         private bool _isDateFilterEnabled;
         public bool IsDateFilterEnabled { get => _isDateFilterEnabled; private set => SetProperty(ref _isDateFilterEnabled, value); }
+
+        public bool IsChart6Visible => _dashboardConfigurations != null && _dashboardConfigurations.Any(c => c.ChartPosition == 6 && c.IsEnabled && !c.ShowAsKpiCards);
 
         private DateTime _startDate;
 
@@ -336,6 +343,11 @@ namespace WPF_LoginForm.ViewModels
             RecolorChartsCommand = new ViewModelCommand(p => LoadAllChartsData()); ToggleFilterModeCommand = new ViewModelCommand(p => IsFilterByDate = !IsFilterByDate); ChartClickCommand = new ViewModelCommand(ExecuteChartClick);
             TogglePageCommand = new ViewModelCommand(p => IsSecondPageActive = !IsSecondPageActive);
 
+            TickOptions.Add(new TickOption { Label = "1 Month", Value = 1 });
+            TickOptions.Add(new TickOption { Label = "3 Months", Value = 3 });
+            TickOptions.Add(new TickOption { Label = "6 Months", Value = 6 });
+            TickOptions.Add(new TickOption { Label = "1 Year", Value = 12 });
+
             MaximizeChartCommand = new ViewModelCommand(p =>
             {
                 if (int.TryParse(p?.ToString(), out int i))
@@ -417,10 +429,20 @@ namespace WPF_LoginForm.ViewModels
                     if (token.IsCancellationRequested || !_isActive) return;
 
                     UpdateDataLabelsVisibility();
+                    OnPropertyChanged(nameof(IsChart6Visible));
                     KpiCards.Clear();
                     var colors = new[] { "#3498DB", "#2ECC71", "#9B59B6", "#F1C40F", "#E67E22", "#E74C3C" };
                     int cIdx = 0;
-                    foreach (var kvp in _kpiTotals.OrderByDescending(x => x.Value))
+
+                    var kpiSource = _kpiTotals.AsEnumerable();
+                    var kpiConfig = _dashboardConfigurations.FirstOrDefault(c => c.ChartPosition == 6 && c.IsEnabled && c.ShowAsKpiCards);
+                    if (kpiConfig != null)
+                    {
+                        var allowedMetrics = kpiConfig.Series.Select(s => s.ColumnName).ToHashSet();
+                        kpiSource = kpiSource.Where(kvp => allowedMetrics.Contains(kvp.Key));
+                    }
+
+                    foreach (var kvp in kpiSource.OrderByDescending(x => x.Value))
                     {
                         double prev = _kpiPrevTotals.TryGetValue(kvp.Key, out double p) ? p : 0;
                         string icon = "↔ 0%"; string tColor = "Gray";
@@ -533,7 +555,7 @@ namespace WPF_LoginForm.ViewModels
                     }
                 }
 
-                var chartResult = await Task.Run(() => _chartService.ProcessChartData(dt, config, IsFilterByDate, IgnoreNonDateData, StartMonthSliderValue, EndMonthSliderValue, SliderMaximum, colorMap, GlobalIgnoreAfterHyphen), token);
+                var chartResult = await Task.Run(() => _chartService.ProcessChartData(dt, config, IsFilterByDate, IgnoreNonDateData, StartMonthSliderValue, EndMonthSliderValue, SliderMaximum, colorMap, GlobalIgnoreAfterHyphen, GlobalIgnoreNumbers), token);
                 if (token.IsCancellationRequested || !_isActive) return;
 
                 Application.Current.Dispatcher.Invoke(() =>
@@ -607,8 +629,7 @@ namespace WPF_LoginForm.ViewModels
 
                     bool isMaximized = (position == MaximizedChartIndex);
                     bool isSmall = cv.Count <= 35;
-
-                    bool showLabels = isMaximized && isSmall && !s.ShowOnlyHoverLabels;
+                    bool showLabels = isSmall && !s.ShowOnlyHoverLabels;
 
                     if (s.SeriesType == "Line")
                     {
@@ -892,10 +913,10 @@ namespace WPF_LoginForm.ViewModels
         }
 
         private async void ShowConfigurationWindow()
-        { var vm = new ConfigurationViewModel(_dataRepository); await vm.InitializeAsync(); vm.LoadConfigurations(_dashboardConfigurations); if (_dialogService.ShowConfigurationDialog(vm)) { _dashboardConfigurations = vm.GetFinalConfigurations(); Activate(); AutoSave(); } }
+        { var vm = new ConfigurationViewModel(_dataRepository); await vm.InitializeAsync(); vm.LoadConfigurations(_dashboardConfigurations); if (_dialogService.ShowConfigurationDialog(vm)) { _dashboardConfigurations = vm.GetFinalConfigurations(); OnPropertyChanged(nameof(DashboardConfigs)); Activate(); AutoSave(); } }
 
         public async void Activate()
-        { if (_isActive) return; _isActive = true; OnPropertyChanged(nameof(IsDateFilterVisible)); if (Settings.Default.AutoImportEnabled) RefreshDashboardFiles(); await InitializeDashboardAsync(); }
+        { if (_isActive) return; _isActive = true; OnPropertyChanged(nameof(IsDateFilterVisible)); if (GeneralSettingsManager.Instance.Current.AutoImportEnabled) RefreshDashboardFiles(); await InitializeDashboardAsync(); }
 
         public void Deactivate()
         {
@@ -1015,10 +1036,10 @@ namespace WPF_LoginForm.ViewModels
         { if (IsFilterByDate && _minSliderDate != default) { StartSliderTooltip = _minSliderDate.AddMonths((int)_startMonthSliderValue).ToString("MMM yyyy"); EndSliderTooltip = _minSliderDate.AddMonths((int)_endMonthSliderValue).ToString("MMM yyyy"); } else { StartSliderTooltip = $"{StartMonthSliderValue:F0}%"; EndSliderTooltip = $"{EndMonthSliderValue:F0}%"; } }
 
         private void RefreshDashboardFiles()
-        { DashboardFiles.Clear(); string path = Settings.Default.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : Settings.Default.ImportAbsolutePath; if (Directory.Exists(path)) { try { foreach (var f in Directory.GetFiles(path, "*.json")) DashboardFiles.Add(Path.GetFileName(f)); } catch { } } OnPropertyChanged(nameof(IsDashboardSelectorVisible)); }
+        { var cfg = GeneralSettingsManager.Instance.Current; DashboardFiles.Clear(); string path = cfg.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : cfg.ImportAbsolutePath; if (Directory.Exists(path)) { try { foreach (var f in Directory.GetFiles(path, "*.json")) DashboardFiles.Add(Path.GetFileName(f)); } catch { } } OnPropertyChanged(nameof(IsDashboardSelectorVisible)); }
 
         private void LoadSelectedDashboardFile(string f)
-        { try { string fullPath = Path.Combine(Settings.Default.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : Settings.Default.ImportAbsolutePath, f); LoadSnapshotFromFile(fullPath); } catch { } }
+        { var cfg = GeneralSettingsManager.Instance.Current; try { string fullPath = Path.Combine(cfg.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : cfg.ImportAbsolutePath, f); LoadSnapshotFromFile(fullPath); } catch { } }
 
         private void LoadSnapshotFromFile(string p)
         { _currentLoadedFilePath = p; var s = _storageService.LoadSnapshot(p); if (s != null) LoadDashboardFromSnapshot(s); }
@@ -1027,7 +1048,7 @@ namespace WPF_LoginForm.ViewModels
         { var snap = new DashboardSnapshot { StartDate = StartDate, EndDate = EndDate, Configurations = _dashboardConfigurations, IsFilterByDate = IsFilterByDate, IgnoreNonDateData = IgnoreNonDateData, UseIdToDateConversion = UseIdToDateConversion, InitialDateForConversion = InitialDateForConversion, GlobalIgnoreAfterHyphen = GlobalIgnoreAfterHyphen, SeriesData = new List<ChartSeriesSnapshot>() }; _storageService.SaveSnapshot(snap, _currentLoadedFilePath); }
 
         private void TryLoadAutoSave()
-        { try { if (Settings.Default.AutoImportEnabled) { RefreshDashboardFiles(); string def = Settings.Default.ImportFileName; string path = Settings.Default.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : Settings.Default.ImportAbsolutePath; if (!string.IsNullOrEmpty(def) && File.Exists(Path.Combine(path, def))) { LoadSnapshotFromFile(Path.Combine(path, def)); if (DashboardFiles.Contains(def)) { _selectedDashboardFile = def; OnPropertyChanged(nameof(SelectedDashboardFile)); } return; } } var s = _storageService.LoadSnapshot(); if (s != null) LoadDashboardFromSnapshot(s); } catch { } }
+        { var cfg = GeneralSettingsManager.Instance.Current; try { if (cfg.AutoImportEnabled) { RefreshDashboardFiles(); string def = cfg.ImportFileName; string path = cfg.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : cfg.ImportAbsolutePath; if (!string.IsNullOrEmpty(def) && File.Exists(Path.Combine(path, def))) { LoadSnapshotFromFile(Path.Combine(path, def)); if (DashboardFiles.Contains(def)) { _selectedDashboardFile = def; OnPropertyChanged(nameof(SelectedDashboardFile)); } return; } } var s = _storageService.LoadSnapshot(); if (s != null) LoadDashboardFromSnapshot(s); } catch { } }
 
         private void ImportConfiguration()
         { var d = new OpenFileDialog { Filter = "JSON|*.json" }; if (d.ShowDialog() == true) LoadSnapshotFromFile(d.FileName); }

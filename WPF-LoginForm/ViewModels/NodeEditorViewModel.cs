@@ -1,4 +1,4 @@
-﻿// ViewModels/NodeEditorViewModel.cs
+// ViewModels/NodeEditorViewModel.cs
 
 using System;
 using System.Collections.Generic;
@@ -68,6 +68,8 @@ namespace WPF_LoginForm.ViewModels
         public ICommand AddDateNodeCommand { get; }
         public ICommand AddSeriesNameNodeCommand { get; }
         public ICommand RemoveNodeCommand { get; }
+        public ICommand MoveNodeLeftCommand { get; }
+        public ICommand MoveNodeRightCommand { get; }
         public ICommand SaveCommand { get; }
         public ICommand CancelCommand { get; }
         public ICommand SetZoneCommand { get; }
@@ -84,6 +86,8 @@ namespace WPF_LoginForm.ViewModels
             AddSeriesNameNodeCommand = new ViewModelCommand(p => ExecuteAddGenericNode("SeriesName", "Label"));
 
             RemoveNodeCommand = new ViewModelCommand(ExecuteRemoveNode);
+            MoveNodeLeftCommand = new ViewModelCommand(ExecuteMoveNodeLeft);
+            MoveNodeRightCommand = new ViewModelCommand(ExecuteMoveNodeRight);
             SaveCommand = new ViewModelCommand(ExecuteSave);
             CancelCommand = new ViewModelCommand(ExecuteCancel);
             SetZoneCommand = new ViewModelCommand(p => { if (int.TryParse(p?.ToString(), out int z)) SelectedZone = z; });
@@ -135,6 +139,34 @@ namespace WPF_LoginForm.ViewModels
                 node.PropertyChanged -= OnNodePropertyChanged;
                 ActiveFlow.Remove(node);
                 GeneratePreviews();
+            }
+        }
+
+        private void ExecuteMoveNodeLeft(object obj)
+        {
+            if (obj is FlowNode node)
+            {
+                var flow = ActiveFlow;
+                int idx = flow.IndexOf(node);
+                if (idx > 0)
+                {
+                    flow.Move(idx, idx - 1);
+                    GeneratePreviews();
+                }
+            }
+        }
+
+        private void ExecuteMoveNodeRight(object obj)
+        {
+            if (obj is FlowNode node)
+            {
+                var flow = ActiveFlow;
+                int idx = flow.IndexOf(node);
+                if (idx >= 0 && idx < flow.Count - 1)
+                {
+                    flow.Move(idx, idx + 1);
+                    GeneratePreviews();
+                }
             }
         }
 

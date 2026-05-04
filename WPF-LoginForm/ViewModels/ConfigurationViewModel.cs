@@ -266,6 +266,12 @@ namespace WPF_LoginForm.ViewModels
         public bool SimplifyLabels
         { get => _model.SimplifyLabels; set { if (_model.SimplifyLabels != value) { _model.SimplifyLabels = value; OnPropertyChanged(); } } }
 
+        public bool ShowLabelsOnChart
+        { get => _model.ShowLabelsOnChart; set { if (_model.ShowLabelsOnChart != value) { _model.ShowLabelsOnChart = value; OnPropertyChanged(); } } }
+
+        public bool ShowAsKpiCards
+        { get => _model.ShowAsKpiCards; set { if (_model.ShowAsKpiCards != value) { _model.ShowAsKpiCards = value; OnPropertyChanged(); } } }
+
         private bool _isSelected;
         public bool IsSelected { get => _isSelected; set => SetProperty(ref _isSelected, value); }
         public int ChartPosition => _model.ChartPosition;
@@ -361,6 +367,7 @@ namespace WPF_LoginForm.ViewModels
         public bool IsPieChart => string.Equals(_model.ChartType, "Pie", StringComparison.OrdinalIgnoreCase);
         public bool IsPriceTrendChart => string.Equals(_model.ChartType, "Price Trend (Line)", StringComparison.OrdinalIgnoreCase);
         public bool IsCartesianChart => !IsPieChart;
+        public bool IsKpiSlot => _model.ChartPosition == 6;
         public bool CanChangeChartType => _model.ChartPosition != 4 && _model.ChartPosition != 6;
         public bool IsTableSelected => !string.IsNullOrEmpty(TableName);
 

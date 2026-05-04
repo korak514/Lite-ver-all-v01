@@ -1,4 +1,4 @@
-﻿// ViewModels/SettingsViewModel.cs
+// ViewModels/SettingsViewModel.cs
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -184,6 +184,9 @@ namespace WPF_LoginForm.ViewModels
         public ICommand LoadUsersCommand { get; }
         public ICommand AddUserCommand { get; }
         public ICommand DeleteUserCommand { get; }
+        public ICommand ChangeConfigLocationCommand { get; }
+
+        public string GeneralConfigPath => GeneralSettingsManager.Instance.GetResolvedConfigPath();
 
         public SettingsViewModel() : this(null)
         {
@@ -196,36 +199,36 @@ namespace WPF_LoginForm.ViewModels
             Users = new ObservableCollection<UserModel>();
             BackupTables = new ObservableCollection<SelectableTable>();
 
-            _sqlAuthString = Settings.Default.SqlAuthConnString;
-            _sqlDataString = Settings.Default.SqlDataConnString;
-            _postgresAuthString = Settings.Default.PostgresAuthConnString;
-            _postgresDataString = Settings.Default.PostgresDataConnString;
+            var config = GeneralSettingsManager.Instance.Current;
+
+            _sqlAuthString = config.SqlAuthConnString;
+            _sqlDataString = config.SqlDataConnString;
+            _postgresAuthString = config.PostgresAuthConnString;
+            _postgresDataString = config.PostgresDataConnString;
             SelectedDatabaseType = DbConnectionFactory.CurrentDatabaseType;
 
-            string currentLang = Settings.Default.AppLanguage;
+            string currentLang = config.AppLanguage;
             SelectedLanguage = string.IsNullOrEmpty(currentLang) ? "en-US" : currentLang;
 
-            AutoImportEnabled = Settings.Default.AutoImportEnabled;
-            ImportIsRelative = Settings.Default.ImportIsRelative;
-            ImportFileName = Settings.Default.ImportFileName;
-            ImportAbsolutePath = Settings.Default.ImportAbsolutePath;
-            ShowDashboardDateFilter = Settings.Default.ShowDashboardDateFilter;
-            DashboardDateTickSize = Settings.Default.DashboardDateTickSize;
+            AutoImportEnabled = config.AutoImportEnabled;
+            ImportIsRelative = config.ImportIsRelative;
+            ImportFileName = config.ImportFileName;
+            ImportAbsolutePath = config.ImportAbsolutePath;
+            ShowDashboardDateFilter = config.ShowDashboardDateFilter;
+            DashboardDateTickSize = config.DashboardDateTickSize;
             if (DashboardDateTickSize < 1) DashboardDateTickSize = 1;
 
-            ConnectionTimeout = Settings.Default.ConnectionTimeout;
-            TrustServerCertificate = Settings.Default.TrustServerCertificate;
-            DbServerName = Settings.Default.DbServerName;
-            DefaultRowLimit = Settings.Default.DefaultRowLimit;
+            ConnectionTimeout = config.ConnectionTimeout;
+            TrustServerCertificate = config.TrustServerCertificate;
+            DbServerName = config.DbServerName;
+            DefaultRowLimit = config.DefaultRowLimit;
             if (DefaultRowLimit < 0) DefaultRowLimit = 500;
 
             NewUserRole = "User";
 
             LoadFromCurrentProvider();
 
-            string offlineConfig = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "offline_path.txt");
-            if (File.Exists(offlineConfig)) OfflineFolderPath = File.ReadAllText(offlineConfig).Trim();
-            else OfflineFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "OfflineData");
+            OfflineFolderPath = config.OfflineFolderPath;
 
             SaveCommand = new ViewModelCommand(ExecuteSaveCommand, (o) => !IsBusy);
             TestConnectionCommand = new ViewModelCommand(ExecuteTestConnection, (o) => !IsBusy);
@@ -238,6 +241,22 @@ namespace WPF_LoginForm.ViewModels
             LoadUsersCommand = new ViewModelCommand(ExecuteLoadUsers);
             AddUserCommand = new ViewModelCommand(ExecuteAddUser);
             DeleteUserCommand = new ViewModelCommand(ExecuteDeleteUser);
+            ChangeConfigLocationCommand = new ViewModelCommand(ExecuteChangeConfigLocation);
+        }
+
+        private void ExecuteChangeConfigLocation(object obj)
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Select General Config JSON File Location",
+                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                FileName = "general_config.json"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                GeneralSettingsManager.Instance.SetCustomConfigPath(dialog.FileName);
+            }
         }
 
         private void ExecuteBrowseImportFile(object obj)
@@ -338,33 +357,34 @@ namespace WPF_LoginForm.ViewModels
                 RebuildConnectionStrings();
                 DbConnectionFactory.CurrentDatabaseType = SelectedDatabaseType;
 
-                Settings.Default.SqlAuthConnString = _sqlAuthString;
-                Settings.Default.SqlDataConnString = _sqlDataString;
-                Settings.Default.PostgresAuthConnString = _postgresAuthString;
-                Settings.Default.PostgresDataConnString = _postgresDataString;
+                var config = GeneralSettingsManager.Instance.Current;
+                config.SqlAuthConnString = _sqlAuthString;
+                config.SqlDataConnString = _sqlDataString;
+                config.PostgresAuthConnString = _postgresAuthString;
+                config.PostgresDataConnString = _postgresDataString;
 
-                Settings.Default.AppLanguage = SelectedLanguage;
-                Settings.Default.AutoImportEnabled = AutoImportEnabled;
-                Settings.Default.ImportIsRelative = ImportIsRelative;
-                Settings.Default.ImportFileName = ImportFileName;
-                Settings.Default.ImportAbsolutePath = ImportAbsolutePath;
-                Settings.Default.ShowDashboardDateFilter = ShowDashboardDateFilter;
-                Settings.Default.DashboardDateTickSize = DashboardDateTickSize;
+                config.AppLanguage = SelectedLanguage;
+                config.AutoImportEnabled = AutoImportEnabled;
+                config.ImportIsRelative = ImportIsRelative;
+                config.ImportFileName = ImportFileName;
+                config.ImportAbsolutePath = ImportAbsolutePath;
+                config.ShowDashboardDateFilter = ShowDashboardDateFilter;
+                config.DashboardDateTickSize = DashboardDateTickSize;
 
-                Settings.Default.ConnectionTimeout = ConnectionTimeout;
-                Settings.Default.TrustServerCertificate = TrustServerCertificate;
-                Settings.Default.DbServerName = DbServerName;
+                config.ConnectionTimeout = ConnectionTimeout;
+                config.TrustServerCertificate = TrustServerCertificate;
+                config.DbServerName = DbServerName;
 
                 if (DefaultRowLimit < 0) DefaultRowLimit = 500;
-                Settings.Default.DefaultRowLimit = DefaultRowLimit;
+                config.DefaultRowLimit = DefaultRowLimit;
 
-                Settings.Default.DbHost = DbHost;
-                Settings.Default.DbPort = DbPort;
-                Settings.Default.DbUser = DbUser;
-                Settings.Default.Save();
+                config.DbHost = DbHost;
+                config.DbPort = DbPort;
+                config.DbUser = DbUser;
+                
+                config.OfflineFolderPath = OfflineFolderPath;
 
-                string offlineConfig = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "offline_path.txt");
-                File.WriteAllText(offlineConfig, OfflineFolderPath);
+                GeneralSettingsManager.Instance.Save();
 
                 var cacheService = new CacheService();
                 cacheService.Clear();

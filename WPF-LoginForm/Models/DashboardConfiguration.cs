@@ -35,6 +35,8 @@ namespace WPF_LoginForm.Models
         public bool HideNumbersInLabels { get; set; } = false;
 
         public bool SimplifyLabels { get; set; } = false;
+        public bool ShowLabelsOnChart { get; set; } = false;
+        public bool ShowAsKpiCards { get; set; } = false;
         public List<string> SelectedSplitCategories { get; set; } = new List<string>();
     }
 }

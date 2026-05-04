@@ -1,4 +1,4 @@
-﻿// Services/DashboardChartService.cs
+// Services/DashboardChartService.cs
 // PART 1 OF 2
 
 using LiveCharts.Defaults;
@@ -46,7 +46,8 @@ namespace WPF_LoginForm.Services
                                                bool isFilterByDate, bool ignoreNonDateData,
                                                double sliderStart, double sliderEnd, double sliderMax,
                                                Dictionary<(int, string), string> colorMap,
-                                               bool globalIgnoreAfterHyphen)
+                                               bool globalIgnoreAfterHyphen,
+                                               bool globalIgnoreNumbers)
         {
             var result = new ChartResultDto();
             if (dataTable == null) return result;
@@ -110,21 +111,21 @@ namespace WPF_LoginForm.Services
 
             if (string.Equals(config.ChartType, "Pie", StringComparison.OrdinalIgnoreCase))
             {
-                ProcessPieChart(dataTable, config, result, GetColor, safeConvertToDouble, globalIgnoreAfterHyphen, isAvg);
+                ProcessPieChart(dataTable, config, result, GetColor, safeConvertToDouble, globalIgnoreAfterHyphen, globalIgnoreNumbers, isAvg);
             }
             else
             {
                 switch (config.DataStructureType)
                 {
                     case "Daily Date":
-                        ProcessDailyDateChart(dataTable, config, result, GetColor, safeConvertToDouble, globalIgnoreAfterHyphen, isAvg);
+                        ProcessDailyDateChart(dataTable, config, result, GetColor, safeConvertToDouble, globalIgnoreAfterHyphen, globalIgnoreNumbers, isAvg);
                         break;
 
                     case "Monthly Date":
                     case "ID":
                     case "General":
                     default:
-                        ProcessPivotCategoricalChart(dataTable, config, result, GetColor, safeConvertToDouble, globalIgnoreAfterHyphen, isAvg);
+                        ProcessPivotCategoricalChart(dataTable, config, result, GetColor, safeConvertToDouble, globalIgnoreAfterHyphen, globalIgnoreNumbers, isAvg);
                         break;
                 }
             }
@@ -135,7 +136,7 @@ namespace WPF_LoginForm.Services
         // --- UPDATED: Evaluates the series and specifically targets the Blueprint Zones for Tooltips ---
         private (double YValue, string LabelText, string TooltipHeader, string TooltipLeft, string TooltipRight) EvaluateSeriesForGroup(
             SeriesConfiguration ser, IEnumerable<DataRow> rows, Func<object, double> numberParser,
-            bool globalIsAvg, string seriesName, DateTime? xDate, string xCategory, bool isDateAxis)
+            bool globalIsAvg, string splitCategory, string rawSeriesName, DateTime? xDate, string xCategory, bool isDateAxis, int totalSeriesCount)
         {
             if (rows == null || !rows.Any()) return (0.0, "", "", "", "");
 
@@ -154,7 +155,20 @@ namespace WPF_LoginForm.Services
                     string nodeString = "";
                     if (node.NodeType == "StaticText") nodeString = node.Value;
                     else if (node.NodeType == "NewLine") nodeString = "\n";
-                    else if (node.NodeType == "SeriesName") nodeString = seriesName ?? "";
+                    else if (node.NodeType == "SeriesName")
+                    {
+                        if (totalSeriesCount > 1 && !string.IsNullOrEmpty(splitCategory))
+                        {
+                            // AUTOMATED MERGE LOGIC: Split the name across zones
+                            if (node.Zone == 2) nodeString = splitCategory;
+                            else if (node.Zone == 3) nodeString = rawSeriesName;
+                            else nodeString = $"{splitCategory} - {rawSeriesName}";
+                        }
+                        else
+                        {
+                            nodeString = (!string.IsNullOrEmpty(splitCategory) ? (totalSeriesCount > 1 ? $"{splitCategory} - {rawSeriesName}" : splitCategory) : rawSeriesName) ?? "";
+                        }
+                    }
                     else if (node.NodeType == "XAxis")
                     {
                         if (isDateAxis && xDate.HasValue)
@@ -199,8 +213,22 @@ namespace WPF_LoginForm.Services
                 double val = globalIsAvg ? rows.Average(r => numberParser(r[ser.ColumnName])) : rows.Sum(r => numberParser(r[ser.ColumnName]));
 
                 string defHeader = isDateAxis && xDate.HasValue ? xDate.Value.ToString("dd.MM.yyyy") : (xCategory ?? "");
-                string defLeft = seriesName ?? "";
-                string defRight = SmartLabelService.FormatKiloMega(val);
+                string formattedVal = SmartLabelService.FormatKiloMega(val);
+                
+                string defLeft;
+                string defRight;
+
+                // AUTOMATED MERGE LOGIC: If multiple series and split category exists
+                if (totalSeriesCount > 1 && !string.IsNullOrEmpty(splitCategory))
+                {
+                    defLeft = splitCategory;
+                    defRight = $"{rawSeriesName} {formattedVal}";
+                }
+                else
+                {
+                    defLeft = !string.IsNullOrEmpty(splitCategory) ? (totalSeriesCount > 1 ? $"{splitCategory} - {rawSeriesName}" : splitCategory) : rawSeriesName;
+                    defRight = formattedVal;
+                }
 
                 string defaultLabel = string.IsNullOrWhiteSpace(defHeader)
                     ? $"{defLeft} {defRight}".Trim()
@@ -211,7 +239,7 @@ namespace WPF_LoginForm.Services
         }
 
         private void ProcessPieChart(DataTable dataTable, DashboardConfiguration config, ChartResultDto result,
-            Func<string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreAfterHyphen, bool isAvg)
+            Func<string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreAfterHyphen, bool globalIgnoreNumbers, bool isAvg)
         {
             string groupByCol = !string.IsNullOrEmpty(config.SplitByColumn) ? config.SplitByColumn : config.DateColumn;
 
@@ -234,8 +262,8 @@ namespace WPF_LoginForm.Services
                         .Select(g => new
                         {
                             RawCategory = g.Key,
-                            CleanCategory = CleanLabelString(g.Key, config.HideNumbersInLabels, config.SimplifyLabels, globalIgnoreAfterHyphen),
-                            Total = EvaluateSeriesForGroup(seriesConfig, g.Select(x => x.Row), numberParser, isAvg, seriesConfig.ColumnName, null, g.Key, false).YValue
+                            CleanCategory = CleanLabelString(g.Key, config.HideNumbersInLabels || globalIgnoreNumbers, config.SimplifyLabels, globalIgnoreAfterHyphen),
+                            Total = EvaluateSeriesForGroup(seriesConfig, g.Select(x => x.Row), numberParser, isAvg, null, seriesConfig.ColumnName, null, g.Key, false, config.Series.Count).YValue
                         })
                         .GroupBy(x => x.CleanCategory)
                         .Select(g => new
@@ -263,7 +291,7 @@ namespace WPF_LoginForm.Services
                             Values = new List<object> { g.Total },
                             PieValues = new List<double> { g.Total },
                             ColorHex = colorProvider(g.Category),
-                            ShowOnlyHoverLabels = seriesConfig.ShowOnlyHoverLabels
+                            ShowOnlyHoverLabels = !config.ShowLabelsOnChart
                         });
                     }
 
@@ -277,7 +305,7 @@ namespace WPF_LoginForm.Services
                 {
                     if (!seriesConfig.IsCombinationLabel && (string.IsNullOrEmpty(seriesConfig.ColumnName) || !dataTable.Columns.Contains(seriesConfig.ColumnName))) continue;
 
-                    var evalResult = EvaluateSeriesForGroup(seriesConfig, dataTable.AsEnumerable(), numberParser, isAvg, seriesConfig.ColumnName, null, "", false);
+                    var evalResult = EvaluateSeriesForGroup(seriesConfig, dataTable.AsEnumerable(), numberParser, isAvg, null, seriesConfig.ColumnName, null, "", false, config.Series.Count);
                     if (evalResult.YValue <= 0) continue;
 
                     string rawName = seriesConfig.ColumnName ?? "Series";
@@ -291,7 +319,7 @@ namespace WPF_LoginForm.Services
                         Values = new List<object> { evalResult.YValue },
                         PieValues = new List<double> { evalResult.YValue },
                         ColorHex = colorProvider(cleanName),
-                        ShowOnlyHoverLabels = seriesConfig.ShowOnlyHoverLabels
+                        ShowOnlyHoverLabels = !config.ShowLabelsOnChart
                     });
                 }
             }
@@ -301,7 +329,7 @@ namespace WPF_LoginForm.Services
         // PART 2 OF 2
 
         private void ProcessDailyDateChart(DataTable dt, DashboardConfiguration config, ChartResultDto res,
-            Func<string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreHyphen, bool isAvg)
+            Func<string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreHyphen, bool globalIgnoreNumbers, bool isAvg)
         {
             if (!dt.Columns.Contains(config.DateColumn)) return;
 
@@ -337,7 +365,7 @@ namespace WPF_LoginForm.Services
             else if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Contains("__NONE__"))
                 splitCategories.Clear();
 
-            var cleanSplitGroups = splitCategories.GroupBy(c => CleanLabelString(c, config.HideNumbersInLabels, config.SimplifyLabels, globalIgnoreHyphen)).ToList();
+            var cleanSplitGroups = splitCategories.GroupBy(c => CleanLabelString(c, config.HideNumbersInLabels || globalIgnoreNumbers, config.SimplifyLabels, globalIgnoreHyphen)).ToList();
 
             bool isPriceTrend = string.Equals(config.ChartType, "Price Trend (Line)", StringComparison.OrdinalIgnoreCase);
             bool isLine = isPriceTrend || config.ChartType == "Line";
@@ -393,8 +421,8 @@ namespace WPF_LoginForm.Services
 
                         if (!hasSplit || vals.Any(v => !double.IsNaN(((DateTimePoint)v).Value) && ((DateTimePoint)v).Value != 0))
                         {
-                            if (pts.Count <= 35) SmartLabelService.ApplyLabels(pts, true, null, "Line");
-                            res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = "Line", Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle), ShowOnlyHoverLabels = showHoverOnly });
+                            if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, true, null, "Line");
+                            res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = "Line", Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
                         }
                     }
                 }
@@ -424,7 +452,7 @@ namespace WPF_LoginForm.Services
                                     continue;
                                 }
 
-                                var evalResult = EvaluateSeriesForGroup(ser, filteredRows.Select(r => (DataRow)r.Row), numberParser, isAvg, cleanTitle, g.Key, null, true);
+                                var evalResult = EvaluateSeriesForGroup(ser, filteredRows.Select(r => (DataRow)r.Row), numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, g.Key, null, true, config.Series.Count * (hasSplit ? splitCategories.Count : 1));
 
                                 vals.Add(new DateTimePoint(g.Key, evalResult.YValue));
                                 pts.Add(new DashboardDataPoint
@@ -440,8 +468,8 @@ namespace WPF_LoginForm.Services
 
                             if (!hasSplit || vals.Any(v => !double.IsNaN(((DateTimePoint)v).Value) && ((DateTimePoint)v).Value != 0))
                             {
-                                if (pts.Count <= 35) SmartLabelService.ApplyLabels(pts, true, null, "Line");
-                                res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = "Line", Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle), ShowOnlyHoverLabels = ser.ShowOnlyHoverLabels });
+                                if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, true, null, "Line");
+                                res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = "Line", Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
                             }
                         }
                     }
@@ -541,7 +569,7 @@ namespace WPF_LoginForm.Services
                                     continue;
                                 }
 
-                                var evalResult = EvaluateSeriesForGroup(ser, filteredRows.Select(r => (DataRow)r.Row), numberParser, isAvg, cleanTitle, null, res.XAxisLabels[idx], false);
+                                var evalResult = EvaluateSeriesForGroup(ser, filteredRows.Select(r => (DataRow)r.Row), numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, null, res.XAxisLabels[idx], false, config.Series.Count * (hasSplit ? splitCategories.Count : 1));
 
                                 vals.Add(evalResult.YValue);
                                 pts.Add(new DashboardDataPoint
@@ -558,8 +586,8 @@ namespace WPF_LoginForm.Services
 
                             if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v != 0))
                             {
-                                if (pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, sType);
-                                res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = sType, Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle), ShowOnlyHoverLabels = ser.ShowOnlyHoverLabels });
+                                if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, sType);
+                                res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = sType, Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
                             }
                         }
                     }
@@ -568,7 +596,7 @@ namespace WPF_LoginForm.Services
         }
 
         private void ProcessPivotCategoricalChart(DataTable dt, DashboardConfiguration config, ChartResultDto res,
-            Func<string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreHyphen, bool isAvg)
+            Func<string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreHyphen, bool globalIgnoreNumbers, bool isAvg)
         {
             if (!dt.Columns.Contains(config.DateColumn)) return;
 
@@ -577,7 +605,7 @@ namespace WPF_LoginForm.Services
                 {
                     RawVal = r[config.DateColumn],
                     FormattedKey = FormatCategoryKey(r[config.DateColumn]),
-                    CleanKey = CleanLabelString(FormatCategoryKey(r[config.DateColumn]), config.HideNumbersInLabels, config.SimplifyLabels, globalIgnoreHyphen),
+                    CleanKey = CleanLabelString(FormatCategoryKey(r[config.DateColumn]), config.HideNumbersInLabels || globalIgnoreNumbers, config.SimplifyLabels, globalIgnoreHyphen),
                     Row = r
                 })
                 .GroupBy(x => x.CleanKey)
@@ -587,7 +615,7 @@ namespace WPF_LoginForm.Services
                     SortDate = ParseDateSafe(g.First().RawVal),
                     IsDate = ParseDateSafe(g.First().RawVal) != DateTime.MinValue,
                     PrimarySum = config.Series.Any()
-                                 ? EvaluateSeriesForGroup(config.Series.First(), g.Select(x => x.Row), numberParser, isAvg, "", null, g.Key, false).YValue
+                                 ? EvaluateSeriesForGroup(config.Series.First(), g.Select(x => x.Row), numberParser, isAvg, null, config.Series.First().ColumnName, null, g.Key, false, config.Series.Count).YValue
                                  : 0,
                     Rows = g.Select(x => x.Row).ToList()
                 })
@@ -611,7 +639,7 @@ namespace WPF_LoginForm.Services
             else if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Contains("__NONE__"))
                 splitCategories.Clear();
 
-            var cleanSplitGroups = splitCategories.GroupBy(c => CleanLabelString(c, config.HideNumbersInLabels, config.SimplifyLabels, globalIgnoreHyphen)).ToList();
+            var cleanSplitGroups = splitCategories.GroupBy(c => CleanLabelString(c, config.HideNumbersInLabels || globalIgnoreNumbers, config.SimplifyLabels, globalIgnoreHyphen)).ToList();
 
             bool isPriceTrend = string.Equals(config.ChartType, "Price Trend (Line)", StringComparison.OrdinalIgnoreCase);
             string baseChartType = isPriceTrend ? "Line" : config.ChartType;
@@ -665,8 +693,8 @@ namespace WPF_LoginForm.Services
 
                     if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v != 0))
                     {
-                        if (pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, "Line");
-                        res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = "Line", Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle), ShowOnlyHoverLabels = showHoverOnly });
+                        if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, "Line");
+                        res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = "Line", Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
                     }
                 }
             }
@@ -698,25 +726,25 @@ namespace WPF_LoginForm.Services
                                 continue;
                             }
 
-                            var evalResult = EvaluateSeriesForGroup(ser, rows, numberParser, isAvg, cleanTitle, null, res.XAxisLabels[idx], false);
+                                var evalResult = EvaluateSeriesForGroup(ser, rows, numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, null, res.XAxisLabels[idx], false, config.Series.Count * (hasSplit ? splitCategories.Count : 1));
 
-                            vals.Add(evalResult.YValue);
-                            pts.Add(new DashboardDataPoint
-                            {
-                                X = idx,
-                                Y = evalResult.YValue,
-                                Label = evalResult.LabelText,
-                                TooltipHeader = evalResult.TooltipHeader,
-                                TooltipLeft = evalResult.TooltipLeft,
-                                TooltipRight = evalResult.TooltipRight
-                            });
+                                vals.Add(evalResult.YValue);
+                                pts.Add(new DashboardDataPoint
+                                {
+                                    X = idx,
+                                    Y = evalResult.YValue,
+                                    Label = evalResult.LabelText,
+                                    TooltipHeader = evalResult.TooltipHeader,
+                                    TooltipLeft = evalResult.TooltipLeft,
+                                    TooltipRight = evalResult.TooltipRight
+                                });
                             idx++;
                         }
 
                         if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v != 0))
                         {
-                            if (pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, baseChartType);
-                            res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = baseChartType, Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle), ShowOnlyHoverLabels = ser.ShowOnlyHoverLabels });
+                            if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, baseChartType);
+                            res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = baseChartType, Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
                         }
                     }
                 }

@@ -1,4 +1,4 @@
-﻿// Services/CategoryMappingService.cs
+// Services/CategoryMappingService.cs
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -14,19 +14,8 @@ namespace WPF_LoginForm.Services
 
         public List<CategoryRule> LoadRules()
         {
-            if (!File.Exists(FilePath)) return new List<CategoryRule>();
-            try
-            {
-                string json = File.ReadAllText(FilePath);
-                var rules = JsonConvert.DeserializeObject<List<CategoryRule>>(json);
-
-                // CRITICAL: Sort by Priority descending so spelling corrections run FIRST
-                return (rules ?? new List<CategoryRule>()).OrderByDescending(r => r.Priority).ToList();
-            }
-            catch
-            {
-                return new List<CategoryRule>();
-            }
+            var rules = GeneralSettingsManager.Instance.Current.CategoryRules;
+            return (rules ?? new List<CategoryRule>()).OrderByDescending(r => r.Priority).ToList();
         }
 
         public void SaveRules(List<CategoryRule> rules)
@@ -34,10 +23,9 @@ namespace WPF_LoginForm.Services
             if (rules == null) return;
             try
             {
-                // Ensure saved order reflects Priority
                 var orderedRules = rules.OrderByDescending(r => r.Priority).ToList();
-                string json = JsonConvert.SerializeObject(orderedRules, Formatting.Indented);
-                File.WriteAllText(FilePath, json);
+                GeneralSettingsManager.Instance.Current.CategoryRules = orderedRules;
+                GeneralSettingsManager.Instance.Save();
             }
             catch (Exception ex)
             {

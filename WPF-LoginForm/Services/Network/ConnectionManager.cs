@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Data.SqlClient;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 using Npgsql;
 using WPF_LoginForm.Properties;
+using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
 
 namespace WPF_LoginForm.Services.Network
@@ -12,8 +13,9 @@ namespace WPF_LoginForm.Services.Network
     {
         public static async Task<string> ResolveBestHostAsync()
         {
-            string primaryIp = Settings.Default.DbHost;
-            string backupName = Settings.Default.DbServerName;
+            var config = GeneralSettingsManager.Instance.Current;
+            string primaryIp = config.DbHost;
+            string backupName = config.DbServerName;
 
             // If no backup set, just return primary.
             if (string.IsNullOrWhiteSpace(backupName)) return primaryIp;
@@ -43,10 +45,11 @@ namespace WPF_LoginForm.Services.Network
         {
             try
             {
-                Settings.Default.DbHost = newHost;
+                var config = GeneralSettingsManager.Instance.Current;
+                config.DbHost = newHost;
 
-                string port = Settings.Default.DbPort;
-                string user = Settings.Default.DbUser;
+                string port = config.DbPort;
+                string user = config.DbUser;
                 bool useWindowsAuth = false;
                 string currentPass = "";
 
@@ -55,20 +58,20 @@ namespace WPF_LoginForm.Services.Network
                 {
                     if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer)
                     {
-                        var builder = new SqlConnectionStringBuilder(Settings.Default.SqlAuthConnString);
+                        var builder = new SqlConnectionStringBuilder(config.SqlAuthConnString);
                         currentPass = builder.Password;
                         useWindowsAuth = builder.IntegratedSecurity;
                     }
                     else
                     {
-                        var builder = new NpgsqlConnectionStringBuilder(Settings.Default.PostgresAuthConnString);
+                        var builder = new NpgsqlConnectionStringBuilder(config.PostgresAuthConnString);
                         currentPass = builder.Password;
                     }
                 }
                 catch
                 {
-                    // Fallback to settings if connection string parsing fails
-                    currentPass = Settings.Default.DbPassword;
+                    // Fallback if connection string parsing fails
+                    currentPass = "";
                 }
 
                 // --- SQL SERVER REBUILD ---
@@ -83,15 +86,15 @@ namespace WPF_LoginForm.Services.Network
                 sqlBuilder.UserID = user;
                 sqlBuilder.Password = currentPass;
                 sqlBuilder.IntegratedSecurity = useWindowsAuth;
-                sqlBuilder.TrustServerCertificate = Settings.Default.TrustServerCertificate;
-                sqlBuilder.ConnectTimeout = Settings.Default.ConnectionTimeout;
+                sqlBuilder.TrustServerCertificate = config.TrustServerCertificate;
+                sqlBuilder.ConnectTimeout = config.ConnectionTimeout;
                 sqlBuilder.PersistSecurityInfo = true;
 
                 sqlBuilder.InitialCatalog = "LoginDb";
-                Settings.Default.SqlAuthConnString = sqlBuilder.ConnectionString;
+                config.SqlAuthConnString = sqlBuilder.ConnectionString;
 
                 sqlBuilder.InitialCatalog = "MainDataDb";
-                Settings.Default.SqlDataConnString = sqlBuilder.ConnectionString;
+                config.SqlDataConnString = sqlBuilder.ConnectionString;
 
                 // --- POSTGRES REBUILD ---
                 var pgBuilder = new NpgsqlConnectionStringBuilder();
@@ -99,17 +102,17 @@ namespace WPF_LoginForm.Services.Network
                 if (int.TryParse(port, out int portNum)) pgBuilder.Port = portNum;
                 pgBuilder.Username = user;
                 pgBuilder.Password = currentPass;
-                pgBuilder.TrustServerCertificate = Settings.Default.TrustServerCertificate;
-                pgBuilder.Timeout = Settings.Default.ConnectionTimeout;
+                pgBuilder.TrustServerCertificate = config.TrustServerCertificate;
+                pgBuilder.Timeout = config.ConnectionTimeout;
                 pgBuilder.PersistSecurityInfo = true;
 
                 pgBuilder.Database = "LoginDb";
-                Settings.Default.PostgresAuthConnString = pgBuilder.ConnectionString;
+                config.PostgresAuthConnString = pgBuilder.ConnectionString;
 
                 pgBuilder.Database = "MainDataDb";
-                Settings.Default.PostgresDataConnString = pgBuilder.ConnectionString;
+                config.PostgresDataConnString = pgBuilder.ConnectionString;
 
-                Settings.Default.Save();
+                GeneralSettingsManager.Instance.Save();
             }
             catch (Exception ex)
             {

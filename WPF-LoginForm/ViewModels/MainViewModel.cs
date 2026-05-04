@@ -1,4 +1,4 @@
-﻿// ViewModels/MainViewModel.cs
+// ViewModels/MainViewModel.cs
 using FontAwesome.Sharp;
 using System;
 using System.Collections.Generic;
@@ -202,7 +202,7 @@ namespace WPF_LoginForm.ViewModels
                 _chartDetailViewModel = new ChartDetailViewModel(_dataRepository, _logger);
             }
 
-            _chartDetailViewModel.Initialize(config, _homeViewModel.StartDate, _homeViewModel.EndDate);
+            _chartDetailViewModel.Initialize(config, _homeViewModel.StartDate, _homeViewModel.EndDate, _homeViewModel.GlobalIgnoreAfterHyphen, _homeViewModel.GlobalIgnoreNumbers);
 
             // Allows the detailed view to jump back to the Home Dashboard
             _chartDetailViewModel.GoBackAction = () =>

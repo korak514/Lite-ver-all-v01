@@ -1,4 +1,4 @@
-﻿<!-- Views/HomeView.xaml -->
+<!-- Views/HomeView.xaml -->
 <UserControl x:Class="WPF_LoginForm.Views.HomeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -17,9 +17,10 @@
 
     <UserControl.Resources>
         <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
 
         <!-- THE CUSTOM TOOLTIP INSTANCE (x:Shared="False" prevents WPF rendering crashes) -->
-        <local:CustomChartTooltip x:Key="CustomTooltip" x:Shared="False" />
+        <local:CustomChartTooltip x:Key="CustomTooltip" x:Shared="False" SelectionMode="SharedXValues" />
 
         <!-- SMART LABEL FOR ON-CHART TEXT -->
         <DataTemplate x:Key="SmartLabelTemplate">
@@ -187,7 +188,8 @@
                         <Border Background="#030347" BorderBrush="#49A956" BorderThickness="1" CornerRadius="4" Padding="10">
                             <StackPanel MinWidth="220">
                                 <TextBlock Text="Label Settings (Global)" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
-                                <CheckBox Content="On label ignore after '-'" IsChecked="{Binding GlobalIgnoreAfterHyphen, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" ToolTip="Truncates text after the hyphen to prevent overlaps." />
+                                <CheckBox Content="İgnore after '-' on Chart Labels" IsChecked="{Binding GlobalIgnoreAfterHyphen, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" ToolTip="Truncates text after the hyphen to prevent overlaps." />
+                                <CheckBox Content="İgnore number on Chart Labels" IsChecked="{Binding GlobalIgnoreNumbers, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" ToolTip="Removes all numeric digits from labels." />
                                 <Separator Background="#49A956" Margin="0,5,0,5" />
                                 <TextBlock Text="Filter Mode" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
                                 <CheckBox Content="Filter by Date" IsChecked="{Binding IsFilterByDate, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" />
@@ -292,7 +294,9 @@
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" Hoverable="False" DataTooltip="{StaticResource CustomTooltip}" />
+                            <lvc:CartesianChart Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
+                                                Hoverable="{Binding DashboardConfigs[0].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
+                                                DataTooltip="{StaticResource CustomTooltip}" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="1" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
@@ -331,7 +335,9 @@
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" Hoverable="False" DataTooltip="{StaticResource CustomTooltip}" />
+                            <lvc:CartesianChart Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
+                                                Hoverable="{Binding DashboardConfigs[1].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
+                                                DataTooltip="{StaticResource CustomTooltip}" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="2" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
@@ -370,7 +376,9 @@
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" Hoverable="False" DataTooltip="{StaticResource CustomTooltip}" />
+                            <lvc:CartesianChart Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
+                                                Hoverable="{Binding DashboardConfigs[2].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
+                                                DataTooltip="{StaticResource CustomTooltip}" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="3" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
@@ -409,7 +417,9 @@
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
                         <Grid>
-                            <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" Hoverable="True" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" DataTooltip="{StaticResource CustomTooltip}" />
+                            <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" 
+                                          Hoverable="{Binding DashboardConfigs[3].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
+                                          Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" DataTooltip="{StaticResource CustomTooltip}" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="4" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
@@ -449,7 +459,9 @@
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" Hoverable="False" DataTooltip="{StaticResource CustomTooltip}" />
+                            <lvc:CartesianChart Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
+                                                Hoverable="{Binding DashboardConfigs[4].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
+                                                DataTooltip="{StaticResource CustomTooltip}" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="5" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
@@ -528,7 +540,7 @@
                             </Style.Triggers>
                         </Style>
                     </Grid.Style>
-                    <Border Background="#10FFFFFF" CornerRadius="10" Margin="10">
+                    <Border Background="#10FFFFFF" CornerRadius="10" Margin="10" Visibility="{Binding IsChart6Visible, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -552,7 +564,9 @@
                                 </Button>
                             </Grid>
 
-                            <lvc:PieChart Grid.Row="1" Series="{Binding Chart6Series}" LegendLocation="Bottom" InnerRadius="80" Margin="20,10,20,20" Hoverable="True" AnimationsSpeed="0:0:0.4" DataTooltip="{StaticResource CustomTooltip}">
+                            <lvc:PieChart Grid.Row="1" Series="{Binding Chart6Series}" LegendLocation="Bottom" InnerRadius="80" Margin="20,10,20,20" 
+                                          Hoverable="{Binding DashboardConfigs[5].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
+                                          AnimationsSpeed="0:0:0.4" DataTooltip="{StaticResource CustomTooltip}">
                                 <lvc:PieChart.ChartLegend>
                                     <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="13" />
                                 </lvc:PieChart.ChartLegend>

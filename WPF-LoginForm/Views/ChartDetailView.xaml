@@ -1,4 +1,4 @@
-﻿<!-- Views/ChartDetailView.xaml -->
+<!-- Views/ChartDetailView.xaml -->
 <UserControl x:Class="WPF_LoginForm.Views.ChartDetailView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -8,14 +8,17 @@
              xmlns:local="clr-namespace:WPF_LoginForm.Views"
              xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
              xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
+             xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="1000"
              d:DataContext="{d:DesignInstance Type=viewModels:ChartDetailViewModel, IsDesignTimeCreatable=False}">
 
     <UserControl.Resources>
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
 
-        <!-- THE CUSTOM TOOLTIP INSTANCE -->
-        <local:CustomChartTooltip x:Key="CustomTooltip" x:Shared="False" />
+        <!-- THE CUSTOM TOOLTIP INSTANCES -->
+        <local:CustomChartTooltip x:Key="CustomTooltip" x:Shared="False" SelectionMode="SharedXValues" />
+        <local:CustomChartTooltip x:Key="CustomPieTooltip" x:Shared="False" SelectionMode="OnlySender" />
 
         <DataTemplate x:Key="SmartLabelTemplate">
             <Border Background="#E6000030" CornerRadius="4" Padding="6,4" BorderBrush="#80FFFFFF" BorderThickness="1">
@@ -53,17 +56,50 @@
         </Border>
 
         <Border Grid.Row="1" Background="#181838" CornerRadius="10" Margin="15" Padding="20">
-            <!-- UPDATED: Added DataTooltip binding -->
-            <lvc:CartesianChart Series="{Binding ChartSeries}"
-                                AxisX="{Binding ChartX}"
-                                AxisY="{Binding ChartY}"
-                                LegendLocation="Bottom"
-                                AnimationsSpeed="0:0:0.4"
-                                DataTooltip="{StaticResource CustomTooltip}">
-                <lvc:CartesianChart.ChartLegend>
-                    <lvc:DefaultLegend Foreground="WhiteSmoke" FontSize="14" />
-                </lvc:CartesianChart.ChartLegend>
-            </lvc:CartesianChart>
+            <Grid>
+                <!-- CARTESIAN CHART (Line/Bar) — visible when IsPieChart is False -->
+                <lvc:CartesianChart Series="{Binding ChartSeries}"
+                                    AxisX="{Binding ChartX}"
+                                    AxisY="{Binding ChartY}"
+                                    LegendLocation="Bottom"
+                                    AnimationsSpeed="0:0:0.4"
+                                    Hoverable="{Binding CurrentConfiguration.ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}"
+                                    DataTooltip="{StaticResource CustomTooltip}">
+                    <lvc:CartesianChart.Style>
+                        <Style TargetType="lvc:CartesianChart">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPieChart}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </lvc:CartesianChart.Style>
+                    <lvc:CartesianChart.ChartLegend>
+                        <lvc:DefaultLegend Foreground="WhiteSmoke" FontSize="14" />
+                    </lvc:CartesianChart.ChartLegend>
+                </lvc:CartesianChart>
+
+                <lvc:PieChart Series="{Binding PieChartSeries}"
+                              LegendLocation="Right"
+                              InnerRadius="60"
+                              Hoverable="True"
+                              AnimationsSpeed="0:0:0.4"
+                              DataTooltip="{StaticResource CustomPieTooltip}">
+                    <lvc:PieChart.Style>
+                        <Style TargetType="lvc:PieChart">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPieChart}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </lvc:PieChart.Style>
+                    <lvc:PieChart.ChartLegend>
+                        <lvc:DefaultLegend Foreground="WhiteSmoke" FontSize="14" />
+                    </lvc:PieChart.ChartLegend>
+                </lvc:PieChart>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

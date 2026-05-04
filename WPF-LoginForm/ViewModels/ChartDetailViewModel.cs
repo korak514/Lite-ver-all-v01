@@ -1,4 +1,4 @@
-﻿// ViewModels/ChartDetailViewModel.cs
+// ViewModels/ChartDetailViewModel.cs
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -38,6 +38,14 @@ namespace WPF_LoginForm.ViewModels
         private AxesCollection _chartY;
         public AxesCollection ChartY { get => _chartY; set => SetProperty(ref _chartY, value); }
 
+        private SeriesCollection _pieChartSeries;
+        public SeriesCollection PieChartSeries { get => _pieChartSeries; set => SetProperty(ref _pieChartSeries, value); }
+
+        private bool _isPieChart;
+        public bool IsPieChart { get => _isPieChart; set => SetProperty(ref _isPieChart, value); }
+
+        public DashboardConfiguration CurrentConfiguration => _config;
+
         public ICommand GoBackCommand { get; }
 
         public Func<double, string> DateFormatter { get; }
@@ -74,11 +82,17 @@ namespace WPF_LoginForm.ViewModels
             GoBackCommand = new ViewModelCommand(p => GoBackAction?.Invoke());
         }
 
-        public async void Initialize(DashboardConfiguration config, DateTime startDate, DateTime endDate)
+        private bool _globalIgnoreAfterHyphen;
+        private bool _globalIgnoreNumbers;
+
+        public async void Initialize(DashboardConfiguration config, DateTime startDate, DateTime endDate, bool ignoreHyphen, bool ignoreNumbers)
         {
             if (config == null || string.IsNullOrEmpty(config.TableName)) return;
 
             _config = config;
+            _globalIgnoreAfterHyphen = ignoreHyphen;
+            _globalIgnoreNumbers = ignoreNumbers;
+            OnPropertyChanged(nameof(CurrentConfiguration));
 
             // --- CUSTOM TITLE LOGIC APPLIED ---
             Title = $"Detailed Chart Analysis: {config.TableName}";
@@ -93,6 +107,8 @@ namespace WPF_LoginForm.ViewModels
 
             // Clean instantiation to avoid LiveCharts layout crashes
             ChartSeries = new SeriesCollection();
+            PieChartSeries = new SeriesCollection();
+            IsPieChart = false;
 
             await LoadDataAsync(startDate, endDate);
         }
@@ -136,7 +152,7 @@ namespace WPF_LoginForm.ViewModels
                 if (dt == null || dt.Rows.Count == 0) return;
 
                 var chartResult = await Task.Run(() => _chartService.ProcessChartData(
-                    dt, _config, true, true, 0, 100, 100, null, false));
+                    dt, _config, true, true, 0, 100, 100, null, _globalIgnoreAfterHyphen, _globalIgnoreNumbers));
 
                 Application.Current.Dispatcher.Invoke(() => ApplyChartResultToUI(chartResult));
             }
@@ -150,7 +166,11 @@ namespace WPF_LoginForm.ViewModels
         {
             if (result == null || result.Series == null) return;
 
+            bool isPie = result.Series.All(s => s != null && s.SeriesType == "Pie");
+            IsPieChart = isPie;
+
             var newSeries = new SeriesCollection();
+            var newPieSeries = new SeriesCollection();
             var axisColor = Brushes.WhiteSmoke;
 
             var xyMapper = Mappers.Xy<DashboardDataPoint>()
@@ -179,7 +199,7 @@ namespace WPF_LoginForm.ViewModels
                         }
                     };
 
-                    newSeries.Add(new PieSeries
+                    newPieSeries.Add(new PieSeries
                     {
                         Title = s.Title,
                         Values = pieCv,
@@ -410,6 +430,7 @@ namespace WPF_LoginForm.ViewModels
             ChartX = newX;
             ChartY = newY;
             ChartSeries = newSeries;
+            PieChartSeries = newPieSeries;
         }
     }
 }

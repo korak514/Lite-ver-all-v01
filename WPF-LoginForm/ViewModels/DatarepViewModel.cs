@@ -1,4 +1,4 @@
-﻿// ViewModels/DatarepViewModel.cs
+// ViewModels/DatarepViewModel.cs
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -255,7 +255,7 @@ namespace WPF_LoginForm.ViewModels
 
             await ExecuteLongRunning(async token =>
             {
-                var res = await _dataRepository.GetTableDataAsync(target, LoadAllData ? 0 : Settings.Default.DefaultRowLimit);
+                var res = await _dataRepository.GetTableDataAsync(target, LoadAllData ? 0 : GeneralSettingsManager.Instance.Current.DefaultRowLimit);
                 if (token.IsCancellationRequested) return;
 
                 await Application.Current.Dispatcher.InvokeAsync(() =>
