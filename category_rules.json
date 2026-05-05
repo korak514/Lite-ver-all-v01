@@ -11,7 +11,7 @@
   },
   {
     "StartsWith": "PERÇIN-ATILDI",
-    "MapTo": "PERÇİN-ATILDI",
+    "MapTo": "PERÇİN-İŞLEMİ",
     "Priority": 97
   },
   {
@@ -31,12 +31,12 @@
   },
   {
     "StartsWith": "POLIP-YAĞ",
-    "MapTo": "POLİP-YAĞ",
+    "MapTo": "YÜKLEME-MAKİNESİ",
     "Priority": 93
   },
   {
     "StartsWith": "POLIP-YAĞLAMA",
-    "MapTo": "POLİP-YAĞLAMA",
+    "MapTo": "YÜKLEME-MAKİNESİ",
     "Priority": 92
   },
   {
@@ -66,7 +66,7 @@
   },
   {
     "StartsWith": "BAND",
-    "MapTo": "BANT",
+    "MapTo": "BANT-İŞLEMİ",
     "Priority": 86
   },
   {
@@ -75,22 +75,72 @@
     "Priority": 85
   },
   {
-    "StartsWith": "AĞIRLIK-DEĞİŞİMİ",
-    "MapTo": "AĞIRLIK-İŞLEMİ",
+    "StartsWith": "POLİP-ARIZA",
+    "MapTo": "YÜKLEME-MAKİNESİ",
+    "Priority": 84
+  },
+  {
+    "StartsWith": "POLİP-DEĞİŞİMİ",
+    "MapTo": "YÜKLEME-MAKİNESİ",
+    "Priority": 83
+  },
+  {
+    "StartsWith": "POLİP-GÜÇ",
+    "MapTo": "YÜKLEME-MAKİNESİ",
+    "Priority": 82
+  },
+  {
+    "StartsWith": "318-PERVANE-ARIZASI",
+    "MapTo": "YÜKLEME-MAKİNESİ",
+    "Priority": 81
+  },
+  {
+    "StartsWith": "318-KOVA",
+    "MapTo": "YÜKLEME-MAKİNESİ",
+    "Priority": 80
+  },
+  {
+    "StartsWith": "318-PERVANE",
+    "MapTo": "YÜKLEME-MAKİNESİ",
     "Priority": 0
   },
   {
-    "StartsWith": "AĞIRLIK-PİM",
-    "MapTo": "AĞIRLIK-İŞLEMİ",
+    "StartsWith": "318-ARIZA/BAKIM",
+    "MapTo": "YÜKLEME-MAKİNESİ",
     "Priority": 0
   },
   {
-    "StartsWith": "AĞIRLIKTA-İŞLEM",
-    "MapTo": "AĞIRLIK-İŞLEMİ",
+    "StartsWith": "AHTAPOT-ARIZASI",
+    "MapTo": "YÜKLEME-MAKİNESİ",
     "Priority": 0
   },
   {
-    "StartsWith": "BANT-ARIZASI",
+    "StartsWith": "AHTAPOT-İŞLEMİ",
+    "MapTo": "YÜKLEME-MAKİNESİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "BAND-ALTI",
+    "MapTo": "BANT-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "BAND-AYARI",
+    "MapTo": "BANT-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "BAND-PERÇİN",
+    "MapTo": "BANT-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "BAND-YIRTILMASI",
+    "MapTo": "BANT-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "BANT",
     "MapTo": "BANT-İŞLEMİ",
     "Priority": 0
   },
@@ -115,7 +165,7 @@
     "Priority": 0
   },
   {
-    "StartsWith": "BANT-TALAŞLAMA",
+    "StartsWith": "BANT-SIKIŞMA",
     "MapTo": "BANT-İŞLEMİ",
     "Priority": 0
   },
@@ -130,23 +180,18 @@
     "Priority": 0
   },
   {
-    "StartsWith": "BANT",
+    "StartsWith": "CNB-02204",
     "MapTo": "BANT-İŞLEMİ",
     "Priority": 0
   },
   {
-    "StartsWith": "ELEK-CIVATASI",
-    "MapTo": "ELEK-İŞLEMİ",
+    "StartsWith": "CNB-03102",
+    "MapTo": "BANT-İŞLEMİ",
     "Priority": 0
   },
   {
-    "StartsWith": "ELEK-DEĞİŞİMİ",
-    "MapTo": "ELEK-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "ELEK-KAYMASI",
-    "MapTo": "ELEK-İŞLEMİ",
+    "StartsWith": "DAYAMA-TEKERİ",
+    "MapTo": "TEKER-MAKARA-İŞLEMİ",
     "Priority": 0
   },
   {
@@ -155,18 +200,38 @@
     "Priority": 0
   },
   {
-    "StartsWith": "ELEK-KONTROL",
-    "MapTo": "ELEK-İŞLEMİ",
+    "StartsWith": "ELEKTRİK-İŞLEMİ",
+    "MapTo": "ELEKTRİK-VE-OTOMASYON",
     "Priority": 0
   },
   {
-    "StartsWith": "ELEK-SÖKÜM",
-    "MapTo": "ELEK-İŞLEMİ",
+    "StartsWith": "FORKLİFT-ÇARPMASI",
+    "MapTo": "DIŞ-ETKENLER-VE-DİĞER",
     "Priority": 0
   },
   {
-    "StartsWith": "ELEK-TAMİRİ",
-    "MapTo": "ELEK-İŞLEMİ",
+    "StartsWith": "HABERLEŞME-PROBLEMİ",
+    "MapTo": "ELEKTRİK-VE-OTOMASYON",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "IŞIKLANDIRMA-ARIZASI",
+    "MapTo": "ELEKTRİK-VE-OTOMASYON",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "İÇ-SAÇ",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "İSKELET-DEĞİŞİMİ",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "KAMA-KAYNAK",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
     "Priority": 0
   },
   {
@@ -180,8 +245,18 @@
     "Priority": 0
   },
   {
+    "StartsWith": "KAPLİN-PİMİ",
+    "MapTo": "KAPLİN-İŞLEMİ",
+    "Priority": 0
+  },
+  {
     "StartsWith": "KAPLİN-TAMİRİ",
     "MapTo": "KAPLİN-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "KAYNAK-İŞLEMİ",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
     "Priority": 0
   },
   {
@@ -190,27 +265,42 @@
     "Priority": 0
   },
   {
-    "StartsWith": "KONTROL-VE",
-    "MapTo": "KONTROL-İŞLEMİ",
+    "StartsWith": "MAKARA-DEĞİŞİMİ",
+    "MapTo": "TEKER-MAKARA-İŞLEMİ",
     "Priority": 0
   },
   {
-    "StartsWith": "MANYETİK",
+    "StartsWith": "MALZEME-SIKIŞMASI",
+    "MapTo": "TIKANMA-VE-TEMİZLİK",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "MANYETİK-KONTROL",
     "MapTo": "MANYETİK-AYIRICI-İŞLEMİ",
     "Priority": 0
   },
   {
-    "StartsWith": "ÜZERİ-MANYETİK",
+    "StartsWith": "MANYETİK-MALZEME",
     "MapTo": "MANYETİK-AYIRICI-İŞLEMİ",
     "Priority": 0
   },
   {
-    "StartsWith": "MİL-DEĞİŞİMİ",
-    "MapTo": "MİL-İŞLEMİ",
+    "StartsWith": "MANYETİK-SEPARATÖR",
+    "MapTo": "MANYETİK-AYIRICI-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "MANYETİK-SÖKÜLDÜ",
+    "MapTo": "MANYETİK-AYIRICI-İŞLEMİ",
     "Priority": 0
   },
   {
     "StartsWith": "MİL-KAYNAK",
+    "MapTo": "MİL-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "MİL-KORUMA",
     "MapTo": "MİL-İŞLEMİ",
     "Priority": 0
   },
@@ -220,23 +310,43 @@
     "Priority": 0
   },
   {
-    "StartsWith": "PERÇİN-İŞLEMİ",
+    "StartsWith": "MOTOR-SEHPASI",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ÖN-MODÜL",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "PERÇİN-ATILDI",
     "MapTo": "PERÇİN-İŞLEMİ",
     "Priority": 0
   },
   {
-    "StartsWith": "POLİP-ARIZA",
-    "MapTo": "POLİP-İŞLEMİ",
+    "StartsWith": "PERÇİN-TAMİRATI",
+    "MapTo": "PERÇİN-İŞLEMİ",
     "Priority": 0
   },
   {
-    "StartsWith": "POLİP-DEĞİŞİMİ",
-    "MapTo": "POLİP-İŞLEMİ",
+    "StartsWith": "POLİP-AÇMA",
+    "MapTo": "YÜKLEME-MAKİNESİ",
     "Priority": 0
   },
   {
-    "StartsWith": "POLİP-GÜÇ",
-    "MapTo": "POLİP-İŞLEMİ",
+    "StartsWith": "REDÜKTÖR-DEĞİŞİMİ",
+    "MapTo": "REDÜKTÖR-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "RULMAN-DEĞİŞİMİ",
+    "MapTo": "RULMAN-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "RULMAN-KONTROL",
+    "MapTo": "RULMAN-İŞLEMİ",
     "Priority": 0
   },
   {
@@ -245,8 +355,18 @@
     "Priority": 0
   },
   {
-    "StartsWith": "SIYIRICI-TAMİRATI",
-    "MapTo": "SIYIRICI-İŞLEMİ",
+    "StartsWith": "SÜRÜCÜ-DEĞİŞİMİ",
+    "MapTo": "ELEKTRİK-VE-OTOMASYON",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ŞUT-KAYNAK",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "TAKILMA",
+    "MapTo": "TAKILMA-VE-TIKANMA",
     "Priority": 0
   },
   {
@@ -260,17 +380,32 @@
     "Priority": 0
   },
   {
-    "StartsWith": "TAMBUR-TALAŞLANDI",
-    "MapTo": "TAMBUR-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "TAMBUR-TEMİZLİĞİ",
-    "MapTo": "TAMBUR-İŞLEMİ",
+    "StartsWith": "TEKER-DEĞİŞİMİ",
+    "MapTo": "TEKER-MAKARA-İŞLEMİ",
     "Priority": 0
   },
   {
     "StartsWith": "TEKER-KAPLAMA",
+    "MapTo": "TEKER-MAKARA-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "TEKER-KAPLAMASI",
+    "MapTo": "TEKER-MAKARA-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "TEKER-KAYMASI",
+    "MapTo": "TEKER-MAKARA-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "TEKERLEK-DEĞİŞİMİ",
+    "MapTo": "TEKER-MAKARA-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "TEKERLEK-DÜZELTME",
     "MapTo": "TEKER-MAKARA-İŞLEMİ",
     "Priority": 0
   },
@@ -285,243 +420,23 @@
     "Priority": 0
   },
   {
+    "StartsWith": "TIKANMA",
+    "MapTo": "TAKILMA-VE-TIKANMA",
+    "Priority": 0
+  },
+  {
     "StartsWith": "TIKANMA-CNB",
     "MapTo": "TIKANMA-VE-TEMİZLİK",
     "Priority": 0
   },
   {
-    "StartsWith": "YAĞLAMA",
-    "MapTo": "YAĞLAMA-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "HABERLEŞME-HATASI",
-    "MapTo": "HABERLEŞME-PROBLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "YAN-SIYIRICIDA",
-    "MapTo": "SIYIRICI-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "318-PERVANE-ARIZASI",
-    "MapTo": "318-ARIZA/BAKIM",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "318-KOVA",
-    "MapTo": "318-ARIZA/BAKIM",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "CNB-02204",
-    "MapTo": "BESLEME-BANDI",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "BALİSTİK-VE",
-    "MapTo": "DİĞER-İŞLEMLER",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "AHTAPOT-ARIZASI",
-    "MapTo": "AHTAPOT-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "BALİSTİK-ELEK",
-    "MapTo": "ELEK-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "BANT-İŞLEMİ",
-    "MapTo": "BANT-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "BESLEME-BANDI",
-    "MapTo": "BANT-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "DAYAMA-TEKERİ",
-    "MapTo": "TEKER-MAKARA-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "ELEKTRİK-İŞLEMİ",
-    "MapTo": "ELEKTRİK-VE-OTOMASYON",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "FORKLİFT-ÇARPMASI",
-    "MapTo": "DIŞ-ETKENLER-VE-DİĞER",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "GÜÇ-KABLOSU",
-    "MapTo": "ELEKTRİK-VE-OTOMASYON",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "HABERLEŞME-PROBLEM",
-    "MapTo": "ELEKTRİK-VE-OTOMASYON",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "IŞIKLANDIRMA-ARIZASI",
-    "MapTo": "ELEKTRİK-VE-OTOMASYON",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "İSKELET-DEĞİŞİMİ",
-    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "KAMA-KAYNAK",
-    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "KAPLİN-İŞLEMİ",
-    "MapTo": "KAPLİN-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "KARKAS-DEĞİŞİMİ",
-    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "KAYNAK-İŞLEMİ",
-    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "KONTROL",
-    "MapTo": "KONTROL-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "KONTROL-İŞLEMİ",
-    "MapTo": "KONTROL-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "MALZEME-SIKIŞMASI",
-    "MapTo": "TIKANMA-VE-TEMİZLİK",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "MANYETİK-AYIRICI-İŞLEM",
+    "StartsWith": "ÜZERİ-MANYETİK",
     "MapTo": "MANYETİK-AYIRICI-İŞLEMİ",
     "Priority": 0
   },
   {
-    "StartsWith": "MİL-KORUMA",
-    "MapTo": "MİL-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "MODÜL-DÜZELTME",
+    "StartsWith": "YAN-SAÇ",
     "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "ORTA-ELEK",
-    "MapTo": "ELEK-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "ÖN-SIYIRICI",
-    "MapTo": "SIYIRICI-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "PERÇİN-TAMİRATI",
-    "MapTo": "PERÇİN-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "POLİP-AÇMA",
-    "MapTo": "POLİP-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "POLİP-İŞLEMİ",
-    "MapTo": "POLİP-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "REDÜKTÖR-DEĞİŞİMİ",
-    "MapTo": "REDÜKTÖR-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "RULMAN-İŞLEMİ",
-    "MapTo": "RULMAN-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "RULMAN-KONTROL",
-    "MapTo": "RULMAN-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "SIYIRICI-İŞLEMİ",
-    "MapTo": "SIYIRICI-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "SIYIRICI-TAMİRAT",
-    "MapTo": "SIYIRICI-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "SÜRÜCÜ-DEĞİŞİMİ",
-    "MapTo": "ELEKTRİK-VE-OTOMASYON",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "TAKILMA",
-    "MapTo": "TAKILMA-VE-TIKANMA",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "TAMBUR-İŞLEMİ",
-    "MapTo": "TAMBUR-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "TEKER-DEĞİŞİMİ",
-    "MapTo": "TEKER-MAKARA-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "TEKER-KAYMASI",
-    "MapTo": "TEKER-MAKARA-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "TEKER-KAYNAK",
-    "MapTo": "TEKER-MAKARA-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "TEKER-MAKARA-İŞLEMİ",
-    "MapTo": "TEKER-MAKARA-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "TIKANMA-VE-TEMİZLİK",
-    "MapTo": "TIKANMA-VE-TEMİZLİK",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "YAĞLAMA-İŞLEMİ",
-    "MapTo": "YAĞLAMA-İŞLEMİ",
     "Priority": 0
   },
   {
@@ -545,28 +460,168 @@
     "Priority": 0
   },
   {
-    "StartsWith": "TIKANMA",
-    "MapTo": "TAKILMA-VE-TIKANMA",
+    "StartsWith": "AĞIRLIK-DEĞİŞİMİ",
+    "MapTo": "AĞIRLIK-İŞLEMİ",
     "Priority": 0
   },
   {
-    "StartsWith": "POLİP-YAĞ",
-    "MapTo": "POLİP-İŞLEMİ",
+    "StartsWith": "AĞIRLIK-PİM",
+    "MapTo": "AĞIRLIK-İŞLEMİ",
     "Priority": 0
   },
   {
-    "StartsWith": "POLİP-YAĞLAMA",
-    "MapTo": "POLİP-İŞLEMİ",
+    "StartsWith": "AĞIRLIKTA-İŞLEM",
+    "MapTo": "AĞIRLIK-İŞLEMİ",
     "Priority": 0
   },
   {
-    "StartsWith": "RULMAN-DEĞİŞİMİ",
-    "MapTo": "RULMAN-İŞLEMİ",
+    "StartsWith": "ALT-TABAN",
+    "MapTo": "ALT-TABAN-İŞLEMİ",
     "Priority": 0
   },
   {
-    "StartsWith": "PERÇIN-İŞLEMİ",
-    "MapTo": "PERÇIN-İŞLEMİ",
+    "StartsWith": "BAKIM-İŞLEMİ",
+    "MapTo": "BAKIM-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "BALİSTİK-ELEK",
+    "MapTo": "ELEK-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "BALİSTİK-VE",
+    "MapTo": "BALİSTİK-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ELEK-CIVATASI",
+    "MapTo": "ELEK-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ELEK-DEĞİŞİMİ",
+    "MapTo": "ELEK-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ELEK-KAYMASI",
+    "MapTo": "ELEK-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ELEK-KONTROL",
+    "MapTo": "ELEK-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ELEK-SÖKÜM",
+    "MapTo": "ELEK-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ELEK-TAMİRİ",
+    "MapTo": "ELEK-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ELEKTRİK-MOTORU",
+    "MapTo": "ELEKTRİK-VE-OTOMASYON",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "GÜÇ-KABLOSU",
+    "MapTo": "ELEKTRİK-VE-OTOMASYON",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "HABERLEŞME-HATASI",
+    "MapTo": "HABERLEŞME-PROBLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "KARKAS-DEĞİŞİMİ",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "KEPÇE-YAĞ",
+    "MapTo": "KEPÇE-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "KONTROL",
+    "MapTo": "KONTROL-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "MALZEME-ALINDI",
+    "MapTo": "MALZEME-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "MİL-DEĞİŞİMİ",
+    "MapTo": "MİL-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "MİL-KIRDI",
+    "MapTo": "MİL-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "MKŞ-HATASI",
+    "MapTo": "MKŞ-HATASI",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "MODÜL-DÜZELTME",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ÖN-SIYIRICI",
+    "MapTo": "SIYIRICI-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ORING-DEĞİŞİMİ",
+    "MapTo": "ORING-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ORTA-ELEK",
+    "MapTo": "ELEK-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "REVİZYON-İŞLEMİ",
+    "MapTo": "REVİZYON-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "SIYIRICI-TAMİRAT",
+    "MapTo": "SIYIRICI-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "TAMBUR-TALAŞLANDI",
+    "MapTo": "TAMBUR-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "TAMBUR-TEMİZLİĞİ",
+    "MapTo": "TAMBUR-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "TEKER-KAYNAK",
+    "MapTo": "TEKER-MAKARA-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "YAĞLAMA",
+    "MapTo": "YAĞLAMA-İŞLEMİ",
     "Priority": 0
   }
 ]
