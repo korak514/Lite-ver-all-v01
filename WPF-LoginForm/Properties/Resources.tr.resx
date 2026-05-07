@@ -415,7 +415,7 @@
     <value>Arızalar ve Duruş Karşılatırması</value>
   </data>
   <data name="AnalyticsP2_PieTitle_2" xml:space="preserve">
-    <value>Vadiya Arıza dağlımı</value>
+    <value>Vardiyaya Arıza dağılımı</value>
   </data>
   <data name="AnalyticsP2_BarTitle" xml:space="preserve">
     <value>Ağırlık Dağılımı</value>
@@ -620,5 +620,365 @@
   </data>
   <data name="Str_Ref" xml:space="preserve">
     <value>Son</value>
+  </data>
+  <data name="Str_HourlyTimeCorrection" xml:space="preserve">
+    <value>Saatlik Zaman Düzeltmesi</value>
+  </data>
+  <data name="Tip_HourlyTimeCorrection" xml:space="preserve">
+    <value>1899 tarihlerini yalnızca SS:dd formatında gösterecek şekilde ayarlar</value>
+  </data>
+  <data name="Str_AdvancedImport" xml:space="preserve">
+    <value>Gelişmiş İçe Aktarma</value>
+  </data>
+  <data name="BackToLogin" xml:space="preserve">
+    <value>&lt; Girişe Dön</value>
+  </data>
+  <data name="Tab_Configuration" xml:space="preserve">
+    <value>Yapılandırma</value>
+  </data>
+  <data name="GeneralConfigFile" xml:space="preserve">
+    <value>Genel Yapılandırma Dosyası</value>
+  </data>
+  <data name="GeneralConfigDesc" xml:space="preserve">
+    <value>Tüm ayarlar (Pano hariç) bu JSON dosyasına kaydedilir. Ayarları içe aktarmak için mevcut bir dosyayı gösterebilirsiniz.</value>
+  </data>
+  <data name="CurrentPath" xml:space="preserve">
+    <value>Mevcut Yol:</value>
+  </data>
+  <data name="Btn_Change" xml:space="preserve">
+    <value>Değiştir...</value>
+  </data>
+  <data name="Btn_Export" xml:space="preserve">
+    <value>Dışa Aktar...</value>
+  </data>
+  <data name="DbConnectionConfig" xml:space="preserve">
+    <value>Veritabanı Bağlantı Yapılandırması</value>
+  </data>
+  <data name="ServerAddressHost" xml:space="preserve">
+    <value>Sunucu Adresi / Host IP:</value>
+  </data>
+  <data name="Port" xml:space="preserve">
+    <value>Port:</value>
+  </data>
+  <data name="ServerComputerName" xml:space="preserve">
+    <value>Sunucu Bilgisayar Adı (Yedek):</value>
+  </data>
+  <data name="UseWindowsAuth" xml:space="preserve">
+    <value>Windows Kimlik Doğrulaması Kullan (Tümleşik Güvenlik)</value>
+  </data>
+  <data name="DbUsername" xml:space="preserve">
+    <value>Veritabanı Kullanıcı Adı:</value>
+  </data>
+  <data name="DbPassword" xml:space="preserve">
+    <value>Veritabanı Şifresi:</value>
+  </data>
+  <data name="NetworkRemoteSettings" xml:space="preserve">
+    <value>Ağ / Uzak Erişim Ayarları</value>
+  </data>
+  <data name="ConnectionTimeoutSec" xml:space="preserve">
+    <value>Bağlantı Zaman Aşımı (sn):</value>
+  </data>
+  <data name="TrustServerCertificate" xml:space="preserve">
+    <value>Sunucu Sertifikasına Güven (SSL/TLS)</value>
+  </data>
+  <data name="AutomationDashboardFolder" xml:space="preserve">
+    <value>Otomasyon &amp; Pano Klasörü</value>
+  </data>
+  <data name="EnableDashboardFolderScan" xml:space="preserve">
+    <value>Pano Klasörü Taramasını Etkinleştir</value>
+  </data>
+  <data name="FolderRelativeApp" xml:space="preserve">
+    <value>Klasör çalıştırılabilir dosyaya göre (Uygulama Klasörü)</value>
+  </data>
+  <data name="FolderSpecificPath" xml:space="preserve">
+    <value>Klasör belirli bir yolda</value>
+  </data>
+  <data name="FolderPath" xml:space="preserve">
+    <value>Klasör Yolu:</value>
+  </data>
+  <data name="DefaultDashboardFile" xml:space="preserve">
+    <value>Varsayılan Pano Dosyası:</value>
+  </data>
+  <data name="OfflineModeConfig" xml:space="preserve">
+    <value>Çevrimdışı Mod Yapılandırması</value>
+  </data>
+  <data name="OfflineDataFolder" xml:space="preserve">
+    <value>Çevrimdışı Veri Klasörü:</value>
+  </data>
+  <data name="CreateOfflineDataImage" xml:space="preserve">
+    <value>Çevrimdışı Veri Görüntüsü Oluştur (Yedekleme)</value>
+  </data>
+  <data name="OfflineDataImageDesc" xml:space="preserve">
+    <value>Çevrimdışı klasörünüze indirilecek tabloları seçin. Bu, ağ kapalıyken uygulamanın çalışmasını sağlar.</value>
+  </data>
+  <data name="LoadAvailableTables" xml:space="preserve">
+    <value>Mevcut Tabloları Yükle</value>
+  </data>
+  <data name="CreateOfflineBackup" xml:space="preserve">
+    <value>Çevrimdışı Yedekleme Oluştur</value>
+  </data>
+  <data name="PerformanceOptimization" xml:space="preserve">
+    <value>Performans Optimizasyonu</value>
+  </data>
+  <data name="DefaultRowLimit" xml:space="preserve">
+    <value>Varsayılan Satır Limiti (0 = Tümü):</value>
+  </data>
+  <data name="ShowDateFilterDashboard" xml:space="preserve">
+    <value>Panoda Tarih Filtresini Göster</value>
+  </data>
+  <data name="DateSliderTickSize" xml:space="preserve">
+    <value>Tarih Kaydırıcı Adım Boyutu:</value>
+  </data>
+  <data name="Tab_UserManagement" xml:space="preserve">
+    <value>Kullanıcı Yönetimi</value>
+  </data>
+  <data name="Btn_RefreshList" xml:space="preserve">
+    <value>Listeyi Yenile</value>
+  </data>
+  <data name="Grid_ID" xml:space="preserve">
+    <value>ID</value>
+  </data>
+  <data name="Grid_Username" xml:space="preserve">
+    <value>Kullanıcı Adı</value>
+  </data>
+  <data name="Grid_Role" xml:space="preserve">
+    <value>Rol</value>
+  </data>
+  <data name="Grid_FirstName" xml:space="preserve">
+    <value>Ad</value>
+  </data>
+  <data name="Grid_LastName" xml:space="preserve">
+    <value>Soyad</value>
+  </data>
+  <data name="Grid_Email" xml:space="preserve">
+    <value>E-posta</value>
+  </data>
+  <data name="Btn_Delete" xml:space="preserve">
+    <value>Sil</value>
+  </data>
+  <data name="AddNewUser" xml:space="preserve">
+    <value>Yeni Kullanıcı Ekle</value>
+  </data>
+  <data name="Lbl_UsernameReq" xml:space="preserve">
+    <value>Kullanıcı Adı *</value>
+  </data>
+  <data name="Lbl_PasswordReq" xml:space="preserve">
+    <value>Şifre *</value>
+  </data>
+  <data name="Lbl_Role" xml:space="preserve">
+    <value>Rol</value>
+  </data>
+  <data name="Lbl_Email" xml:space="preserve">
+    <value>E-posta</value>
+  </data>
+  <data name="Lbl_FirstName" xml:space="preserve">
+    <value>Ad</value>
+  </data>
+  <data name="Lbl_LastName" xml:space="preserve">
+    <value>Soyad</value>
+  </data>
+  <data name="Btn_AddUser" xml:space="preserve">
+    <value>Kullanıcı Ekle</value>
+  </data>
+  <data name="ToolTip_ChangeConfig" xml:space="preserve">
+    <value>Uygulamayı mevcut general_config.json dosyasına yönlendirin veya yeni bir konum seçin</value>
+  </data>
+  <data name="ToolTip_ExportConfig" xml:space="preserve">
+    <value>Mevcut sistem ayarlarını bir JSON dosyasına dışa aktar (pano hariç)</value>
+  </data>
+  <data name="ToolTip_PortDefault" xml:space="preserve">
+    <value>Varsayılan: 1433</value>
+  </data>
+  <data name="ToolTip_ServerName" xml:space="preserve">
+    <value>IP Adresi değişirse, uygulama bu adı kullanarak bağlanmaya çalışır.</value>
+  </data>
+  <data name="ToolTip_SelectFileInFolder" xml:space="preserve">
+    <value>İstenen klasörün içinde bir dosya seçin</value>
+  </data>
+  <data name="ToolTip_DashboardJson" xml:space="preserve">
+    <value>örn. dashboard.json</value>
+  </data>
+  <data name="ToolTip_OfflineFolder" xml:space="preserve">
+    <value>Yedek .csv dosyalarını içeren yol.</value>
+  </data>
+  <data name="ToolTip_SelectOfflineFolder" xml:space="preserve">
+    <value>Çevrimdışı klasörü seçin</value>
+  </data>
+  <data name="ToolTip_RowLimit" xml:space="preserve">
+    <value>Ağ yüklemesini hızlandırmak için varsayılan olarak kaç satır çekileceğini sınırlar.</value>
+  </data>
+  <data name="Title_ExportConfig" xml:space="preserve">
+    <value>Genel Yapılandırmayı Dışa Aktar (Sistem Ayarları)</value>
+  </data>
+  <data name="Msg_ConfigExportSuccess" xml:space="preserve">
+    <value>Yapılandırma başarıyla dışa aktarıldı!</value>
+  </data>
+  <data name="Title_Export" xml:space="preserve">
+    <value>Dışa Aktar</value>
+  </data>
+  <data name="Title_SelectConfigLocation" xml:space="preserve">
+    <value>Genel Yapılandırma JSON Dosyası Konumunu Seçin</value>
+  </data>
+  <data name="Title_SelectFileInFolder" xml:space="preserve">
+    <value>Hedef klasörde dosya seçin</value>
+  </data>
+  <data name="Title_SelectOfflineFolder" xml:space="preserve">
+    <value>Hedef Çevrimdışı Veri klasörünün içinde bir dosya seçin</value>
+  </data>
+  <data name="Status_FetchingTables" xml:space="preserve">
+    <value>Mevcut tablolar alınıyor...</value>
+  </data>
+  <data name="Status_ReadyBackup" xml:space="preserve">
+    <value>Yedekleme oluşturmaya hazır.</value>
+  </data>
+  <data name="Status_ErrorFetchingTables" xml:space="preserve">
+    <value>Tablolar alınırken hata: {0}</value>
+  </data>
+  <data name="Msg_OfflineFolderRequired" xml:space="preserve">
+    <value>Lütfen önce bir Çevrimdışı Veri Klasörü belirtin.</value>
+  </data>
+  <data name="Title_Error" xml:space="preserve">
+    <value>Hata</value>
+  </data>
+  <data name="Status_DownloadingTable" xml:space="preserve">
+    <value>{0} indiriliyor...</value>
+  </data>
+  <data name="Status_OfflineImageCreated" xml:space="preserve">
+    <value>Çevrimdışı görüntü oluşturuldu. {0} tablo yedeklendi.</value>
+  </data>
+  <data name="Msg_OfflineBackupSuccess" xml:space="preserve">
+    <value>{0} tablo başarıyla dışa aktarıldı:\n{1}</value>
+  </data>
+  <data name="Title_BackupComplete" xml:space="preserve">
+    <value>Yedekleme Tamamlandı</value>
+  </data>
+  <data name="Status_BackupFailed" xml:space="preserve">
+    <value>Yedekleme başarısız: {0}</value>
+  </data>
+  <data name="Msg_OfflineBackupFailed" xml:space="preserve">
+    <value>Yedekleme oluşturulamadı.\n{0}</value>
+  </data>
+  <data name="Msg_InvalidPort" xml:space="preserve">
+    <value>Lütfen geçerli bir Port numarası girin (0-65535).</value>
+  </data>
+  <data name="Title_ValidationError" xml:space="preserve">
+    <value>Doğrulama Hatası</value>
+  </data>
+  <data name="Status_LoadedUsers" xml:space="preserve">
+    <value>{0} kullanıcı yüklendi.</value>
+  </data>
+  <data name="Status_ErrorLoadingUsers" xml:space="preserve">
+    <value>Kullanıcılar yüklenirken hata: {0}</value>
+  </data>
+  <data name="Msg_UsernamePasswordRequired" xml:space="preserve">
+    <value>Kullanıcı Adı ve Şifre (en az 3 karakter) gerekli.</value>
+  </data>
+  <data name="Msg_CannotDeleteAdmin" xml:space="preserve">
+    <value>'admin' silinemez.</value>
+  </data>
+  <data name="Title_Stop" xml:space="preserve">
+    <value>Durdur</value>
+  </data>
+  <data name="Msg_ConfirmDeleteUser" xml:space="preserve">
+    <value>'{0}' kullanıcısı silinsin mi?</value>
+  </data>
+  <data name="Title_Confirm" xml:space="preserve">
+    <value>Onayla</value>
+  </data>
+  <data name="Status_CheckingNetwork" xml:space="preserve">
+    <value>Ağ kontrol ediliyor...</value>
+  </data>
+  <data name="Status_InvalidPort" xml:space="preserve">
+    <value>Geçersiz Port</value>
+  </data>
+  <data name="Msg_PingFailed" xml:space="preserve">
+    <value>'{0}' sunucusuna Ping gönderilemedi.\n\n1. IP adresini kontrol edin.\n2. Güvenlik Duvarını kontrol edin.\n3. Ana makinenin açık olup olmadığını kontrol edin.</value>
+  </data>
+  <data name="Title_NetworkError" xml:space="preserve">
+    <value>Ağ Hatası</value>
+  </data>
+  <data name="Status_TestingConnections" xml:space="preserve">
+    <value>Bağlantılar test ediliyor...</value>
+  </data>
+  <data name="Status_DbMissing" xml:space="preserve">
+    <value>⚠️ VERİTABANI EKSİK.</value>
+  </data>
+  <data name="Msg_DbMissingDetail" xml:space="preserve">
+    <value>Sunucuya Bağlandı! Veritabanları eksik. Oluşturmak için Kaydet &amp; Yeniden Başlat.</value>
+  </data>
+  <data name="Title_Connected" xml:space="preserve">
+    <value>Bağlandı</value>
+  </data>
+  <data name="Msg_ConnectionSuccess" xml:space="preserve">
+    <value>Bağlantı Başarılı!</value>
+  </data>
+  <data name="Title_Success" xml:space="preserve">
+    <value>Başarılı</value>
+  </data>
+  <data name="Status_Failed" xml:space="preserve">
+    <value>❌ BAŞARISIZ.</value>
+  </data>
+  <data name="Msg_ConnectionFailedDetail" xml:space="preserve">
+    <value>Kimlik Doğrulama: {0}\nVeri: {1}</value>
+  </data>
+  <data name="Title_Failed" xml:space="preserve">
+    <value>Başarısız</value>
+  </data>
+  <data name="Msg_InvalidPortDetail" xml:space="preserve">
+    <value>Lütfen geçerli bir Port numarası girin (0-65535).</value>
+  </data>
+  <data name="Msg_CheckIP" xml:space="preserve">
+    <value>IP adresini kontrol edin.</value>
+  </data>
+  <data name="Msg_CheckFirewall" xml:space="preserve">
+    <value>Güvenlik Duvarını kontrol edin.</value>
+  </data>
+  <data name="Msg_CheckHostOn" xml:space="preserve">
+    <value>Ana makinenin açık olup olmadığını kontrol edin.</value>
+  </data>
+  <data name="Msg_DbMissingSaveRestart" xml:space="preserve">
+    <value>Sunucuya Bağlandı! Veritabanları eksik. Oluşturmak için Kaydet &amp; Yeniden Başlat.</value>
+  </data>
+  <data name="Title_Auth" xml:space="preserve">
+    <value>Kimlik Doğrulama</value>
+  </data>
+  <data name="Title_Data" xml:space="preserve">
+    <value>Veri</value>
+  </data>
+  <data name="Msg_ConnectionFailed" xml:space="preserve">
+    <value>BAŞARISIZ.</value>
+  </data>
+  <data name="Filter_JsonFiles" xml:space="preserve">
+    <value>JSON dosyaları (*.json)|*.json|Tüm dosyalar (*.*)|*.*</value>
+  </data>
+  <data name="Filter_AllFiles" xml:space="preserve">
+    <value>Tüm dosyalar|*.*</value>
+  </data>
+  <data name="Title_Saved" xml:space="preserve">
+    <value>Kaydedildi</value>
+  </data>
+  <data name="Msg_RulesSaved" xml:space="preserve">
+    <value>Kurallar başarıyla kaydedildi.</value>
+  </data>
+  <data name="Str_Unknown" xml:space="preserve">
+    <value>Bilinmeyen</value>
+  </data>
+  <data name="Str_ExportRulesDialog" xml:space="preserve">
+    <value>Kuralları Dışa Aktar</value>
+  </data>
+  <data name="Msg_ExportSuccess" xml:space="preserve">
+    <value>Dışa aktarma başarılı!</value>
+  </data>
+  <data name="Msg_ExportFailed" xml:space="preserve">
+    <value>Dışa aktarma başarısız:</value>
+  </data>
+  <data name="Str_ImportRulesDialog" xml:space="preserve">
+    <value>Kuralları İçe Aktar</value>
+  </data>
+  <data name="Msg_ImportedRules" xml:space="preserve">
+    <value>{0} kural içe aktarıldı.</value>
+  </data>
+  <data name="Msg_ImportFailed" xml:space="preserve">
+    <value>İçe aktarma başarısız:</value>
   </data>
 </root>

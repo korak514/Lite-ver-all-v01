@@ -7,9 +7,10 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
-using OfficeOpenXml; // Required for Excel
+using OfficeOpenXml;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Services;
+using WPF_LoginForm.Properties;
 
 namespace WPF_LoginForm.ViewModels
 {
@@ -18,7 +19,6 @@ namespace WPF_LoginForm.ViewModels
         private readonly CategoryMappingService _service;
         private readonly IDialogService _dialogService;
 
-        // Collection bound to DataGrid
         public ObservableCollection<CategoryRule> Rules { get; set; }
 
         private CategoryRule _selectedRule;
@@ -36,7 +36,6 @@ namespace WPF_LoginForm.ViewModels
         public ICommand ImportCommand { get; }
         public ICommand ExportCommand { get; }
 
-        // Action to close the window from ViewModel
         public Action CloseAction { get; set; }
 
         public CategoryConfigViewModel()
@@ -57,7 +56,7 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteAdd(object obj)
         {
-            var newRule = new CategoryRule { StartsWith = "", MapTo = "", Priority = 0 }; // Initialize priority
+            var newRule = new CategoryRule { StartsWith = "", MapTo = "", Priority = 0 };
             Rules.Add(newRule);
             SelectedRule = newRule;
         }
@@ -78,13 +77,13 @@ namespace WPF_LoginForm.ViewModels
 
             _service.SaveRules(validRules);
 
-            MessageBox.Show("Rules saved successfully.", "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(Resources.Msg_RulesSaved, Resources.Title_Saved, MessageBoxButton.OK, MessageBoxImage.Information);
             CloseAction?.Invoke();
         }
 
         private void ExecuteExport(object obj)
         {
-            if (_dialogService.ShowSaveFileDialog("Export Rules", "CategoryRules", ".xlsx", "Excel Files|*.xlsx", out string path))
+            if (_dialogService.ShowSaveFileDialog(Resources.Str_ExportRulesDialog, "CategoryRules", ".xlsx", "Excel Files|*.xlsx", out string path))
             {
                 try
                 {
@@ -92,9 +91,10 @@ namespace WPF_LoginForm.ViewModels
                     using (var package = new ExcelPackage(new FileInfo(path)))
                     {
                         var ws = package.Workbook.Worksheets.Add("Rules");
-                        ws.Cells[1, 1].Value = "StartsWith";
-                        ws.Cells[1, 2].Value = "MapTo";
-                        ws.Cells[1, 3].Value = "Priority"; // Added Priority Export
+                        
+                        ws.Cells[1, 1].Value = Resources.Str_StartsWithRaw;
+                        ws.Cells[1, 2].Value = Resources.Str_GroupAsCategory;
+                        ws.Cells[1, 3].Value = Resources.Str_Priority; 
                         ws.Cells[1, 1, 1, 3].Style.Font.Bold = true;
 
                         int row = 2;
@@ -108,18 +108,18 @@ namespace WPF_LoginForm.ViewModels
                         ws.Cells.AutoFitColumns();
                         package.Save();
                     }
-                    MessageBox.Show("Export successful!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(Resources.Msg_ExportSuccess, Resources.Title_Success, MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Export failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"{Resources.Msg_ExportFailed} {ex.Message}", Resources.Title_Error, MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
 
         private void ExecuteImport(object obj)
         {
-            if (_dialogService.ShowOpenFileDialog("Import Rules", "Excel Files|*.xlsx", out string path))
+            if (_dialogService.ShowOpenFileDialog(Resources.Str_ImportRulesDialog, "Excel Files|*.xlsx", out string path))
             {
                 try
                 {
@@ -130,14 +130,13 @@ namespace WPF_LoginForm.ViewModels
                         if (ws == null || ws.Dimension == null) return;
 
                         var newRules = new List<CategoryRule>();
-                        int startRow = 2; // Assume header is row 1
+                        int startRow = 2;
 
                         for (int row = startRow; row <= ws.Dimension.End.Row; row++)
                         {
                             string startsWith = ws.Cells[row, 1].Text;
                             string mapTo = ws.Cells[row, 2].Text;
 
-                            // Safe parsing of priority
                             int priority = 0;
                             if (ws.Dimension.End.Column >= 3)
                             {
@@ -154,13 +153,15 @@ namespace WPF_LoginForm.ViewModels
                         {
                             Rules.Clear();
                             foreach (var r in newRules) Rules.Add(r);
-                            MessageBox.Show($"Imported {newRules.Count} rules.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                            
+                            string successMsg = string.Format(Resources.Msg_ImportedRules, newRules.Count);
+                            MessageBox.Show(successMsg, Resources.Title_Success, MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Import failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"{Resources.Msg_ImportFailed} {ex.Message}", Resources.Title_Error, MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }

@@ -53,7 +53,7 @@
 
             <TextBlock Text="{x:Static p:Resources.AppSettings}" Foreground="{StaticResource titleColor2}" FontSize="24" FontFamily="Montserrat" VerticalAlignment="Center" />
 
-            <Button Grid.Column="1" Content="&lt; Back to Log In"
+            <Button Grid.Column="1" Content="{x:Static p:Resources.BackToLogin}"
                     Command="{Binding DataContext.ReturnToLoginCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                     Visibility="{Binding DataContext.IsOfflineMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}"
                     Background="#D14545" Style="{StaticResource StandardButtonStyle}" Width="120" FontSize="12" />
@@ -63,7 +63,7 @@
         <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="0">
 
             <!-- TAB 1: CONFIGURATION -->
-            <TabItem Header="Configuration">
+            <TabItem Header="{x:Static p:Resources.Tab_Configuration}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,10,10,0">
                     <StackPanel>
                         <!-- 1. General Settings (Language) -->
@@ -80,20 +80,20 @@
 
                                 <!-- General Config File Location -->
                                 <Separator Background="{StaticResource panelActiveColor}" Margin="0,15,0,10" />
-                                <TextBlock Text="General Config File" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,5" />
-                                <TextBlock Text="All settings (except Dashboard) are saved to this JSON file. You can point the app to an existing file to import settings." Foreground="Gray" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
-                                    <Grid Margin="0,0,0,5">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Current Path:" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                        <TextBox Grid.Column="1" Text="{Binding GeneralConfigPath, Mode=OneWay}" IsReadOnly="True" Height="26" Padding="2" Background="#1AFFFFFF" Foreground="WhiteSmoke" />
-                                        <Button Grid.Column="2" Content="Change..." Command="{Binding ChangeConfigLocationCommand}" Width="80" Height="26" Margin="5,0,0,0" Style="{StaticResource StandardButtonStyle}" ToolTip="Point the app to an existing general_config.json or choose a new location" />
-                                        <Button Grid.Column="3" Content="Export..." Command="{Binding ExportConfigCommand}" Width="80" Height="26" Margin="5,0,0,0" Style="{StaticResource StandardButtonStyle}" Background="#2ECC71" ToolTip="Export current system settings to a JSON file (excluding dashboard part)" />
-                                    </Grid>
+                                <TextBlock Text="{x:Static p:Resources.GeneralConfigFile}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,5" />
+                                <TextBlock Text="{x:Static p:Resources.GeneralConfigDesc}" Foreground="Gray" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
+                                <Grid Margin="0,0,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{x:Static p:Resources.CurrentPath}" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <TextBox Grid.Column="1" Text="{Binding GeneralConfigPath, Mode=OneWay}" IsReadOnly="True" Height="26" Padding="2" Background="#1AFFFFFF" Foreground="WhiteSmoke" />
+                                    <Button Grid.Column="2" Content="{x:Static p:Resources.Btn_Change}" Command="{Binding ChangeConfigLocationCommand}" Width="80" Height="26" Margin="5,0,0,0" Style="{StaticResource StandardButtonStyle}" ToolTip="{x:Static p:Resources.ToolTip_ChangeConfig}" />
+                                    <Button Grid.Column="3" Content="{x:Static p:Resources.Btn_Export}" Command="{Binding ExportConfigCommand}" Width="80" Height="26" Margin="5,0,0,0" Style="{StaticResource StandardButtonStyle}" Background="#2ECC71" ToolTip="{x:Static p:Resources.ToolTip_ExportConfig}" />
+                                </Grid>
                             </StackPanel>
                         </Border>
 
@@ -104,7 +104,7 @@
                                 <SolidColorBrush Color="{StaticResource primaryBackColor2}" />
                             </Border.Background>
                             <StackPanel>
-                                <TextBlock Text="Database Connection Configuration" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,15" />
+                                <TextBlock Text="{x:Static p:Resources.DbConnectionConfig}" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,15" />
                                 <TextBlock Text="{x:Static p:Resources.DbProvider}" Foreground="{StaticResource titleColor3}" Margin="0,0,0,5" />
                                 <ComboBox ItemsSource="{Binding DatabaseTypes}" SelectedItem="{Binding SelectedDatabaseType, Mode=TwoWay}" HorizontalAlignment="Left" Width="200" Margin="0,0,0,15" />
 
@@ -125,33 +125,33 @@
                                     </Grid.RowDefinitions>
 
                                     <!-- Host & Port -->
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Server Address / Host IP:" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static p:Resources.ServerAddressHost}" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
                                     <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding DbHost, UpdateSourceTrigger=PropertyChanged}" Height="28" Margin="0,0,10,10" Padding="2" />
 
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Port:" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
-                                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DbPort, UpdateSourceTrigger=PropertyChanged}" Height="28" Margin="0,0,0,10" Padding="2" ToolTip="Default: 1433" />
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Static p:Resources.Port}" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
+                                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DbPort, UpdateSourceTrigger=PropertyChanged}" Height="28" Margin="0,0,0,10" Padding="2" ToolTip="{x:Static p:Resources.ToolTip_PortDefault}" />
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="Server Computer Name (Backup):" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="{x:Static p:Resources.ServerComputerName}" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
                                     <TextBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
                                              Text="{Binding DbServerName, UpdateSourceTrigger=PropertyChanged}"
                                              Height="28" Margin="0,0,0,10" Padding="2"
-                                             ToolTip="If the IP Address changes, the app will try to connect using this name." />
+                                             ToolTip="{x:Static p:Resources.ToolTip_ServerName}" />
 
                                     <!-- Auth -->
                                     <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Margin="0,5,0,5">
-                                        <CheckBox Content="Use Windows Authentication (Integrated Security)" IsChecked="{Binding UseWindowsAuth, Mode=TwoWay}" Visibility="{Binding IsWindowsAuthVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="White" Margin="0,0,0,10" />
+                                        <CheckBox Content="{x:Static p:Resources.UseWindowsAuth}" IsChecked="{Binding UseWindowsAuth, Mode=TwoWay}" Visibility="{Binding IsWindowsAuthVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="White" Margin="0,0,0,10" />
                                     </StackPanel>
 
-                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Database Username:" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="{x:Static p:Resources.DbUsername}" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
                                     <TextBox Grid.Row="6" Grid.Column="0" Text="{Binding DbUser, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsCredentialsEnabled}" Height="28" Margin="0,0,10,10" Padding="2" />
 
-                                    <TextBlock Grid.Row="5" Grid.Column="1" Text="Database Password:" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
+                                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{x:Static p:Resources.DbPassword}" Foreground="{StaticResource titleColor3}" Margin="0,0,0,2" />
                                     <customcontrols:BindablePasswordBox Grid.Row="6" Grid.Column="1" Password="{Binding DbPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsCredentialsEnabled}" Height="28" Margin="0,0,0,10" />
 
                                     <!-- Network Tuning -->
                                     <StackPanel Grid.Row="7" Grid.ColumnSpan="2" Margin="0,15,0,5">
                                         <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,10" />
-                                        <TextBlock Text="Network / Remote Access Settings" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,5" />
+                                        <TextBlock Text="{x:Static p:Resources.NetworkRemoteSettings}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,5" />
 
                                         <Grid>
                                             <Grid.ColumnDefinitions>
@@ -159,12 +159,12 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <TextBlock Text="Connection Timeout (sec):" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                <TextBlock Text="{x:Static p:Resources.ConnectionTimeoutSec}" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
                                                 <Slider Minimum="5" Maximum="60" Value="{Binding ConnectionTimeout}" Width="150" VerticalAlignment="Center" TickFrequency="5" IsSnapToTickEnabled="True" />
                                                 <TextBlock Text="{Binding ConnectionTimeout}" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="Bold" />
                                             </StackPanel>
 
-                                            <CheckBox Grid.Column="1" Content="Trust Server Certificate (SSL/TLS)" IsChecked="{Binding TrustServerCertificate, Mode=TwoWay}"
+                                            <CheckBox Grid.Column="1" Content="{x:Static p:Resources.TrustServerCertificate}" IsChecked="{Binding TrustServerCertificate, Mode=TwoWay}"
                                                       Foreground="White" VerticalAlignment="Center" />
                                         </Grid>
                                     </StackPanel>
@@ -178,12 +178,12 @@
                                 <SolidColorBrush Color="{StaticResource primaryBackColor2}" />
                             </Border.Background>
                             <StackPanel>
-                                <TextBlock Text="Automation &amp; Dashboard Folder" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,15" />
-                                <CheckBox Content="Enable Dashboard Folder Scanning" IsChecked="{Binding AutoImportEnabled, Mode=TwoWay}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                <TextBlock Text="{x:Static p:Resources.AutomationDashboardFolder}" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,15" />
+                                <CheckBox Content="{x:Static p:Resources.EnableDashboardFolderScan}" IsChecked="{Binding AutoImportEnabled, Mode=TwoWay}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
 
                                 <StackPanel Margin="20,0,0,15" IsEnabled="{Binding IsImportConfigEnabled}">
-                                    <RadioButton GroupName="ImportMode" Content="Folder is relative to executable (App Folder)" IsChecked="{Binding ImportIsRelative, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
-                                    <RadioButton GroupName="ImportMode" Content="Folder is at a specific path" IsChecked="{Binding ImportIsAbsolute, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
+                                    <RadioButton GroupName="ImportMode" Content="{x:Static p:Resources.FolderRelativeApp}" IsChecked="{Binding ImportIsRelative, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
+                                    <RadioButton GroupName="ImportMode" Content="{x:Static p:Resources.FolderSpecificPath}" IsChecked="{Binding ImportIsAbsolute, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
 
                                     <!-- Absolute Path Selector -->
                                     <Grid Margin="0,5,0,10" Visibility="{Binding IsAbsoluteInputVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -192,9 +192,9 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Folder Path:" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <TextBlock Grid.Column="0" Text="{x:Static p:Resources.FolderPath}" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
                                         <TextBox Grid.Column="1" Text="{Binding ImportAbsolutePath, UpdateSourceTrigger=PropertyChanged}" Height="26" Padding="2" />
-                                        <Button Grid.Column="2" Content="..." Command="{Binding BrowseImportFileCommand}" Width="30" Height="26" Margin="5,0,0,0" ToolTip="Select a file inside the desired folder" />
+                                        <Button Grid.Column="2" Content="..." Command="{Binding BrowseImportFileCommand}" Width="30" Height="26" Margin="5,0,0,0" ToolTip="{x:Static p:Resources.ToolTip_SelectFileInFolder}" />
                                     </Grid>
 
                                     <!-- Default File Name -->
@@ -203,14 +203,14 @@
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Default Dashboard File:" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                        <TextBox Grid.Column="1" Text="{Binding ImportFileName, UpdateSourceTrigger=PropertyChanged}" Height="26" Padding="2" ToolTip="e.g. dashboard.json" />
+                                        <TextBlock Grid.Column="0" Text="{x:Static p:Resources.DefaultDashboardFile}" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <TextBox Grid.Column="1" Text="{Binding ImportFileName, UpdateSourceTrigger=PropertyChanged}" Height="26" Padding="2" ToolTip="{x:Static p:Resources.ToolTip_DashboardJson}" />
                                     </Grid>
                                 </StackPanel>
 
-                                <!-- NEW: Offline Folders & Backup Image Maker -->
+                                <!-- Offline Folders & Backup Image Maker -->
                                 <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,15" />
-                                <TextBlock Text="Offline Mode Configuration" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                <TextBlock Text="{x:Static p:Resources.OfflineModeConfig}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
 
                                 <Grid Margin="0,5,0,15">
                                     <Grid.ColumnDefinitions>
@@ -218,17 +218,17 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Offline Data Folder:" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                    <TextBox Grid.Column="1" Text="{Binding OfflineFolderPath, UpdateSourceTrigger=PropertyChanged}" Height="26" Padding="2" ToolTip="Path containing fallback .csv files." />
-                                    <Button Grid.Column="2" Content="..." Command="{Binding BrowseOfflineFolderCommand}" Width="30" Height="26" Margin="5,0,0,0" ToolTip="Select offline folder" />
+                                    <TextBlock Grid.Column="0" Text="{x:Static p:Resources.OfflineDataFolder}" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <TextBox Grid.Column="1" Text="{Binding OfflineFolderPath, UpdateSourceTrigger=PropertyChanged}" Height="26" Padding="2" ToolTip="{x:Static p:Resources.ToolTip_OfflineFolder}" />
+                                    <Button Grid.Column="2" Content="..." Command="{Binding BrowseOfflineFolderCommand}" Width="30" Height="26" Margin="5,0,0,0" ToolTip="{x:Static p:Resources.ToolTip_SelectOfflineFolder}" />
                                 </Grid>
 
-                                <!-- NEW: Offline Image Creation UI -->
+                                <!-- Offline Image Creation UI -->
                                 <StackPanel Margin="0,0,0,15" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <TextBlock Text="Create Offline Data Image (Backup)" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,5" />
-                                    <TextBlock Text="Select tables to download to your offline folder. This allows the app to function when the network is down." Foreground="Gray" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10" />
+                                    <TextBlock Text="{x:Static p:Resources.CreateOfflineDataImage}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,5" />
+                                    <TextBlock Text="{x:Static p:Resources.OfflineDataImageDesc}" Foreground="Gray" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10" />
 
-                                    <Button Content="Load Available Tables" Command="{Binding LoadBackupTablesCommand}" Style="{StaticResource StandardButtonStyle}" Width="150" HorizontalAlignment="Left" Margin="0,0,0,10" />
+                                    <Button Content="{x:Static p:Resources.LoadAvailableTables}" Command="{Binding LoadBackupTablesCommand}" Style="{StaticResource StandardButtonStyle}" Width="150" HorizontalAlignment="Left" Margin="0,0,0,10" />
 
                                     <ItemsControl ItemsSource="{Binding BackupTables}" MaxHeight="150" Margin="0,0,0,10">
                                         <ItemsControl.Template>
@@ -245,20 +245,20 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
 
-                                    <Button Content="Create Offline Backup" Command="{Binding CreateOfflineBackupCommand}" Style="{StaticResource StandardButtonStyle}" Background="#FFD14545" Width="180" HorizontalAlignment="Left" />
+                                    <Button Content="{x:Static p:Resources.CreateOfflineBackup}" Command="{Binding CreateOfflineBackupCommand}" Style="{StaticResource StandardButtonStyle}" Background="#FFD14545" Width="180" HorizontalAlignment="Left" />
                                 </StackPanel>
 
                                 <!-- Global Data Limit Settings -->
                                 <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,15" />
-                                <TextBlock Text="Performance Optimization" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                <TextBlock Text="{x:Static p:Resources.PerformanceOptimization}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                    <TextBlock Text="Default Row Limit (0 = All):" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                    <TextBox Text="{Binding DefaultRowLimit, UpdateSourceTrigger=PropertyChanged}" Width="50" Height="26" Padding="2" HorizontalContentAlignment="Center" ToolTip="Limits how many rows are fetched by default to speed up network loading." />
+                                    <TextBlock Text="{x:Static p:Resources.DefaultRowLimit}" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <TextBox Text="{Binding DefaultRowLimit, UpdateSourceTrigger=PropertyChanged}" Width="50" Height="26" Padding="2" HorizontalContentAlignment="Center" ToolTip="{x:Static p:Resources.ToolTip_RowLimit}" />
                                 </StackPanel>
 
-                                <CheckBox Content="Show Date Filter on Dashboard" IsChecked="{Binding ShowDashboardDateFilter, Mode=TwoWay}" Foreground="White" Margin="0,0,0,10" />
+                                <CheckBox Content="{x:Static p:Resources.ShowDateFilterDashboard}" IsChecked="{Binding ShowDashboardDateFilter, Mode=TwoWay}" Foreground="White" Margin="0,0,0,10" />
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="Date Slider Tick Size (Step):" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <TextBlock Text="{x:Static p:Resources.DateSliderTickSize}" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
                                     <TextBox Text="{Binding DashboardDateTickSize, UpdateSourceTrigger=PropertyChanged}" Width="50" Height="26" Padding="2" HorizontalContentAlignment="Center" />
                                 </StackPanel>
                             </StackPanel>
@@ -276,7 +276,7 @@
             </TabItem>
 
             <!-- TAB 2: USER MANAGEMENT -->
-            <TabItem Header="User Management" Visibility="{Binding CanManageUsers, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TabItem Header="{x:Static p:Resources.Tab_UserManagement}" Visibility="{Binding CanManageUsers, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid Margin="0,10,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -284,7 +284,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <Button Content="Refresh List" Command="{Binding LoadUsersCommand}" HorizontalAlignment="Right" Width="100" Margin="0,0,5,10" Style="{StaticResource StandardButtonStyle}" />
+                    <Button Content="{x:Static p:Resources.Btn_RefreshList}" Command="{Binding LoadUsersCommand}" HorizontalAlignment="Right" Width="100" Margin="0,0,5,10" Style="{StaticResource StandardButtonStyle}" />
 
                     <DataGrid Grid.Row="1" ItemsSource="{Binding Users}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                               Background="Transparent" BorderThickness="1" BorderBrush="{StaticResource panelActiveColor}" HeadersVisibility="Column">
@@ -296,16 +296,16 @@
                             </Style>
                         </DataGrid.ColumnHeaderStyle>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50" />
-                            <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="120" />
-                            <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="80" FontWeight="Bold" />
-                            <DataGridTextColumn Header="First Name" Binding="{Binding Name}" Width="*" />
-                            <DataGridTextColumn Header="Last Name" Binding="{Binding LastName}" Width="*" />
-                            <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="150" />
+                            <DataGridTextColumn Header="{x:Static p:Resources.Grid_ID}" Binding="{Binding Id}" Width="50" />
+                            <DataGridTextColumn Header="{x:Static p:Resources.Grid_Username}" Binding="{Binding Username}" Width="120" />
+                            <DataGridTextColumn Header="{x:Static p:Resources.Grid_Role}" Binding="{Binding Role}" Width="80" FontWeight="Bold" />
+                            <DataGridTextColumn Header="{x:Static p:Resources.Grid_FirstName}" Binding="{Binding Name}" Width="*" />
+                            <DataGridTextColumn Header="{x:Static p:Resources.Grid_LastName}" Binding="{Binding LastName}" Width="*" />
+                            <DataGridTextColumn Header="{x:Static p:Resources.Grid_Email}" Binding="{Binding Email}" Width="150" />
                             <DataGridTemplateColumn Width="80">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Content="Delete" Command="{Binding DataContext.DeleteUserCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        <Button Content="{x:Static p:Resources.Btn_Delete}" Command="{Binding DataContext.DeleteUserCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}" Background="#D14545" Foreground="White" Padding="5,2" BorderThickness="0" Cursor="Hand" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -328,35 +328,35 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Grid.Row="0" Grid.ColumnSpan="4" Text="Add New User" Foreground="White" FontWeight="Bold" Margin="0,0,0,10" />
+                            <TextBlock Grid.Row="0" Grid.ColumnSpan="4" Text="{x:Static p:Resources.AddNewUser}" Foreground="White" FontWeight="Bold" Margin="0,0,0,10" />
 
                             <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="Username *" Foreground="Gray" FontSize="10" />
+                                <TextBlock Text="{x:Static p:Resources.Lbl_UsernameReq}" Foreground="Gray" FontSize="10" />
                                 <TextBox Text="{Binding NewUserUsername, UpdateSourceTrigger=PropertyChanged}" Height="25" />
                             </StackPanel>
                             <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,10,0">
-                                <TextBlock Text="Password *" Foreground="Gray" FontSize="10" />
+                                <TextBlock Text="{x:Static p:Resources.Lbl_PasswordReq}" Foreground="Gray" FontSize="10" />
                                 <customcontrols:BindablePasswordBox Password="{Binding NewUserPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="25" />
                             </StackPanel>
                             <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,10,0">
-                                <TextBlock Text="Role" Foreground="Gray" FontSize="10" />
+                                <TextBlock Text="{x:Static p:Resources.Lbl_Role}" Foreground="Gray" FontSize="10" />
                                 <ComboBox ItemsSource="{Binding AvailableRoles}" SelectedItem="{Binding NewUserRole, Mode=TwoWay}" Height="25" />
                             </StackPanel>
                             <StackPanel Grid.Row="1" Grid.Column="3">
-                                <TextBlock Text="Email" Foreground="Gray" FontSize="10" />
+                                <TextBlock Text="{x:Static p:Resources.Lbl_Email}" Foreground="Gray" FontSize="10" />
                                 <TextBox Text="{Binding NewUserEmail, UpdateSourceTrigger=PropertyChanged}" Height="25" />
                             </StackPanel>
 
                             <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,10,10,0">
-                                <TextBlock Text="First Name" Foreground="Gray" FontSize="10" />
+                                <TextBlock Text="{x:Static p:Resources.Lbl_FirstName}" Foreground="Gray" FontSize="10" />
                                 <TextBox Text="{Binding NewUserName, UpdateSourceTrigger=PropertyChanged}" Height="25" />
                             </StackPanel>
                             <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,10,10,0">
-                                <TextBlock Text="Last Name" Foreground="Gray" FontSize="10" />
+                                <TextBlock Text="{x:Static p:Resources.Lbl_LastName}" Foreground="Gray" FontSize="10" />
                                 <TextBox Text="{Binding NewUserLastName, UpdateSourceTrigger=PropertyChanged}" Height="25" />
                             </StackPanel>
 
-                            <Button Grid.Row="2" Grid.Column="3" Content="Add User" Command="{Binding AddUserCommand}" Margin="0,23,0,0" Height="25" Style="{StaticResource StandardButtonStyle}" />
+                            <Button Grid.Row="2" Grid.Column="3" Content="{x:Static p:Resources.Btn_AddUser}" Command="{Binding AddUserCommand}" Margin="0,23,0,0" Height="25" Style="{StaticResource StandardButtonStyle}" />
                         </Grid>
                     </Border>
                 </Grid>

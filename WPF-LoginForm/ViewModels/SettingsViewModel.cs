@@ -250,7 +250,7 @@ namespace WPF_LoginForm.ViewModels
         {
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
-                Title = "Export General Configuration (System Settings)",
+                Title = Resources.Title_ExportConfig,
                 Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
                 FileName = "exported_general_config.json"
             };
@@ -258,7 +258,7 @@ namespace WPF_LoginForm.ViewModels
             if (dialog.ShowDialog() == true)
             {
                 GeneralSettingsManager.Instance.ExportGeneralConfig(dialog.FileName);
-                MessageBox.Show("Configuration exported successfully!", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(Resources.Msg_ConfigExportSuccess, Resources.Title_Export, MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
@@ -266,7 +266,7 @@ namespace WPF_LoginForm.ViewModels
         {
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
-                Title = "Select General Config JSON File Location",
+                Title = Resources.Title_SelectConfigLocation,
                 Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
                 FileName = "general_config.json"
             };
@@ -279,13 +279,13 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteBrowseImportFile(object obj)
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Select file in target folder", Filter = "All files|*.*", CheckFileExists = true };
+            var dialog = new Microsoft.Win32.OpenFileDialog { Title = Resources.Title_SelectFileInFolder, Filter = "All files|*.*", CheckFileExists = true };
             if (dialog.ShowDialog() == true) ImportAbsolutePath = Path.GetDirectoryName(dialog.FileName);
         }
 
         private void ExecuteBrowseOfflineFolder(object obj)
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Select any file inside the target Offline Data folder", Filter = "All files|*.*", CheckFileExists = true };
+            var dialog = new Microsoft.Win32.OpenFileDialog { Title = Resources.Title_SelectOfflineFolder, Filter = "All files|*.*", CheckFileExists = true };
             if (dialog.ShowDialog() == true) OfflineFolderPath = Path.GetDirectoryName(dialog.FileName);
         }
 
@@ -293,7 +293,7 @@ namespace WPF_LoginForm.ViewModels
         {
             if (_dataRepository == null) return;
             IsBusy = true;
-            StatusMessage = "Fetching available tables...";
+            StatusMessage = Resources.Status_FetchingTables;
             try
             {
                 var tables = await _dataRepository.GetTableNamesAsync();
@@ -304,7 +304,7 @@ namespace WPF_LoginForm.ViewModels
                     st.PropertyChanged += (s, e) => { (CreateOfflineBackupCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); };
                     BackupTables.Add(st);
                 }
-                StatusMessage = "Ready to create backup.";
+                StatusMessage = Resources.Status_ReadyBackup;
                 (CreateOfflineBackupCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             }
             catch (Exception ex)
@@ -324,7 +324,7 @@ namespace WPF_LoginForm.ViewModels
 
             if (string.IsNullOrWhiteSpace(OfflineFolderPath))
             {
-                MessageBox.Show("Please specify an Offline Data Folder first.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Resources.Msg_OfflineFolderRequired, Resources.Title_ValidationError, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -349,7 +349,7 @@ namespace WPF_LoginForm.ViewModels
                 }
 
                 StatusMessage = $"Offline image created. {count} tables backed up.";
-                MessageBox.Show($"Successfully exported {count} tables to:\n{OfflineFolderPath}", "Backup Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"Successfully exported {count} tables to:\n{OfflineFolderPath}", Resources.Title_BackupComplete, MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -366,7 +366,7 @@ namespace WPF_LoginForm.ViewModels
         {
             if (!int.TryParse(DbPort, out int portNum) || portNum < 0 || portNum > 65535)
             {
-                MessageBox.Show("Please enter a valid Port number (0-65535).", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Please enter a valid Port number (0-65535).", Resources.Title_ValidationError, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -495,7 +495,7 @@ namespace WPF_LoginForm.ViewModels
                 var usersList = await Task.Run(() => _userRepository.GetByAll());
                 Users.Clear();
                 foreach (var user in usersList) Users.Add(user);
-                StatusMessage = $"Loaded {Users.Count} users.";
+                StatusMessage = $"Loaded {Users.Count} {Resources.Status_LoadedUsers}";
             }
             catch (Exception ex) { StatusMessage = $"Error loading users: {ex.Message}"; }
             finally { IsBusy = false; }
@@ -505,7 +505,7 @@ namespace WPF_LoginForm.ViewModels
         {
             if (string.IsNullOrWhiteSpace(NewUserUsername) || NewUserPassword == null || NewUserPassword.Length < 3)
             {
-                MessageBox.Show("Username and Password (min 3 chars) required.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Resources.Msg_UsernamePasswordRequired, Resources.Title_ValidationError, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
             IsBusy = true;
@@ -529,10 +529,10 @@ namespace WPF_LoginForm.ViewModels
             {
                 if (user.Username.Equals("admin", StringComparison.OrdinalIgnoreCase))
                 {
-                    MessageBox.Show("Cannot delete 'admin'.", "Stop", MessageBoxButton.OK, MessageBoxImage.Stop);
+                    MessageBox.Show(Resources.Msg_CannotDeleteAdmin, Resources.Title_Stop, MessageBoxButton.OK, MessageBoxImage.Stop);
                     return;
                 }
-                if (MessageBox.Show($"Delete user '{user.Username}'?", "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                if (MessageBox.Show($"{Resources.Msg_ConfirmDeleteUser} '{user.Username}'?", Resources.Title_Confirm, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                 {
                     IsBusy = true;
                     try { if (!string.IsNullOrEmpty(user.Id)) { await Task.Run(() => _userRepository.Remove(user.Id)); StatusMessage = Resources.Msg_UserDeleted; ExecuteLoadUsers(null); } }
@@ -545,14 +545,14 @@ namespace WPF_LoginForm.ViewModels
         private async void ExecuteTestConnection(object obj)
         {
             IsBusy = true;
-            StatusMessage = "Checking Network...";
+            StatusMessage = Resources.Status_CheckingNetwork;
             string host = DbHost;
 
             if (!int.TryParse(DbPort, out int portNum) || portNum < 0 || portNum > 65535)
             {
                 IsBusy = false;
-                StatusMessage = "Invalid Port";
-                MessageBox.Show("Please enter a valid Port number (0-65535).", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                StatusMessage = Resources.Msg_InvalidPort;
+                MessageBox.Show(Resources.Msg_InvalidPortDetail, Resources.Title_ValidationError, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -568,13 +568,13 @@ namespace WPF_LoginForm.ViewModels
                 {
                     IsBusy = false;
                     StatusMessage = "❌ " + Resources.Msg_NetworkUnreachable;
-                    MessageBox.Show($"Could not Ping the server '{host}'.\n\n1. Check IP.\n2. Check Firewall.\n3. Check if host is on.", "Network Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"{Resources.Msg_PingFailed} '{host}'.\n\n1. {Resources.Msg_CheckIP}\n2. {Resources.Msg_CheckFirewall}\n3. {Resources.Msg_CheckHostOn}", Resources.Title_NetworkError, MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
             }
 
             RebuildConnectionStrings();
-            StatusMessage = "Testing connections...";
+            StatusMessage = Resources.Status_TestingConnections;
             bool authSuccess = false, dataSuccess = false;
             string authError = "", dataError = "";
 
@@ -594,19 +594,19 @@ namespace WPF_LoginForm.ViewModels
                 bool dataMissing = dataError.Contains("missing");
                 if (authMissing || dataMissing)
                 {
-                    StatusMessage = "⚠️ DB MISSING.";
-                    MessageBox.Show("Server Connected! Databases missing. Save & Restart to create them.", "Connected", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    StatusMessage = Resources.Status_DbMissing;
+                    MessageBox.Show(Resources.Msg_DbMissingSaveRestart, Resources.Title_Connected, MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
                 else
                 {
                     StatusMessage = "✅ " + Resources.Status_Ready;
-                    MessageBox.Show("Connection Successful!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(Resources.Msg_ConnectionSuccess, Resources.Title_Success, MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             else
             {
-                StatusMessage = "❌ FAILED.";
-                MessageBox.Show($"Auth: {authError}\nData: {dataError}", "Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusMessage = "❌ " + Resources.Msg_ConnectionFailed;
+                MessageBox.Show($"{Resources.Title_Auth}: {authError}\n{Resources.Title_Data}: {dataError}", Resources.Title_Failed, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

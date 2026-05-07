@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using WPF_LoginForm.Models;
+using WPF_LoginForm.Properties;
 
 namespace WPF_LoginForm.Services
 {
@@ -35,7 +36,8 @@ namespace WPF_LoginForm.Services
 
         public string GetMappedCategory(string rawDescription, List<CategoryRule> rules)
         {
-            if (string.IsNullOrWhiteSpace(rawDescription)) return "Unknown";
+            // Replaced hardcoded "Unknown" with localized resource string
+            if (string.IsNullOrWhiteSpace(rawDescription)) return Resources.Str_Unknown;
 
             // 1. Check against user-defined rules (Priority runs first because LoadRules sorted them)
             if (rules != null)
