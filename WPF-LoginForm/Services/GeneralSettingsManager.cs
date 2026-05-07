@@ -26,20 +26,33 @@ namespace WPF_LoginForm.Services
 
         public string GetResolvedConfigPath()
         {
-            if (File.Exists(_configLocationPointerFile))
+            // 1. Check LOCAL directory first (Highest Priority)
+            string localPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "general_config.json");
+            if (File.Exists(localPath))
             {
-                string customPath = File.ReadAllText(_configLocationPointerFile).Trim();
-                if (!string.IsNullOrEmpty(customPath))
-                {
-                    // Could be a directory or a full file path. If it's a directory, append the filename.
-                    if (Directory.Exists(customPath))
-                        return Path.Combine(customPath, "general_config.json");
-                    else if (customPath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                        return customPath;
-                }
+                return localPath;
             }
 
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "general_config.json");
+            // 2. Check for custom location pointer
+            if (File.Exists(_configLocationPointerFile))
+            {
+                try
+                {
+                    string customPath = File.ReadAllText(_configLocationPointerFile).Trim();
+                    if (!string.IsNullOrEmpty(customPath))
+                    {
+                        // Could be a directory or a full file path
+                        if (Directory.Exists(customPath))
+                            return Path.Combine(customPath, "general_config.json");
+                        else if (customPath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                            return customPath;
+                    }
+                }
+                catch { }
+            }
+
+            // 3. Fallback to local path as default
+            return localPath;
         }
 
         public void SetCustomConfigPath(string newPath)
@@ -60,6 +73,9 @@ namespace WPF_LoginForm.Services
                 {
                     string json = File.ReadAllText(configPath);
                     Current = JsonConvert.DeserializeObject<GeneralSettings>(json) ?? new GeneralSettings();
+                    
+                    // After loading the general part, ensure the dashboard part is loaded from legacy/backup
+                    LoadDashboardPart();
                 }
                 catch (Exception ex)
                 {
@@ -75,28 +91,29 @@ namespace WPF_LoginForm.Services
 
         private void LoadFromLegacyBackup()
         {
-            Current = new GeneralSettings
-            {
-                DbProvider = Settings.Default.DbProvider,
-                SqlAuthConnString = Settings.Default.SqlAuthConnString,
-                SqlDataConnString = Settings.Default.SqlDataConnString,
-                PostgresDataConnString = Settings.Default.PostgresDataConnString,
-                PostgresAuthConnString = Settings.Default.PostgresAuthConnString,
-                AppLanguage = Settings.Default.AppLanguage,
-                AutoImportEnabled = Settings.Default.AutoImportEnabled,
-                ImportIsRelative = Settings.Default.ImportIsRelative,
-                ImportFileName = Settings.Default.ImportFileName,
-                ImportAbsolutePath = Settings.Default.ImportAbsolutePath,
-                ShowDashboardDateFilter = Settings.Default.ShowDashboardDateFilter,
-                DashboardDateTickSize = Settings.Default.DashboardDateTickSize,
-                DefaultRowLimit = Settings.Default.DefaultRowLimit,
-                ConnectionTimeout = Settings.Default.ConnectionTimeout,
-                TrustServerCertificate = Settings.Default.TrustServerCertificate,
-                DbServerName = Settings.Default.DbServerName,
-                DbHost = Settings.Default.DbHost,
-                DbPort = Settings.Default.DbPort,
-                DbUser = Settings.Default.DbUser
-            };
+            Current = new GeneralSettings();
+            LoadGeneralPartFromLegacy();
+            LoadDashboardPart();
+        }
+
+        private void LoadGeneralPartFromLegacy()
+        {
+            Current.DbProvider = Settings.Default.DbProvider;
+            Current.SqlAuthConnString = Settings.Default.SqlAuthConnString;
+            Current.SqlDataConnString = Settings.Default.SqlDataConnString;
+            Current.PostgresDataConnString = Settings.Default.PostgresDataConnString;
+            Current.PostgresAuthConnString = Settings.Default.PostgresAuthConnString;
+            Current.AppLanguage = Settings.Default.AppLanguage;
+            Current.AutoImportEnabled = Settings.Default.AutoImportEnabled;
+            Current.ImportIsRelative = Settings.Default.ImportIsRelative;
+            Current.ImportFileName = Settings.Default.ImportFileName;
+            Current.ImportAbsolutePath = Settings.Default.ImportAbsolutePath;
+            Current.ConnectionTimeout = Settings.Default.ConnectionTimeout;
+            Current.TrustServerCertificate = Settings.Default.TrustServerCertificate;
+            Current.DbServerName = Settings.Default.DbServerName;
+            Current.DbHost = Settings.Default.DbHost;
+            Current.DbPort = Settings.Default.DbPort;
+            Current.DbUser = Settings.Default.DbUser;
 
             // Load offline path
             string offlineConfig = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "offline_path.txt");
@@ -104,8 +121,17 @@ namespace WPF_LoginForm.Services
                 Current.OfflineFolderPath = File.ReadAllText(offlineConfig).Trim();
             else
                 Current.OfflineFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "OfflineData");
+        }
 
-            // Load category rules
+        private void LoadDashboardPart()
+        {
+            if (Current == null) Current = new GeneralSettings();
+
+            Current.ShowDashboardDateFilter = Settings.Default.ShowDashboardDateFilter;
+            Current.DashboardDateTickSize = Settings.Default.DashboardDateTickSize;
+            Current.DefaultRowLimit = Settings.Default.DefaultRowLimit;
+
+            // Load category rules from its dedicated file
             string categoryRulesPath = "category_rules.json";
             if (File.Exists(categoryRulesPath))
             {
@@ -133,11 +159,13 @@ namespace WPF_LoginForm.Services
                     Directory.CreateDirectory(dir);
                 }
 
-                // Save to main general_config.json
+                // 1. Save GENERAL part to main general_config.json
+                // Because of [JsonIgnore] on dashboard properties, they are excluded here
                 string json = JsonConvert.SerializeObject(Current, Formatting.Indented);
                 File.WriteAllText(configPath, json);
 
-                // Save to legacy backup (Properties.Settings)
+                // 2. Save DASHBOARD part to legacy backup (Properties.Settings)
+                // This keeps them persisted without cluttering the general config file
                 Settings.Default.DbProvider = Current.DbProvider;
                 Settings.Default.SqlAuthConnString = Current.SqlAuthConnString;
                 Settings.Default.SqlDataConnString = Current.SqlDataConnString;
@@ -148,9 +176,12 @@ namespace WPF_LoginForm.Services
                 Settings.Default.ImportIsRelative = Current.ImportIsRelative;
                 Settings.Default.ImportFileName = Current.ImportFileName;
                 Settings.Default.ImportAbsolutePath = Current.ImportAbsolutePath;
+                
+                // Dashboard specifically
                 Settings.Default.ShowDashboardDateFilter = Current.ShowDashboardDateFilter;
                 Settings.Default.DashboardDateTickSize = Current.DashboardDateTickSize;
                 Settings.Default.DefaultRowLimit = Current.DefaultRowLimit;
+                
                 Settings.Default.ConnectionTimeout = Current.ConnectionTimeout;
                 Settings.Default.TrustServerCertificate = Current.TrustServerCertificate;
                 Settings.Default.DbServerName = Current.DbServerName;
@@ -159,11 +190,11 @@ namespace WPF_LoginForm.Services
                 Settings.Default.DbUser = Current.DbUser;
                 Settings.Default.Save();
 
-                // Save legacy offline path
+                // 3. Save legacy offline path
                 string offlineConfig = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "offline_path.txt");
                 File.WriteAllText(offlineConfig, Current.OfflineFolderPath);
 
-                // Save legacy category rules
+                // 4. Save legacy category rules to its own file
                 string categoryRulesPath = "category_rules.json";
                 if (Current.CategoryRules != null)
                 {
@@ -175,6 +206,21 @@ namespace WPF_LoginForm.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error saving general config: {ex.Message}");
+            }
+        }
+
+        public void ExportGeneralConfig(string filePath)
+        {
+            if (Current == null) return;
+            try
+            {
+                // Serialize only the non-ignored fields (General part)
+                string json = JsonConvert.SerializeObject(Current, Formatting.Indented);
+                File.WriteAllText(filePath, json);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Export failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

@@ -465,4 +465,160 @@
   <data name="P_Working_Time" xml:space="preserve">
     <value>Çalışma</value>
   </data>
+  <data name="Str_MA00_1" xml:space="preserve">
+    <value>1. Genel Temizlik:</value>
+  </data>
+  <data name="Str_OverlapCascadeStep" xml:space="preserve">
+    <value>Cakisma Adimi (% azalma):</value>
+  </data>
+  <data name="Str_AdvancedLayoutToggles" xml:space="preserve">
+    <value>Gelismis Duzen Secenekleri</value>
+  </data>
+  <data name="Str_MA00_2" xml:space="preserve">
+    <value>2. Cay Molasi:</value>
+  </data>
+  <data name="Str_FootnoteDescription" xml:space="preserve">
+    <value>Dipnot Aciklamasi:</value>
+  </data>
+  <data name="Tip_OverlapCascade" xml:space="preserve">
+    <value>Bir sonraki cakisan blok ne kadar kucuk olacak. Buyuk % daha fazla gorunurluk saglar.</value>
+  </data>
+  <data name="Str_MA00_4" xml:space="preserve">
+    <value>4. Diger MA-00:</value>
+  </data>
+  <data name="Str_OverlapErrorColon" xml:space="preserve">
+    <value>Hatalar (Cakisma):</value>
+  </data>
+  <data name="Str_EditWarning" xml:space="preserve">
+    <value>Bu blok icin ne yazdirilacagini duzenleyin. Degisiklikler Uygula tusuna basinca kaydedilir.</value>
+  </data>
+  <data name="Str_MinMinutesLabel" xml:space="preserve">
+    <value>Etiket icin Min. Dakika:</value>
+  </data>
+  <data name="Str_FacilityStoppedColon" xml:space="preserve">
+    <value>Tesis Durdu:</value>
+  </data>
+  <data name="Str_MA00_3" xml:space="preserve">
+    <value>3. Yemek Molasi:</value>
+  </data>
+  <data name="Str_LayerExplanation" xml:space="preserve">
+    <value>Yuksek katmanlar alt katmanlarin ustune cizilir. Birden fazla hata olursa katman otomatik artar.</value>
+  </data>
+  <data name="Tip_ResetOverrides" xml:space="preserve">
+    <value>Tum manuel renk, metin ve duzen gecersiz kilmalarini temizle.</value>
+  </data>
+  <data name="Str_MinMinutesFootnote" xml:space="preserve">
+    <value>Dipnot icin Min. Dakika:</value>
+  </data>
+  <data name="Str_ForceIntoFootnotes" xml:space="preserve">
+    <value>Dipnota Zorla</value>
+  </data>
+  <data name="Str_ShowMajorErrorLabels" xml:space="preserve">
+    <value>Hatalarda Makine ID ve Metni Goster</value>
+  </data>
+  <data name="Str_BypassColon" xml:space="preserve">
+    <value>Bypass:</value>
+  </data>
+  <data name="Str_PrimaryErrorColon" xml:space="preserve">
+    <value>Hatalar (Birincil):</value>
+  </data>
+  <data name="Str_Analytics" xml:space="preserve">
+    <value>Analitik</value>
+  </data>
+  <data name="Str_DailyTimeline" xml:space="preserve">
+    <value>Günlük Zaman Çizelgesi</value>
+  </data>
+  <data name="Str_MolaBakimKazanimi" xml:space="preserve">
+    <value>Mola / Bakım Kazanımı</value>
+  </data>
+  <data name="Str_BypassKazanimi" xml:space="preserve">
+    <value>Bypass Kazanımı</value>
+  </data>
+  <data name="Str_FiiliSure" xml:space="preserve">
+    <value>Fiili Çalışılan Süre</value>
+  </data>
+  <data name="Str_YanlisZamanVerisi" xml:space="preserve">
+    <value>Yanlış Zaman Verisi</value>
+  </data>
+  <data name="Str_BozukVeri" xml:space="preserve">
+    <value>Bozuk Veri</value>
+  </data>
+  <data name="Str_DayShift" xml:space="preserve">
+    <value>Gündüz Vardiyası</value>
+  </data>
+  <data name="Str_NightShift" xml:space="preserve">
+    <value>Gece Vardiyası</value>
+  </data>
+  <data name="Str_Zoom" xml:space="preserve">
+    <value>Yakınlaştır</value>
+  </data>
+  <data name="Str_RefData" xml:space="preserve">
+    <value>Referans Veri</value>
+  </data>
+  <data name="Str_Items" xml:space="preserve">
+    <value>Öğe</value>
+  </data>
+  <data name="Str_StartTime" xml:space="preserve">
+    <value>Başlangıç Saati</value>
+  </data>
+  <data name="Str_EndTime" xml:space="preserve">
+    <value>Bitiş Saati</value>
+  </data>
+  <data name="Str_DurationMin" xml:space="preserve">
+    <value>Süre (dk)</value>
+  </data>
+  <data name="Str_SpecifyEndTime" xml:space="preserve">
+    <value>Bitiş Saatini Belirt</value>
+  </data>
+  <data name="Str_MachineCode" xml:space="preserve">
+    <value>Makine Kodu</value>
+  </data>
+  <data name="Str_Description" xml:space="preserve">
+    <value>Açıklama</value>
+  </data>
+  <data name="Str_FlagAsBypass" xml:space="preserve">
+    <value>Bypass Olarak İşaretle</value>
+  </data>
+  <data name="Str_SaveAsFavorite" xml:space="preserve">
+    <value>Favori Olarak Kaydet</value>
+  </data>
+  <data name="Str_ApplyToTimeline" xml:space="preserve">
+    <value>Zaman Çizelgesine Uygula</value>
+  </data>
+  <data name="Str_EventDetails" xml:space="preserve">
+    <value>Olay Detayları</value>
+  </data>
+  <data name="Str_FavsHint" xml:space="preserve">
+    <value>Sürüklenebilecek favoriler:</value>
+  </data>
+  <data name="Str_FavsWithIcon" xml:space="preserve">
+    <value>Favoriler</value>
+  </data>
+  <data name="Str_AddNewWithIcon" xml:space="preserve">
+    <value>Yeni Ekle</value>
+  </data>
+  <data name="Str_SaveWithIcon" xml:space="preserve">
+    <value>Kaydet</value>
+  </data>
+  <data name="Str_Edit" xml:space="preserve">
+    <value>Düzenle</value>
+  </data>
+  <data name="Tip_SelectDate" xml:space="preserve">
+    <value>Tarih Seç</value>
+  </data>
+  <data name="Tip_UndoChanges" xml:space="preserve">
+    <value>Değişiklikleri Geri Al</value>
+  </data>
+  <data name="Tip_RefreshDB" xml:space="preserve">
+    <value>Veritabanını Yenile</value>
+  </data>
+  <data name="Tip_RemoveFavorite" xml:space="preserve">
+    <value>Favoriyi Kaldır</value>
+  </data>
+  <data name="Tip_ConfigMachineCodes" xml:space="preserve">
+    <value>Makine Kodlarını Yapılandır</value>
+  </data>
+  <data name="Str_Ref" xml:space="preserve">
+    <value>Son</value>
+  </data>
 </root>

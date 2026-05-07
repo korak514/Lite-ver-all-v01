@@ -185,6 +185,7 @@ namespace WPF_LoginForm.ViewModels
         public ICommand AddUserCommand { get; }
         public ICommand DeleteUserCommand { get; }
         public ICommand ChangeConfigLocationCommand { get; }
+        public ICommand ExportConfigCommand { get; }
 
         public string GeneralConfigPath => GeneralSettingsManager.Instance.GetResolvedConfigPath();
 
@@ -242,6 +243,23 @@ namespace WPF_LoginForm.ViewModels
             AddUserCommand = new ViewModelCommand(ExecuteAddUser);
             DeleteUserCommand = new ViewModelCommand(ExecuteDeleteUser);
             ChangeConfigLocationCommand = new ViewModelCommand(ExecuteChangeConfigLocation);
+            ExportConfigCommand = new ViewModelCommand(ExecuteExportConfig);
+        }
+
+        private void ExecuteExportConfig(object obj)
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Export General Configuration (System Settings)",
+                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                FileName = "exported_general_config.json"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                GeneralSettingsManager.Instance.ExportGeneralConfig(dialog.FileName);
+                MessageBox.Show("Configuration exported successfully!", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
 
         private void ExecuteChangeConfigLocation(object obj)

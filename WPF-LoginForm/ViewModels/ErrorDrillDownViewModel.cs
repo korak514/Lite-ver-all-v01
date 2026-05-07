@@ -1,4 +1,4 @@
-﻿// ViewModels/ErrorDrillDownViewModel.cs
+// ViewModels/ErrorDrillDownViewModel.cs
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -186,6 +186,24 @@ namespace WPF_LoginForm.ViewModels
                     {
                         if (!_excludedMachines.Contains(m.Name))
                             m.IsChecked = true;
+                    }
+                }
+                else if (filterText.StartsWith("MACHINE_CATEGORY_OTHERS|"))
+                {
+                    var parts = filterText.Split('|');
+                    if (parts.Length == 3)
+                    {
+                        var visibleMachines = parts[1].Split(',').ToList();
+                        string category = parts[2];
+
+                        foreach (var m in MachineFilterList)
+                        {
+                            if (!visibleMachines.Contains(m.Name))
+                                m.IsChecked = true;
+                        }
+
+                        var rItem = ReasonFilterList.FirstOrDefault(r => string.Equals(r.Name, category, StringComparison.OrdinalIgnoreCase));
+                        if (rItem != null) rItem.IsChecked = true;
                     }
                 }
                 else if (filterText.StartsWith("MACHINE_CATEGORY|"))

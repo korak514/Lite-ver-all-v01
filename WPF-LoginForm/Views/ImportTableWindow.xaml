@@ -1,4 +1,4 @@
-﻿<Window x:Class="WPF_LoginForm.Views.ImportTableWindow"
+<Window x:Class="WPF_LoginForm.Views.ImportTableWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -6,9 +6,10 @@
         xmlns:local="clr-namespace:WPF_LoginForm.Views"
         xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
         xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+        xmlns:p="clr-namespace:WPF_LoginForm.Properties"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=viewModels:ImportTableViewModel, IsDesignTimeCreatable=False}"
-        Title="{Binding WindowTitle}"
+        Title="{x:Static p:Resources.Str_ImportData}"
         SizeToContent="WidthAndHeight"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
@@ -24,43 +25,39 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-        </Grid.ColumnDefinitions>
+        
+        <TextBlock Grid.Row="0" Text="{x:Static p:Resources.Str_ImportWizard}" FontSize="20" FontWeight="Bold" Foreground="#333" Margin="0,0,0,5"/>
+        <TextBlock Grid.Row="1" Text="{x:Static p:Resources.Str_ImportHint}" Foreground="#666" TextWrapping="Wrap" Margin="0,0,0,20"/>
 
-        <!-- Row 0: File Path Selection -->
-        <Label Grid.Row="0" Grid.Column="0" Content="File Path:" VerticalAlignment="Center"/>
-        <TextBox Grid.Row="0" Grid.Column="1" 
-                 Text="{Binding FilePath}" 
-                 IsReadOnly="True" 
-                 VerticalContentAlignment="Center"
-                 Margin="5,5,0,5"/>
-        <Button Grid.Row="0" Grid.Column="2" 
-                Content="Browse..." 
-                Command="{Binding BrowseCommand}" 
-                Padding="8,4" 
-                Margin="5,5,0,5"/>
+        <!-- File Selection -->
+        <GroupBox Grid.Row="2" Header="{x:Static p:Resources.Str_SelectSourceFile}" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0" Text="{Binding FilePath}" IsReadOnly="True" VerticalContentAlignment="Center" Margin="0,0,10,0"/>
+                <Button Grid.Column="1" Content="{x:Static p:Resources.Str_BrowseEllipsis}" Command="{Binding BrowseCommand}" Padding="15,5"/>
+            </Grid>
+        </GroupBox>
 
         <!-- Row 1: Advanced Options -->
-        <Label Grid.Row="1" Grid.Column="0" Content="Rows to Ignore:" VerticalAlignment="Center" Margin="0,10,0,0"/>
-        <ComboBox Grid.Row="1" Grid.Column="1"
-                  ItemsSource="{Binding AvailableRowCounts}"
-                  SelectedItem="{Binding RowsToIgnore, Mode=TwoWay}"
-                  Margin="5,10,0,0"
-                  HorizontalAlignment="Left"
-                  Width="60"/>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10,0,0">
+            <Label Content="{x:Static p:Resources.Str_RowsToIgnore}" VerticalAlignment="Center"/>
+            <ComboBox ItemsSource="{Binding AvailableRowCounts}"
+                      SelectedItem="{Binding RowsToIgnore, Mode=TwoWay}"
+                      Margin="5,0,0,0"
+                      HorizontalAlignment="Left"
+                      Width="60"/>
+        </StackPanel>
 
         <!-- Row 2: OK/Cancel Buttons -->
-        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"
-                    Orientation="Horizontal" 
-                    HorizontalAlignment="Right" 
-                    Margin="0,25,0,0">
-            <Button Content="_OK" IsDefault="True" 
-                    Width="75" Margin="0,0,10,0" 
-                    Click="OkButton_Click">
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="{x:Static p:Resources.Str_Cancel}" Click="CancelButton_Click" Width="100" Height="35" Background="Transparent" Foreground="#666" BorderBrush="#CCC" BorderThickness="1" Margin="0,0,10,0"/>
+            <Button Content="{x:Static p:Resources.Str_StartImport}" Width="150" Height="35" Background="#28A745" Foreground="White" BorderThickness="0" FontWeight="Bold" Click="OkButton_Click">
                 <Button.Style>
                     <Style TargetType="Button">
                         <Setter Property="IsEnabled" Value="False"/>

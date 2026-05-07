@@ -9,6 +9,7 @@
     <!--Background Colors-->
     <Color x:Key="primaryBackColor1">#4D9939</Color>
     <Color x:Key="primaryBackColor2">#060543</Color>
+    <SolidColorBrush x:Key="primaryBackColor2Brush" Color="{StaticResource primaryBackColor2}" />
     <Color x:Key="primaryBackColor3">#215C0E</Color>
     <Color x:Key="primaryBackColor4">#179F15</Color>
 

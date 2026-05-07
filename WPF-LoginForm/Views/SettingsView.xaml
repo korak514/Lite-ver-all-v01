@@ -82,16 +82,18 @@
                                 <Separator Background="{StaticResource panelActiveColor}" Margin="0,15,0,10" />
                                 <TextBlock Text="General Config File" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,5" />
                                 <TextBlock Text="All settings (except Dashboard) are saved to this JSON file. You can point the app to an existing file to import settings." Foreground="Gray" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
-                                <Grid Margin="0,0,0,5">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Current Path:" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                    <TextBox Grid.Column="1" Text="{Binding GeneralConfigPath, Mode=OneWay}" IsReadOnly="True" Height="26" Padding="2" Background="#1AFFFFFF" Foreground="WhiteSmoke" />
-                                    <Button Grid.Column="2" Content="Change..." Command="{Binding ChangeConfigLocationCommand}" Width="80" Height="26" Margin="5,0,0,0" Style="{StaticResource StandardButtonStyle}" ToolTip="Point the app to an existing general_config.json or choose a new location" />
-                                </Grid>
+                                    <Grid Margin="0,0,0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Current Path:" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <TextBox Grid.Column="1" Text="{Binding GeneralConfigPath, Mode=OneWay}" IsReadOnly="True" Height="26" Padding="2" Background="#1AFFFFFF" Foreground="WhiteSmoke" />
+                                        <Button Grid.Column="2" Content="Change..." Command="{Binding ChangeConfigLocationCommand}" Width="80" Height="26" Margin="5,0,0,0" Style="{StaticResource StandardButtonStyle}" ToolTip="Point the app to an existing general_config.json or choose a new location" />
+                                        <Button Grid.Column="3" Content="Export..." Command="{Binding ExportConfigCommand}" Width="80" Height="26" Margin="5,0,0,0" Style="{StaticResource StandardButtonStyle}" Background="#2ECC71" ToolTip="Export current system settings to a JSON file (excluding dashboard part)" />
+                                    </Grid>
                             </StackPanel>
                         </Border>
 

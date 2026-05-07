@@ -7,6 +7,7 @@
              xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
              xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:prop="clr-namespace:WPF_LoginForm.Properties"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=viewModels:ConfigurationViewModel, IsDesignTimeCreatable=False}"
              Width="Auto" Height="Auto">
@@ -43,9 +44,9 @@
 
         <!-- ROW 0: Header & Tabs -->
         <StackPanel Grid.Row="0">
-            <TextBlock Text="Dashboard Module Configuration" FontSize="16" FontWeight="Bold" Margin="0,0,0,10" Foreground="#FF0078D7" />
+            <TextBlock Text="{x:Static prop:Resources.Str_DashboardConfig}" FontSize="16" FontWeight="Bold" Margin="0,0,0,10" Foreground="#FF0078D7" />
 
-            <TextBlock Text="Select Chart Position:" Style="{StaticResource HeaderTextStyle}" Margin="0,0,0,2" />
+            <TextBlock Text="{x:Static prop:Resources.Str_SelectChartPos}" Style="{StaticResource HeaderTextStyle}" Margin="0,0,0,2" />
             <ItemsControl ItemsSource="{Binding ChartConfigurations}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -69,18 +70,18 @@
                       Visibility="{Binding IsConfigurationVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
 
             <StackPanel DataContext="{Binding CurrentConfiguration}">
-                <CheckBox IsChecked="{Binding IsEnabled}" Content="Enable this chart" Margin="0,0,0,5" FontWeight="Bold" Foreground="#0056B3" />
+                <CheckBox IsChecked="{Binding IsEnabled}" Content="{x:Static prop:Resources.Str_EnableChart}" Margin="0,0,0,5" FontWeight="Bold" Foreground="#0056B3" />
 
                 <StackPanel IsEnabled="{Binding IsEnabled}">
                     <!-- 1. Table -->
-                    <TextBlock Text="Table" Style="{StaticResource HeaderTextStyle}" />
+                    <TextBlock Text="{x:Static prop:Resources.Table}" Style="{StaticResource HeaderTextStyle}" />
                     <ComboBox ItemsSource="{Binding DataContext.AvailableTables, RelativeSource={RelativeSource AncestorType=UserControl}}"
                               SelectedValue="{Binding TableName}" />
 
                     <StackPanel Visibility="{Binding IsTableSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
 
                         <!-- 2. Data Structure -->
-                        <TextBlock Text="Data Structure (input)" Style="{StaticResource HeaderTextStyle}" />
+                        <TextBlock Text="{x:Static prop:Resources.Str_DataStructure}" Style="{StaticResource HeaderTextStyle}" />
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -94,23 +95,23 @@
 
                             <ComboBox Grid.Row="0" Grid.Column="0" ItemsSource="{Binding AvailableDataStructures}" SelectedItem="{Binding DataStructureType}" />
 
-                            <Label Grid.Row="0" Grid.Column="1" Content="Ignore Last Rows:" Margin="10,0,2,0" VerticalAlignment="Center" Foreground="Gray" FontSize="11" />
+                            <Label Grid.Row="0" Grid.Column="1" Content="{x:Static prop:Resources.Str_IgnoreLastRows}" Margin="10,0,2,0" VerticalAlignment="Center" Foreground="Gray" FontSize="11" />
                             <ComboBox Grid.Row="0" Grid.Column="2" ItemsSource="{Binding AvailableIgnoreCounts}" SelectedItem="{Binding RowsToIgnore}" MinWidth="45" />
 
                             <CheckBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,6,0,0" Foreground="Gray" FontSize="11"
                                       IsChecked="{Binding UseInvariantCultureForNumbers, Mode=TwoWay}"
-                                      Content="Use '.' for decimals and ',' for thousands (e.g. 1,234.56)" />
+                                      Content="{x:Static prop:Resources.Str_NumberFormatHint}" />
                         </Grid>
 
                         <!-- 3. Chart Type -->
-                        <TextBlock Text="Chart Type" Style="{StaticResource HeaderTextStyle}" />
+                        <TextBlock Text="{x:Static prop:Resources.Str_ChartType}" Style="{StaticResource HeaderTextStyle}" />
                         <Grid>
                             <ComboBox ItemsSource="{Binding ChartTypes}" SelectedItem="{Binding ChartType}"
                                       IsEnabled="{Binding CanChangeChartType}"
                                       Visibility="{Binding IsCartesianChart, Converter={StaticResource BooleanToVisibilityConverter}}" />
                             <StackPanel Orientation="Horizontal" Visibility="{Binding IsPieChart, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <TextBlock Text="Pie Chart (Fixed for this position)" VerticalAlignment="Center" Margin="5,0,10,0" Foreground="Gray" FontStyle="Italic" FontSize="12" />
-                                <CheckBox Content="Show as KPI Cards instead of Pie Chart" 
+                                <TextBlock Text="{x:Static prop:Resources.Str_PieChartFixed}" VerticalAlignment="Center" Margin="5,0,10,0" Foreground="Gray" FontStyle="Italic" FontSize="12" />
+                                <CheckBox Content="{x:Static prop:Resources.Str_ShowAsKpiCards}" 
                                           IsChecked="{Binding ShowAsKpiCards, Mode=TwoWay}"
                                           Visibility="{Binding IsKpiSlot, Converter={StaticResource BooleanToVisibilityConverter}}"
                                           Foreground="WhiteSmoke" VerticalAlignment="Center" />
@@ -123,12 +124,12 @@
                         <StackPanel Visibility="{Binding IsCartesianChart, Converter={StaticResource BooleanToVisibilityConverter}}">
 
                             <!-- 4. Category (X axis) -->
-                            <TextBlock Text="Category (X axis)" Style="{StaticResource HeaderTextStyle}" />
+                            <TextBlock Text="{x:Static prop:Resources.Str_CategoryX}" Style="{StaticResource HeaderTextStyle}" />
                             <ComboBox ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                       SelectedItem="{Binding DateColumn}" />
 
                             <!-- 5. Group by -->
-                            <TextBlock Text="Group by" Style="{StaticResource HeaderTextStyle}" />
+                            <TextBlock Text="{x:Static prop:Resources.Str_GroupBy}" Style="{StaticResource HeaderTextStyle}" />
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -136,10 +137,10 @@
                                 </Grid.ColumnDefinitions>
                                 <ComboBox Grid.Column="0" ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                           SelectedItem="{Binding SplitByColumn}" />
-                                <Button Grid.Column="1" Content="Clear" Command="{Binding ClearSplitByCommand}" Margin="5,0,0,0" Padding="10,0" Background="#F0F0F0" BorderBrush="#CCC" BorderThickness="1" Cursor="Hand" />
+                                <Button Grid.Column="1" Content="{x:Static prop:Resources.Clear}" Command="{Binding ClearSplitByCommand}" Margin="5,0,0,0" Padding="10,0" Background="#F0F0F0" BorderBrush="#CCC" BorderThickness="1" Cursor="Hand" />
                             </Grid>
 
-                            <Expander Header="Select specific items to display" IsExpanded="False" FontSize="11" Foreground="#0056B3" Margin="0,4,0,0"
+                            <Expander Header="{x:Static prop:Resources.Str_SelectItemsDisplay}" IsExpanded="False" FontSize="11" Foreground="#0056B3" Margin="0,4,0,0"
                                       Visibility="{Binding HasSplitByColumn, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Border Background="#FDFDFD" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="4" Height="180" Margin="0,2,0,0">
                                     <Grid>
@@ -150,7 +151,7 @@
                                         </Grid.RowDefinitions>
 
                                         <!-- Select All Checkbox -->
-                                        <CheckBox Grid.Row="0" Content="Select All" IsChecked="{Binding IsAllSplitCategoriesSelected, Mode=TwoWay}" Margin="7,5,5,5" FontWeight="Bold" Foreground="#0078D7" />
+                                        <CheckBox Grid.Row="0" Content="{x:Static prop:Resources.SelectAll}" IsChecked="{Binding IsAllSplitCategoriesSelected, Mode=TwoWay}" Margin="7,5,5,5" FontWeight="Bold" Foreground="#0078D7" />
                                         <Separator Grid.Row="1" Margin="5,0,5,2" Background="#EAEAEA" />
 
                                         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
@@ -167,12 +168,12 @@
                             </Expander>
 
                             <!-- 5.5 Labeling Mode (Hover vs Fixed) -->
-                            <TextBlock Text="Labeling Mode:" Style="{StaticResource HeaderTextStyle}" Margin="0,15,0,5" />
+                            <TextBlock Text="{x:Static prop:Resources.Str_LabelingMode}" Style="{StaticResource HeaderTextStyle}" Margin="0,15,0,5" />
                             <StackPanel Orientation="Horizontal" Margin="5,0,0,10">
-                                <RadioButton Content="Hover Tooltips" GroupName="LabelingMode" 
+                                <RadioButton Content="{x:Static prop:Resources.Str_HoverTooltips}" GroupName="LabelingMode" 
                                              IsChecked="{Binding ShowLabelsOnChart, Mode=TwoWay, Converter={StaticResource InverseBooleanConverter}}"
                                              Margin="0,0,20,0" Foreground="#555" FontWeight="SemiBold" />
-                                <RadioButton Content="Fixed Labels" GroupName="LabelingMode" 
+                                <RadioButton Content="{x:Static prop:Resources.Str_FixedLabels}" GroupName="LabelingMode" 
                                              IsChecked="{Binding ShowLabelsOnChart, Mode=TwoWay}"
                                              Foreground="#555" FontWeight="SemiBold" />
                             </StackPanel>
@@ -181,10 +182,10 @@
                             <TextBlock>
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource HeaderTextStyle}">
-                                        <Setter Property="Text" Value="Value Columns (Y axis)" />
+                                        <Setter Property="Text" Value="{x:Static prop:Resources.Str_ValueColumnsY}" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsPriceTrendChart}" Value="True">
-                                                <Setter Property="Text" Value="Price Trend (1st = Revenue, 2nd = KG/Weight)" />
+                                                <Setter Property="Text" Value="{x:Static prop:Resources.Str_PriceTrendLegend}" />
                                                 <Setter Property="Foreground" Value="#D84315" />
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -207,7 +208,7 @@
                                                       SelectedItem="{Binding ColumnName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                                             <!-- Combination Label Node Editor Button -->
-                                            <Button Grid.Column="1" ToolTip="Combination Label / Node Editor"
+                                            <Button Grid.Column="1" ToolTip="{x:Static prop:Resources.Tip_NodeEditor}"
                                                     Foreground="White" FontWeight="Bold" Margin="5,0,0,0" Padding="6,2" BorderThickness="0"
                                                     Command="{Binding DataContext.CurrentConfiguration.OpenNodeEditorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}" Cursor="Hand">
@@ -234,10 +235,10 @@
                                                     <TextBlock FontSize="11" VerticalAlignment="Center">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock">
-                                                                <Setter Property="Text" Value="Mix" />
+                                                                <Setter Property="Text" Value="{x:Static prop:Resources.Str_Mix}" />
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding IsCombinationLabel}" Value="True">
-                                                                        <Setter Property="Text" Value="✓ Mix" />
+                                                                        <Setter Property="Text" Value="{x:Static prop:Resources.Str_MixActive}" />
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
@@ -249,7 +250,7 @@
                                             <!-- Fixed Color Picker -->
                                             <Border Grid.Column="2" Width="55" Height="26" Margin="5,0,0,0" VerticalAlignment="Center" BorderBrush="#CCC" BorderThickness="1" CornerRadius="3">
                                                 <xctk:ColorPicker SelectedColor="{Binding SeriesColorHex, Mode=TwoWay, Converter={StaticResource ColorToHexConverter}}"
-                                                                  ToolTip="Set Fixed Color for this Series"
+                                                                  ToolTip="{x:Static prop:Resources.Tip_SetFixedColor}"
                                                                   VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
                                                                   ShowRecentColors="True" UsingAlphaChannel="False" />
                                             </Border>
@@ -268,16 +269,16 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <Button Content="+ Add Value Column" Margin="0,4,0,0" Padding="6,4" HorizontalAlignment="Left" FontSize="11"
+                            <Button Content="{x:Static prop:Resources.Str_AddValueColumn}" Margin="0,4,0,0" Padding="6,4" HorizontalAlignment="Left" FontSize="11"
                                     Command="{Binding AddSeriesCommand}" Background="#E5F1FB" Foreground="#0078D7" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand" />
 
                             <StackPanel Margin="0,10,0,0">
-                                <TextBlock Text="Value Aggregation (Sum/Avg)" Style="{StaticResource HeaderTextStyle}" />
+                                <TextBlock Text="{x:Static prop:Resources.Str_ValueAggregation}" Style="{StaticResource HeaderTextStyle}" />
                                 <ComboBox ItemsSource="{Binding ValueAggregationOptions}" SelectedItem="{Binding ValueAggregation}" />
                             </StackPanel>
 
                             <StackPanel Visibility="{Binding IsDailyDateStructure, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <TextBlock Text="Chart Date Roll-Up" Style="{StaticResource HeaderTextStyle}" />
+                                <TextBlock Text="{x:Static prop:Resources.Str_DateRollUp}" Style="{StaticResource HeaderTextStyle}" />
                                 <ComboBox ItemsSource="{Binding AggregationOptions}" SelectedItem="{Binding AggregationType}" />
                             </StackPanel>
                         </StackPanel>
@@ -287,11 +288,11 @@
                         <!-- ========================================== -->
                         <StackPanel Visibility="{Binding IsPieChart, Converter={StaticResource BooleanToVisibilityConverter}}">
 
-                            <TextBlock Text="Date Column (for Dashboard Filter)" Style="{StaticResource HeaderTextStyle}" />
+                            <TextBlock Text="{x:Static prop:Resources.Str_DateColumnFilter}" Style="{StaticResource HeaderTextStyle}" />
                             <ComboBox ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                       SelectedItem="{Binding DateColumn}" />
 
-                            <TextBlock Text="Group by (Slices)" Style="{StaticResource HeaderTextStyle}" />
+                            <TextBlock Text="{x:Static prop:Resources.Str_GroupBySlices}" Style="{StaticResource HeaderTextStyle}" />
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -299,10 +300,10 @@
                                 </Grid.ColumnDefinitions>
                                 <ComboBox Grid.Column="0" ItemsSource="{Binding DataContext.AvailableColumns, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                           SelectedItem="{Binding SplitByColumn}" />
-                                <Button Grid.Column="1" Content="Clear" Command="{Binding ClearSplitByCommand}" Margin="5,0,0,0" Padding="12,0" Background="#F0F0F0" BorderBrush="#CCC" BorderThickness="1" Cursor="Hand" />
+                                <Button Grid.Column="1" Content="{x:Static prop:Resources.Clear}" Command="{Binding ClearSplitByCommand}" Margin="5,0,0,0" Padding="12,0" Background="#F0F0F0" BorderBrush="#CCC" BorderThickness="1" Cursor="Hand" />
                             </Grid>
 
-                            <Expander Header="Select specific slices to display" IsExpanded="False" FontSize="11" Foreground="#0056B3" Margin="0,4,0,0"
+                            <Expander Header="{x:Static prop:Resources.Str_SelectSlicesDisplay}" IsExpanded="False" FontSize="11" Foreground="#0056B3" Margin="0,4,0,0"
                                       Visibility="{Binding HasSplitByColumn, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Border Background="#FDFDFD" BorderBrush="#EAEAEA" BorderThickness="1" CornerRadius="4" Height="180" Margin="0,2,0,0">
                                     <Grid>
@@ -312,7 +313,7 @@
                                             <RowDefinition Height="*" />
                                         </Grid.RowDefinitions>
 
-                                        <CheckBox Grid.Row="0" Content="Select All" IsChecked="{Binding IsAllSplitCategoriesSelected, Mode=TwoWay}" Margin="7,5,5,5" FontWeight="Bold" Foreground="#0078D7" />
+                                        <CheckBox Grid.Row="0" Content="{x:Static prop:Resources.SelectAll}" IsChecked="{Binding IsAllSplitCategoriesSelected, Mode=TwoWay}" Margin="7,5,5,5" FontWeight="Bold" Foreground="#0078D7" />
                                         <Separator Grid.Row="1" Margin="5,0,5,2" Background="#EAEAEA" />
 
                                         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
@@ -328,13 +329,13 @@
                                 </Border>
                             </Expander>
 
-                            <TextBlock Text="Label Appearance:" FontSize="11" Foreground="Gray" Margin="0,8,0,2" />
+                            <TextBlock Text="{x:Static prop:Resources.Str_LabelAppearance}" FontSize="11" Foreground="Gray" Margin="0,8,0,2" />
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                                <CheckBox Content="Hide Numbers" IsChecked="{Binding HideNumbersInLabels}" Margin="0,0,15,0" Foreground="#555" />
-                                <CheckBox Content="Simplify (First Word Only)" IsChecked="{Binding SimplifyLabels}" Foreground="#555" />
+                                <CheckBox Content="{x:Static prop:Resources.Str_HideNumbers}" IsChecked="{Binding HideNumbersInLabels}" Margin="0,0,15,0" Foreground="#555" />
+                                <CheckBox Content="{x:Static prop:Resources.Str_SimplifyLabels}" IsChecked="{Binding SimplifyLabels}" Foreground="#555" />
                             </StackPanel>
 
-                            <TextBlock Text="Data to Aggregate (Values)" Style="{StaticResource HeaderTextStyle}" />
+                            <TextBlock Text="{x:Static prop:Resources.Str_DataAggregate}" Style="{StaticResource HeaderTextStyle}" />
                             <ItemsControl ItemsSource="{Binding Series}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -350,7 +351,7 @@
                                                       SelectedItem="{Binding ColumnName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                                             <!-- Combination Label Node Editor Button -->
-                                            <Button Grid.Column="1" ToolTip="Combination Label / Node Editor"
+                                            <Button Grid.Column="1" ToolTip="{x:Static prop:Resources.Tip_NodeEditor}"
                                                     Foreground="White" FontWeight="Bold" Margin="5,0,0,0" Padding="6,2" BorderThickness="0"
                                                     Command="{Binding DataContext.CurrentConfiguration.OpenNodeEditorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}" Cursor="Hand">
@@ -377,10 +378,10 @@
                                                     <TextBlock FontSize="11" VerticalAlignment="Center">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock">
-                                                                <Setter Property="Text" Value="Mix" />
+                                                                <Setter Property="Text" Value="{x:Static prop:Resources.Str_Mix}" />
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding IsCombinationLabel}" Value="True">
-                                                                        <Setter Property="Text" Value="✓ Mix" />
+                                                                        <Setter Property="Text" Value="{x:Static prop:Resources.Str_MixActive}" />
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
@@ -403,11 +404,11 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
-                            <Button Content="+ Add Data Column" Margin="0,4,0,0" Padding="6,4" HorizontalAlignment="Left" FontSize="11"
+                            <Button Content="{x:Static prop:Resources.Str_AddDataColumn}" Margin="0,4,0,0" Padding="6,4" HorizontalAlignment="Left" FontSize="11"
                                     Command="{Binding AddSeriesCommand}" Background="#E5F1FB" Foreground="#0078D7" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand" />
 
                             <StackPanel Margin="0,10,0,0">
-                                <TextBlock Text="Value Aggregation (Sum/Avg)" Style="{StaticResource HeaderTextStyle}" />
+                                <TextBlock Text="{x:Static prop:Resources.Str_ValueAggregation}" Style="{StaticResource HeaderTextStyle}" />
                                 <ComboBox ItemsSource="{Binding ValueAggregationOptions}" SelectedItem="{Binding ValueAggregation}" />
                             </StackPanel>
                         </StackPanel>
@@ -418,7 +419,7 @@
 
         <!-- ROW 2: Fixed Save Button -->
         <Border Grid.Row="2" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Padding="0,10,0,0" Margin="0,5,0,0">
-            <Button Content="Apply and Close"
+            <Button Content="{x:Static prop:Resources.Str_ApplyClose}"
                     Command="{Binding ApplyCommand}"
                     Padding="0,10"
                     Background="#0078D7" Foreground="White"

@@ -76,7 +76,7 @@
                         <Border Background="{TemplateBinding Background}" CornerRadius="4">
                             <StackPanel Orientation="Horizontal" Margin="{TemplateBinding Padding}">
                                 <fa:ImageAwesome Icon="Expand" Height="12" Foreground="White" Margin="0,0,5,0" />
-                                <TextBlock Text="Fullscreen" VerticalAlignment="Center" />
+                                <TextBlock Text="{x:Static p:Resources.Str_Fullscreen}" VerticalAlignment="Center" />
                             </StackPanel>
                         </Border>
                     </ControlTemplate>
@@ -146,26 +146,26 @@
 
             <StackPanel Grid.Column="0" Orientation="Vertical" Visibility="{Binding IsDateFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,10">
-                    <Button Command="{Binding GoBackCommand}" ToolTip="Return to Analytics Hub" Background="Transparent" BorderThickness="0" Margin="0,0,15,0" Cursor="Hand">
+                    <Button Command="{Binding GoBackCommand}" ToolTip="{x:Static p:Resources.Tip_ReturnHub}" Background="Transparent" BorderThickness="0" Margin="0,0,15,0" Cursor="Hand">
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="ArrowLeft" Height="14" Foreground="#FFC047" Margin="0,0,5,0" />
-                            <TextBlock Text="Hub" Foreground="#FFC047" FontWeight="Bold" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.Str_Hub}" Foreground="#FFC047" FontWeight="Bold" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    <ToggleButton IsChecked="{Binding ShowMaximizeButtons}" Style="{StaticResource GearToggleStyle}" Margin="0,0,15,0" ToolTip="Toggle Fullscreen Buttons">
+                    <ToggleButton IsChecked="{Binding ShowMaximizeButtons}" Style="{StaticResource GearToggleStyle}" Margin="0,0,15,0" ToolTip="{x:Static p:Resources.Tip_ToggleFullscreen}">
                         <fa:ImageAwesome Icon="ArrowsAlt" Height="16" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                     </ToggleButton>
                     <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsFilterByDate}">
-                        <TextBlock Text="Start:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke" />
+                        <TextBlock Text="{x:Static p:Resources.Ana_StartDate}" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke" />
                         <DatePicker SelectedDate="{Binding StartDate, Mode=TwoWay}" VerticalAlignment="Center" Width="100" />
-                        <TextBlock Text="End:" VerticalAlignment="Center" Margin="10,0,5,0" Foreground="WhiteSmoke" />
+                        <TextBlock Text="{x:Static p:Resources.Ana_EndDate}" VerticalAlignment="Center" Margin="10,0,5,0" Foreground="WhiteSmoke" />
                         <DatePicker SelectedDate="{Binding EndDate, Mode=TwoWay}" VerticalAlignment="Center" Width="100" />
                     </StackPanel>
-                    <ToggleButton x:Name="FilterConfigToggle" Margin="15,0,0,0" ToolTip="Filter Settings" Style="{StaticResource GearToggleStyle}">
+                    <ToggleButton x:Name="FilterConfigToggle" Margin="15,0,0,0" ToolTip="{x:Static p:Resources.Tip_FilterSettings}" Style="{StaticResource GearToggleStyle}">
                         <fa:ImageAwesome Icon="Gear" Height="16" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                     </ToggleButton>
                     <ComboBox ItemsSource="{Binding DashboardFiles}" SelectedItem="{Binding SelectedDashboardFile, Mode=TwoWay}" Width="150" Height="22" Margin="15,0,0,0" Visibility="{Binding IsDashboardSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                    <Button Command="{Binding TogglePageCommand}" Width="30" Height="22" Margin="15,0,0,0" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Switch to Advanced Summary">
+                    <Button Command="{Binding TogglePageCommand}" Width="30" Height="22" Margin="15,0,0,0" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="{x:Static p:Resources.Tip_SwitchAdvanced}">
                         <Grid>
                             <Path Fill="#FFC047" Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.59,12L15,13.41L12,10.41L9,13.41L7.41,12L12,7.41L16.59,12Z">
                                 <Path.Style>
@@ -187,38 +187,38 @@
                     <Popup IsOpen="{Binding IsChecked, ElementName=FilterConfigToggle}" StaysOpen="False" PlacementTarget="{Binding ElementName=FilterConfigToggle}" Placement="Bottom">
                         <Border Background="#030347" BorderBrush="#49A956" BorderThickness="1" CornerRadius="4" Padding="10">
                             <StackPanel MinWidth="220">
-                                <TextBlock Text="Label Settings (Global)" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
-                                <CheckBox Content="İgnore after '-' on Chart Labels" IsChecked="{Binding GlobalIgnoreAfterHyphen, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" ToolTip="Truncates text after the hyphen to prevent overlaps." />
-                                <CheckBox Content="İgnore number on Chart Labels" IsChecked="{Binding GlobalIgnoreNumbers, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" ToolTip="Removes all numeric digits from labels." />
+                                <TextBlock Text="{x:Static p:Resources.Str_LabelSettings}" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
+                                <CheckBox Content="{x:Static p:Resources.Str_IgnoreHyphen}" IsChecked="{Binding GlobalIgnoreAfterHyphen, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" ToolTip="{x:Static p:Resources.Tip_IgnoreHyphen}" />
+                                <CheckBox Content="{x:Static p:Resources.Str_IgnoreNumbers}" IsChecked="{Binding GlobalIgnoreNumbers, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" ToolTip="{x:Static p:Resources.Tip_IgnoreNumbers}" />
                                 <Separator Background="#49A956" Margin="0,5,0,5" />
-                                <TextBlock Text="Filter Mode" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
-                                <CheckBox Content="Filter by Date" IsChecked="{Binding IsFilterByDate, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" />
-                                <CheckBox Content="Ignore Rows with No Date" IsChecked="{Binding IgnoreNonDateData, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" />
+                                <TextBlock Text="{x:Static p:Resources.Str_FilterMode}" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
+                                <CheckBox Content="{x:Static p:Resources.FilterbyDate}" IsChecked="{Binding IsFilterByDate, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" />
+                                <CheckBox Content="{x:Static p:Resources.Str_IgnoreNoDate}" IsChecked="{Binding IgnoreNonDateData, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" />
                                 <Separator Background="#49A956" Margin="0,5,0,5" />
-                                <TextBlock Text="Virtual Date (ID to Date)" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
-                                <CheckBox Content="Use Initial Date for Drill-Down" IsChecked="{Binding UseIdToDateConversion, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
+                                <TextBlock Text="{x:Static p:Resources.Str_VirtualDate}" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
+                                <CheckBox Content="{x:Static p:Resources.Str_UseInitialDate}" IsChecked="{Binding UseIdToDateConversion, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
                                 <StackPanel Orientation="Horizontal" IsEnabled="{Binding UseIdToDateConversion}">
-                                    <TextBlock Text="Initial Date:" Foreground="WhiteSmoke" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11" />
+                                    <TextBlock Text="{x:Static p:Resources.Str_InitialDate}" Foreground="WhiteSmoke" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11" />
                                     <DatePicker SelectedDate="{Binding InitialDateForConversion, Mode=TwoWay}" Width="100" />
                                 </StackPanel>
                                 <Separator Background="#49A956" Margin="0,10,0,5" />
-                                <TextBlock Text="Slider Tick Step" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
+                                <TextBlock Text="{x:Static p:Resources.Str_SliderTickStep}" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
                                 <ComboBox ItemsSource="{Binding TickOptions}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding SliderTickFrequency, Mode=TwoWay}" Height="26" Margin="0,0,0,5" />
                             </StackPanel>
                         </Border>
                     </Popup>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                    <TextBlock Text="Range:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke" />
+                    <TextBlock Text="{x:Static p:Resources.Str_Range}" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke" />
                     <xctk:RangeSlider MinWidth="450" VerticalAlignment="Center" Minimum="0" Maximum="{Binding SliderMaximum}" LowerValue="{Binding StartMonthSliderValue, Mode=TwoWay}" HigherValue="{Binding EndMonthSliderValue, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="{Binding SliderTickFrequency}" AutoToolTipPlacement="TopLeft" AutoToolTipPrecision="0" />
                 </StackPanel>
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                <CheckBox Content="Include Data in Export" IsChecked="{Binding IsSnapshotExport, Mode=TwoWay}" Foreground="WhiteSmoke" VerticalAlignment="Center" Margin="0,0,15,0" />
-                <Button Content="Import" Margin="5,0,5,0" Padding="8,4" Command="{Binding ImportCommand}" />
-                <Button Content="Export" Margin="5,0,5,0" Padding="8,4" Command="{Binding ExportCommand}" />
-                <Button ToolTip="Refresh (Reload Data &amp; Recolor)" Margin="5,0,5,0" Padding="8,4" Command="{Binding RecolorChartsCommand}">
+                <CheckBox Content="{x:Static p:Resources.Str_IncludeDataExport}" IsChecked="{Binding IsSnapshotExport, Mode=TwoWay}" Foreground="WhiteSmoke" VerticalAlignment="Center" Margin="0,0,15,0" />
+                <Button Content="{x:Static p:Resources.Import}" Margin="5,0,5,0" Padding="8,4" Command="{Binding ImportCommand}" />
+                <Button Content="{x:Static p:Resources.Export}" Margin="5,0,5,0" Padding="8,4" Command="{Binding ExportCommand}" />
+                <Button ToolTip="{x:Static p:Resources.Tip_RefreshRecolor}" Margin="5,0,5,0" Padding="8,4" Command="{Binding RecolorChartsCommand}">
                     <fa:ImageAwesome Icon="Refresh" Height="14" Foreground="White" />
                 </Button>
                 <Button Content="" FontFamily="Segoe MDL2 Assets" Margin="5,0,0,0" Padding="8,4" Command="{Binding ConfigureCommand}" />
@@ -547,7 +547,7 @@
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
 
-                            <TextBlock Grid.Row="0" Text="Summary Breakdown (Chart 6)" Foreground="Gray" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="15,10,0,0" />
+                            <TextBlock Grid.Row="0" Text="{x:Static p:Resources.Str_SummaryBreakdown}" Foreground="Gray" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="15,10,0,0" />
 
                             <Grid Grid.Row="0" Grid.RowSpan="2">
                                 <Button Command="{Binding MaximizeChartCommand}" CommandParameter="6" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" />

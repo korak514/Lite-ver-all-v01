@@ -1,4 +1,4 @@
-﻿<Window x:Class="WPF_LoginForm.Views.CreateTableWindow"
+<Window x:Class="WPF_LoginForm.Views.CreateTableWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -6,9 +6,10 @@
         xmlns:local="clr-namespace:WPF_LoginForm.Views"
         xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
         xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+        xmlns:p="clr-namespace:WPF_LoginForm.Properties"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=viewModels:CreateTableViewModel, IsDesignTimeCreatable=False}"
-        Title="Create New Table from Excel"
+        Title="{x:Static p:Resources.Str_CreateNewTable}"
         SizeToContent="Width" 
         Height="auto" MaxHeight="800" MinWidth="750"
         WindowStartupLocation="CenterOwner"
@@ -37,7 +38,7 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0" Text="{Binding FilePath}" IsReadOnly="True" VerticalContentAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="{x:Static p:Resources.Str_TableNote}" Foreground="#888" FontSize="11" FontStyle="Italic" TextWrapping="Wrap" Margin="0,0,5,0"/>
                     <Button Grid.Column="1" Content="Browse..." Command="{Binding BrowseCommand}" Padding="8,4" Margin="5,0,0,0"/>
                 </Grid>
             </GroupBox>
@@ -120,9 +121,19 @@
                 </GroupBox>
 
                 <!-- Step 4: Name Table -->
-                <GroupBox Header="Step 4: Name Your New Table" Padding="10" Margin="0,15,0,0">
-                    <TextBox Text="{Binding ProposedTableName, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
-                </GroupBox>
+                <TextBlock Text="{x:Static p:Resources.Str_CreateNewDBTable}" FontSize="20" FontWeight="Bold" Foreground="#333" Margin="0,15,0,5"/>
+                <TextBlock Text="{x:Static p:Resources.Str_CreateTableHint}" Foreground="#666" TextWrapping="Wrap" Margin="0,0,0,20"/>
+
+                <TextBlock Text="{x:Static p:Resources.Str_NewTableName}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <TextBox Text="{Binding ProposedTableName, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
+
+                <TextBlock Text="{x:Static p:Resources.Str_StartWithTemplate}" FontWeight="SemiBold" Margin="0,15,0,5"/>
+                <ComboBox SelectedIndex="0" Height="35" VerticalContentAlignment="Center">
+                    <ComboBoxItem Content="{x:Static p:Resources.Str_BlankTable}"/>
+                    <ComboBoxItem Content="{x:Static p:Resources.Str_StandardTimelineTemplate}"/>
+                </ComboBox>
+
+                <TextBlock Text="{x:Static p:Resources.Str_TableColumns}" FontWeight="SemiBold" Margin="0,20,0,5"/>
             </StackPanel>
         </ScrollViewer>
 

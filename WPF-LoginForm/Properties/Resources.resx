@@ -466,4 +466,160 @@
   <data name="P_Working_Time" xml:space="preserve">
     <value>Working Time</value>
   </data>
+  <data name="Str_MA00_1" xml:space="preserve">
+    <value>1. General Cleaning:</value>
+  </data>
+  <data name="Str_OverlapCascadeStep" xml:space="preserve">
+    <value>Overlap Cascade Step (% drop):</value>
+  </data>
+  <data name="Str_AdvancedLayoutToggles" xml:space="preserve">
+    <value>Advanced Layout Toggles</value>
+  </data>
+  <data name="Str_MA00_2" xml:space="preserve">
+    <value>2. Tea Break:</value>
+  </data>
+  <data name="Str_FootnoteDescription" xml:space="preserve">
+    <value>Footnote Description:</value>
+  </data>
+  <data name="Tip_OverlapCascade" xml:space="preserve">
+    <value>How much smaller the next overlapping block gets. Larger % gives more visibility to events behind.</value>
+  </data>
+  <data name="Str_MA00_4" xml:space="preserve">
+    <value>4. Other MA-00:</value>
+  </data>
+  <data name="Str_OverlapErrorColon" xml:space="preserve">
+    <value>Errors (Overlap):</value>
+  </data>
+  <data name="Str_EditWarning" xml:space="preserve">
+    <value>Edit exactly what prints for this block. Changes are automatically saved as overrides when you click Apply.</value>
+  </data>
+  <data name="Str_MinMinutesLabel" xml:space="preserve">
+    <value>Min. Minutes for Label:</value>
+  </data>
+  <data name="Str_FacilityStoppedColon" xml:space="preserve">
+    <value>Facility Stopped:</value>
+  </data>
+  <data name="Str_MA00_3" xml:space="preserve">
+    <value>3. Lunch Break:</value>
+  </data>
+  <data name="Str_LayerExplanation" xml:space="preserve">
+    <value>Higher layers draw on top of lower layers. If multiple errors happen, their layer automatically increments (e.g., 10, 11, 12).</value>
+  </data>
+  <data name="Tip_ResetOverrides" xml:space="preserve">
+    <value>Clear all manual color, text, and layout overrides you made.</value>
+  </data>
+  <data name="Str_MinMinutesFootnote" xml:space="preserve">
+    <value>Min. Minutes for Footnote:</value>
+  </data>
+  <data name="Str_ForceIntoFootnotes" xml:space="preserve">
+    <value>Force into Footnotes</value>
+  </data>
+  <data name="Str_ShowMajorErrorLabels" xml:space="preserve">
+    <value>Show Machine ID and Texts on Errors</value>
+  </data>
+  <data name="Str_BypassColon" xml:space="preserve">
+    <value>Bypass:</value>
+  </data>
+  <data name="Str_PrimaryErrorColon" xml:space="preserve">
+    <value>Errors (Primary):</value>
+  </data>
+<data name="Str_Analytics" xml:space="preserve">
+    <value>Analytics</value>
+  </data>
+  <data name="Str_DailyTimeline" xml:space="preserve">
+    <value>Daily Timeline</value>
+  </data>
+  <data name="Str_MolaBakimKazanimi" xml:space="preserve">
+    <value>Mola / Bakım Kazanımı</value>
+  </data>
+  <data name="Str_BypassKazanimi" xml:space="preserve">
+    <value>Bypass Kazanımı</value>
+  </data>
+  <data name="Str_FiiliSure" xml:space="preserve">
+    <value>Fiili Çalışılan Süre</value>
+  </data>
+  <data name="Str_YanlisZamanVerisi" xml:space="preserve">
+    <value>Yanlış zaman Verisi</value>
+  </data>
+  <data name="Str_BozukVeri" xml:space="preserve">
+    <value>Bozuk Veri</value>
+  </data>
+  <data name="Str_DayShift" xml:space="preserve">
+    <value>Day Shift</value>
+  </data>
+  <data name="Str_NightShift" xml:space="preserve">
+    <value>Night Shift</value>
+  </data>
+  <data name="Str_Zoom" xml:space="preserve">
+    <value>Zoom</value>
+  </data>
+  <data name="Str_RefData" xml:space="preserve">
+    <value>Ref Data</value>
+  </data>
+  <data name="Str_Items" xml:space="preserve">
+    <value>Items</value>
+  </data>
+  <data name="Str_StartTime" xml:space="preserve">
+    <value>Start Time</value>
+  </data>
+  <data name="Str_EndTime" xml:space="preserve">
+    <value>End Time</value>
+  </data>
+  <data name="Str_DurationMin" xml:space="preserve">
+    <value>Duration (min)</value>
+  </data>
+  <data name="Str_SpecifyEndTime" xml:space="preserve">
+    <value>Specify End Time</value>
+  </data>
+  <data name="Str_MachineCode" xml:space="preserve">
+    <value>Machine Code</value>
+  </data>
+  <data name="Str_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Str_FlagAsBypass" xml:space="preserve">
+    <value>Flag as Bypass</value>
+  </data>
+  <data name="Str_SaveAsFavorite" xml:space="preserve">
+    <value>Save as Favorite</value>
+  </data>
+  <data name="Str_ApplyToTimeline" xml:space="preserve">
+    <value>Apply to Timeline</value>
+  </data>
+  <data name="Str_EventDetails" xml:space="preserve">
+    <value>Event Details</value>
+  </data>
+  <data name="Str_FavsHint" xml:space="preserve">
+    <value>Drag favorites to timeline:</value>
+  </data>
+  <data name="Str_FavsWithIcon" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
+  <data name="Str_AddNewWithIcon" xml:space="preserve">
+    <value>Add New</value>
+  </data>
+  <data name="Str_SaveWithIcon" xml:space="preserve">
+    <value>💾 Save</value>
+  </data>
+  <data name="Str_Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Tip_SelectDate" xml:space="preserve">
+    <value>Select Date</value>
+  </data>
+  <data name="Tip_UndoChanges" xml:space="preserve">
+    <value>Undo Changes</value>
+  </data>
+  <data name="Tip_RefreshDB" xml:space="preserve">
+    <value>Refresh Database</value>
+  </data>
+  <data name="Tip_RemoveFavorite" xml:space="preserve">
+    <value>Remove Favorite</value>
+  </data>
+  <data name="Tip_ConfigMachineCodes" xml:space="preserve">
+    <value>Configure Machine Codes</value>
+  </data>
+  <data name="Str_Ref" xml:space="preserve">
+    <value>Ref</value>
+  </data>
 </root>

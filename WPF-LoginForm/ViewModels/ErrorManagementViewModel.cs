@@ -1,4 +1,4 @@
-﻿// ViewModels/ErrorManagementViewModel.cs
+// ViewModels/ErrorManagementViewModel.cs
 using LiveCharts;
 using LiveCharts.Wpf;
 using Newtonsoft.Json;
@@ -214,23 +214,23 @@ namespace WPF_LoginForm.ViewModels
                         Clipboard.SetDataObject(textToCopy, true);
                     });
 
-                    MessageBox.Show("Categories copied to clipboard successfully!",
-                                    "Copied",
+                    MessageBox.Show(WPF_LoginForm.Properties.Resources.Msg_CopySuccess,
+                                    WPF_LoginForm.Properties.Resources.Msg_CopySuccess,
                                     MessageBoxButton.OK,
                                     MessageBoxImage.Information);
                 }
                 else
                 {
-                    MessageBox.Show("There are no categories to copy. Please load data first.",
-                                    "Empty",
+                    MessageBox.Show(WPF_LoginForm.Properties.Resources.Msg_CopyNoData,
+                                    WPF_LoginForm.Properties.Resources.PleaseSelect,
                                     MessageBoxButton.OK,
                                     MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to copy to clipboard. Error: {ex.Message}",
-                                "Error",
+                MessageBox.Show(string.Format(WPF_LoginForm.Properties.Resources.Msg_CopyError, ex.Message),
+                                WPF_LoginForm.Properties.Resources.Str_Error,
                                 MessageBoxButton.OK,
                                 MessageBoxImage.Error);
             }
@@ -466,20 +466,23 @@ namespace WPF_LoginForm.ViewModels
             {
                 string filterText = point.SeriesView.Title;
 
-                if (filterText == "MA-Others")
+                if (point.SeriesView.Title == "MA-Others")
                 {
-                    var visible = MachineSeries.Cast<PieSeries>()
-                        .Select(s => s.Title.Replace("MA-", ""))
-                        .Where(t => t != "Others")
-                        .ToList();
-
-                    filterText = "MACHINE_OTHERS|" + string.Join(",", visible);
+                    SeriesCollection activeColl = (MachineSeries?.Cast<object>().Any(s => s == point.SeriesView) == true) ? MachineSeries : ShiftSeries;
+                    if (activeColl != null)
+                    {
+                        var visible = activeColl.Cast<PieSeries>().Select(s => s.Title.Replace("MA-", "")).Where(t => t != "Others").ToList();
+                        if (activeColl == ShiftSeries)
+                            filterText = $"MACHINE_CATEGORY_OTHERS|{string.Join(",", visible)}|{SelectedErrorCategory}";
+                        else
+                            filterText = "MACHINE_OTHERS|" + string.Join(",", visible);
+                    }
                 }
                 else if (point.SeriesView is ColumnSeries && _fullReasonNames.Count > (int)point.X)
                 {
                     filterText = _fullReasonNames[(int)point.X];
                 }
-                else if (ShiftSeries != null && ShiftSeries.Cast<object>().Any(s => s == point.SeriesView))
+                else if (ShiftSeries?.Cast<object>().Any(s => s == point.SeriesView) == true)
                 {
                     filterText = $"MACHINE_CATEGORY|{point.SeriesView.Title.Replace("MA-", "")}|{SelectedErrorCategory}";
                 }
@@ -488,7 +491,7 @@ namespace WPF_LoginForm.ViewModels
                 {
                     var drillDownVm = new ErrorDrillDownViewModel(
                         _cachedRawData,
-                        $"Detailed Analysis: {SelectedTable}",
+                        $"{WPF_LoginForm.Properties.Resources.Str_DetailedAnalysis} {SelectedTable}",
                         filterText,
                         new List<string>(),
                         IsMinToClockFormat,

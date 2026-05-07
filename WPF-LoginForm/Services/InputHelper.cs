@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using WPF_LoginForm.Models;
@@ -87,15 +87,24 @@ namespace WPF_LoginForm.Services
             return result;
         }
 
-        public static List<ChartDataPoint> GetCategoryStats(List<ErrorEventModel> data, string category, CategoryMappingService mappingService, List<CategoryRule> rules, int topN = 9)
+        public static List<ChartDataPoint> GetCategoryStats(List<ErrorEventModel> data, string category, CategoryMappingService mappingService, List<CategoryRule> rules, int topN = 5)
         {
-            return data
+            var grouped = data
                 .Where(x => mappingService.GetMappedCategory(x.ErrorDescription, rules).Equals(category, StringComparison.OrdinalIgnoreCase))
                 .GroupBy(x => x.MachineCode)
                 .Select(g => new ChartDataPoint { Label = g.Key, Value = g.Sum(x => x.DurationMinutes) })
                 .OrderByDescending(x => x.Value)
-                .Take(topN)
                 .ToList();
+
+            var result = grouped.Take(topN).ToList();
+            var othersSum = grouped.Skip(topN).Sum(x => x.Value);
+
+            if (othersSum > 0)
+            {
+                result.Add(new ChartDataPoint { Label = "Others", Value = othersSum });
+            }
+
+            return result;
         }
 
         // FIX: Added 'strictNoM00Errors' parameter so Cards 1 & 2 can remain completely static regarding MA-00

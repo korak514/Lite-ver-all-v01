@@ -1,4 +1,4 @@
-﻿    <UserControl x:Class="WPF_LoginForm.Views.ErrorManagementView"
+    <UserControl x:Class="WPF_LoginForm.Views.ErrorManagementView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -356,116 +356,118 @@
         </Grid>
 
         <!-- SIDEBAR -->
-        <Border Grid.Column="1" Background="#101030" BorderBrush="#333" BorderThickness="1,0,0,0" Padding="15">
-            <StackPanel>
-                <Grid Margin="0,0,0,20">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
+        <Border Grid.Column="1" Background="#101030" BorderBrush="#333" BorderThickness="1,0,0,0" Padding="10,15">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="0,0,10,0">
+                    <Grid Margin="0,0,0,15">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Column="0" Text="{x:Static p:Resources.Ana_Title}" Foreground="#0078D7" FontSize="18" FontWeight="Bold" TextWrapping="Wrap" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="0" Text="{x:Static p:Resources.Ana_Title}" Foreground="#0078D7" FontSize="18" FontWeight="Bold" TextWrapping="Wrap" VerticalAlignment="Center" />
 
-                    <!-- StackPanel to hold the top right buttons -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <!-- StackPanel to hold the top right buttons -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
 
-                        <Button Command="{Binding OpenPrintReportCommand}" Width="35" Height="35" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Print 15-Day Timeline Report" Margin="0,0,5,0">
-                            <fa:ImageAwesome Icon="Print" Foreground="#2ECC71" Width="18" Height="18" />
+                            <Button Command="{Binding OpenPrintReportCommand}" Width="32" Height="32" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="{x:Static p:Resources.Tip_PrintReport}" Margin="0,0,2,0">
+                                <fa:ImageAwesome Icon="Print" Foreground="#2ECC71" Width="16" Height="16" />
+                            </Button>
+
+                            <Button Command="{Binding OpenDailyTimelineCommand}" Width="32" Height="32" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="{x:Static p:Resources.Tip_DailyTimeline}" Margin="0,0,2,0">
+                                <fa:ImageAwesome Icon="SunOutline" Foreground="#3498DB" Width="18" Height="18" />
+                            </Button>
+
+                            <Button Command="{Binding TogglePageCommand}" Width="32" Height="32" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="{x:Static p:Resources.Tip_SwitchView}">
+                                <Grid>
+                                    <Path Fill="#FFC047" Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.59,12L15,13.41L12,10.41L9,13.41L7.41,12L12,7.41L16.59,12Z">
+                                        <Path.Style>
+                                            <Style TargetType="Path">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSecondPageActive}" Value="True">
+                                                        <Setter Property="RenderTransform">
+                                                            <Setter.Value>
+                                                                <RotateTransform Angle="180" CenterX="12" CenterY="12" />
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Path.Style>
+                                    </Path>
+                                </Grid>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="{x:Static p:Resources.Ana_Table}" Foreground="Gray" Margin="0,0,0,3" FontSize="11" />
+                    <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable}" Height="28" Margin="0,0,0,12" VerticalContentAlignment="Center" Padding="5" FontSize="11" />
+
+                    <TextBlock Text="{x:Static p:Resources.Ana_Category}" Foreground="#FFC047" FontWeight="SemiBold" Margin="0,0,0,3" FontSize="11" />
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="32" />
+                            <ColumnDefinition Width="32" />
+                        </Grid.ColumnDefinitions>
+
+                        <ComboBox Grid.Column="0" ItemsSource="{Binding ErrorCategories}" SelectedItem="{Binding SelectedErrorCategory}" Height="28" VerticalContentAlignment="Center" Padding="5" FontSize="11" />
+
+                        <!-- NEW COPY BUTTON -->
+                        <Button Grid.Column="1" Command="{Binding CopyCategoriesCommand}" ToolTip="{x:Static p:Resources.Tip_CopyCategories}" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="2,0,0,0">
+                            <fa:ImageAwesome Icon="Copy" Foreground="#3498DB" Width="14" Height="14" />
                         </Button>
 
-                        <Button Command="{Binding OpenDailyTimelineCommand}" Width="35" Height="35" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Daily Timeline View" Margin="0,0,5,0">
-                            <fa:ImageAwesome Icon="SunOutline" Foreground="#3498DB" Width="20" Height="20" />
-                        </Button>
+                        <Button Grid.Column="2" Command="{Binding ConfigureCategoriesCommand}" Content="⚙" ToolTip="{x:Static p:Resources.Tip_ConfigCategories}" FontSize="14" Foreground="#AAA" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="2,0,0,0" />
+                    </Grid>
 
-                        <Button Command="{Binding TogglePageCommand}" Width="35" Height="35" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Switch View">
-                            <Grid>
-                                <Path Fill="#FFC047" Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.59,12L15,13.41L12,10.41L9,13.41L7.41,12L12,7.41L16.59,12Z">
-                                    <Path.Style>
-                                        <Style TargetType="Path">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsSecondPageActive}" Value="True">
-                                                    <Setter Property="RenderTransform">
-                                                        <Setter.Value>
-                                                            <RotateTransform Angle="180" CenterX="12" CenterY="12" />
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Path.Style>
-                                </Path>
-                            </Grid>
-                        </Button>
-                    </StackPanel>
-                </Grid>
+                    <CheckBox Content="{x:Static p:Resources.Ana_ExcludeMachine00}" IsChecked="{Binding IsMachine00Excluded}" Foreground="WhiteSmoke" Margin="0,2,0,15" FontSize="11" />
 
-                <TextBlock Text="{x:Static p:Resources.Ana_Table}" Foreground="Gray" Margin="0,0,0,5" />
-                <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable}" Height="30" Margin="0,0,0,15" VerticalContentAlignment="Center" Padding="5" />
+                    <CheckBox Content="{x:Static p:Resources.Min2clock}" IsChecked="{Binding IsMinToClockFormat}" Foreground="WhiteSmoke" Margin="0,0,0,12" ToolTip="{x:Static p:Resources.Tip_MinToClock}" FontSize="11" />
+                    <TextBlock Text="{x:Static p:Resources.Ana_StartDate}" Foreground="Gray" Margin="0,0,0,3" FontSize="11" />
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="22" />
+                            <ColumnDefinition Width="22" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="22" />
+                            <ColumnDefinition Width="22" />
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="&lt;&lt;" Command="{Binding MoveDateCommand}" CommandParameter="Start|-7" ToolTip="{x:Static p:Resources.Tip_PrevWeek}" Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" />
+                        <Button Grid.Column="1" Content="&lt;" Command="{Binding MoveDateCommand}" CommandParameter="Start|-1" ToolTip="{x:Static p:Resources.Tip_PrevDay}" Background="#444" Foreground="White" BorderThickness="0" Cursor="Hand" />
+                        <DatePicker Grid.Column="2" SelectedDate="{Binding StartDate}" VerticalContentAlignment="Center" FontSize="11" />
+                        <Button Grid.Column="3" Content="&gt;" Command="{Binding MoveDateCommand}" CommandParameter="Start|1" ToolTip="{x:Static p:Resources.Tip_NextDay}" Background="#444" Foreground="White" BorderThickness="0" Cursor="Hand" />
+                        <Button Grid.Column="4" Content="&gt;&gt;" Command="{Binding MoveDateCommand}" CommandParameter="Start|7" ToolTip="{x:Static p:Resources.Tip_NextWeek}" Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" />
+                    </Grid>
 
-                <TextBlock Text="{x:Static p:Resources.Ana_Category}" Foreground="#FFC047" FontWeight="SemiBold" Margin="0,0,0,5" />
-                <Grid Margin="0,0,0,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="35" />
-                        <ColumnDefinition Width="35" />
-                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{x:Static p:Resources.Ana_EndDate}" Foreground="Gray" Margin="0,0,0,3" FontSize="11" />
+                    <Grid Margin="0,0,0,15">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="22" />
+                            <ColumnDefinition Width="22" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="22" />
+                            <ColumnDefinition Width="22" />
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="&lt;&lt;" Command="{Binding MoveDateCommand}" CommandParameter="End|-7" ToolTip="{x:Static p:Resources.Tip_PrevWeek}" Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" />
+                        <Button Grid.Column="1" Content="&lt;" Command="{Binding MoveDateCommand}" CommandParameter="End|-1" ToolTip="{x:Static p:Resources.Tip_PrevDay}" Background="#444" Foreground="White" BorderThickness="0" Cursor="Hand" />
+                        <DatePicker Grid.Column="2" SelectedDate="{Binding EndDate}" VerticalContentAlignment="Center" FontSize="11" />
+                        <Button Grid.Column="3" Content="&gt;" Command="{Binding MoveDateCommand}" CommandParameter="End|1" ToolTip="{x:Static p:Resources.Tip_NextDay}" Background="#444" Foreground="White" BorderThickness="0" Cursor="Hand" />
+                        <Button Grid.Column="4" Content="&gt;&gt;" Command="{Binding MoveDateCommand}" CommandParameter="End|7" ToolTip="{x:Static p:Resources.Tip_NextWeek}" Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" />
+                    </Grid>
 
-                    <ComboBox Grid.Column="0" ItemsSource="{Binding ErrorCategories}" SelectedItem="{Binding SelectedErrorCategory}" Height="30" VerticalContentAlignment="Center" Padding="5" />
+                    <TextBlock Text="{x:Static p:Resources.Ana_RangeSlider}" Foreground="Gray" Margin="0,0,0,8" FontSize="11" />
+                    <xctk:RangeSlider Minimum="{Binding SliderMinimum}" Maximum="{Binding SliderMaximum}" LowerValue="{Binding SliderLowValue}" HigherValue="{Binding SliderHighValue}" Height="25" Margin="0,0,0,20" />
 
-                    <!-- NEW COPY BUTTON -->
-                    <Button Grid.Column="1" Command="{Binding CopyCategoriesCommand}" ToolTip="Copy Categories to Clipboard" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="5,0,0,0">
-                        <fa:ImageAwesome Icon="Copy" Foreground="#3498DB" Width="16" Height="16" />
+                    <Button Content="{x:Static p:Resources.Ana_LoadData}" Command="{Binding LoadDataCommand}" Height="40" Background="#FF0078D7" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="5" />
+                            </Style>
+                        </Button.Resources>
                     </Button>
-
-                    <Button Grid.Column="2" Command="{Binding ConfigureCategoriesCommand}" Content="⚙" FontSize="16" Foreground="#AAA" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="5,0,0,0" />
-                </Grid>
-
-                <CheckBox Content="{x:Static p:Resources.Ana_ExcludeMachine00}" IsChecked="{Binding IsMachine00Excluded}" Foreground="WhiteSmoke" Margin="0,5,0,20" />
-
-                <CheckBox Content="{x:Static p:Resources.Min2clock}" IsChecked="{Binding IsMinToClockFormat}" Foreground="WhiteSmoke" Margin="0,0,0,15" ToolTip="Convert minutes > 60 to Hours (e.g., 70 min -> 1 h 10 m)" />
-                <TextBlock Text="{x:Static p:Resources.Ana_StartDate}" Foreground="Gray" Margin="0,0,0,5" />
-                <Grid Margin="0,0,0,15">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="25" />
-                        <ColumnDefinition Width="25" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="25" />
-                        <ColumnDefinition Width="25" />
-                    </Grid.ColumnDefinitions>
-                    <Button Grid.Column="0" Content="&lt;&lt;" Command="{Binding MoveDateCommand}" CommandParameter="Start|-7" Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" />
-                    <Button Grid.Column="1" Content="&lt;" Command="{Binding MoveDateCommand}" CommandParameter="Start|-1" Background="#444" Foreground="White" BorderThickness="0" Cursor="Hand" />
-                    <DatePicker Grid.Column="2" SelectedDate="{Binding StartDate}" VerticalContentAlignment="Center" />
-                    <Button Grid.Column="3" Content="&gt;" Command="{Binding MoveDateCommand}" CommandParameter="Start|1" Background="#444" Foreground="White" BorderThickness="0" Cursor="Hand" />
-                    <Button Grid.Column="4" Content="&gt;&gt;" Command="{Binding MoveDateCommand}" CommandParameter="Start|7" Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" />
-                </Grid>
-
-                <TextBlock Text="{x:Static p:Resources.Ana_EndDate}" Foreground="Gray" Margin="0,0,0,5" />
-                <Grid Margin="0,0,0,20">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="25" />
-                        <ColumnDefinition Width="25" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="25" />
-                        <ColumnDefinition Width="25" />
-                    </Grid.ColumnDefinitions>
-                    <Button Grid.Column="0" Content="&lt;&lt;" Command="{Binding MoveDateCommand}" CommandParameter="End|-7" Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" />
-                    <Button Grid.Column="1" Content="&lt;" Command="{Binding MoveDateCommand}" CommandParameter="End|-1" Background="#444" Foreground="White" BorderThickness="0" Cursor="Hand" />
-                    <DatePicker Grid.Column="2" SelectedDate="{Binding EndDate}" VerticalContentAlignment="Center" />
-                    <Button Grid.Column="3" Content="&gt;" Command="{Binding MoveDateCommand}" CommandParameter="End|1" Background="#444" Foreground="White" BorderThickness="0" Cursor="Hand" />
-                    <Button Grid.Column="4" Content="&gt;&gt;" Command="{Binding MoveDateCommand}" CommandParameter="End|7" Background="#333" Foreground="White" BorderThickness="0" Cursor="Hand" />
-                </Grid>
-
-                <TextBlock Text="Range Slider:" Foreground="Gray" Margin="0,0,0,10" />
-                <xctk:RangeSlider Minimum="{Binding SliderMinimum}" Maximum="{Binding SliderMaximum}" LowerValue="{Binding SliderLowValue}" HigherValue="{Binding SliderHighValue}" Height="30" Margin="0,0,0,25" />
-
-                <Button Content="{x:Static p:Resources.Ana_LoadData}" Command="{Binding LoadDataCommand}" Height="45" Background="#FF0078D7" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="5" />
-                        </Style>
-                    </Button.Resources>
-                </Button>
-            </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
         </Border>
     </Grid>
 </UserControl>

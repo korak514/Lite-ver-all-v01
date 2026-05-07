@@ -1,5 +1,6 @@
 // Models/GeneralSettings.cs
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace WPF_LoginForm.Models
 {
@@ -22,9 +23,12 @@ namespace WPF_LoginForm.Models
         public string ImportFileName { get; set; } = "dashboard_config.json";
         public string ImportAbsolutePath { get; set; } = "";
 
-        // Dashboard Settings
+        // Dashboard Settings (Excluded from General Config Export)
+        [JsonIgnore]
         public bool ShowDashboardDateFilter { get; set; } = true;
+        [JsonIgnore]
         public int DashboardDateTickSize { get; set; } = 1;
+        [JsonIgnore]
         public int DefaultRowLimit { get; set; } = 500;
 
         // Network & Resilience Settings
@@ -37,7 +41,8 @@ namespace WPF_LoginForm.Models
         public string DbPort { get; set; } = "1433";
         public string DbUser { get; set; } = "admin";
 
-        // Category Rules (Analytics)
+        // Category Rules (Analytics) - Excluded from General Config Export (stored in category_rules.json)
+        [JsonIgnore]
         public List<CategoryRule> CategoryRules { get; set; } = new List<CategoryRule>();
     }
 }

@@ -53,8 +53,22 @@ namespace WPF_LoginForm.ViewModels
         public bool IsOnlineMode => !IsOfflineMode;
         public bool IsAdminAndOnline => IsAdmin && IsOnlineMode;
         public bool IsAdmin => UserSessionService.IsAdmin;
-        public bool IsBusy { get => _isBusy; private set => SetProperty(ref _isBusy, value); }
-        public bool IsProgressBarVisible => _isBusy;
+        public bool IsBusy 
+        { 
+            get => _isBusy; 
+            private set 
+            { 
+                if (SetProperty(ref _isBusy, value)) 
+                {
+                    OnPropertyChanged(nameof(IsProgressBarVisible));
+                    (AddNewRowCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+                    (SaveChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+                    (UndoChangesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+                    (ReloadDataCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+                }
+            } 
+        }
+        public bool IsProgressBarVisible => IsBusy;
 
         public string ErrorMessage
         { get => _errorMessage; private set { if (SetProperty(ref _errorMessage, value)) OnPropertyChanged(nameof(HasError)); } }
@@ -79,7 +93,9 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        public bool LoadAllData { get; set; } = false;
+        private bool _loadAllData;
+        public bool LoadAllData
+        { get => _loadAllData; set { if (SetProperty(ref _loadAllData, value)) _ = LoadDataForSelectedTableAsync(); } }
 
         public DataView DataTableView
         {
@@ -106,11 +122,16 @@ namespace WPF_LoginForm.ViewModels
         { get => _isGlobalSearchActive; set { if (SetProperty(ref _isGlobalSearchActive, value)) ApplyCombinedFiltersAsync(); } }
 
         private bool _isDateFilterVisible;
+        private bool _isDateFilterPanelVisible;
+        private bool _isColumnSelectorVisible;
+        private bool _isAdvancedImportVisible;
         private DateTime? _filterStartDate, _filterEndDate;
         private double _sliderMax, _sliderStart, _sliderEnd;
 
         public bool IsDateFilterVisible { get => _isDateFilterVisible; private set => SetProperty(ref _isDateFilterVisible, value); }
-        public bool IsDateFilterPanelVisible { get; set; }
+        public bool IsDateFilterPanelVisible { get => _isDateFilterPanelVisible; set => SetProperty(ref _isDateFilterPanelVisible, value); }
+        public bool IsColumnSelectorVisible { get => _isColumnSelectorVisible; set => SetProperty(ref _isColumnSelectorVisible, value); }
+        public bool IsAdvancedImportVisible { get => _isAdvancedImportVisible; set => SetProperty(ref _isAdvancedImportVisible, value); }
 
         public DateTime? FilterStartDate
         { get => _filterStartDate; set { if (SetProperty(ref _filterStartDate, value)) { ApplyCombinedFiltersAsync(); UpdateSlidersFromDates(); } } }
@@ -126,11 +147,18 @@ namespace WPF_LoginForm.ViewModels
         public double EndMonthSliderValue
         { get => _sliderEnd; set { if (SetProperty(ref _sliderEnd, value)) UpdateDatesFromSliders(); } }
 
+        private bool _isTimeCorrectionEnabled;
+        public bool IsTimeCorrectionEnabled
+        { get => _isTimeCorrectionEnabled; set { if (SetProperty(ref _isTimeCorrectionEnabled, value)) OnPropertyChanged(nameof(IsTimeCorrectionEnabled)); } }
+
         public bool IsIdHidden
         { get => _isIdHidden; set { if (SetProperty(ref _isIdHidden, value)) OnPropertyChanged(nameof(IsIdVisible)); } }
 
+        private bool _isIdEditable;
+        public bool IsIdEditable
+        { get => _isIdEditable; set { if (SetProperty(ref _isIdEditable, value)) OnPropertyChanged(nameof(IsIdEditable)); } }
+
         public bool IsIdVisible => !_isIdHidden;
-        public bool IsAdvancedImportVisible { get; set; }
 
         public double DataGridFontSize
         { get => _dataGridFontSize; set { if (SetProperty(ref _dataGridFontSize, Math.Max(8, Math.Min(24, value)))) { (DecreaseFontSizeCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); (IncreaseFontSizeCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); } } }
@@ -175,7 +203,7 @@ namespace WPF_LoginForm.ViewModels
             RenameColumnCommand = new ViewModelCommand(ExecuteRenameColumn, p => !IsBusy && IsAdminAndOnline && !string.IsNullOrEmpty(SelectedSearchColumn));
             ShowHierarchyImportCommand = new ViewModelCommand(p => _dialogService.ShowHierarchyImportDialog(new HierarchyImportViewModel(_dataRepository, _dialogService, _logger) { SelectedTableName = SelectedTable }), p => IsOnlineMode);
 
-            ReloadDataCommand = new ViewModelCommand(p => _ = LoadDataForSelectedTableAsync(), p => !string.IsNullOrEmpty(SelectedTable) && !IsBusy);
+            ReloadDataCommand = new ViewModelCommand(p => _ = ExecuteLongRunning(async t => { await Task.Delay(300); await LoadDataForSelectedTableAsync(); }), p => !string.IsNullOrEmpty(SelectedTable) && !IsBusy);
             ExportDataCommand = new ViewModelCommand(ExecuteExportData, p => _currentDataTable?.Rows.Count > 0 && !IsBusy);
 
             // Re-wired and implemented fully:
@@ -374,7 +402,9 @@ namespace WPF_LoginForm.ViewModels
         private void SetupDateFilter()
         {
             IsDateFilterVisible = false; _minSliderDate = default;
-            var dc = _currentDataTable?.Columns.Cast<DataColumn>().FirstOrDefault(c => c.DataType == typeof(DateTime) && _dateColumnAliases.Contains(c.ColumnName));
+            var dc = _currentDataTable?.Columns.Cast<DataColumn>().FirstOrDefault(c => c.DataType == typeof(DateTime) && _dateColumnAliases.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase))
+                  ?? _currentDataTable?.Columns.Cast<DataColumn>().FirstOrDefault(c => c.DataType == typeof(DateTime));
+
             if (dc != null)
             {
                 var dates = _currentDataTable.AsEnumerable().Where(r => r.RowState != DataRowState.Deleted && r[dc] != DBNull.Value).Select(r => (DateTime)r[dc]).ToList();
