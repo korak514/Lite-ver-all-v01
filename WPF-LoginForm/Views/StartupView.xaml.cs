@@ -51,10 +51,9 @@ namespace WPF_LoginForm.Views
                     }
                     else if (result == MessageBoxResult.Cancel)
                     {
-                        // Always Offline Mode - save flag permanently
+                        // Always Offline Mode - save flag permanently to general_config.json
                         current.PureOfflineMode = true;
-                        Settings.Default.PureOfflineMode = true;
-                        try { Settings.Default.Save(); } catch { }
+                        GeneralSettingsManager.Instance.Save();
 
                         UpdateStatus("Starting in Offline Mode...", 100);
                         await Task.Delay(200);

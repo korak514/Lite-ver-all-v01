@@ -105,6 +105,7 @@ namespace WPF_LoginForm.Services
                 Settings.Default.DbHost = Current.DbHost;
                 Settings.Default.DbPort = Current.DbPort;
                 Settings.Default.DbUser = Current.DbUser;
+                Settings.Default.PureOfflineMode = Current.PureOfflineMode;
             }
             catch { }
 
