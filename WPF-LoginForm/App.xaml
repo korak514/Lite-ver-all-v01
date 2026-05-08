@@ -4,18 +4,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
              xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
-             xmlns:views="clr-namespace:WPF_LoginForm.Views"
-             StartupUri="Views/StartupView.xaml">
+             xmlns:views="clr-namespace:WPF_LoginForm.Views">
+             <!-- Removed StartupUri="Views/StartupView.xaml" -->
 
     <Application.Resources>
         <ResourceDictionary>
-
             <ResourceDictionary.MergedDictionaries>
                 <!-- 1. Colors First -->
                 <ResourceDictionary Source="/Styles/UIColors.xaml" />
                 <!-- 2. Styles Second (uses Colors) -->
                 <ResourceDictionary Source="/Styles/ButtonStyles.xaml" />
-                <!-- 2. Theme Second (uses Colors) -->
+                <!-- 3. Theme Second (uses Colors) -->
                 <ResourceDictionary Source="/Styles/ThemeColors.xaml" />
                 <ResourceDictionary Source="/Styles/Themes/DarkTheme.xaml" />
             </ResourceDictionary.MergedDictionaries>

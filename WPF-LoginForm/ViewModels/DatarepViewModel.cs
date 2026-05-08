@@ -206,7 +206,6 @@ namespace WPF_LoginForm.ViewModels
             ReloadDataCommand = new ViewModelCommand(p => _ = ExecuteLongRunning(async t => { await Task.Delay(300); await LoadDataForSelectedTableAsync(); }), p => !string.IsNullOrEmpty(SelectedTable) && !IsBusy);
             ExportDataCommand = new ViewModelCommand(ExecuteExportData, p => _currentDataTable?.Rows.Count > 0 && !IsBusy);
 
-            // Re-wired and implemented fully:
             ShowFindReplaceCommand = new ViewModelCommand(ExecuteShowFindReplace, p => _currentDataTable != null && !IsBusy);
 
             DecreaseFontSizeCommand = new ViewModelCommand(p => DataGridFontSize--, p => DataGridFontSize > 8);
@@ -257,7 +256,7 @@ namespace WPF_LoginForm.ViewModels
             SetErrorMessage(null);
 
             try { await op(token); }
-            catch (Exception ex) { _logger.LogError("[Op]", ex); SetErrorMessage($"Error: {ex.Message}"); }
+            catch (Exception ex) { _logger.LogError("[Op]", ex); SetErrorMessage($"{Resources.Str_Error}: {ex.Message}"); }
             finally
             {
                 if (Interlocked.Decrement(ref _longRunningOperationCount) == 0) IsBusy = false;
@@ -296,7 +295,7 @@ namespace WPF_LoginForm.ViewModels
                     DataTableView = res.Data?.DefaultView;
                     _nextNewRowId = -1;
 
-                    if (!res.IsSortable) SetErrorMessage("⚠️ No ID/Date column. Editing limited.");
+                    if (!res.IsSortable) SetErrorMessage("⚠️ " + Resources.Str_Error);
 
                     SetupDateFilter();
                     ApplyCombinedFiltersAsync();
@@ -347,7 +346,7 @@ namespace WPF_LoginForm.ViewModels
         {
             var changes = _currentDataTable?.GetChanges();
             if (changes == null) return;
-            if (!_dialogService.ShowConfirmationDialog(Resources.Save, $"Save {changes.Rows.Count} changes?")) return;
+            if (!_dialogService.ShowConfirmationDialog(Resources.Save, $"{Resources.Save} ({changes.Rows.Count})?")) return;
 
             bool newRows = changes.AsEnumerable().Any(r => r.RowState == DataRowState.Added);
 
@@ -362,7 +361,7 @@ namespace WPF_LoginForm.ViewModels
                         EditableRows.Clear();
                         CheckIfDirty();
                         if (newRows) _ = LoadDataForSelectedTableAsync();
-                        SetErrorMessage("Changes Saved Successfully.");
+                        SetErrorMessage(Resources.Title_Saved);
                     }
                     else SetErrorMessage(r.ErrorMessage);
                 });
@@ -478,15 +477,14 @@ namespace WPF_LoginForm.ViewModels
         }
 
         private void ExecuteDeleteRow(object p)
-        { if (_dialogService.ShowConfirmationDialog("Delete", "Delete selected rows?")) { foreach (var r in ((IList)p).OfType<DataRowView>().ToList()) { r.Row.Delete(); } CheckIfDirty(); } }
+        { if (_dialogService.ShowConfirmationDialog(Resources.Delete, Resources.Delete + "?")) { foreach (var r in ((IList)p).OfType<DataRowView>().ToList()) { r.Row.Delete(); } CheckIfDirty(); } }
 
         private async void ExecuteDeleteTable(object p)
-        { if (_dialogService.ShowConfirmationDialog("Delete", "Permanently Delete Table?")) await ExecuteLongRunning(async t => { if (await _dataRepository.DeleteTableAsync(SelectedTable)) LoadInitialDataAsync(); }); }
+        { if (_dialogService.ShowConfirmationDialog(Resources.Delete, Resources.Tip_DeleteTable + "?")) await ExecuteLongRunning(async t => { if (await _dataRepository.DeleteTableAsync(SelectedTable)) LoadInitialDataAsync(); }); }
 
         private async void ExecuteRenameColumn(object p)
-        { if (_dialogService.ShowInputDialog("Rename", $"Rename '{SelectedSearchColumn}' to:", SelectedSearchColumn, out string n)) await ExecuteLongRunning(async t => { var r = await _dataRepository.RenameColumnAsync(SelectedTable, SelectedSearchColumn, n); if (r.Success) await LoadDataForSelectedTableAsync(); else SetErrorMessage(r.ErrorMessage); }); }
+        { if (_dialogService.ShowInputDialog(Resources.RenameColumn, $"{Resources.RenameColumn} '{SelectedSearchColumn}':", SelectedSearchColumn, out string n)) await ExecuteLongRunning(async t => { var r = await _dataRepository.RenameColumnAsync(SelectedTable, SelectedSearchColumn, n); if (r.Success) await LoadDataForSelectedTableAsync(); else SetErrorMessage(r.ErrorMessage); }); }
 
-        // --- NEW: Fully implemented Replace Requested Event ---
         private void ExecuteShowFindReplace(object p)
         {
             var w = new FindReplaceWindow();
@@ -517,7 +515,6 @@ namespace WPF_LoginForm.ViewModels
                     {
                         if (col.ReadOnly || col.ColumnName.Equals("ID", StringComparison.OrdinalIgnoreCase)) continue;
 
-                        // Only safely replace strings to avoid crashing int/date fields across the whole DB
                         if (row[col] != DBNull.Value && row[col] != null && col.DataType == typeof(string))
                         {
                             string val = row[col].ToString();
@@ -548,7 +545,7 @@ namespace WPF_LoginForm.ViewModels
                     CheckIfDirty();
                 }
 
-                SetErrorMessage($"Replaced {replaceCount} occurrences.");
+                SetErrorMessage($"{Resources.Str_OK} ({replaceCount})");
             };
 
             if (Application.Current.MainWindow != null) w.Owner = Application.Current.MainWindow;

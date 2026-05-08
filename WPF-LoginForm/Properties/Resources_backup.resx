@@ -1,0 +1,934 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="AddDataLine" xml:space="preserve">
+    <value>Add Data Entry Line</value>
+  </data>
+  <data name="AddId" xml:space="preserve">
+    <value>Add ID Column</value>
+  </data>
+  <data name="AppSettings" xml:space="preserve">
+    <value>Application Settings</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="CreateNewTable" xml:space="preserve">
+    <value>Create Table...</value>
+  </data>
+  <data name="Customers" xml:space="preserve">
+    <value>Customers</value>
+  </data>
+  <data name="Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="DbProvider" xml:space="preserve">
+    <value>Database Provider:</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="EditId" xml:space="preserve">
+    <value>Edit ID</value>
+  </data>
+  <data name="EntryDate" xml:space="preserve">
+    <value>Entry Date:</value>
+  </data>
+  <data name="Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="FilterbyDate" xml:space="preserve">
+    <value>Filter by Date:</value>
+  </data>
+  <data name="ForgotPassword" xml:space="preserve">
+    <value>Forgot Password?</value>
+  </data>
+  <data name="GeneralSettings" xml:space="preserve">
+    <value>General Settings</value>
+  </data>
+  <data name="Help" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="HideId" xml:space="preserve">
+    <value>Hide ID</value>
+  </data>
+  <data name="Import" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Application Language:</value>
+  </data>
+  <data name="LoadFullHistory" xml:space="preserve">
+    <value>Load Full History</value>
+  </data>
+  <data name="LoginButton" xml:space="preserve">
+    <value>LOG IN</value>
+  </data>
+  <data name="LoginTitle" xml:space="preserve">
+    <value>LOG IN</value>
+  </data>
+  <data name="LogOut" xml:space="preserve">
+    <value>Log Out</value>
+  </data>
+  <data name="Logs" xml:space="preserve">
+    <value>System Logs</value>
+  </data>
+  <data name="Msg_AccessDeniedRole" xml:space="preserve">
+    <value>* Error: Access Denied (Role Verification Failed).</value>
+  </data>
+  <data name="Msg_DbInitFailed" xml:space="preserve">
+    <value>Database initialization failed. Check credentials.</value>
+  </data>
+  <data name="Msg_InvalidCredentials" xml:space="preserve">
+    <value>* Invalid username or password</value>
+  </data>
+  <data name="Msg_NetworkUnreachable" xml:space="preserve">
+    <value>Network unreachable.</value>
+  </data>
+  <data name="Msg_SettingsSavedRestart" xml:space="preserve">
+    <value>Settings saved. Please RESTART the app to apply changes.</value>
+  </data>
+  <data name="Msg_UserAdded" xml:space="preserve">
+    <value>User added successfully.</value>
+  </data>
+  <data name="Msg_UserDeleted" xml:space="preserve">
+    <value>User deleted successfully.</value>
+  </data>
+  <data name="Nav_Customers" xml:space="preserve">
+    <value>Customers</value>
+  </data>
+  <data name="Nav_Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="Nav_Help" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="Nav_Logs" xml:space="preserve">
+    <value>System Logs</value>
+  </data>
+  <data name="Nav_Reports" xml:space="preserve">
+    <value>Reports</value>
+  </data>
+  <data name="Nav_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="PleaseSelect" xml:space="preserve">
+    <value>Please Select</value>
+  </data>
+  <data name="QuickSearch" xml:space="preserve">
+    <value>Quick Search:</value>
+  </data>
+  <data name="Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="RenameColumn" xml:space="preserve">
+    <value>Rename Column</value>
+  </data>
+  <data name="ReportMode" xml:space="preserve">
+    <value>Only Report Mode</value>
+  </data>
+  <data name="Reports" xml:space="preserve">
+    <value>Reports</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="SaveSettings" xml:space="preserve">
+    <value>Save All Changes</value>
+  </data>
+  <data name="SelectAll" xml:space="preserve">
+    <value>Select All</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Status_Loading" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="Status_Ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="Table" xml:space="preserve">
+    <value>Table:</value>
+  </data>
+  <data name="TestConnection" xml:space="preserve">
+    <value>Test Connection</value>
+  </data>
+  <data name="Tip_CreateNewTable" xml:space="preserve">
+    <value>Create a new database table from Excel</value>
+  </data>
+  <data name="Tip_LoadFullHistory" xml:space="preserve">
+    <value>Uncheck for speed (Last 500 rows). Check to see everything.</value>
+  </data>
+  <data name="Tip_RenameColumn" xml:space="preserve">
+    <value>Rename selected column</value>
+  </data>
+  <data name="Today" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Username" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="Ana_Title" xml:space="preserve">
+    <value>Error Analytics Dashboard</value>
+  </data>
+  <data name="Ana_Table" xml:space="preserve">
+    <value>Table:</value>
+  </data>
+  <data name="Ana_Category" xml:space="preserve">
+    <value>Error Category:</value>
+  </data>
+  <data name="Ana_ExcludeMachine00" xml:space="preserve">
+    <value>Meal and Breaks Excluded</value>
+  </data>
+  <data name="Ana_LoadData" xml:space="preserve">
+    <value>Load Data</value>
+  </data>
+  <data name="Ana_StartDate" xml:space="preserve">
+    <value>Start Date</value>
+  </data>
+  <data name="Ana_EndDate" xml:space="preserve">
+    <value>End Date</value>
+  </data>
+  <data name="Chart_LongestIncident" xml:space="preserve">
+    <value>Longest Incident Duration</value>
+  </data>
+  <data name="Chart_MachineDist" xml:space="preserve">
+    <value>Machine Breakdown (Total)</value>
+  </data>
+  <data name="Chart_ShiftDist" xml:space="preserve">
+    <value>Breakdown by Category</value>
+  </data>
+  <data name="DurationText" xml:space="preserve">
+    <value>min</value>
+  </data>
+  <data name="Drill_Title" xml:space="preserve">
+    <value>Detailed Error Analysis</value>
+  </data>
+  <data name="Drill_Count" xml:space="preserve">
+    <value>COUNT</value>
+  </data>
+  <data name="Drill_TotalDuration" xml:space="preserve">
+    <value>TOTAL DURATION</value>
+  </data>
+  <data name="Col_Timeline" xml:space="preserve">
+    <value>Timeline</value>
+  </data>
+  <data name="Col_Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="Col_Machine" xml:space="preserve">
+    <value>Machine</value>
+  </data>
+  <data name="Col_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Col_Shift" xml:space="preserve">
+    <value>Shift</value>
+  </data>
+  <data name="Str_Find" xml:space="preserve">
+    <value>Find</value>
+  </data>
+  <data name="Str_Replace" xml:space="preserve">
+    <value>Replace</value>
+  </data>
+  <data name="Str_FindWhat" xml:space="preserve">
+    <value>Find what:</value>
+  </data>
+  <data name="Str_ReplaceWith" xml:space="preserve">
+    <value>Replace with:</value>
+  </data>
+  <data name="Str_MatchCase" xml:space="preserve">
+    <value>Match Case</value>
+  </data>
+  <data name="Str_CategoryConfig" xml:space="preserve">
+    <value>Configure Categories</value>
+  </data>
+  <data name="Str_MappingRule" xml:space="preserve">
+    <value>Starts With...</value>
+  </data>
+  <data name="Str_MapTo" xml:space="preserve">
+    <value>Group As...</value>
+  </data>
+  <data name="Unit_Minutes" xml:space="preserve">
+    <value>min</value>
+  </data>
+  <data name="Col_Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Machine_Selected" xml:space="preserve">
+    <value>Machine Selected</value>
+  </data>
+  <data name="Error_Analysis" xml:space="preserve">
+    <value>Detailed Error Analysis</value>
+  </data>
+  <data name="Filter" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="Min2clock" xml:space="preserve">
+    <value>Hours Representation</value>
+  </data>
+  <data name="Max_but" xml:space="preserve">
+    <value>Maximize button </value>
+  </data>
+  <data name="AnalyticsP2_Error" xml:space="preserve">
+    <value>Errors</value>
+  </data>
+  <data name="AnalyticsP2_Stop" xml:space="preserve">
+    <value>Stops</value>
+  </data>
+  <data name="AnalyticsP2_PieTitle_1" xml:space="preserve">
+    <value>Errors vs Stops</value>
+  </data>
+  <data name="AnalyticsP2_PieTitle_2" xml:space="preserve">
+    <value>Shift İmpact</value>
+  </data>
+  <data name="AnalyticsP2_BarTitle" xml:space="preserve">
+    <value>Severity Breakdown(Duration)</value>
+  </data>
+  <data name="AnalyticsP2_Card_1" xml:space="preserve">
+    <value>Avg Stop/Day</value>
+  </data>
+  <data name="AnalyticsP2_Card_2" xml:space="preserve">
+    <value>Avg Error/Day</value>
+  </data>
+  <data name="AnalyticsP2_Card_3" xml:space="preserve">
+    <value>Saved Breaks And Parallel Maintenance</value>
+  </data>
+  <data name="AnalyticsP2_Card_7" xml:space="preserve">
+    <value>Time Saved from a Non-Critical Failure</value>
+  </data>
+  <data name="AnalyticsP2_Card_5" xml:space="preserve">
+    <value>Avg Stop/day (Total ; meals And Breaks Included)</value>
+  </data>
+  <data name="AnalyticsP2_Card_6" xml:space="preserve">
+    <value>Machine with the Most Frequent Errors</value>
+    <comment>ex:MA-26 128 times </comment>
+  </data>
+  <data name="AnalyticsP2_Card_4" xml:space="preserve">
+    <value>Avg Working /Day</value>
+  </data>
+  <data name="P_date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="P_Shift" xml:space="preserve">
+    <value>Shift</value>
+  </data>
+  <data name="P_Running" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="P_Meal_and_breaks" xml:space="preserve">
+    <value>Meal &amp; Breaks</value>
+  </data>
+  <data name="P_Errors_and_Stops" xml:space="preserve">
+    <value>Errors &amp; Stops</value>
+  </data>
+  <data name="P-Overlapping" xml:space="preserve">
+    <value>Overlapping Error</value>
+  </data>
+  <data name="P_Total_Stop" xml:space="preserve">
+    <value>Total Stop</value>
+  </data>
+  <data name="P_Working_Time" xml:space="preserve">
+    <value>Working Time</value>
+  </data>
+  <data name="Str_MA00_1" xml:space="preserve">
+    <value>1. General Cleaning:</value>
+  </data>
+  <data name="Str_OverlapCascadeStep" xml:space="preserve">
+    <value>Overlap Cascade Step (% drop):</value>
+  </data>
+  <data name="Str_AdvancedLayoutToggles" xml:space="preserve">
+    <value>Advanced Layout Toggles</value>
+  </data>
+  <data name="Str_MA00_2" xml:space="preserve">
+    <value>2. Tea Break:</value>
+  </data>
+  <data name="Str_FootnoteDescription" xml:space="preserve">
+    <value>Footnote Description:</value>
+  </data>
+  <data name="Tip_OverlapCascade" xml:space="preserve">
+    <value>How much smaller the next overlapping block gets. Larger % gives more visibility to events behind.</value>
+  </data>
+  <data name="Str_MA00_4" xml:space="preserve">
+    <value>4. Other MA-00:</value>
+  </data>
+  <data name="Str_OverlapErrorColon" xml:space="preserve">
+    <value>Errors (Overlap):</value>
+  </data>
+  <data name="Str_EditWarning" xml:space="preserve">
+    <value>Edit exactly what prints for this block. Changes are automatically saved as overrides when you click Apply.</value>
+  </data>
+  <data name="Str_MinMinutesLabel" xml:space="preserve">
+    <value>Min. Minutes for Label:</value>
+  </data>
+  <data name="Str_FacilityStoppedColon" xml:space="preserve">
+    <value>Facility Stopped:</value>
+  </data>
+  <data name="Str_MA00_3" xml:space="preserve">
+    <value>3. Lunch Break:</value>
+  </data>
+  <data name="Str_LayerExplanation" xml:space="preserve">
+    <value>Higher layers draw on top of lower layers. If multiple errors happen, their layer automatically increments (e.g., 10, 11, 12).</value>
+  </data>
+  <data name="Tip_ResetOverrides" xml:space="preserve">
+    <value>Clear all manual color, text, and layout overrides you made.</value>
+  </data>
+  <data name="Str_MinMinutesFootnote" xml:space="preserve">
+    <value>Min. Minutes for Footnote:</value>
+  </data>
+  <data name="Str_ForceIntoFootnotes" xml:space="preserve">
+    <value>Force into Footnotes</value>
+  </data>
+  <data name="Str_ShowMajorErrorLabels" xml:space="preserve">
+    <value>Show Machine ID and Texts on Errors</value>
+  </data>
+  <data name="Str_BypassColon" xml:space="preserve">
+    <value>Bypass:</value>
+  </data>
+  <data name="Str_PrimaryErrorColon" xml:space="preserve">
+    <value>Errors (Primary):</value>
+  </data>
+<data name="Str_Analytics" xml:space="preserve">
+    <value>Analytics</value>
+  </data>
+  <data name="Str_DailyTimeline" xml:space="preserve">
+    <value>Daily Timeline</value>
+  </data>
+  <data name="Str_MolaBakimKazanimi" xml:space="preserve">
+    <value>Mola / Bakım Kazanımı</value>
+  </data>
+  <data name="Str_BypassKazanimi" xml:space="preserve">
+    <value>Bypass Kazanımı</value>
+  </data>
+  <data name="Str_FiiliSure" xml:space="preserve">
+    <value>Fiili Çalışılan Süre</value>
+  </data>
+  <data name="Str_YanlisZamanVerisi" xml:space="preserve">
+    <value>Yanlış zaman Verisi</value>
+  </data>
+  <data name="Str_BozukVeri" xml:space="preserve">
+    <value>Bozuk Veri</value>
+  </data>
+  <data name="Str_DayShift" xml:space="preserve">
+    <value>Day Shift</value>
+  </data>
+  <data name="Str_NightShift" xml:space="preserve">
+    <value>Night Shift</value>
+  </data>
+  <data name="Str_Zoom" xml:space="preserve">
+    <value>Zoom</value>
+  </data>
+  <data name="Str_RefData" xml:space="preserve">
+    <value>Ref Data</value>
+  </data>
+  <data name="Str_Items" xml:space="preserve">
+    <value>Items</value>
+  </data>
+  <data name="Str_StartTime" xml:space="preserve">
+    <value>Start Time</value>
+  </data>
+  <data name="Str_EndTime" xml:space="preserve">
+    <value>End Time</value>
+  </data>
+  <data name="Str_DurationMin" xml:space="preserve">
+    <value>Duration (min)</value>
+  </data>
+  <data name="Str_SpecifyEndTime" xml:space="preserve">
+    <value>Specify End Time</value>
+  </data>
+  <data name="Str_MachineCode" xml:space="preserve">
+    <value>Machine Code</value>
+  </data>
+  <data name="Str_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Str_FlagAsBypass" xml:space="preserve">
+    <value>Flag as Bypass</value>
+  </data>
+  <data name="Str_SaveAsFavorite" xml:space="preserve">
+    <value>Save as Favorite</value>
+  </data>
+  <data name="Str_ApplyToTimeline" xml:space="preserve">
+    <value>Apply to Timeline</value>
+  </data>
+  <data name="Str_EventDetails" xml:space="preserve">
+    <value>Event Details</value>
+  </data>
+  <data name="Str_FavsHint" xml:space="preserve">
+    <value>Drag favorites to timeline:</value>
+  </data>
+  <data name="Str_FavsWithIcon" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
+  <data name="Str_AddNewWithIcon" xml:space="preserve">
+    <value>Add New</value>
+  </data>
+  <data name="Str_SaveWithIcon" xml:space="preserve">
+    <value>💾 Save</value>
+  </data>
+  <data name="Str_Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Tip_SelectDate" xml:space="preserve">
+    <value>Select Date</value>
+  </data>
+  <data name="Tip_UndoChanges" xml:space="preserve">
+    <value>Undo Changes</value>
+  </data>
+  <data name="Tip_RefreshDB" xml:space="preserve">
+    <value>Refresh Database</value>
+  </data>
+  <data name="Tip_RemoveFavorite" xml:space="preserve">
+    <value>Remove Favorite</value>
+  </data>
+  <data name="Tip_ConfigMachineCodes" xml:space="preserve">
+    <value>Configure Machine Codes</value>
+  </data>
+  <data name="Str_Ref" xml:space="preserve">
+    <value>Ref</value>
+  </data>
+  <data name="Str_HourlyTimeCorrection" xml:space="preserve">
+    <value>Hourly Time Correction</value>
+  </data>
+  <data name="Tip_HourlyTimeCorrection" xml:space="preserve">
+    <value>Adjusts 1899 dates to show only HH:mm format</value>
+  </data>
+  <data name="Str_AdvancedImport" xml:space="preserve">
+    <value>Advanced Import</value>
+  </data>
+  <data name="BackToLogin" xml:space="preserve">
+    <value>&lt; Back to Log In</value>
+  </data>
+  <data name="Tab_Configuration" xml:space="preserve">
+    <value>Configuration</value>
+  </data>
+  <data name="GeneralConfigFile" xml:space="preserve">
+    <value>General Config File</value>
+  </data>
+  <data name="GeneralConfigDesc" xml:space="preserve">
+    <value>All settings (except Dashboard) are saved to this JSON file. You can point the app to an existing file to import settings.</value>
+  </data>
+  <data name="CurrentPath" xml:space="preserve">
+    <value>Current Path:</value>
+  </data>
+  <data name="Btn_Change" xml:space="preserve">
+    <value>Change...</value>
+  </data>
+  <data name="Btn_Export" xml:space="preserve">
+    <value>Export...</value>
+  </data>
+  <data name="DbConnectionConfig" xml:space="preserve">
+    <value>Database Connection Configuration</value>
+  </data>
+  <data name="ServerAddressHost" xml:space="preserve">
+    <value>Server Address / Host IP:</value>
+  </data>
+  <data name="Port" xml:space="preserve">
+    <value>Port:</value>
+  </data>
+  <data name="ServerComputerName" xml:space="preserve">
+    <value>Server Computer Name (Backup):</value>
+  </data>
+  <data name="UseWindowsAuth" xml:space="preserve">
+    <value>Use Windows Authentication (Integrated Security)</value>
+  </data>
+  <data name="DbUsername" xml:space="preserve">
+    <value>Database Username:</value>
+  </data>
+  <data name="DbPassword" xml:space="preserve">
+    <value>Database Password:</value>
+  </data>
+  <data name="NetworkRemoteSettings" xml:space="preserve">
+    <value>Network / Remote Access Settings</value>
+  </data>
+  <data name="ConnectionTimeoutSec" xml:space="preserve">
+    <value>Connection Timeout (sec):</value>
+  </data>
+  <data name="TrustServerCertificate" xml:space="preserve">
+    <value>Trust Server Certificate (SSL/TLS)</value>
+  </data>
+  <data name="AutomationDashboardFolder" xml:space="preserve">
+    <value>Automation &amp; Dashboard Folder</value>
+  </data>
+  <data name="EnableDashboardFolderScan" xml:space="preserve">
+    <value>Enable Dashboard Folder Scanning</value>
+  </data>
+  <data name="FolderRelativeApp" xml:space="preserve">
+    <value>Folder is relative to executable (App Folder)</value>
+  </data>
+  <data name="FolderSpecificPath" xml:space="preserve">
+    <value>Folder is at a specific path</value>
+  </data>
+  <data name="FolderPath" xml:space="preserve">
+    <value>Folder Path:</value>
+  </data>
+  <data name="DefaultDashboardFile" xml:space="preserve">
+    <value>Default Dashboard File:</value>
+  </data>
+  <data name="OfflineModeConfig" xml:space="preserve">
+    <value>Offline Mode Configuration</value>
+  </data>
+  <data name="OfflineDataFolder" xml:space="preserve">
+    <value>Offline Data Folder:</value>
+  </data>
+  <data name="CreateOfflineDataImage" xml:space="preserve">
+    <value>Create Offline Data Image (Backup)</value>
+  </data>
+  <data name="OfflineDataImageDesc" xml:space="preserve">
+    <value>Select tables to download to your offline folder. This allows the app to function when the network is down.</value>
+  </data>
+  <data name="LoadAvailableTables" xml:space="preserve">
+    <value>Load Available Tables</value>
+  </data>
+  <data name="CreateOfflineBackup" xml:space="preserve">
+    <value>Create Offline Backup</value>
+  </data>
+  <data name="PerformanceOptimization" xml:space="preserve">
+    <value>Performance Optimization</value>
+  </data>
+  <data name="DefaultRowLimit" xml:space="preserve">
+    <value>Default Row Limit (0 = All):</value>
+  </data>
+  <data name="ShowDateFilterDashboard" xml:space="preserve">
+    <value>Show Date Filter on Dashboard</value>
+  </data>
+  <data name="DateSliderTickSize" xml:space="preserve">
+    <value>Date Slider Tick Size (Step):</value>
+  </data>
+  <data name="Tab_UserManagement" xml:space="preserve">
+    <value>User Management</value>
+  </data>
+  <data name="Btn_RefreshList" xml:space="preserve">
+    <value>Refresh List</value>
+  </data>
+  <data name="Grid_ID" xml:space="preserve">
+    <value>ID</value>
+  </data>
+  <data name="Grid_Username" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="Grid_Role" xml:space="preserve">
+    <value>Role</value>
+  </data>
+  <data name="Grid_FirstName" xml:space="preserve">
+    <value>First Name</value>
+  </data>
+  <data name="Grid_LastName" xml:space="preserve">
+    <value>Last Name</value>
+  </data>
+  <data name="Grid_Email" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="Btn_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="AddNewUser" xml:space="preserve">
+    <value>Add New User</value>
+  </data>
+  <data name="Lbl_UsernameReq" xml:space="preserve">
+    <value>Username *</value>
+  </data>
+  <data name="Lbl_PasswordReq" xml:space="preserve">
+    <value>Password *</value>
+  </data>
+  <data name="Lbl_Role" xml:space="preserve">
+    <value>Role</value>
+  </data>
+  <data name="Lbl_Email" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="Lbl_FirstName" xml:space="preserve">
+    <value>First Name</value>
+  </data>
+  <data name="Lbl_LastName" xml:space="preserve">
+    <value>Last Name</value>
+  </data>
+  <data name="Btn_AddUser" xml:space="preserve">
+    <value>Add User</value>
+  </data>
+  <data name="ToolTip_ChangeConfig" xml:space="preserve">
+    <value>Point the app to an existing general_config.json or choose a new location</value>
+  </data>
+  <data name="ToolTip_ExportConfig" xml:space="preserve">
+    <value>Export current system settings to a JSON file (excluding dashboard part)</value>
+  </data>
+  <data name="ToolTip_PortDefault" xml:space="preserve">
+    <value>Default: 1433</value>
+  </data>
+  <data name="ToolTip_ServerName" xml:space="preserve">
+    <value>If the IP Address changes, the app will try to connect using this name.</value>
+  </data>
+  <data name="ToolTip_SelectFileInFolder" xml:space="preserve">
+    <value>Select a file inside the desired folder</value>
+  </data>
+  <data name="ToolTip_DashboardJson" xml:space="preserve">
+    <value>e.g. dashboard.json</value>
+  </data>
+  <data name="ToolTip_OfflineFolder" xml:space="preserve">
+    <value>Path containing fallback .csv files.</value>
+  </data>
+  <data name="ToolTip_SelectOfflineFolder" xml:space="preserve">
+    <value>Select offline folder</value>
+  </data>
+  <data name="ToolTip_RowLimit" xml:space="preserve">
+    <value>Limits how many rows are fetched by default to speed up network loading.</value>
+  </data>
+  <data name="Title_ExportConfig" xml:space="preserve">
+    <value>Export General Configuration (System Settings)</value>
+  </data>
+  <data name="Msg_ConfigExportSuccess" xml:space="preserve">
+    <value>Configuration exported successfully!</value>
+  </data>
+  <data name="Title_Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="Title_SelectConfigLocation" xml:space="preserve">
+    <value>Select General Config JSON File Location</value>
+  </data>
+  <data name="Title_SelectFileInFolder" xml:space="preserve">
+    <value>Select file in target folder</value>
+  </data>
+  <data name="Title_SelectOfflineFolder" xml:space="preserve">
+    <value>Select any file inside the target Offline Data folder</value>
+  </data>
+  <data name="Status_FetchingTables" xml:space="preserve">
+    <value>Fetching available tables...</value>
+  </data>
+  <data name="Status_ReadyBackup" xml:space="preserve">
+    <value>Ready to create backup.</value>
+  </data>
+  <data name="Status_ErrorFetchingTables" xml:space="preserve">
+    <value>Error fetching tables: {0}</value>
+  </data>
+  <data name="Msg_OfflineFolderRequired" xml:space="preserve">
+    <value>Please specify an Offline Data Folder first.</value>
+  </data>
+  <data name="Title_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Status_DownloadingTable" xml:space="preserve">
+    <value>Downloading {0}...</value>
+  </data>
+  <data name="Status_OfflineImageCreated" xml:space="preserve">
+    <value>Offline image created. {0} tables backed up.</value>
+  </data>
+  <data name="Msg_OfflineBackupSuccess" xml:space="preserve">
+    <value>Successfully exported {0} tables to:\n{1}</value>
+  </data>
+  <data name="Title_BackupComplete" xml:space="preserve">
+    <value>Backup Complete</value>
+  </data>
+  <data name="Status_BackupFailed" xml:space="preserve">
+    <value>Backup failed: {0}</value>
+  </data>
+  <data name="Msg_OfflineBackupFailed" xml:space="preserve">
+    <value>Failed to create backup.\n{0}</value>
+  </data>
+  <data name="Msg_InvalidPort" xml:space="preserve">
+    <value>Please enter a valid Port number (0-65535).</value>
+  </data>
+  <data name="Title_ValidationError" xml:space="preserve">
+    <value>Validation Error</value>
+  </data>
+  <data name="Status_LoadedUsers" xml:space="preserve">
+    <value>Loaded {0} users.</value>
+  </data>
+  <data name="Status_ErrorLoadingUsers" xml:space="preserve">
+    <value>Error loading users: {0}</value>
+  </data>
+  <data name="Msg_UsernamePasswordRequired" xml:space="preserve">
+    <value>Username and Password (min 3 chars) required.</value>
+  </data>
+  <data name="Msg_CannotDeleteAdmin" xml:space="preserve">
+    <value>Cannot delete 'admin'.</value>
+  </data>
+  <data name="Title_Stop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Msg_ConfirmDeleteUser" xml:space="preserve">
+    <value>Delete user '{0}'?</value>
+  </data>
+  <data name="Title_Confirm" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="Status_CheckingNetwork" xml:space="preserve">
+    <value>Checking Network...</value>
+  </data>
+  <data name="Status_InvalidPort" xml:space="preserve">
+    <value>Invalid Port</value>
+  </data>
+  <data name="Msg_PingFailed" xml:space="preserve">
+    <value>Could not Ping the server '{0}'.\n\n1. Check IP.\n2. Check Firewall.\n3. Check if host is on.</value>
+  </data>
+  <data name="Title_NetworkError" xml:space="preserve">
+    <value>Network Error</value>
+  </data>
+  <data name="Status_TestingConnections" xml:space="preserve">
+    <value>Testing connections...</value>
+  </data>
+  <data name="Status_DbMissing" xml:space="preserve">
+    <value>⚠️ DB MISSING.</value>
+  </data>
+  <data name="Msg_DbMissingDetail" xml:space="preserve">
+    <value>Server Connected! Databases missing. Save &amp; Restart to create them.</value>
+  </data>
+  <data name="Title_Connected" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="Msg_ConnectionSuccess" xml:space="preserve">
+    <value>Connection Successful!</value>
+  </data>
+  <data name="Title_Success" xml:space="preserve">
+    <value>Success</value>
+  </data>
+  <data name="Status_Failed" xml:space="preserve">
+    <value>❌ FAILED.</value>
+  </data>
+  <data name="Msg_ConnectionFailedDetail" xml:space="preserve">
+    <value>Auth: {0}\nData: {1}</value>
+  </data>
+  <data name="Title_Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="Filter_JsonFiles" xml:space="preserve">
+    <value>JSON files (*.json)|*.json|All files (*.*)|*.*</value>
+  </data>
+  <data name="Filter_AllFiles" xml:space="preserve">
+    <value>All files|*.*</value>
+  </data>
+</root>

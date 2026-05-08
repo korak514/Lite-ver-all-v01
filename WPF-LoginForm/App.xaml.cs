@@ -1,12 +1,13 @@
-﻿using System;
+﻿// App.xaml.cs
+using System;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using WPF_LoginForm.Properties;
 using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
+using WPF_LoginForm.Views;
 
 namespace WPF_LoginForm
 {
@@ -16,31 +17,37 @@ namespace WPF_LoginForm
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            // 1. Initialize Logging Service FIRST so we can catch startup errors
-            // Use FileLogger initially because DB might not be ready
+            // 1. Initialize Logging Service FIRST
             var fileLogger = new FileLogger("AppLog");
-
-            // DatabaseLogger wraps the file logger. If DB fails, it falls back to file.
             GlobalLogger = new DatabaseLogger(fileLogger);
 
             // 2. Setup Global Exception Handling
             SetupExceptionHandling();
 
-            base.OnStartup(e);
-
-            // 3. Apply Language Settings
+            // 3. Apply Language Settings BEFORE showing any windows
             ApplyLocalization();
 
+            base.OnStartup(e);
+
             var dbType = DbConnectionFactory.CurrentDatabaseType;
-            GlobalLogger.LogInfo($"App Starting... Lang: {Settings.Default.AppLanguage} | Provider: {dbType}");
+            GlobalLogger.LogInfo($"App Starting... Lang: {Thread.CurrentThread.CurrentUICulture.Name} | Provider: {dbType}");
+
+            // 4. Manually launch the StartupView now that the culture is set
+            var startupWindow = new StartupView();
+            startupWindow.Show();
         }
 
         private void ApplyLocalization()
         {
             try
             {
-                string languageCode = Settings.Default.AppLanguage;
-                if (string.IsNullOrEmpty(languageCode)) languageCode = "en-US";
+                // Force load settings to ensure GeneralSettingsManager loads correctly before UI binds to it
+                GeneralSettingsManager.Instance.Load();
+                
+                string languageCode = GeneralSettingsManager.Instance.Current.AppLanguage;
+                
+                if (string.IsNullOrEmpty(languageCode)) 
+                    languageCode = "en-US";
 
                 var culture = new CultureInfo(languageCode);
 
@@ -65,31 +72,21 @@ namespace WPF_LoginForm
 
         private void SetupExceptionHandling()
         {
-            // 1. Catch exceptions on the main UI dispatcher thread
             this.DispatcherUnhandledException += App_DispatcherUnhandledException;
-
-            // 2. Catch exceptions in non-UI threads (Background Tasks)
             TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
-
-            // 3. Catch any other catastrophic exceptions (AppDomain level)
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
         }
 
         private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
             GlobalLogger.LogError("CRITICAL UI ERROR", e.Exception);
-
             ShowCrashMessage(e.Exception);
-
-            // Prevent immediate crash if possible, but state might be corrupted
             e.Handled = true;
         }
 
         private void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
         {
             GlobalLogger.LogError("BACKGROUND TASK ERROR", e.Exception);
-
-            // Prevent process termination
             e.SetObserved();
         }
 

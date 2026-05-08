@@ -11,6 +11,7 @@ using System.Windows;
 using System.Windows.Input;
 using Newtonsoft.Json;
 using WPF_LoginForm.Models;
+using WPF_LoginForm.Properties;
 using WPF_LoginForm.Repositories;
 using WPF_LoginForm.Services;
 
@@ -357,7 +358,7 @@ namespace WPF_LoginForm.ViewModels
             if (!AvailableMachineCodes.Any()) { AvailableMachineCodes.Add("00"); AvailableMachineCodes.Add("01"); }
             if (!AvailableMachineCodes.Contains("99")) AvailableMachineCodes.Add("99");
 
-            if (!FavoriteEvents.Any()) { FavoriteEvents.Add(new FavoriteEvent { Title = "Lunch Break", MachineCode = "00", Description = "Yemek Molası", DefaultDuration = 60, ColorHex = "#2ECC71" }); }
+            if (!FavoriteEvents.Any()) { FavoriteEvents.Add(new FavoriteEvent { Title = "Lunch Break", MachineCode = "00", Description = Resources.Str_MA00_3, DefaultDuration = 60, ColorHex = "#2ECC71" }); }
         }
 
         private void SaveConfigData()
@@ -374,7 +375,7 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteManageMachineCodes()
         {
-            if (_dialogService.ShowInputDialog("Add Machine Code", "Enter a new Machine code:", "", out string newCode))
+            if (_dialogService.ShowInputDialog(Resources.Str_MachineCode, Resources.Str_MachineCode + ":", "", out string newCode))
             {
                 string cleanCode = newCode.Trim().ToUpper();
                 if (!string.IsNullOrWhiteSpace(cleanCode) && !AvailableMachineCodes.Contains(cleanCode))
@@ -472,7 +473,7 @@ namespace WPF_LoginForm.ViewModels
         {
             if (obj is FavoriteEvent fav)
             {
-                if (MessageBox.Show($"Remove '{fav.Title}' from favorites?", "Remove", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                if (MessageBox.Show($"{Resources.Tip_RemoveFavorite} '{fav.Title}'?", Resources.Str_Cancel, MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
                     FavoriteEvents.Remove(fav);
                     SaveConfigData();
@@ -569,11 +570,11 @@ namespace WPF_LoginForm.ViewModels
             {
                 _currentData.AcceptChanges();
                 IsDirty = false;
-                MessageBox.Show("Changes saved to database successfully.", "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(Resources.Title_Saved, Resources.Title_Saved, MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                MessageBox.Show($"Failed to save: {result.ErrorMessage}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"{Resources.Msg_ExportFailed} {result.ErrorMessage}", Resources.Str_Error, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -763,7 +764,7 @@ namespace WPF_LoginForm.ViewModels
                 HourMarkers.Add(new HourMarker { Text = $"{hour:D2}:00" });
             }
 
-            ShiftTitle = IsNightShift ? "Night Shift (20:00 - 08:00)" : "Day Shift (08:00 - 20:00)";
+            ShiftTitle = IsNightShift ? Resources.Str_NightShift : Resources.Str_DayShift;
             RefreshDimensions();
         }
 

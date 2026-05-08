@@ -1,0 +1,3508 @@
+File: Views\HomeView.xaml
+<!-- Views/HomeView.xaml -->
+<UserControl x:Class="WPF_LoginForm.Views.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:WPF_LoginForm.Views"
+             xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
+             xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
+             xmlns:fa="http://schemas.fontawesome.io/icons/"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+             xmlns:p="clr-namespace:WPF_LoginForm.Properties"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="1000"
+             d:DataContext="{d:DesignInstance Type=viewModels:HomeViewModel, IsDesignTimeCreatable=False}">
+
+    <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+
+        <!-- THE CUSTOM TOOLTIP INSTANCE (x:Shared="False" prevents WPF rendering crashes) -->
+        <local:CustomChartTooltip x:Key="CustomTooltip" x:Shared="False" SelectionMode="SharedXValues" />
+
+        <!-- SMART LABEL FOR ON-CHART TEXT -->
+        <DataTemplate x:Key="SmartLabelTemplate">
+            <Border Background="#E6000030" CornerRadius="4" Padding="6,4" BorderBrush="#80FFFFFF" BorderThickness="1">
+                <TextBlock Text="{Binding ChartPoint.Instance.Label}"
+                           Foreground="White"
+                           FontSize="10"
+                           FontWeight="Bold"
+                           TextAlignment="Center" />
+            </Border>
+        </DataTemplate>
+
+        <Style TargetType="lvc:Separator">
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="Stroke" Value="#30FFFFFF" />
+        </Style>
+
+        <Style x:Key="GearToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="WhiteSmoke" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="#FFC047" />
+                </Trigger>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Foreground" Value="#FFC047" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ManualMaximizeButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#99000000" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Setter Property="Margin" Value="5" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <StackPanel Orientation="Horizontal" Margin="{TemplateBinding Padding}">
+                                <fa:ImageAwesome Icon="Expand" Height="12" Foreground="White" Margin="0,0,5,0" />
+                                <TextBlock Text="{x:Static p:Resources.Str_Fullscreen}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ShowMaximizeButtons}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsAnyChartMaximized}" Value="True">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FFC047" />
+                    <Setter Property="Foreground" Value="Black" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CompactCloseButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#66000000" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#40FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="0,8,8,0" />
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Setter Property="Panel.ZIndex" Value="200" />
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="20">
+                            <fa:ImageAwesome Icon="Times" Height="16" Width="16" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#D14545" />
+                                <Setter Property="BorderBrush" Value="Transparent" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#A02020" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="5,5,10,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Vertical" Visibility="{Binding IsDateFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,10">
+                    <Button Command="{Binding GoBackCommand}" ToolTip="{x:Static p:Resources.Tip_ReturnHub}" Background="Transparent" BorderThickness="0" Margin="0,0,15,0" Cursor="Hand">
+                        <StackPanel Orientation="Horizontal">
+                            <fa:ImageAwesome Icon="ArrowLeft" Height="14" Foreground="#FFC047" Margin="0,0,5,0" />
+                            <TextBlock Text="{x:Static p:Resources.Str_Hub}" Foreground="#FFC047" FontWeight="Bold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <ToggleButton IsChecked="{Binding ShowMaximizeButtons}" Style="{StaticResource GearToggleStyle}" Margin="0,0,15,0" ToolTip="{x:Static p:Resources.Tip_ToggleFullscreen}">
+                        <fa:ImageAwesome Icon="ArrowsAlt" Height="16" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                    </ToggleButton>
+                    <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsFilterByDate}">
+                        <TextBlock Text="{x:Static p:Resources.Ana_StartDate}" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke" />
+                        <DatePicker SelectedDate="{Binding StartDate, Mode=TwoWay}" VerticalAlignment="Center" Width="100" />
+                        <TextBlock Text="{x:Static p:Resources.Ana_EndDate}" VerticalAlignment="Center" Margin="10,0,5,0" Foreground="WhiteSmoke" />
+                        <DatePicker SelectedDate="{Binding EndDate, Mode=TwoWay}" VerticalAlignment="Center" Width="100" />
+                    </StackPanel>
+                    <ToggleButton x:Name="FilterConfigToggle" Margin="15,0,0,0" ToolTip="{x:Static p:Resources.Tip_FilterSettings}" Style="{StaticResource GearToggleStyle}">
+                        <fa:ImageAwesome Icon="Gear" Height="16" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                    </ToggleButton>
+                    <ComboBox ItemsSource="{Binding DashboardFiles}" SelectedItem="{Binding SelectedDashboardFile, Mode=TwoWay}" Width="150" Height="22" Margin="15,0,0,0" Visibility="{Binding IsDashboardSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <Button Command="{Binding TogglePageCommand}" Width="30" Height="22" Margin="15,0,0,0" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="{x:Static p:Resources.Tip_SwitchAdvanced}">
+                        <Grid>
+                            <Path Fill="#FFC047" Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.59,12L15,13.41L12,10.41L9,13.41L7.41,12L12,7.41L16.59,12Z">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSecondPageActive}" Value="True">
+                                                <Setter Property="RenderTransform">
+                                                    <Setter.Value>
+                                                        <RotateTransform Angle="180" CenterX="12" CenterY="12" />
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                        </Grid>
+                    </Button>
+                    <Popup IsOpen="{Binding IsChecked, ElementName=FilterConfigToggle}" StaysOpen="False" PlacementTarget="{Binding ElementName=FilterConfigToggle}" Placement="Bottom">
+                        <Border Background="#030347" BorderBrush="#49A956" BorderThickness="1" CornerRadius="4" Padding="10">
+                            <StackPanel MinWidth="220">
+                                <TextBlock Text="{x:Static p:Resources.Str_LabelSettings}" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
+                                <CheckBox Content="{x:Static p:Resources.Str_IgnoreHyphen}" IsChecked="{Binding GlobalIgnoreAfterHyphen, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" ToolTip="{x:Static p:Resources.Tip_IgnoreHyphen}" />
+                                <CheckBox Content="{x:Static p:Resources.Str_IgnoreNumbers}" IsChecked="{Binding GlobalIgnoreNumbers, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" ToolTip="{x:Static p:Resources.Tip_IgnoreNumbers}" />
+                                <Separator Background="#49A956" Margin="0,5,0,5" />
+                                <TextBlock Text="{x:Static p:Resources.Str_FilterMode}" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
+                                <CheckBox Content="{x:Static p:Resources.FilterbyDate}" IsChecked="{Binding IsFilterByDate, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" />
+                                <CheckBox Content="{x:Static p:Resources.Str_IgnoreNoDate}" IsChecked="{Binding IgnoreNonDateData, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,8" />
+                                <Separator Background="#49A956" Margin="0,5,0,5" />
+                                <TextBlock Text="{x:Static p:Resources.Str_VirtualDate}" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
+                                <CheckBox Content="{x:Static p:Resources.Str_UseInitialDate}" IsChecked="{Binding UseIdToDateConversion, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
+                                <StackPanel Orientation="Horizontal" IsEnabled="{Binding UseIdToDateConversion}">
+                                    <TextBlock Text="{x:Static p:Resources.Str_InitialDate}" Foreground="WhiteSmoke" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11" />
+                                    <DatePicker SelectedDate="{Binding InitialDateForConversion, Mode=TwoWay}" Width="100" />
+                                </StackPanel>
+                                <Separator Background="#49A956" Margin="0,10,0,5" />
+                                <TextBlock Text="{x:Static p:Resources.Str_SliderTickStep}" Foreground="Gray" FontSize="10" Margin="0,0,0,5" />
+                                <ComboBox ItemsSource="{Binding TickOptions}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding SliderTickFrequency, Mode=TwoWay}" Height="26" Margin="0,0,0,5" />
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                    <TextBlock Text="{x:Static p:Resources.Str_Range}" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="WhiteSmoke" />
+                    <xctk:RangeSlider MinWidth="450" VerticalAlignment="Center" Minimum="0" Maximum="{Binding SliderMaximum}" LowerValue="{Binding StartMonthSliderValue, Mode=TwoWay}" HigherValue="{Binding EndMonthSliderValue, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="{Binding SliderTickFrequency}" AutoToolTipPlacement="TopLeft" AutoToolTipPrecision="0" />
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <CheckBox Content="{x:Static p:Resources.Str_IncludeDataExport}" IsChecked="{Binding IsSnapshotExport, Mode=TwoWay}" Foreground="WhiteSmoke" VerticalAlignment="Center" Margin="0,0,15,0" />
+                <Button Content="{x:Static p:Resources.Import}" Margin="5,0,5,0" Padding="8,4" Command="{Binding ImportCommand}" />
+                <Button Content="{x:Static p:Resources.Export}" Margin="5,0,5,0" Padding="8,4" Command="{Binding ExportCommand}" />
+                <Button ToolTip="{x:Static p:Resources.Tip_RefreshRecolor}" Margin="5,0,5,0" Padding="8,4" Command="{Binding RecolorChartsCommand}">
+                    <fa:ImageAwesome Icon="Refresh" Height="14" Foreground="White" />
+                </Button>
+                <Button Content="" FontFamily="Segoe MDL2 Assets" Margin="5,0,0,0" Padding="8,4" Command="{Binding ConfigureCommand}" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid x:Name="Page1" RenderTransformOrigin="0.5,0.5">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSecondPageActive}" Value="True">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.4" />
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility" BeginTime="0:0:0.4">
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.4" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Background="#CC000000" Panel.ZIndex="50" Grid.RowSpan="2" Grid.ColumnSpan="3" Cursor="Hand" Visibility="{Binding IsAnyChartMaximized, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Border.InputBindings>
+                        <MouseBinding MouseAction="LeftClick" Command="{Binding CloseMaximizeCommand}" />
+                    </Border.InputBindings>
+                </Border>
+
+                <!-- CHART 1 -->
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Grid.Row" Value="0" />
+                            <Setter Property="Grid.Column" Value="0" />
+                            <Setter Property="Panel.ZIndex" Value="1" />
+                            <Setter Property="Margin" Value="5" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="1">
+                                    <Setter Property="Grid.Row" Value="0" />
+                                    <Setter Property="Grid.Column" Value="0" />
+                                    <Setter Property="Grid.RowSpan" Value="2" />
+                                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                                    <Setter Property="Panel.ZIndex" Value="100" />
+                                    <Setter Property="Margin" Value="20" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Border Background="#181838" CornerRadius="10" Padding="15">
+                        <Grid>
+                            <lvc:CartesianChart Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
+                                                Hoverable="{Binding DashboardConfigs[0].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
+                                                DataTooltip="{StaticResource CustomTooltip}" />
+                            <Button Command="{Binding MaximizeChartCommand}" CommandParameter="1" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <Button Command="{Binding CloseMaximizeCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="1">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- CHART 2 -->
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Grid.Row" Value="0" />
+                            <Setter Property="Grid.Column" Value="1" />
+                            <Setter Property="Panel.ZIndex" Value="1" />
+                            <Setter Property="Margin" Value="5" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="2">
+                                    <Setter Property="Grid.Row" Value="0" />
+                                    <Setter Property="Grid.Column" Value="0" />
+                                    <Setter Property="Grid.RowSpan" Value="2" />
+                                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                                    <Setter Property="Panel.ZIndex" Value="100" />
+                                    <Setter Property="Margin" Value="20" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Border Background="#181838" CornerRadius="10" Padding="15">
+                        <Grid>
+                            <lvc:CartesianChart Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
+                                                Hoverable="{Binding DashboardConfigs[1].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
+                                                DataTooltip="{StaticResource CustomTooltip}" />
+                            <Button Command="{Binding MaximizeChartCommand}" CommandParameter="2" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <Button Command="{Binding CloseMaximizeCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="2">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- CHART 3 -->
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Grid.Row" Value="0" />
+                            <Setter Property="Grid.Column" Value="2" />
+                            <Setter Property="Panel.ZIndex" Value="1" />
+                            <Setter Property="Margin" Value="5" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="3">
+                                    <Setter Property="Grid.Row" Value="0" />
+                                    <Setter Property="Grid.Column" Value="0" />
+                                    <Setter Property="Grid.RowSpan" Value="2" />
+                                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                                    <Setter Property="Panel.ZIndex" Value="100" />
+                                    <Setter Property="Margin" Value="20" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Border Background="#181838" CornerRadius="10" Padding="15">
+                        <Grid>
+                            <lvc:CartesianChart Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
+                                                Hoverable="{Binding DashboardConfigs[2].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
+                                                DataTooltip="{StaticResource CustomTooltip}" />
+                            <Button Command="{Binding MaximizeChartCommand}" CommandParameter="3" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <Button Command="{Binding CloseMaximizeCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="3">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- CHART 4 (PIE) -->
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Grid.Row" Value="1" />
+                            <Setter Property="Grid.Column" Value="0" />
+                            <Setter Property="Panel.ZIndex" Value="1" />
+                            <Setter Property="Margin" Value="5" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="4">
+                                    <Setter Property="Grid.Row" Value="0" />
+                                    <Setter Property="Grid.Column" Value="0" />
+                                    <Setter Property="Grid.RowSpan" Value="2" />
+                                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                                    <Setter Property="Panel.ZIndex" Value="100" />
+                                    <Setter Property="Margin" Value="20" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Border Background="#181838" CornerRadius="10" Padding="15">
+                        <Grid>
+                            <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" 
+                                          Hoverable="{Binding DashboardConfigs[3].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
+                                          Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" DataTooltip="{StaticResource CustomTooltip}" />
+                            <Button Command="{Binding MaximizeChartCommand}" CommandParameter="4" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <Button Command="{Binding CloseMaximizeCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="4">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- CHART 5 -->
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Grid.Row" Value="1" />
+                            <Setter Property="Grid.Column" Value="1" />
+                            <Setter Property="Grid.ColumnSpan" Value="2" />
+                            <Setter Property="Panel.ZIndex" Value="1" />
+                            <Setter Property="Margin" Value="5" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="5">
+                                    <Setter Property="Grid.Row" Value="0" />
+                                    <Setter Property="Grid.Column" Value="0" />
+                                    <Setter Property="Grid.RowSpan" Value="2" />
+                                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                                    <Setter Property="Panel.ZIndex" Value="100" />
+                                    <Setter Property="Margin" Value="20" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Border Background="#181838" CornerRadius="10" Padding="15">
+                        <Grid>
+                            <lvc:CartesianChart Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
+                                                Hoverable="{Binding DashboardConfigs[4].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
+                                                DataTooltip="{StaticResource CustomTooltip}" />
+                            <Button Command="{Binding MaximizeChartCommand}" CommandParameter="5" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            <Button Command="{Binding CloseMaximizeCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="5">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- PAGE 2 (Advanced View) -->
+            <Grid x:Name="Page2" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSecondPageActive}" Value="True">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.5" />
+                                            <ThicknessAnimation Storyboard.TargetProperty="Margin" From="50,0,0,0" To="0" Duration="0:0:0.4" DecelerationRatio="0.9" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.2" />
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility" BeginTime="0:0:0.2">
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}" />
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2.5*" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Background="#CC000000" Panel.ZIndex="50" Grid.ColumnSpan="2" Cursor="Hand" Visibility="{Binding IsAnyChartMaximized, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Border.InputBindings>
+                        <MouseBinding MouseAction="LeftClick" Command="{Binding CloseMaximizeCommand}" />
+                    </Border.InputBindings>
+                </Border>
+
+                <!-- CHART 6 (BIG PIE) -->
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Grid.Row" Value="0" />
+                            <Setter Property="Grid.Column" Value="0" />
+                            <Setter Property="Panel.ZIndex" Value="1" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="6">
+                                    <Setter Property="Grid.Row" Value="0" />
+                                    <Setter Property="Grid.Column" Value="0" />
+                                    <Setter Property="Grid.ColumnSpan" Value="2" />
+                                    <Setter Property="Panel.ZIndex" Value="100" />
+                                    <Setter Property="Margin" Value="20" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Border Background="#10FFFFFF" CornerRadius="10" Margin="10" Visibility="{Binding IsChart6Visible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="{x:Static p:Resources.Str_SummaryBreakdown}" Foreground="Gray" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="15,10,0,0" />
+
+                            <Grid Grid.Row="0" Grid.RowSpan="2">
+                                <Button Command="{Binding MaximizeChartCommand}" CommandParameter="6" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" />
+                                <Button Command="{Binding CloseMaximizeCommand}">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource CompactCloseButtonStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding MaximizedChartIndex}" Value="6">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </Grid>
+
+                            <lvc:PieChart Grid.Row="1" Series="{Binding Chart6Series}" LegendLocation="Bottom" InnerRadius="80" Margin="20,10,20,20" 
+                                          Hoverable="{Binding DashboardConfigs[5].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
+                                          AnimationsSpeed="0:0:0.4" DataTooltip="{StaticResource CustomTooltip}">
+                                <lvc:PieChart.ChartLegend>
+                                    <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="13" />
+                                </lvc:PieChart.ChartLegend>
+                            </lvc:PieChart>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Border Grid.Column="1" Margin="5,10,10,10" Background="Transparent" Panel.ZIndex="1">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding KpiCards}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#181838" CornerRadius="8" Margin="0,0,0,10" Padding="15">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="Black" BlurRadius="5" Opacity="0.3" ShadowDepth="2" />
+                                        </Border.Effect>
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Text="{Binding Title}" Foreground="Gray" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <StackPanel Orientation="Horizontal" Grid.Row="1">
+                                                <TextBlock Text="{Binding Value}" Foreground="{Binding ColorHex}" FontSize="24" FontWeight="Bold" Margin="0,5,10,0" />
+                                                <Border Background="#10FFFFFF" CornerRadius="4" Padding="5,2" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding TrendIcon}" Foreground="{Binding TrendColor}" FontSize="12" FontWeight="Bold" />
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>
+
+File: Views\HomeView.xaml.cs
+using System.Windows.Controls;
+
+namespace WPF_LoginForm.Views
+{
+    public partial class HomeView : UserControl
+    {
+        public HomeView()
+        {
+            InitializeComponent();
+        }
+    }
+}
+
+File: ViewModels\HomeViewModel.cs
+// ViewModels/HomeViewModel.cs
+
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Data;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
+using LiveCharts;
+using LiveCharts.Configurations;
+using LiveCharts.Defaults;
+using LiveCharts.Wpf;
+using Microsoft.Win32;
+using Newtonsoft.Json;
+using WPF_LoginForm.Models;
+using WPF_LoginForm.Properties;
+using WPF_LoginForm.Repositories;
+using WPF_LoginForm.Services;
+
+namespace WPF_LoginForm.ViewModels
+{
+    public class KpiModel : ViewModelBase
+    {
+        public string Title { get; set; }
+        public string Value { get; set; }
+        public string ColorHex { get; set; }
+        public string TrendIcon { get; set; }
+        public string TrendColor { get; set; }
+    }
+
+    public class TickOption
+    {
+        public string Label { get; set; }
+        public int Value { get; set; }
+    }
+
+    public class HomeViewModel : ViewModelBase
+    {
+        private readonly IDataRepository _dataRepository;
+        private readonly IDialogService _dialogService;
+        private readonly ILogger _logger;
+        private readonly DashboardStorageService _storageService;
+        private readonly DashboardChartService _chartService;
+        private readonly DataTemplate _smartLabelTemplate;
+
+        private List<DashboardConfiguration> _dashboardConfigurations;
+        public List<DashboardConfiguration> DashboardConfigs => _dashboardConfigurations;
+
+        private bool _isSyncing = false;
+
+        private DateTime _minSliderDate;
+        private DateTime _maxSliderDate;
+        private bool _isActive = false;
+
+        private CancellationTokenSource _cts;
+        private CancellationTokenSource _fileLoadCts;
+        private ConcurrentDictionary<string, double> _kpiTotals;
+        private ConcurrentDictionary<string, double> _kpiPrevTotals;
+        private ConcurrentDictionary<(int, string), string> _colorMap = new ConcurrentDictionary<(int, string), string>();
+        public ConcurrentDictionary<(int, string), string> ColorMap => _colorMap;
+
+        private string _currentLoadedFilePath;
+
+        public Action<int, DashboardConfiguration> OpenChartDetailAction { get; set; }
+
+        public Action ReturnToPortalAction { get; set; }
+        public ICommand GoBackCommand { get; }
+        public ICommand CopyImageCommand { get; }
+        public ICommand ExportChartDataCommand { get; }
+
+        private bool _showMaximizeButtons;
+        public bool ShowMaximizeButtons { get => _showMaximizeButtons; set => SetProperty(ref _showMaximizeButtons, value); }
+
+        private int _maximizedChartIndex = 0;
+
+        public int MaximizedChartIndex
+        {
+            get => _maximizedChartIndex;
+            set
+            {
+                if (SetProperty(ref _maximizedChartIndex, value))
+                {
+                    OnPropertyChanged(nameof(IsAnyChartMaximized));
+                    UpdateDataLabelsVisibility();
+                }
+            }
+        }
+
+        public bool IsAnyChartMaximized => MaximizedChartIndex > 0;
+
+        public ICommand MaximizeChartCommand { get; }
+        public ICommand CloseMaximizeCommand { get; }
+
+        private bool _isSecondPageActive;
+        public bool IsSecondPageActive { get => _isSecondPageActive; set => SetProperty(ref _isSecondPageActive, value); }
+
+        public ObservableCollection<string> ErrorCategories { get; set; } = new ObservableCollection<string>();
+        public ObservableCollection<string> DashboardFiles { get; } = new ObservableCollection<string>();
+        public ObservableCollection<KpiModel> KpiCards { get; } = new ObservableCollection<KpiModel>();
+        public List<TickOption> TickOptions { get; } = new List<TickOption>();
+
+        private string _selectedErrorCategory;
+
+        public string SelectedErrorCategory
+        {
+            get => _selectedErrorCategory;
+            set
+            {
+                if (SetProperty(ref _selectedErrorCategory, value))
+                {
+                    InitializeSliders();
+                    LoadAllChartsData();
+                    AutoSave();
+                }
+            }
+        }
+
+        private string _selectedDashboardFile;
+
+        public string SelectedDashboardFile
+        {
+            get => _selectedDashboardFile;
+            set
+            {
+                if (SetProperty(ref _selectedDashboardFile, value) && _isActive && !string.IsNullOrEmpty(value))
+                {
+                    DebounceLoadDashboardFile(value);
+                }
+            }
+        }
+
+        private async void DebounceLoadDashboardFile(string fileName)
+        {
+            _fileLoadCts?.Cancel();
+            _fileLoadCts?.Dispose();
+            _fileLoadCts = new CancellationTokenSource();
+            var token = _fileLoadCts.Token;
+
+            _cts?.Cancel();
+
+            try
+            {
+                await Task.Delay(200, token);
+
+                if (!token.IsCancellationRequested)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        if (!token.IsCancellationRequested && _isActive)
+                        {
+                            LoadSelectedDashboardFile(fileName);
+                        }
+                    });
+                }
+            }
+            catch (TaskCanceledException) { }
+        }
+
+        public bool IsDashboardSelectorVisible => GeneralSettingsManager.Instance.Current.AutoImportEnabled && DashboardFiles.Any();
+
+        public event Action<string, DateTime, DateTime> DrillDownRequested;
+
+        public ICommand ConfigureCommand { get; }
+        public ICommand ImportCommand { get; }
+        public ICommand ExportCommand { get; }
+        public ICommand RecolorChartsCommand { get; }
+        public ICommand ToggleFilterModeCommand { get; }
+        public ICommand ChartClickCommand { get; }
+        public ICommand TogglePageCommand { get; }
+
+        public bool IsSnapshotExport { get; set; } = true;
+
+        private bool _isFilterByDate = true;
+
+        public bool IsFilterByDate
+        { get => _isFilterByDate; set { if (SetProperty(ref _isFilterByDate, value)) { InitializeSliders(); LoadAllChartsData(); AutoSave(); } } }
+
+        private bool _ignoreNonDateData = true;
+
+        public bool IgnoreNonDateData
+        { get => _ignoreNonDateData; set { if (SetProperty(ref _ignoreNonDateData, value)) { LoadAllChartsData(); AutoSave(); } } }
+
+        private bool _useIdToDateConversion = false;
+
+        public bool UseIdToDateConversion
+        { get => _useIdToDateConversion; set { if (SetProperty(ref _useIdToDateConversion, value)) AutoSave(); } }
+
+        private DateTime _initialDateForConversion = DateTime.Today.AddYears(-1);
+
+        public DateTime InitialDateForConversion
+        { get => _initialDateForConversion; set { if (SetProperty(ref _initialDateForConversion, value)) AutoSave(); } }
+
+        private bool _globalIgnoreAfterHyphen = false;
+        public bool GlobalIgnoreAfterHyphen
+        { get => _globalIgnoreAfterHyphen; set { if (SetProperty(ref _globalIgnoreAfterHyphen, value)) { LoadAllChartsData(); AutoSave(); } } }
+
+        private bool _globalIgnoreNumbers = false;
+        public bool GlobalIgnoreNumbers
+        { get => _globalIgnoreNumbers; set { if (SetProperty(ref _globalIgnoreNumbers, value)) { LoadAllChartsData(); AutoSave(); } } }
+
+        public bool IsDateFilterVisible => GeneralSettingsManager.Instance.Current.ShowDashboardDateFilter;
+
+        public int SliderTickFrequency
+        {
+            get => GeneralSettingsManager.Instance.Current.DashboardDateTickSize;
+            set { if (GeneralSettingsManager.Instance.Current.DashboardDateTickSize != value) { GeneralSettingsManager.Instance.Current.DashboardDateTickSize = value; GeneralSettingsManager.Instance.Save(); OnPropertyChanged(); } }
+        }
+
+        private bool _isDateFilterEnabled;
+        public bool IsDateFilterEnabled { get => _isDateFilterEnabled; private set => SetProperty(ref _isDateFilterEnabled, value); }
+
+        public bool IsChart6Visible => _dashboardConfigurations != null && _dashboardConfigurations.Any(c => c.ChartPosition == 6 && c.IsEnabled && !c.ShowAsKpiCards);
+
+        private DateTime _startDate;
+
+        public DateTime StartDate
+        {
+            get => _startDate;
+            set
+            {
+                if (_startDate != value)
+                {
+                    DateTime safeValue = value;
+                    if (_endDate != DateTime.MinValue && safeValue > _endDate) safeValue = _endDate;
+
+                    _startDate = safeValue;
+                    OnPropertyChanged();
+                    if (!_isSyncing && _isActive && IsFilterByDate)
+                    {
+                        UpdateSlidersFromDates(true);
+                    }
+                }
+            }
+        }
+
+        private DateTime _endDate;
+
+        public DateTime EndDate
+        {
+            get => _endDate;
+            set
+            {
+                if (_endDate != value)
+                {
+                    DateTime safeValue = value;
+                    if (_startDate != DateTime.MinValue && safeValue < _startDate) safeValue = _startDate;
+
+                    _endDate = safeValue;
+                    OnPropertyChanged();
+                    if (!_isSyncing && _isActive && IsFilterByDate)
+                    {
+                        UpdateSlidersFromDates(true);
+                    }
+                }
+            }
+        }
+
+        private double _sliderMaximum;
+        public double SliderMaximum { get => _sliderMaximum; set => SetProperty(ref _sliderMaximum, value); }
+
+        private double _startMonthSliderValue;
+
+        public double StartMonthSliderValue
+        {
+            get => _startMonthSliderValue;
+            set
+            {
+                if (_startMonthSliderValue != value)
+                {
+                    _startMonthSliderValue = value;
+                    OnPropertyChanged();
+                    if (!_isSyncing && _isActive)
+                    {
+                        if (IsFilterByDate) UpdateDatesFromSliders(true);
+                        else
+                        {
+                            UpdateTooltips();
+                            LoadAllChartsData();
+                        }
+                    }
+                }
+            }
+        }
+
+        private double _endMonthSliderValue;
+
+        public double EndMonthSliderValue
+        {
+            get => _endMonthSliderValue;
+            set
+            {
+                if (_endMonthSliderValue != value)
+                {
+                    _endMonthSliderValue = value;
+                    OnPropertyChanged();
+                    if (!_isSyncing && _isActive)
+                    {
+                        if (IsFilterByDate) UpdateDatesFromSliders(true);
+                        else
+                        {
+                            UpdateTooltips();
+                            LoadAllChartsData();
+                        }
+                    }
+                }
+            }
+        }
+
+        private string _startSliderTooltip; public string StartSliderTooltip { get => _startSliderTooltip; set => SetProperty(ref _startSliderTooltip, value); }
+        private string _endSliderTooltip; public string EndSliderTooltip { get => _endSliderTooltip; set => SetProperty(ref _endSliderTooltip, value); }
+
+        private SeriesCollection _chart1Series = new SeriesCollection(); public SeriesCollection Chart1Series { get => _chart1Series; set => SetProperty(ref _chart1Series, value); }
+        private SeriesCollection _chart2Series = new SeriesCollection(); public SeriesCollection Chart2Series { get => _chart2Series; set => SetProperty(ref _chart2Series, value); }
+        private SeriesCollection _chart3Series = new SeriesCollection(); public SeriesCollection Chart3Series { get => _chart3Series; set => SetProperty(ref _chart3Series, value); }
+        private SeriesCollection _chart4Series = new SeriesCollection(); public SeriesCollection Chart4Series { get => _chart4Series; set => SetProperty(ref _chart4Series, value); }
+        private SeriesCollection _chart5Series = new SeriesCollection(); public SeriesCollection Chart5Series { get => _chart5Series; set => SetProperty(ref _chart5Series, value); }
+        private SeriesCollection _chart6Series = new SeriesCollection(); public SeriesCollection Chart6Series { get => _chart6Series; set => SetProperty(ref _chart6Series, value); }
+
+        private AxesCollection _chart1X = new AxesCollection { new Axis() }; public AxesCollection Chart1X { get => _chart1X; set => SetProperty(ref _chart1X, value); }
+        private AxesCollection _chart1Y = new AxesCollection { new Axis() }; public AxesCollection Chart1Y { get => _chart1Y; set => SetProperty(ref _chart1Y, value); }
+        private AxesCollection _chart2X = new AxesCollection { new Axis() }; public AxesCollection Chart2X { get => _chart2X; set => SetProperty(ref _chart2X, value); }
+        private AxesCollection _chart2Y = new AxesCollection { new Axis() }; public AxesCollection Chart2Y { get => _chart2Y; set => SetProperty(ref _chart2Y, value); }
+        private AxesCollection _chart3X = new AxesCollection { new Axis() }; public AxesCollection Chart3X { get => _chart3X; set => SetProperty(ref _chart3X, value); }
+        private AxesCollection _chart3Y = new AxesCollection { new Axis() }; public AxesCollection Chart3Y { get => _chart3Y; set => SetProperty(ref _chart3Y, value); }
+        private AxesCollection _chart5X = new AxesCollection { new Axis() }; public AxesCollection Chart5X { get => _chart5X; set => SetProperty(ref _chart5X, value); }
+        private AxesCollection _chart5Y = new AxesCollection { new Axis() }; public AxesCollection Chart5Y { get => _chart5Y; set => SetProperty(ref _chart5Y, value); }
+
+        public Func<double, string> DateFormatter { get; }
+        public Func<double, string> NumberFormatter { get; set; }
+
+        public HomeViewModel(IDataRepository dataRepository, IDialogService dialogService, ILogger logger)
+        {
+            _dataRepository = dataRepository; _dialogService = dialogService; _logger = logger;
+            _storageService = new DashboardStorageService(); _chartService = new DashboardChartService();
+            _dashboardConfigurations = new List<DashboardConfiguration>(); _kpiTotals = new ConcurrentDictionary<string, double>(); _kpiPrevTotals = new ConcurrentDictionary<string, double>();
+
+            ConfigureCommand = new ViewModelCommand(p => ShowConfigurationWindow()); ImportCommand = new ViewModelCommand(p => ImportConfiguration()); ExportCommand = new ViewModelCommand(p => ExportConfiguration());
+            RecolorChartsCommand = new ViewModelCommand(p => ExecuteRefreshCommand()); ToggleFilterModeCommand = new ViewModelCommand(p => IsFilterByDate = !IsFilterByDate); ChartClickCommand = new ViewModelCommand(ExecuteChartClick);
+            TogglePageCommand = new ViewModelCommand(p => IsSecondPageActive = !IsSecondPageActive);
+
+            TickOptions.Add(new TickOption { Label = "1 Month", Value = 1 });
+            TickOptions.Add(new TickOption { Label = "3 Months", Value = 3 });
+            TickOptions.Add(new TickOption { Label = "6 Months", Value = 6 });
+            TickOptions.Add(new TickOption { Label = "1 Year", Value = 12 });
+
+            MaximizeChartCommand = new ViewModelCommand(p =>
+            {
+                if (int.TryParse(p?.ToString(), out int i))
+                {
+                    var config = _dashboardConfigurations.FirstOrDefault(c => c.ChartPosition == i);
+                    if (config != null)
+                    {
+                        OpenChartDetailAction?.Invoke(i, config);
+                    }
+                }
+            });
+
+            CloseMaximizeCommand = new ViewModelCommand(p => { MaximizedChartIndex = 0; });
+
+            CopyImageCommand = new ViewModelCommand(ExecuteCopyImage); ExportChartDataCommand = new ViewModelCommand(ExecuteExportChartData);
+            GoBackCommand = new ViewModelCommand(p => { Deactivate(); ReturnToPortalAction?.Invoke(); });
+
+            _startDate = DateTime.Today.AddYears(-1); _endDate = DateTime.Today;
+            DateFormatter = value => (value < DateTime.MinValue.Ticks || value > DateTime.MaxValue.Ticks) ? "" : new DateTime((long)value).ToString("d");
+            NumberFormatter = val => DashboardChartService.FormatKiloMega(val);
+
+            try
+            {
+                if (Application.Current != null)
+                {
+                    _smartLabelTemplate = Application.Current.TryFindResource("SmartLabelTemplate") as DataTemplate;
+                }
+            }
+            catch (Exception ex) { _logger?.LogError("Failed to initialize SmartLabel Template", ex); }
+
+            ClearAndReinitializeAxes(); TryLoadAutoSave();
+        }
+
+        private double ParseSafeDouble(object obj, CultureInfo culture)
+        {
+            if (obj == null || obj == DBNull.Value) return 0.0;
+            string strVal = obj.ToString().Replace("₺", "").Replace("TL", "").Replace("%", "").Trim();
+            int lastComma = strVal.LastIndexOf(','); int lastDot = strVal.LastIndexOf('.');
+            if (lastComma > lastDot) strVal = strVal.Replace(".", "").Replace(",", ".");
+            else if (lastDot > lastComma && lastComma != -1) strVal = strVal.Replace(",", "");
+            else if (lastComma != -1 && lastDot == -1) strVal = strVal.Replace(",", ".");
+            else if (lastDot != -1 && lastComma == -1) strVal = strVal.Replace(".", "");
+            double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double res);
+            return res;
+        }
+
+        private async void LoadAllChartsData()
+        {
+            if (_cts != null) { _cts.Cancel(); _cts.Dispose(); }
+            _cts = new CancellationTokenSource();
+            var token = _cts.Token;
+
+            try
+            {
+                await Task.Delay(300, token);
+                if (token.IsCancellationRequested || !_isActive) return;
+
+                if (_dashboardConfigurations == null) return;
+                if (!_dashboardConfigurations.Any()) for (int i = 1; i <= 6; i++) _dashboardConfigurations.Add(new DashboardConfiguration { ChartPosition = i, IsEnabled = false });
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (token.IsCancellationRequested || !_isActive) return;
+
+                    Chart1Series = new SeriesCollection(); Chart2Series = new SeriesCollection(); Chart3Series = new SeriesCollection();
+                    Chart4Series = new SeriesCollection(); Chart5Series = new SeriesCollection(); Chart6Series = new SeriesCollection();
+                    ClearAndReinitializeAxes(); _kpiTotals.Clear(); _kpiPrevTotals.Clear();
+                });
+
+                var validConfigs = _dashboardConfigurations.Where(c => c.IsEnabled && !string.IsNullOrEmpty(c.TableName) && c.Series.Any(s => !string.IsNullOrEmpty(s.ColumnName) || s.IsCombinationLabel)).ToList();
+                var tasks = validConfigs.Select(config => ProcessChartConfigurationAsync(config, token)).ToList();
+
+                await Task.WhenAll(tasks);
+
+                if (token.IsCancellationRequested || !_isActive) return;
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (token.IsCancellationRequested || !_isActive) return;
+
+                    UpdateDataLabelsVisibility();
+                    OnPropertyChanged(nameof(IsChart6Visible));
+                    KpiCards.Clear();
+                    var colors = new[] { "#3498DB", "#2ECC71", "#9B59B6", "#F1C40F", "#E67E22", "#E74C3C" };
+                    int cIdx = 0;
+
+                    var kpiSource = _kpiTotals.AsEnumerable();
+                    var kpiConfig = _dashboardConfigurations.FirstOrDefault(c => c.ChartPosition == 6 && c.IsEnabled && c.ShowAsKpiCards);
+                    if (kpiConfig != null)
+                    {
+                        var allowedMetrics = kpiConfig.Series.Select(s => s.ColumnName).ToHashSet();
+                        kpiSource = kpiSource.Where(kvp => allowedMetrics.Contains(kvp.Key));
+                    }
+
+                    foreach (var kvp in kpiSource.OrderByDescending(x => x.Value))
+                    {
+                        double prev = _kpiPrevTotals.TryGetValue(kvp.Key, out double p) ? p : 0;
+                        string icon = "↔ 0%"; string tColor = "Gray";
+                        if (prev > 0)
+                        {
+                            double change = ((kvp.Value - prev) / prev) * 100;
+                            bool isBadMetric = kvp.Key.IndexOf("error", StringComparison.OrdinalIgnoreCase) >= 0 || kvp.Key.IndexOf("scrap", StringComparison.OrdinalIgnoreCase) >= 0;
+                            if (change > 0.1) { icon = "↑ " + Math.Abs(change).ToString("N1") + "%"; tColor = isBadMetric ? "#E74C3C" : "#2ECC71"; }
+                            else if (change < -0.1) { icon = "↓ " + Math.Abs(change).ToString("N1") + "%"; tColor = isBadMetric ? "#2ECC71" : "#E74C3C"; }
+                        }
+                        KpiCards.Add(new KpiModel { Title = kvp.Key, Value = DashboardChartService.FormatKiloMega(kvp.Value), ColorHex = colors[cIdx % colors.Length], TrendIcon = icon, TrendColor = tColor });
+                        cIdx++;
+                    }
+                });
+            }
+            catch (TaskCanceledException) { }
+            catch (Exception ex) { _logger?.LogError($"Error loading charts: {ex.Message}"); }
+        }
+
+        private void UpdateDataLabelsVisibility()
+        {
+            void UpdateSeries(SeriesCollection seriesCol, int index)
+            {
+                if (seriesCol == null) return;
+                bool isMaximized = (MaximizedChartIndex == index);
+
+                foreach (var series in seriesCol)
+                {
+                    if (series is LineSeries lineSeries)
+                    {
+                        bool isSmall = lineSeries.Values != null && lineSeries.Values.Count <= 35;
+                    }
+                }
+            }
+            UpdateSeries(Chart1Series, 1); UpdateSeries(Chart2Series, 2); UpdateSeries(Chart3Series, 3);
+            UpdateSeries(Chart4Series, 4); UpdateSeries(Chart5Series, 5); UpdateSeries(Chart6Series, 6);
+        }
+
+        private async Task ProcessChartConfigurationAsync(DashboardConfiguration config, CancellationToken token)
+        {
+            if (token.IsCancellationRequested || !_isActive) return;
+            try
+            {
+                var cols = new HashSet<string>();
+                if (!string.IsNullOrEmpty(config.DateColumn)) cols.Add(config.DateColumn);
+                if (!string.IsNullOrEmpty(config.SplitByColumn)) cols.Add(config.SplitByColumn);
+
+                foreach (var series in config.Series)
+                {
+                    if (series.IsCombinationLabel && series.SavedStates != null && series.ActiveStateIndex >= 0 && series.SavedStates.Count > series.ActiveStateIndex)
+                    {
+                        var state = series.SavedStates[series.ActiveStateIndex];
+                        if (state != null && state.Nodes != null)
+                        {
+                            foreach (var node in state.Nodes.Where(n => n.NodeType == "DataColumn"))
+                            {
+                                if (!string.IsNullOrEmpty(node.Value)) cols.Add(node.Value);
+                            }
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(series.ColumnName))
+                    {
+                        cols.Add(series.ColumnName);
+                    }
+                }
+
+                DateTime safeStart = StartDate < new DateTime(1753, 1, 1) ? new DateTime(1753, 1, 1) : StartDate;
+                DateTime safeEnd = EndDate < safeStart ? safeStart : EndDate;
+                DateTime? filterStart = (IsFilterByDate && config.DataStructureType == "Daily Date") ? (DateTime?)safeStart : null;
+                DateTime? filterEnd = (IsFilterByDate && config.DataStructureType == "Daily Date") ? (DateTime?)safeEnd : null;
+
+                var dt = await _dataRepository.GetDataAsync(config.TableName, cols.ToList(), config.DateColumn, filterStart, filterEnd);
+                if (token.IsCancellationRequested || !_isActive || dt == null) return;
+
+                DataTable dtPrev = null;
+                if (IsFilterByDate && config.DataStructureType == "Daily Date")
+                {
+                    TimeSpan duration = safeEnd - safeStart;
+                    if (duration.TotalDays > 0 && duration.TotalDays <= 180)
+                        dtPrev = await _dataRepository.GetDataAsync(config.TableName, cols.ToList(), config.DateColumn, safeStart.Subtract(duration), safeStart.AddDays(-1));
+                }
+
+                bool isAvg = string.Equals(config.ValueAggregation, "Average", StringComparison.OrdinalIgnoreCase);
+                var culture = config.UseInvariantCultureForNumbers ? CultureInfo.InvariantCulture : CultureInfo.CurrentCulture;
+
+                foreach (var seriesConfig in config.Series)
+                {
+                    if (!seriesConfig.IsCombinationLabel && dt.Columns.Contains(seriesConfig.ColumnName))
+                    {
+                        var validRows = dt.AsEnumerable().Where(r => r[seriesConfig.ColumnName] != DBNull.Value).ToList();
+                        if (validRows.Any())
+                        {
+                            double aggVal = isAvg
+                                ? validRows.Average(r => ParseSafeDouble(r[seriesConfig.ColumnName], culture))
+                                : validRows.Sum(r => ParseSafeDouble(r[seriesConfig.ColumnName], culture));
+                            _kpiTotals.AddOrUpdate(seriesConfig.ColumnName, aggVal, (key, old) => isAvg ? (aggVal + old) / 2 : aggVal + old);
+                        }
+
+                        if (dtPrev != null && dtPrev.Columns.Contains(seriesConfig.ColumnName))
+                        {
+                            var validPrevRows = dtPrev.AsEnumerable().Where(r => r[seriesConfig.ColumnName] != DBNull.Value).ToList();
+                            if (validPrevRows.Any())
+                            {
+                                double prevAggVal = isAvg
+                                    ? validPrevRows.Average(r => ParseSafeDouble(r[seriesConfig.ColumnName], culture))
+                                    : validPrevRows.Sum(r => ParseSafeDouble(r[seriesConfig.ColumnName], culture));
+                                _kpiPrevTotals.AddOrUpdate(seriesConfig.ColumnName, prevAggVal, (key, old) => isAvg ? (prevAggVal + old) / 2 : prevAggVal + old);
+                            }
+                        }
+                    }
+                }
+
+                // Pre-populate fixed colors for this config's series
+                foreach (var ser in config.Series)
+                {
+                    if (!string.IsNullOrEmpty(ser.SeriesColorHex))
+                    {
+                        // Match the title logic used in DashboardChartService
+                        string title = ser.IsCombinationLabel ? (ser.CustomDetailTitle ?? ser.ColumnName) : ser.ColumnName;
+                        if (string.IsNullOrEmpty(title)) title = "Series";
+
+                        _colorMap.AddOrUpdate((config.ChartPosition, title), ser.SeriesColorHex, (key, old) => ser.SeriesColorHex);
+                    }
+                }
+
+                var chartResult = await Task.Run(() => _chartService.ProcessChartData(dt, config, IsFilterByDate, IgnoreNonDateData, StartMonthSliderValue, EndMonthSliderValue, SliderMaximum, _colorMap, GlobalIgnoreAfterHyphen, GlobalIgnoreNumbers), token);
+                if (token.IsCancellationRequested || !_isActive) return;
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (!token.IsCancellationRequested && _isActive)
+                        ApplyChartResultToUI(config.ChartPosition, chartResult);
+                });
+            }
+            catch (Exception ex) { _logger?.LogError($"Error processing chart position {config.ChartPosition}", ex); }
+        }
+
+        private void SetSeriesCollection(int pos, SeriesCollection collection)
+        {
+            switch (pos) { case 1: Chart1Series = collection; break; case 2: Chart2Series = collection; break; case 3: Chart3Series = collection; break; case 4: Chart4Series = collection; break; case 5: Chart5Series = collection; break; case 6: Chart6Series = collection; break; }
+        }
+
+        private void SetXAxes(int pos, AxesCollection ax)
+        {
+            switch (pos) { case 1: Chart1X = ax; break; case 2: Chart2X = ax; break; case 3: Chart3X = ax; break; case 5: Chart5X = ax; break; }
+        }
+
+        private void SetYAxes(int pos, AxesCollection ax)
+        {
+            switch (pos) { case 1: Chart1Y = ax; break; case 2: Chart2Y = ax; break; case 3: Chart3Y = ax; break; case 5: Chart5Y = ax; break; }
+        }
+
+        private void ApplyChartResultToUI(int position, DashboardChartService.ChartResultDto result)
+        {
+            if (result == null || result.Series == null) return;
+
+            var newSeries = new SeriesCollection();
+            var axisColor = Brushes.WhiteSmoke;
+            var xyMapper = Mappers.Xy<DashboardDataPoint>().X(p => p != null ? p.X : 0).Y(p => p != null ? p.Y : 0);
+
+            foreach (var s in result.Series)
+            {
+                if (s == null) continue;
+
+                Brush colorBrush = (Brush)new BrushConverter().ConvertFrom(s.ColorHex);
+
+                if (s.SeriesType == "Pie")
+                {
+                    string hoverName = string.IsNullOrEmpty(s.FullName) ? s.Title : s.FullName;
+
+                    var pieMapper = Mappers.Pie<DashboardDataPoint>().Value(p => p.Y);
+                    var pieCv = new ChartValues<DashboardDataPoint>
+                    {
+                        new DashboardDataPoint
+                        {
+                            Y = s.PieValues.FirstOrDefault(),
+                            TooltipHeader = hoverName,
+                            TooltipLeft = "Total:",
+                            TooltipRight = DashboardChartService.FormatKiloMega(s.PieValues.FirstOrDefault())
+                        }
+                    };
+
+                    newSeries.Add(new PieSeries
+                    {
+                        Title = s.Title,
+                        Values = pieCv,
+                        Configuration = pieMapper,
+                        DataLabels = false,
+                        LabelPoint = p => $"{hoverName}\n{DashboardChartService.FormatKiloMega(p.Y)} ({p.Participation:P0})",
+                        Fill = colorBrush
+                    });
+                }
+                else
+                {
+                    var cv = new ChartValues<DashboardDataPoint>();
+                    if (s.Points != null) foreach (var pt in s.Points) cv.Add(pt);
+
+                    bool isMaximized = (position == MaximizedChartIndex);
+                    bool isSmall = cv.Count <= 35;
+                    bool showLabels = isSmall && !s.ShowOnlyHoverLabels;
+
+                    if (s.SeriesType == "Line")
+                    {
+                        newSeries.Add(new LineSeries
+                        {
+                            Title = s.Title,
+                            Values = cv,
+                            Configuration = xyMapper,
+                            PointGeometry = DefaultGeometries.Circle,
+                            PointGeometrySize = 9,
+                            StrokeThickness = 2.5,
+                            Stroke = colorBrush,
+                            Fill = Brushes.Transparent,
+                            DataLabels = showLabels,
+                            Foreground = Brushes.WhiteSmoke,
+                            LabelPoint = p =>
+                            {
+                                if (p == null) return "";
+                                var ddp = p.Instance as DashboardDataPoint;
+                                return (ddp != null && !string.IsNullOrEmpty(ddp.Label)) ? ddp.Label : DashboardChartService.FormatKiloMega(p.Y);
+                            },
+                            DataLabelsTemplate = _smartLabelTemplate
+                        });
+                    }
+                    else
+                    {
+                        newSeries.Add(new ColumnSeries
+                        {
+                            Title = s.Title,
+                            Values = cv,
+                            Configuration = xyMapper,
+                            Fill = colorBrush,
+                            DataLabels = showLabels,
+                            Foreground = Brushes.WhiteSmoke,
+                            LabelPoint = p =>
+                            {
+                                if (p == null) return "";
+                                var ddp = p.Instance as DashboardDataPoint;
+                                return (ddp != null && !string.IsNullOrEmpty(ddp.Label)) ? ddp.Label : DashboardChartService.FormatKiloMega(p.Y);
+                            },
+                            DataLabelsTemplate = _smartLabelTemplate
+                        });
+                    }
+                }
+            }
+
+            var newX = new AxesCollection();
+            var newY = new AxesCollection();
+
+            if (result.Series.Any(x => x.SeriesType != "Pie"))
+            {
+                double minVal = double.MaxValue;
+                double maxVal = double.MinValue;
+                double minX = double.MaxValue;
+                double maxX = double.MinValue;
+                int maxPointCount = 0;
+                bool hasValues = false;
+
+                foreach (var s in result.Series)
+                {
+                    if (s.Points != null && s.Points.Any())
+                    {
+                        var validPts = s.Points.Where(p => !double.IsNaN(p.Y)).ToList();
+                        if (validPts.Any())
+                        {
+                            double sMin = validPts.Min(p => p.Y);
+                            double sMax = validPts.Max(p => p.Y);
+                            if (sMin < minVal) minVal = sMin;
+                            if (sMax > maxVal) maxVal = sMax;
+
+                            double sMinX = validPts.Min(p => p.X);
+                            double sMaxX = validPts.Max(p => p.X);
+                            if (sMinX < minX) minX = sMinX;
+                            if (sMaxX > maxX) maxX = sMaxX;
+
+                            if (s.Points.Count > maxPointCount) maxPointCount = s.Points.Count;
+                            hasValues = true;
+                        }
+                    }
+                }
+
+                var yAxis = new Axis
+                {
+                    Title = "Values",
+                    LabelFormatter = NumberFormatter,
+                    Foreground = axisColor,
+                    FontSize = 12
+                };
+
+                if (hasValues && !double.IsNaN(minVal) && !double.IsNaN(maxVal))
+                {
+                    bool hasColumnSeries = result.Series.Any(x => x.SeriesType == "Column" || x.SeriesType == "Bar");
+                    bool forceMinZero = hasColumnSeries && minVal >= 0;
+                    bool forceMaxZero = hasColumnSeries && maxVal <= 0;
+
+                    double dataRange = maxVal - minVal;
+                    if (Math.Abs(dataRange) < 0.0001)
+                    {
+                        dataRange = Math.Abs(minVal) > 0 ? Math.Abs(minVal) * 0.2 : 10;
+                    }
+
+                    double topBuffer = 0.15 * dataRange;
+                    double bottomBuffer = forceMinZero ? 0 : Math.Max(0.20 * dataRange, Math.Abs(minVal) * 0.1);
+
+                    double desiredMin = forceMinZero ? 0 : minVal - bottomBuffer;
+                    double desiredMax = maxVal + topBuffer;
+
+                    if (maxVal <= 0 && minVal < 0)
+                    {
+                        double rawRequiredMax = Math.Abs(minVal) / 5.0;
+                        if (rawRequiredMax > 0)
+                        {
+                            double magMax = Math.Pow(10, Math.Floor(Math.Log10(rawRequiredMax)));
+                            double relMax = rawRequiredMax / magMax;
+
+                            double niceMax;
+                            if (relMax <= 1.5) niceMax = 1.5;
+                            else if (relMax <= 3.0) niceMax = 3.0;
+                            else if (relMax <= 5.0) niceMax = 5.0;
+                            else niceMax = 10.0;
+
+                            double roundedMax = niceMax * magMax;
+
+                            if (desiredMax < roundedMax)
+                            {
+                                desiredMax = roundedMax;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (forceMaxZero && desiredMax < 0) desiredMax = 0;
+                        if (forceMinZero && desiredMin > 0) desiredMin = 0;
+                    }
+
+                    if (desiredMax <= desiredMin)
+                    {
+                        desiredMax = desiredMin + Math.Max(1, Math.Abs(desiredMin) * 0.1);
+                    }
+
+                    double range = desiredMax - desiredMin;
+
+                    double targetTicks = 6.0;
+                    double rawStep = range / targetTicks;
+                    if (rawStep <= 0) rawStep = 1;
+
+                    double mag = Math.Pow(10, Math.Floor(Math.Log10(rawStep)));
+                    double relStep = rawStep / mag;
+
+                    double niceStep = relStep <= 1.2 ? 1.0 : relStep <= 2.0 ? 2.0 : relStep <= 3.5 ? 3.0 : relStep <= 7.5 ? 5.0 : 10.0;
+                    double finalStep = niceStep * mag;
+
+                    yAxis.MinValue = Math.Floor(desiredMin / finalStep) * finalStep;
+                    yAxis.MaxValue = Math.Ceiling(desiredMax / finalStep) * finalStep;
+
+                    if (yAxis.MaxValue <= yAxis.MinValue)
+                    {
+                        yAxis.MaxValue = yAxis.MinValue + finalStep;
+                    }
+
+                    yAxis.Separator = new LiveCharts.Wpf.Separator { Step = finalStep, StrokeThickness = 1, Stroke = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)) };
+                }
+                else
+                {
+                    yAxis.MinValue = -0.5;
+                    yAxis.MaxValue = 0.5;
+                    yAxis.Separator = new LiveCharts.Wpf.Separator { Step = 0.5, StrokeThickness = 1, Stroke = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)) };
+                }
+
+                var xAxis = new Axis
+                {
+                    Foreground = axisColor,
+                    Separator = new LiveCharts.Wpf.Separator { StrokeThickness = 0, Stroke = Brushes.Transparent }
+                };
+
+                if (result.IsDateAxis)
+                {
+                    xAxis.LabelFormatter = DateFormatter;
+                    xAxis.Labels = null;
+
+                    if (hasValues && maxPointCount > 1 && maxX > minX)
+                    {
+                        double avgStep = (maxX - minX) / (maxPointCount - 1);
+                        xAxis.MaxValue = maxX + avgStep;
+                        xAxis.MinValue = minX - (avgStep * 0.1);
+                    }
+                }
+                else
+                {
+                    xAxis.LabelFormatter = null;
+                    xAxis.Labels = result.XAxisLabels;
+
+                    if (hasValues)
+                    {
+                        xAxis.MaxValue = maxX + 0.85;
+                        xAxis.MinValue = minX - 0.15;
+                    }
+                }
+
+                newY.Add(yAxis);
+                newX.Add(xAxis);
+            }
+            else
+            {
+                newX.Add(new Axis());
+                newY.Add(new Axis());
+            }
+
+            SetSeriesCollection(position, newSeries);
+            SetXAxes(position, newX);
+            SetYAxes(position, newY);
+        }
+
+        private void ClearAndReinitializeAxes()
+        {
+            Chart1X = new AxesCollection { new Axis() }; Chart1Y = new AxesCollection { new Axis() };
+            Chart2X = new AxesCollection { new Axis() }; Chart2Y = new AxesCollection { new Axis() };
+            Chart3X = new AxesCollection { new Axis() }; Chart3Y = new AxesCollection { new Axis() };
+            Chart5X = new AxesCollection { new Axis() }; Chart5Y = new AxesCollection { new Axis() };
+        }
+
+        private void ExecuteCopyImage(object parameter)
+        {
+            if (parameter is FrameworkElement element) { try { var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap((int)element.ActualWidth, (int)element.ActualHeight, 96, 96, PixelFormats.Pbgra32); rtb.Render(element); Clipboard.SetImage(rtb); MessageBox.Show("Chart copied to clipboard!", "Success", MessageBoxButton.OK, MessageBoxImage.Information); } catch (Exception ex) { MessageBox.Show($"Could not copy image: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error); } }
+        }
+
+        private void ExecuteExportChartData(object parameter)
+        {
+            if (parameter != null && int.TryParse(parameter.ToString(), out int pos))
+            {
+                var targetSeries = GetSeriesCollection(pos);
+                var targetX = GetXAxes(pos);
+
+                if (targetSeries == null || targetSeries.Count == 0 || targetSeries[0].Values == null || targetSeries[0].Values.Count == 0) return;
+
+                if (_dialogService.ShowSaveFileDialog("Export Chart Data", $"Chart_{pos}_Data_{DateTime.Now:yyyyMMdd}", ".csv", "CSV Files|*.csv", out string path))
+                {
+                    try
+                    {
+                        var sb = new System.Text.StringBuilder();
+                        sb.Append("Category"); foreach (var series in targetSeries) sb.Append($",{series.Title.Replace(",", " ")}"); sb.AppendLine();
+
+                        if (targetSeries[0] is PieSeries)
+                        {
+                            foreach (PieSeries p in targetSeries) if (p.Values.Count > 0) sb.AppendLine($"{p.Title.Replace(",", " ")},{(double)p.Values[0]}");
+                        }
+                        else
+                        {
+                            int pointCount = targetSeries[0].Values.Count;
+                            bool hasLabels = targetX != null && targetX.Count > 0 && targetX[0].Labels != null && targetX[0].Labels.Count == pointCount;
+
+                            for (int i = 0; i < pointCount; i++)
+                            {
+                                string label = hasLabels ? targetX[0].Labels[i] : $"Point {i + 1}";
+                                if (targetSeries[0].Values[0] is DashboardDataPoint ddp && ddp.X > 600000000000000000) label = new DateTime((long)ddp.X).ToString("yyyy-MM-dd");
+                                sb.Append(label.Replace(",", " "));
+                                foreach (var series in targetSeries) { if (i < series.Values.Count && series.Values[i] is DashboardDataPoint dp) sb.Append($",{dp.Y}"); else sb.Append(",0"); }
+                                sb.AppendLine();
+                            }
+                        }
+                        File.WriteAllText(path, sb.ToString(), System.Text.Encoding.UTF8); MessageBox.Show("Chart data exported successfully.", "Export Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    catch (Exception ex) { MessageBox.Show($"Export failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error); }
+                }
+            }
+        }
+
+        private SeriesCollection GetSeriesCollection(int pos)
+        {
+            switch (pos) { case 1: return Chart1Series; case 2: return Chart2Series; case 3: return Chart3Series; case 4: return Chart4Series; case 5: return Chart5Series; case 6: return Chart6Series; default: return null; }
+        }
+
+        private AxesCollection GetXAxes(int pos)
+        {
+            switch (pos) { case 1: return Chart1X; case 2: return Chart2X; case 3: return Chart3X; case 5: return Chart5X; default: return null; }
+        }
+
+        private AxesCollection GetYAxes(int pos)
+        {
+            switch (pos) { case 1: return Chart1Y; case 2: return Chart2Y; case 3: return Chart3Y; case 5: return Chart5Y; default: return null; }
+        }
+
+        private async void ShowConfigurationWindow()
+        { var vm = new ConfigurationViewModel(_dataRepository); await vm.InitializeAsync(); vm.LoadConfigurations(_dashboardConfigurations); if (_dialogService.ShowConfigurationDialog(vm)) { _dashboardConfigurations = vm.GetFinalConfigurations(); OnPropertyChanged(nameof(DashboardConfigs)); Activate(); AutoSave(); } }
+
+        public async void Activate()
+        { if (_isActive) return; _isActive = true; OnPropertyChanged(nameof(IsDateFilterVisible)); if (GeneralSettingsManager.Instance.Current.AutoImportEnabled) RefreshDashboardFiles(); await InitializeDashboardAsync(); }
+
+        public void Deactivate()
+        {
+            _isActive = false;
+            _cts?.Cancel();
+            _fileLoadCts?.Cancel();
+
+            AutoSave();
+
+            Application.Current?.Dispatcher.Invoke(() =>
+            {
+                Chart1Series = new SeriesCollection(); Chart2Series = new SeriesCollection();
+                Chart3Series = new SeriesCollection(); Chart4Series = new SeriesCollection();
+                Chart5Series = new SeriesCollection(); Chart6Series = new SeriesCollection();
+                ClearAndReinitializeAxes();
+            });
+        }
+
+        private async Task InitializeDashboardAsync()
+        {
+            IsDateFilterEnabled = _dashboardConfigurations.Any(c => c.IsEnabled && c.DataStructureType == "Daily Date");
+            await FindGlobalDateRangeAsync();
+            InitializeSliders();
+            LoadAllChartsData();
+        }
+
+        private async Task FindGlobalDateRangeAsync()
+        {
+            DateTime min = DateTime.MaxValue, max = DateTime.MinValue;
+            var configs = _dashboardConfigurations.Where(c => c.IsEnabled && c.DataStructureType == "Daily Date" && !string.IsNullOrEmpty(c.TableName) && !string.IsNullOrEmpty(c.DateColumn)).ToList();
+            if (!configs.Any()) { _minSliderDate = DateTime.Now.AddYears(-1); _maxSliderDate = DateTime.Now; return; }
+            foreach (var c in configs) { try { var range = await _dataRepository.GetDateRangeAsync(c.TableName, c.DateColumn); if (range.Min != DateTime.MinValue && range.Min < min) min = range.Min; if (range.Max != DateTime.MinValue && range.Max > max) max = range.Max; } catch { } }
+            if (min == DateTime.MaxValue) min = DateTime.Now.AddYears(-1); if (max == DateTime.MinValue) max = DateTime.Now;
+            _minSliderDate = min; _maxSliderDate = new DateTime(max.Year, max.Month, DateTime.DaysInMonth(max.Year, max.Month));
+        }
+
+        private void InitializeSliders()
+        {
+            if (!IsFilterByDate) { SliderMaximum = 100; StartMonthSliderValue = 0; EndMonthSliderValue = 100; UpdateTooltips(); return; }
+            if (_minSliderDate == default) return;
+
+            if (_startDate != DateTime.MinValue && _startDate < _minSliderDate) _minSliderDate = _startDate;
+            if (_endDate != DateTime.MinValue && _endDate > _maxSliderDate) _maxSliderDate = _endDate;
+            if (_startDate == DateTime.MinValue) _startDate = _minSliderDate;
+            if (_endDate == DateTime.MinValue) _endDate = _maxSliderDate;
+            if (_startDate > _endDate) { _startDate = _minSliderDate; _endDate = _maxSliderDate; }
+
+            Application.Current.Dispatcher.Invoke(() => { OnPropertyChanged(nameof(StartDate)); OnPropertyChanged(nameof(EndDate)); });
+
+            SliderMaximum = ((_maxSliderDate.Year - _minSliderDate.Year) * 12) + _maxSliderDate.Month - _minSliderDate.Month;
+            if (SliderMaximum < 0) SliderMaximum = 0;
+            UpdateSlidersFromDates(false);
+        }
+
+        private void UpdateSlidersFromDates(bool triggerLoad = true)
+        {
+            if (_isSyncing || _minSliderDate == default || !IsFilterByDate) return;
+            _isSyncing = true;
+
+            _startMonthSliderValue = ((_startDate.Year - _minSliderDate.Year) * 12) + _startDate.Month - _minSliderDate.Month;
+            _endMonthSliderValue = ((_endDate.Year - _minSliderDate.Year) * 12) + _endDate.Month - _minSliderDate.Month;
+
+            if (_startMonthSliderValue < 0) _startMonthSliderValue = 0;
+            if (_endMonthSliderValue > _sliderMaximum) _endMonthSliderValue = _sliderMaximum;
+
+            OnPropertyChanged(nameof(StartMonthSliderValue));
+            OnPropertyChanged(nameof(EndMonthSliderValue));
+
+            UpdateTooltips();
+            _isSyncing = false;
+
+            if (triggerLoad)
+            {
+                LoadAllChartsData();
+                AutoSave();
+            }
+        }
+
+        private void UpdateDatesFromSliders(bool triggerLoad = true)
+        {
+            if (_isSyncing || _minSliderDate == default || !IsFilterByDate) return;
+            _isSyncing = true;
+
+            if (_startMonthSliderValue > _endMonthSliderValue)
+            {
+                double tmp = _startMonthSliderValue;
+                _startMonthSliderValue = _endMonthSliderValue;
+                _endMonthSliderValue = tmp;
+                OnPropertyChanged(nameof(StartMonthSliderValue));
+                OnPropertyChanged(nameof(EndMonthSliderValue));
+            }
+
+            var s = _minSliderDate.AddMonths((int)_startMonthSliderValue);
+            var e = _minSliderDate.AddMonths((int)_endMonthSliderValue);
+
+            if (e < s) e = s;
+
+            _startDate = new DateTime(s.Year, s.Month, 1);
+            _endDate = new DateTime(e.Year, e.Month, DateTime.DaysInMonth(e.Year, e.Month));
+
+            if (_endDate < _startDate) _endDate = _startDate;
+
+            OnPropertyChanged(nameof(StartDate));
+            OnPropertyChanged(nameof(EndDate));
+
+            UpdateTooltips();
+            _isSyncing = false;
+
+            if (triggerLoad)
+            {
+                LoadAllChartsData();
+                AutoSave();
+            }
+        }
+
+        private void UpdateTooltips()
+        { if (IsFilterByDate && _minSliderDate != default) { StartSliderTooltip = _minSliderDate.AddMonths((int)_startMonthSliderValue).ToString("MMM yyyy"); EndSliderTooltip = _minSliderDate.AddMonths((int)_endMonthSliderValue).ToString("MMM yyyy"); } else { StartSliderTooltip = $"{StartMonthSliderValue:F0}%"; EndSliderTooltip = $"{EndMonthSliderValue:F0}%"; } }
+
+        private void RefreshDashboardFiles()
+        { var cfg = GeneralSettingsManager.Instance.Current; DashboardFiles.Clear(); string path = cfg.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : cfg.ImportAbsolutePath; if (Directory.Exists(path)) { try { foreach (var f in Directory.GetFiles(path, "*.json")) DashboardFiles.Add(Path.GetFileName(f)); } catch { } } OnPropertyChanged(nameof(IsDashboardSelectorVisible)); }
+
+        private void LoadSelectedDashboardFile(string f)
+        { var cfg = GeneralSettingsManager.Instance.Current; try { string fullPath = Path.Combine(cfg.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : cfg.ImportAbsolutePath, f); LoadSnapshotFromFile(fullPath); } catch { } }
+
+        private void LoadSnapshotFromFile(string p)
+        { _currentLoadedFilePath = p; var s = _storageService.LoadSnapshot(p); if (s != null) LoadDashboardFromSnapshot(s); }
+
+        private void AutoSave()
+        { var snap = new DashboardSnapshot { StartDate = StartDate, EndDate = EndDate, Configurations = _dashboardConfigurations, IsFilterByDate = IsFilterByDate, IgnoreNonDateData = IgnoreNonDateData, UseIdToDateConversion = UseIdToDateConversion, InitialDateForConversion = InitialDateForConversion, GlobalIgnoreAfterHyphen = GlobalIgnoreAfterHyphen, SeriesData = new List<ChartSeriesSnapshot>() }; _storageService.SaveSnapshot(snap, _currentLoadedFilePath); }
+
+        private void TryLoadAutoSave()
+        { var cfg = GeneralSettingsManager.Instance.Current; try { if (cfg.AutoImportEnabled) { RefreshDashboardFiles(); string def = cfg.ImportFileName; string path = cfg.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : cfg.ImportAbsolutePath; if (!string.IsNullOrEmpty(def) && File.Exists(Path.Combine(path, def))) { LoadSnapshotFromFile(Path.Combine(path, def)); if (DashboardFiles.Contains(def)) { _selectedDashboardFile = def; OnPropertyChanged(nameof(SelectedDashboardFile)); } return; } } var s = _storageService.LoadSnapshot(); if (s != null) LoadDashboardFromSnapshot(s); } catch { } }
+
+        private void ImportConfiguration()
+        { var d = new OpenFileDialog { Filter = "JSON|*.json" }; if (d.ShowDialog() == true) LoadSnapshotFromFile(d.FileName); }
+
+        private void ExportConfiguration()
+        { if (_dashboardConfigurations == null) return; var s = new DashboardSnapshot { StartDate = StartDate, EndDate = EndDate, Configurations = _dashboardConfigurations, GlobalIgnoreAfterHyphen = GlobalIgnoreAfterHyphen }; var d = new SaveFileDialog { Filter = "JSON|*.json" }; if (d.ShowDialog() == true) { File.WriteAllText(d.FileName, JsonConvert.SerializeObject(s, Formatting.Indented)); _currentLoadedFilePath = d.FileName; } }
+
+        private void LoadDashboardFromSnapshot(DashboardSnapshot s)
+        {
+            if (s == null) return; bool wasActive = _isActive; _isActive = false;
+
+            if (_cts != null) { _cts.Cancel(); _cts.Dispose(); _cts = null; }
+
+            try
+            {
+                // BUG FIX: Clean up any corrupted States array immediately upon load so the UI doesn't crash on empty duplicates
+                if (s.Configurations != null)
+                {
+                    foreach (var config in s.Configurations)
+                    {
+                        if (config.Series != null)
+                        {
+                            foreach (var series in config.Series)
+                            {
+                                if (series.SavedStates != null && series.SavedStates.Count > 3)
+                                {
+                                    // Take the last 3 items which represent the actual loaded data (due to the Newtonsoft append bug)
+                                    series.SavedStates = series.SavedStates.Skip(series.SavedStates.Count - 3).ToList();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                _dashboardConfigurations = s.Configurations; IsFilterByDate = s.IsFilterByDate; IgnoreNonDateData = s.IgnoreNonDateData; UseIdToDateConversion = s.UseIdToDateConversion; GlobalIgnoreAfterHyphen = s.GlobalIgnoreAfterHyphen;
+                if (s.InitialDateForConversion != default) InitialDateForConversion = s.InitialDateForConversion;
+
+                _isSyncing = true;
+                if (s.StartDate != default && s.EndDate != default) { _startDate = s.StartDate; _endDate = s.EndDate; OnPropertyChanged(nameof(StartDate)); OnPropertyChanged(nameof(EndDate)); }
+                _isSyncing = false;
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ClearAndReinitializeAxes();
+                    Chart1Series = new SeriesCollection(); Chart2Series = new SeriesCollection(); Chart3Series = new SeriesCollection();
+                    Chart4Series = new SeriesCollection(); Chart5Series = new SeriesCollection(); Chart6Series = new SeriesCollection();
+                });
+
+                if (wasActive) { _isActive = true; _ = InitializeDashboardAsync(); }
+            }
+            finally { if (wasActive && !_isActive) _isActive = true; }
+        }
+
+        private void ExecuteRefreshCommand()
+        {
+            _colorMap.Clear();
+            LoadAllChartsData();
+        }
+
+        private void ExecuteChartClick(object parameter)
+        {
+            if (parameter is ChartPoint point && point.SeriesView is Series series)
+            {
+                int pos = 0;
+                if (Chart1Series.Contains(series)) pos = 1; else if (Chart2Series.Contains(series)) pos = 2; else if (Chart3Series.Contains(series)) pos = 3; else if (Chart4Series.Contains(series)) pos = 4; else if (Chart5Series.Contains(series)) pos = 5; else if (Chart6Series.Contains(series)) pos = 6;
+                if (pos == 0) return;
+                var config = _dashboardConfigurations.FirstOrDefault(c => c.ChartPosition == pos);
+                if (config != null) DrillDownRequested?.Invoke(config.TableName, StartDate, EndDate);
+            }
+        }
+    }
+}
+
+File: Models\DashboardConfiguration.cs
+// Models/DashboardConfiguration.cs
+using System.Collections.Generic;
+
+namespace WPF_LoginForm.Models
+{
+    public class DashboardConfiguration
+    {
+        public int ChartPosition { get; set; }
+        public bool IsEnabled { get; set; } = true;
+        public string TableName { get; set; }
+        public string ChartType { get; set; } = "Line";
+
+        public string DataStructureType { get; set; } = "Daily Date";
+
+        public int RowsToIgnore { get; set; } = 0;
+
+        /// <summary>
+        /// If true, numbers are parsed using invariant culture ('.' decimal, ',' thousands).
+        /// If false, uses the application's current culture (e.g., tr-TR with ',' decimal).
+        /// </summary>
+        public bool UseInvariantCultureForNumbers { get; set; } = false;
+
+        public string DateColumn { get; set; }
+
+        public string SplitByColumn { get; set; }
+
+        public List<SeriesConfiguration> Series { get; set; } = new List<SeriesConfiguration>();
+
+        public string AggregationType { get; set; } = "Daily";
+
+        // --- NEW: Value Aggregation (Sum vs Average) ---
+        public string ValueAggregation { get; set; } = "Sum";
+
+        // --- PROPERTIES: LABEL & PIVOT CONTROL ---
+        public bool HideNumbersInLabels { get; set; } = false;
+
+        public bool SimplifyLabels { get; set; } = false;
+        public bool ShowLabelsOnChart { get; set; } = false;
+        public bool ShowAsKpiCards { get; set; } = false;
+        public List<string> SelectedSplitCategories { get; set; } = new List<string>();
+    }
+}
+
+File: Models\SeriesConfiguration.cs
+// Models/SeriesConfiguration.cs
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using Newtonsoft.Json;
+
+namespace WPF_LoginForm.Models
+{
+    public class SeriesConfiguration : INotifyPropertyChanged
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        private string _columnName;
+
+        public string ColumnName
+        {
+            get => _columnName;
+            set { if (_columnName != value) { _columnName = value; OnPropertyChanged(); } }
+        }
+
+        public bool IsCombinationLabel { get; set; } = false;
+        public string CustomDetailTitle { get; set; }
+        public bool ShowOnlyHoverLabels { get; set; }
+        public string TooltipDateFormat { get; set; } = "MMM yyyy";
+        public bool IncludeSeriesName { get; set; } = true;
+        public string SeriesColorHex { get; set; }
+
+        // BUG FIX: Forces JSON to replace the default items instead of infinitely appending to them.
+        [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+        public List<NodeFlowState> SavedStates { get; set; } = new List<NodeFlowState>
+        {
+            new NodeFlowState { StateName = "State 1" },
+            new NodeFlowState { StateName = "State 2" },
+            new NodeFlowState { StateName = "State 3" }
+        };
+
+        public int ActiveStateIndex { get; set; } = 0;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    public class NodeFlowState
+    {
+        public string StateName { get; set; }
+
+        [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+        public List<FlowNode> Nodes { get; set; } = new List<FlowNode>();
+    }
+
+    public class FlowNode : INotifyPropertyChanged
+    {
+        public Guid NodeId { get; set; } = Guid.NewGuid();
+        public string NodeType { get; set; }
+
+        private string _value;
+
+        public string Value
+        {
+            get => _value;
+            set { if (_value != value) { _value = value; OnPropertyChanged(); } }
+        }
+
+        private string _aggregation = "Sum";
+
+        public string Aggregation
+        {
+            get => _aggregation;
+            set { if (_aggregation != value) { _aggregation = value; OnPropertyChanged(); } }
+        }
+
+        private int _zone = 3;
+
+        public int Zone
+        {
+            get => _zone;
+            set { if (_zone != value) { _zone = value; OnPropertyChanged(); } }
+        }
+
+        public double X { get; set; }
+        public double Y { get; set; }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+}
+
+File: Models\DashboardDataPoint.cs
+// Models/DashboardDataPoint.cs
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Windows;
+
+namespace WPF_LoginForm.Models
+{
+    public class DashboardDataPoint : INotifyPropertyChanged
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+
+        public string Label { get; set; }
+
+        // --- NEW PROPERTIES FOR CUSTOM 3-PART TOOLTIP ---
+        private string _tooltipHeader;
+
+        public string TooltipHeader
+        {
+            get => _tooltipHeader;
+            set { if (_tooltipHeader != value) { _tooltipHeader = value; OnPropertyChanged(); } }
+        }
+
+        private string _tooltipLeft;
+
+        public string TooltipLeft
+        {
+            get => _tooltipLeft;
+            set { if (_tooltipLeft != value) { _tooltipLeft = value; OnPropertyChanged(); } }
+        }
+
+        private string _tooltipRight;
+
+        public string TooltipRight
+        {
+            get => _tooltipRight;
+            set { if (_tooltipRight != value) { _tooltipRight = value; OnPropertyChanged(); } }
+        }
+
+        // ------------------------------------------------
+
+        public bool IsImportant { get; set; }
+        public bool HasLeaderLine { get; set; }
+        public double LeaderLineX2 { get; set; }
+        public double LeaderLineY2 { get; set; }
+
+        private double _labelDx;
+
+        public double LabelDx
+        {
+            get => _labelDx;
+            set { if (_labelDx != value) { _labelDx = value; OnPropertyChanged(); } }
+        }
+
+        private double _labelDy;
+
+        public double LabelDy
+        {
+            get => _labelDy;
+            set { if (_labelDy != value) { _labelDy = value; OnPropertyChanged(); } }
+        }
+
+        private bool _showLabel;
+
+        public bool ShowLabel
+        {
+            get => _showLabel;
+            set { if (_showLabel != value) { _showLabel = value; OnPropertyChanged(); } }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+}
+
+File: Models\DashboardSnapshot.cs
+// Models/DashboardSnapshot.cs
+using System;
+using System.Collections.Generic;
+
+namespace WPF_LoginForm.Models
+{
+    public class DashboardSnapshot
+    {
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+
+        // Advanced Filters
+        public bool IsFilterByDate { get; set; } = true;
+
+        public bool IgnoreNonDateData { get; set; } = true;
+        public bool UseIdToDateConversion { get; set; } = false;
+        public DateTime InitialDateForConversion { get; set; } = DateTime.Today;
+
+        // --- NEW: Global Setting for Label Overlap Control ---
+        public bool GlobalIgnoreAfterHyphen { get; set; } = false;
+
+        public List<DashboardConfiguration> Configurations { get; set; } = new List<DashboardConfiguration>();
+        public List<ChartSeriesSnapshot> SeriesData { get; set; } = new List<ChartSeriesSnapshot>();
+    }
+}
+
+File: Models\ChartSeriesSnapshot.cs
+using System.Collections.Generic;
+
+namespace WPF_LoginForm.Models
+{
+    public class ChartSeriesSnapshot
+    {
+        public int ChartPosition { get; set; }
+        public string SeriesTitle { get; set; }
+        public string HexColor { get; set; }
+        public List<object> DataPoints { get; set; } = new List<object>();
+    }
+}
+
+File: Models\GeneralSettings.cs
+// Models/GeneralSettings.cs
+using System.Collections.Generic;
+using Newtonsoft.Json;
+
+namespace WPF_LoginForm.Models
+{
+    public class GeneralSettings
+    {
+        // Database Connection Logic
+        public string DbProvider { get; set; } = "SqlServer";
+        public string SqlAuthConnString { get; set; } = "Server=(local); Database=LoginDb; Integrated Security=true";
+        public string SqlDataConnString { get; set; } = "Server=(local); Database=MainDataDb; Integrated Security=true";
+        public string PostgresDataConnString { get; set; } = "Host=localhost; Username=postgres; Password=password; Database=MainDataDb";
+        public string PostgresAuthConnString { get; set; } = "Host=localhost; Username=postgres; Password=password; Database=LoginDb";
+
+        // App General Settings
+        public string AppLanguage { get; set; } = "en-US";
+        public string OfflineFolderPath { get; set; } = "";
+
+        // Auto Import Settings
+        public bool AutoImportEnabled { get; set; } = false;
+        public bool ImportIsRelative { get; set; } = true;
+        public string ImportFileName { get; set; } = "dashboard_config.json";
+        public string ImportAbsolutePath { get; set; } = "";
+
+        // Dashboard Settings (Excluded from General Config Export)
+        [JsonIgnore]
+        public bool ShowDashboardDateFilter { get; set; } = true;
+        [JsonIgnore]
+        public int DashboardDateTickSize { get; set; } = 1;
+        [JsonIgnore]
+        public int DefaultRowLimit { get; set; } = 500;
+
+        // Network & Resilience Settings
+        public int ConnectionTimeout { get; set; } = 15;
+        public bool TrustServerCertificate { get; set; } = true;
+        public string DbServerName { get; set; } = "";
+
+        // Manual Connection Fields
+        public string DbHost { get; set; } = "localhost";
+        public string DbPort { get; set; } = "1433";
+        public string DbUser { get; set; } = "admin";
+
+        // Category Rules (Analytics) - Excluded from General Config Export (stored in category_rules.json)
+        [JsonIgnore]
+        public List<CategoryRule> CategoryRules { get; set; } = new List<CategoryRule>();
+    }
+}
+
+
+File: Repositories\IDataRepository.cs
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Threading.Tasks;
+using WPF_LoginForm.Models;
+using WPF_LoginForm.ViewModels;
+
+namespace WPF_LoginForm.Repositories
+{
+    public interface IDataRepository
+    {
+        // Schema & Metadata
+        Task<List<string>> GetTableNamesAsync();
+
+        Task<bool> TableExistsAsync(string tableName);
+
+        Task<string> GetActualColumnNameAsync(string tableName, string p1, string p2, string p3, string p4, string coreItem);
+
+        Task<(DateTime Min, DateTime Max)> GetDateRangeAsync(string tableName, string dateColumn);
+
+        Task<(bool Success, string ErrorMessage)> RenameColumnAsync(string tableName, string oldName, string newName);
+
+        // Data Retrieval
+        Task<(DataTable Data, bool IsSortable)> GetTableDataAsync(string tableName, int limit = 0);
+
+        Task<DataTable> GetDataAsync(string tableName, List<string> columns, string dateColumn, DateTime? startDate, DateTime? endDate);
+
+        // NEW: Error Analytics
+        Task<List<ErrorEventModel>> GetErrorDataAsync(DateTime startDate, DateTime endDate, string tableName);
+
+        // System Logs
+        Task<DataTable> GetSystemLogsAsync();
+
+        Task<bool> ClearSystemLogsAsync();
+
+        // Hierarchy Dropdowns
+        Task<List<string>> GetDistinctPart1ValuesAsync(string tableName);
+
+        Task<List<string>> GetDistinctPart2ValuesAsync(string tableName, string p1);
+
+        Task<List<string>> GetDistinctPart3ValuesAsync(string tableName, string p1, string p2);
+
+        Task<List<string>> GetDistinctPart4ValuesAsync(string tableName, string p1, string p2, string p3);
+
+        Task<List<string>> GetDistinctCoreItemDisplayNamesAsync(string tableName, string p1, string p2, string p3, string p4);
+
+        // Hierarchy Management
+        Task<bool> ClearHierarchyMapForTableAsync(string tableName);
+
+        Task<(bool Success, string ErrorMessage)> ImportHierarchyMapAsync(DataTable mapData);
+
+        // Write Operations
+        Task<(bool Success, string ErrorMessage)> SaveChangesAsync(DataTable changes, string tableName);
+
+        Task<bool> DeleteTableAsync(string tableName);
+
+        Task<(bool Success, string ErrorMessage)> AddPrimaryKeyAsync(string tableName);
+
+        // Creation & Import
+        Task<(bool Success, string ErrorMessage)> CreateTableAsync(string tableName, List<ColumnSchemaViewModel> schema);
+
+        Task<(bool Success, string ErrorMessage)> BulkImportDataAsync(string tableName, DataTable data);
+    }
+}
+
+File: Services\IDialogService.cs
+using System.Collections.Generic;
+using System.Data;
+using WPF_LoginForm.Models;
+using WPF_LoginForm.ViewModels;
+
+namespace WPF_LoginForm.Services
+{
+    public interface IDialogService
+    {
+        bool ShowAddRowDialog(IEnumerable<string> columnNames, string tableName,
+                              Dictionary<string, object> initialValues,
+                              DataTable sourceTable,
+                              bool hideId,
+                              out NewRowData newRowData);
+
+        bool ShowAddRowLongDialog(AddRowLongViewModel viewModel, out NewRowData newRowData);
+
+        bool ShowConfigurationDialog(ConfigurationViewModel viewModel);
+
+        bool ShowImportTableDialog(ImportTableViewModel viewModel, out ImportSettings settings);
+
+        void ShowCreateTableDialog(CreateTableViewModel viewModel);
+
+        // --- NEW: Hierarchy Importer ---
+        void ShowHierarchyImportDialog(HierarchyImportViewModel viewModel);
+
+        // -------------------------------
+
+        bool ShowConfirmationDialog(string title, string message);
+
+        bool ShowSaveFileDialog(string title, string defaultFileName, string defaultExtension, string filter, out string selectedFilePath);
+
+        bool ShowOpenFileDialog(string title, string filter, out string selectedFilePath);
+
+        // Add to interface
+        bool ShowInputDialog(string title, string message, string defaultValue, out string result);
+    }
+}
+
+File: Services\ILogger.cs
+using System;
+
+namespace WPF_LoginForm.Services // Or WPF_LoginForm.Logging
+{
+    /// <summary>
+    /// Defines a contract for logging application messages and errors.
+    /// </summary>
+    public interface ILogger
+    {
+        /// <summary>
+        /// Logs an informational message.
+        /// </summary>
+        /// <param name="message">The message to log.</param>
+        void LogInfo(string message);
+
+        /// <summary>
+        /// Logs a warning message.
+        /// </summary>
+        /// <param name="message">The warning message to log.</param>
+        void LogWarning(string message);
+
+        /// <summary>
+        /// Logs an error message, optionally including exception details.
+        /// </summary>
+        /// <param name="message">The error message to log.</param>
+        /// <param name="ex">The optional exception associated with the error.</param>
+        void LogError(string message, Exception ex = null);
+    }
+}
+
+File: Services\DashboardStorageService.cs
+// Services/DashboardStorageService.cs
+using Newtonsoft.Json;
+using System;
+using System.IO;
+using WPF_LoginForm.Models;
+
+namespace WPF_LoginForm.Services
+{
+    public class DashboardStorageService
+    {
+        private readonly string _defaultFilePath;
+
+        public DashboardStorageService()
+        {
+            // Default Save Location: %AppData%\WPF_LoginForm\dashboard_config.json
+            string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WPF_LoginForm");
+            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+            _defaultFilePath = Path.Combine(folder, "dashboard_config.json");
+        }
+
+        /// <summary>
+        /// Saves the dashboard configuration.
+        /// </summary>
+        /// <param name="customPath">If provided, attempts to save to this specific path. If null, saves to default AppData.</param>
+        public void SaveSnapshot(DashboardSnapshot snapshot, string customPath = null)
+        {
+            string targetPath = string.IsNullOrEmpty(customPath) ? _defaultFilePath : customPath;
+
+            try
+            {
+                string json = JsonConvert.SerializeObject(snapshot, Formatting.Indented);
+                File.WriteAllText(targetPath, json);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to auto-save dashboard to {targetPath}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Loads the dashboard configuration.
+        /// </summary>
+        /// <param name="customPath">If provided, attempts to load from this specific path. If null, loads from default AppData.</param>
+        public DashboardSnapshot LoadSnapshot(string customPath = null)
+        {
+            string targetPath = string.IsNullOrEmpty(customPath) ? _defaultFilePath : customPath;
+
+            if (!File.Exists(targetPath)) return null;
+
+            try
+            {
+                string json = File.ReadAllText(targetPath);
+                return JsonConvert.DeserializeObject<DashboardSnapshot>(json);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+}
+
+File: Services\DashboardChartService.cs
+// Services/DashboardChartService.cs
+// PART 1 OF 2
+
+using LiveCharts.Defaults;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Data;
+using System.Globalization;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Windows.Media;
+using WPF_LoginForm.Models;
+
+namespace WPF_LoginForm.Services
+{
+    public class DashboardChartService
+    {
+        private readonly Random _random = new Random();
+        private readonly object _randomLock = new object();
+
+        public class ChartResultDto
+        {
+            public List<SeriesDto> Series { get; set; } = new List<SeriesDto>();
+            public List<string> XAxisLabels { get; set; }
+            public bool IsDateAxis { get; set; }
+        }
+
+        public class SeriesDto
+        {
+            public string Title { get; set; }
+            public string FullName { get; set; }
+            public string SeriesType { get; set; }
+            public List<object> Values { get; set; }
+            public List<DashboardDataPoint> Points { get; set; } = new List<DashboardDataPoint>();
+            public List<double> PieValues { get; set; } = new List<double>();
+            public string ColorHex { get; set; }
+            public bool ShowOnlyHoverLabels { get; set; }
+        }
+
+        public static string FormatKiloMega(double value)
+        {
+            return SmartLabelService.FormatKiloMega(value);
+        }
+
+        public ChartResultDto ProcessChartData(DataTable dataTable, DashboardConfiguration config,
+                                               bool isFilterByDate, bool ignoreNonDateData,
+                                               double sliderStart, double sliderEnd, double sliderMax,
+                                               ConcurrentDictionary<(int, string), string> colorMap,
+                                               bool globalIgnoreAfterHyphen,
+                                               bool globalIgnoreNumbers)
+        {
+            var result = new ChartResultDto();
+            if (dataTable == null) return result;
+
+            if (config.RowsToIgnore > 0 && dataTable.Rows.Count > 0)
+            {
+                int rowsToRemove = Math.Min(config.RowsToIgnore, dataTable.Rows.Count);
+                for (int i = 0; i < rowsToRemove; i++) dataTable.Rows.RemoveAt(dataTable.Rows.Count - 1);
+            }
+
+            if (ignoreNonDateData && !string.IsNullOrEmpty(config.DateColumn) && dataTable.Columns.Contains(config.DateColumn))
+            {
+                for (int i = dataTable.Rows.Count - 1; i >= 0; i--)
+                {
+                    if (dataTable.Rows[i][config.DateColumn] == DBNull.Value) dataTable.Rows.RemoveAt(i);
+                }
+            }
+
+            if (config.DataStructureType == "Monthly Date" && dataTable.Rows.Count > 100)
+            {
+                config.DataStructureType = "General";
+            }
+
+            bool isDateBasedChart = config.DataStructureType == "Daily Date" && !string.IsNullOrEmpty(config.DateColumn);
+            if (!isDateBasedChart || !isFilterByDate)
+            {
+                ApplySliderFilter(ref dataTable, sliderStart, sliderEnd, sliderMax);
+            }
+
+            Func<object, double> safeConvertToDouble = (obj) =>
+            {
+                if (obj == null || obj == DBNull.Value) return 0.0;
+                string strVal = obj.ToString().Replace("₺", "").Replace("TL", "").Replace("%", "").Trim();
+
+                if (string.IsNullOrWhiteSpace(strVal)) return 0.0;
+
+                int lastComma = strVal.LastIndexOf(',');
+                int lastDot = strVal.LastIndexOf('.');
+                int dotCount = strVal.Count(c => c == '.');
+
+                if (lastComma > lastDot) strVal = strVal.Replace(".", "").Replace(",", ".");
+                else if (lastDot > lastComma && lastComma != -1) strVal = strVal.Replace(",", "");
+                else if (lastComma != -1 && lastDot == -1) strVal = strVal.Replace(",", ".");
+                else if (lastDot != -1 && lastComma == -1 && dotCount > 1) strVal = strVal.Replace(".", "");
+
+                double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double res);
+                return res;
+            };
+
+            Func<string, string, string> colorProvider = GetColor;
+
+            string GetColor(string title, string seriesTitle = null)
+            {
+                if (colorMap != null)
+                {
+                    // 1. Direct match (Fixed color for this exact label)
+                    if (colorMap.TryGetValue((config.ChartPosition, title), out string hex)) return hex;
+
+                    // 2. Fallback to Series Color (if this is a split category)
+                    if (seriesTitle != null && colorMap.TryGetValue((config.ChartPosition, seriesTitle), out string seriesHex))
+                    {
+                        // Generate a stable variation of the series color based on the title
+                        return GetColorVariation(seriesHex, title);
+                    }
+
+                    // 3. Generate random but STORE it in the map so it remains stable
+                    lock (_randomLock)
+                    {
+                        var color = Color.FromRgb((byte)_random.Next(50, 240), (byte)_random.Next(50, 240), (byte)_random.Next(50, 240));
+                        string newHex = color.ToString();
+                        colorMap.TryAdd((config.ChartPosition, title), newHex);
+                        return newHex;
+                    }
+                }
+                
+                lock (_randomLock)
+                {
+                    return Color.FromRgb((byte)_random.Next(50, 240), (byte)_random.Next(50, 240), (byte)_random.Next(50, 240)).ToString();
+                }
+            }
+
+            string GetColorVariation(string baseHex, string variationKey)
+            {
+                try
+                {
+                    var color = (Color)ColorConverter.ConvertFromString(baseHex);
+                    // Use hash of variationKey to get a stable offset
+                    int hash = variationKey.GetHashCode();
+                    int r = Math.Max(30, Math.Min(225, color.R + (hash % 40)));
+                    int g = Math.Max(30, Math.Min(225, color.G + ((hash >> 8) % 40)));
+                    int b = Math.Max(30, Math.Min(225, color.B + ((hash >> 16) % 40)));
+                    return Color.FromRgb((byte)r, (byte)g, (byte)b).ToString();
+                }
+                catch { return baseHex; }
+            }
+
+            bool isAvg = string.Equals(config.ValueAggregation, "Average", StringComparison.OrdinalIgnoreCase);
+
+            if (string.Equals(config.ChartType, "Pie", StringComparison.OrdinalIgnoreCase))
+            {
+                ProcessPieChart(dataTable, config, result, colorProvider, safeConvertToDouble, globalIgnoreAfterHyphen, globalIgnoreNumbers, isAvg);
+            }
+            else
+            {
+                switch (config.DataStructureType)
+                {
+                    case "Daily Date":
+                        ProcessDailyDateChart(dataTable, config, result, colorProvider, safeConvertToDouble, globalIgnoreAfterHyphen, globalIgnoreNumbers, isAvg);
+                        break;
+
+                    case "Monthly Date":
+                    case "ID":
+                    case "General":
+                    default:
+                        ProcessPivotCategoricalChart(dataTable, config, result, colorProvider, safeConvertToDouble, globalIgnoreAfterHyphen, globalIgnoreNumbers, isAvg);
+                        break;
+                }
+            }
+
+            return result;
+        }
+
+        // --- UPDATED: Evaluates the series and specifically targets the Blueprint Zones for Tooltips ---
+        private (double YValue, string LabelText, string TooltipHeader, string TooltipLeft, string TooltipRight) EvaluateSeriesForGroup(
+            SeriesConfiguration ser, IEnumerable<DataRow> rows, Func<object, double> numberParser,
+            bool globalIsAvg, string splitCategory, string rawSeriesName, DateTime? xDate, string xCategory, bool isDateAxis, int totalSeriesCount)
+        {
+            if (rows == null || !rows.Any()) return (0.0, "", "", "", "");
+
+            if (ser.IsCombinationLabel && ser.SavedStates != null && ser.ActiveStateIndex >= 0 && ser.SavedStates.Count > ser.ActiveStateIndex)
+            {
+                var state = ser.SavedStates[ser.ActiveStateIndex];
+                if (state == null || state.Nodes == null || !state.Nodes.Any()) return (0.0, "", "", "", "");
+
+                string tHeader = "";
+                string tLeft = "";
+                string tRight = "";
+                double? firstYValue = null;
+
+                foreach (var node in state.Nodes)
+                {
+                    string nodeString = "";
+                    if (node.NodeType == "StaticText") nodeString = node.Value;
+                    else if (node.NodeType == "NewLine") nodeString = "\n";
+                    else if (node.NodeType == "SeriesName")
+                    {
+                        if (totalSeriesCount > 1 && !string.IsNullOrEmpty(splitCategory))
+                        {
+                            // AUTOMATED MERGE LOGIC: Split the name across zones
+                            if (node.Zone == 2) nodeString = splitCategory;
+                            else if (node.Zone == 3) nodeString = rawSeriesName;
+                            else nodeString = $"{splitCategory} - {rawSeriesName}";
+                        }
+                        else
+                        {
+                            nodeString = (!string.IsNullOrEmpty(splitCategory) ? (totalSeriesCount > 1 ? $"{splitCategory} - {rawSeriesName}" : splitCategory) : rawSeriesName) ?? "";
+                        }
+                    }
+                    else if (node.NodeType == "XAxis")
+                    {
+                        if (isDateAxis && xDate.HasValue)
+                        {
+                            string fmt = string.IsNullOrWhiteSpace(node.Value) ? "MMM yyyy" : node.Value;
+                            nodeString = xDate.Value.ToString(fmt, new CultureInfo("tr-TR"));
+                        }
+                        else nodeString = xCategory ?? "";
+                    }
+                    else if (node.NodeType == "DataColumn")
+                    {
+                        string col = node.Value;
+                        double val = 0;
+                        if (!string.IsNullOrEmpty(col) && rows.First().Table.Columns.Contains(col))
+                        {
+                            bool isNodeAvg = node.Aggregation == "Average" || (globalIsAvg && node.Aggregation != "Sum");
+                            val = isNodeAvg ? rows.Average(r => numberParser(r[col])) : rows.Sum(r => numberParser(r[col]));
+                        }
+                        if (firstYValue == null) firstYValue = val;
+                        nodeString = SmartLabelService.FormatKiloMega(val);
+                    }
+
+                    // Assign parsed string directly to the designated zone
+                    if (node.Zone == 1) tHeader += nodeString;
+                    else if (node.Zone == 2) tLeft += nodeString;
+                    else tRight += nodeString;
+                }
+
+                // Fallback composition for physical label string so standard labels keep working
+                string combinedLabel = "";
+                if (!string.IsNullOrWhiteSpace(tHeader)) combinedLabel += tHeader + "\n";
+                if (!string.IsNullOrWhiteSpace(tLeft) || !string.IsNullOrWhiteSpace(tRight))
+                    combinedLabel += $"{tLeft} {tRight}".Trim();
+
+                return (firstYValue ?? 0.0, combinedLabel.Trim(), tHeader.Trim(), tLeft.Trim(), tRight.Trim());
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(ser.ColumnName) || !rows.First().Table.Columns.Contains(ser.ColumnName))
+                    return (0.0, "", "", "", "");
+
+                double val = globalIsAvg ? rows.Average(r => numberParser(r[ser.ColumnName])) : rows.Sum(r => numberParser(r[ser.ColumnName]));
+
+                string defHeader = isDateAxis && xDate.HasValue ? xDate.Value.ToString("dd.MM.yyyy") : (xCategory ?? "");
+                string formattedVal = SmartLabelService.FormatKiloMega(val);
+                
+                string defLeft;
+                string defRight;
+
+                // AUTOMATED MERGE LOGIC: If multiple series and split category exists
+                if (totalSeriesCount > 1 && !string.IsNullOrEmpty(splitCategory))
+                {
+                    defLeft = splitCategory;
+                    defRight = $"{rawSeriesName} {formattedVal}";
+                }
+                else
+                {
+                    defLeft = !string.IsNullOrEmpty(splitCategory) ? (totalSeriesCount > 1 ? $"{splitCategory} - {rawSeriesName}" : splitCategory) : rawSeriesName;
+                    defRight = formattedVal;
+                }
+
+                string defaultLabel = string.IsNullOrWhiteSpace(defHeader)
+                    ? $"{defLeft} {defRight}".Trim()
+                    : $"{defHeader}\n{defLeft} {defRight}".Trim();
+
+                return (val, defaultLabel, defHeader, defLeft, defRight);
+            }
+        }
+
+        private void ProcessPieChart(DataTable dataTable, DashboardConfiguration config, ChartResultDto result,
+            Func<string, string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreAfterHyphen, bool globalIgnoreNumbers, bool isAvg)
+        {
+            string groupByCol = !string.IsNullOrEmpty(config.SplitByColumn) ? config.SplitByColumn : config.DateColumn;
+
+            if (!string.IsNullOrEmpty(groupByCol) && dataTable.Columns.Contains(groupByCol) && config.Series.Any())
+            {
+                var seriesConfig = config.Series.FirstOrDefault();
+                if (seriesConfig != null)
+                {
+                    bool hasSplit = !string.IsNullOrEmpty(config.SplitByColumn);
+                    List<string> allowedCategories = null;
+
+                    if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Any())
+                        allowedCategories = config.SelectedSplitCategories;
+
+                    var grouped = dataTable.AsEnumerable()
+                        .Where(r => r[groupByCol] != DBNull.Value)
+                        .Select(r => new { RawCategory = FormatCategoryKey(r[groupByCol]), Row = r })
+                        .Where(x => allowedCategories == null || (!allowedCategories.Contains("__NONE__") && allowedCategories.Contains(x.RawCategory)))
+                        .GroupBy(x => x.RawCategory)
+                        .Select(g => new
+                        {
+                            RawCategory = g.Key,
+                            CleanCategory = CleanLabelString(g.Key, config.HideNumbersInLabels || globalIgnoreNumbers, config.SimplifyLabels, globalIgnoreAfterHyphen),
+                            Total = EvaluateSeriesForGroup(seriesConfig, g.Select(x => x.Row), numberParser, isAvg, null, seriesConfig.ColumnName, null, g.Key, false, config.Series.Count).YValue
+                        })
+                        .GroupBy(x => x.CleanCategory)
+                        .Select(g => new
+                        {
+                            Category = g.Key,
+                            OriginalNames = g.Select(x => x.RawCategory).Distinct().ToList(),
+                            Total = g.Sum(x => x.Total)
+                        })
+                        .Where(x => x.Total > 0)
+                        .OrderByDescending(x => x.Total)
+                        .ToList();
+
+                    int maxSlices = 8;
+                    var topItems = grouped.Take(maxSlices).ToList();
+                    var othersSum = grouped.Skip(maxSlices).Sum(x => x.Total);
+
+                    foreach (var g in topItems)
+                    {
+                        string tooltipName = g.OriginalNames.Count > 1 ? $"{g.Category} (Grouped)" : g.OriginalNames.FirstOrDefault() ?? g.Category;
+                        result.Series.Add(new SeriesDto
+                        {
+                            Title = g.Category,
+                            FullName = tooltipName,
+                            SeriesType = "Pie",
+                            Values = new List<object> { g.Total },
+                            PieValues = new List<double> { g.Total },
+                            ColorHex = colorProvider(g.Category, null),
+                            ShowOnlyHoverLabels = !config.ShowLabelsOnChart
+                        });
+                    }
+
+                    if (othersSum > 0)
+                        result.Series.Add(new SeriesDto { Title = "Others", FullName = "Others (Minor Values)", SeriesType = "Pie", Values = new List<object> { othersSum }, PieValues = new List<double> { othersSum }, ColorHex = "#808080" });
+                }
+            }
+            else
+            {
+                foreach (var seriesConfig in config.Series)
+                {
+                    if (!seriesConfig.IsCombinationLabel && (string.IsNullOrEmpty(seriesConfig.ColumnName) || !dataTable.Columns.Contains(seriesConfig.ColumnName))) continue;
+
+                    var evalResult = EvaluateSeriesForGroup(seriesConfig, dataTable.AsEnumerable(), numberParser, isAvg, null, seriesConfig.ColumnName, null, "", false, config.Series.Count);
+                    if (evalResult.YValue <= 0) continue;
+
+                    string rawName = seriesConfig.ColumnName ?? "Series";
+                    string cleanName = CleanLabelString(rawName, config.HideNumbersInLabels, config.SimplifyLabels, globalIgnoreAfterHyphen);
+
+                    result.Series.Add(new SeriesDto
+                    {
+                        Title = cleanName,
+                        FullName = rawName,
+                        SeriesType = "Pie",
+                        Values = new List<object> { evalResult.YValue },
+                        PieValues = new List<double> { evalResult.YValue },
+                        ColorHex = colorProvider(cleanName, null),
+                        ShowOnlyHoverLabels = !config.ShowLabelsOnChart
+                    });
+                }
+            }
+        }
+
+        // Services/DashboardChartService.cs
+        // PART 2 OF 2
+
+        private void ProcessDailyDateChart(DataTable dt, DashboardConfiguration config, ChartResultDto res,
+            Func<string, string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreHyphen, bool globalIgnoreNumbers, bool isAvg)
+        {
+            if (!dt.Columns.Contains(config.DateColumn)) return;
+
+            var points = dt.AsEnumerable()
+                .Select(r => new { Date = ParseDateSafe(r[config.DateColumn]), Row = r })
+                .Where(p => p.Date != DateTime.MinValue)
+                .ToList();
+
+            if (!points.Any()) return;
+
+            DateTime minDate = points.Min(p => p.Date);
+            DateTime maxDate = points.Max(p => p.Date);
+            double totalDays = (maxDate - minDate).TotalDays;
+
+            string effectiveAgg = config.AggregationType;
+            if (effectiveAgg == "Daily" && totalDays > 90) effectiveAgg = "Weekly";
+            if ((effectiveAgg == "Daily" || effectiveAgg == "Weekly") && totalDays > 365) effectiveAgg = "Monthly";
+
+            IEnumerable<IGrouping<DateTime, dynamic>> groups;
+            if (effectiveAgg == "Weekly") groups = points.GroupBy(p => GetStartOfWeek(p.Date));
+            else if (effectiveAgg == "Monthly") groups = points.GroupBy(p => new DateTime(p.Date.Year, p.Date.Month, 1));
+            else groups = points.GroupBy(p => p.Date.Date);
+
+            var sortedGroups = groups.OrderBy(g => g.Key).ToList();
+
+            bool hasSplit = !string.IsNullOrEmpty(config.SplitByColumn) && dt.Columns.Contains(config.SplitByColumn);
+            List<string> splitCategories = hasSplit
+                ? dt.AsEnumerable().Select(r => FormatCategoryKey(r[config.SplitByColumn])).Distinct().OrderBy(x => x).ToList()
+                : new List<string> { "Default" };
+
+            if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Any(c => c != "__NONE__"))
+                splitCategories = splitCategories.Where(c => config.SelectedSplitCategories.Contains(c)).ToList();
+            else if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Contains("__NONE__"))
+                splitCategories.Clear();
+
+            var cleanSplitGroups = splitCategories.GroupBy(c => CleanLabelString(c, config.HideNumbersInLabels || globalIgnoreNumbers, config.SimplifyLabels, globalIgnoreHyphen)).ToList();
+
+            bool isPriceTrend = string.Equals(config.ChartType, "Price Trend (Line)", StringComparison.OrdinalIgnoreCase);
+            bool isLine = isPriceTrend || config.ChartType == "Line";
+            bool isDailyLine = isLine && effectiveAgg == "Daily";
+
+            if (isDailyLine)
+            {
+                res.IsDateAxis = true;
+
+                if (isPriceTrend && config.Series.Count >= 2)
+                {
+                    string numCol = config.Series[0].ColumnName;
+                    string denCol = config.Series[1].ColumnName;
+                    bool showHoverOnly = config.Series[0].ShowOnlyHoverLabels;
+
+                    foreach (var splitGroup in cleanSplitGroups)
+                    {
+                        var rawValsInGroup = splitGroup.ToList();
+                        string cleanTitle = hasSplit ? splitGroup.Key : "Efficiency Trend";
+
+                        var vals = new List<object>();
+                        var pts = new List<DashboardDataPoint>();
+
+                        foreach (var g in sortedGroups)
+                        {
+                            var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(FormatCategoryKey(x.Row[config.SplitByColumn]))) : g;
+                            if (!filteredRows.Any())
+                            {
+                                vals.Add(new DateTimePoint(g.Key, double.NaN));
+                                pts.Add(new DashboardDataPoint { X = g.Key.Ticks, Y = double.NaN });
+                                continue;
+                            }
+
+                            double numSum = filteredRows.Sum(x => (double)numberParser(x.Row[numCol]));
+                            double denSum = filteredRows.Sum(x => (double)numberParser(x.Row[denCol]));
+                            double avg = denSum != 0 ? numSum / denSum : double.NaN;
+
+                            vals.Add(new DateTimePoint(g.Key, avg));
+
+                            string dateStr = g.Key.ToString("dd.MM.yyyy");
+                            string defaultLabel = $"{dateStr}\n{cleanTitle} {SmartLabelService.FormatKiloMega(avg)}".Trim();
+
+                            pts.Add(new DashboardDataPoint
+                            {
+                                X = g.Key.Ticks,
+                                Y = avg,
+                                Label = defaultLabel,
+                                TooltipHeader = dateStr,
+                                TooltipLeft = cleanTitle,
+                                TooltipRight = SmartLabelService.FormatKiloMega(avg)
+                            });
+                        }
+
+                        if (!hasSplit || vals.Any(v => !double.IsNaN(((DateTimePoint)v).Value) && ((DateTimePoint)v).Value != 0))
+                        {
+                             if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, true, null, "Line");
+                             res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = "Line", Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle, hasSplit ? config.Series[0].ColumnName : null), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
+                        }
+                    }
+                }
+                else if (!isPriceTrend)
+                {
+                    foreach (var ser in config.Series)
+                    {
+                        if (!ser.IsCombinationLabel && (string.IsNullOrEmpty(ser.ColumnName) || !dt.Columns.Contains(ser.ColumnName)))
+                            continue;
+
+                        foreach (var splitGroup in cleanSplitGroups)
+                        {
+                            var rawValsInGroup = splitGroup.ToList();
+                            string rawSerName = ser.ColumnName ?? "Series";
+                            string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {rawSerName}" : splitGroup.Key) : rawSerName;
+
+                            var vals = new List<object>();
+                            var pts = new List<DashboardDataPoint>();
+
+                            foreach (var g in sortedGroups)
+                            {
+                                var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(FormatCategoryKey(x.Row[config.SplitByColumn]))) : g;
+                                if (!filteredRows.Any())
+                                {
+                                    vals.Add(new DateTimePoint(g.Key, double.NaN));
+                                    pts.Add(new DashboardDataPoint { X = g.Key.Ticks, Y = double.NaN, Label = "" });
+                                    continue;
+                                }
+
+                                var evalResult = EvaluateSeriesForGroup(ser, filteredRows.Select(r => (DataRow)r.Row), numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, g.Key, null, true, config.Series.Count * (hasSplit ? splitCategories.Count : 1));
+
+                                vals.Add(new DateTimePoint(g.Key, evalResult.YValue));
+                                pts.Add(new DashboardDataPoint
+                                {
+                                    X = g.Key.Ticks,
+                                    Y = evalResult.YValue,
+                                    Label = evalResult.LabelText,
+                                    TooltipHeader = evalResult.TooltipHeader,
+                                    TooltipLeft = evalResult.TooltipLeft,
+                                    TooltipRight = evalResult.TooltipRight
+                                });
+                            }
+
+                            if (!hasSplit || vals.Any(v => !double.IsNaN(((DateTimePoint)v).Value) && ((DateTimePoint)v).Value != 0))
+                            {
+                                if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, true, null, "Line");
+                                res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = "Line", Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle, hasSplit ? rawSerName : null), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                res.IsDateAxis = false;
+                res.XAxisLabels = sortedGroups.Select(g =>
+                {
+                    if (effectiveAgg == "Monthly") return g.Key.ToString("MMM yyyy", new CultureInfo("tr-TR"));
+                    if (effectiveAgg == "Weekly") return g.Key.ToString("dd.MM.yyyy") + " (Wk)";
+                    return g.Key.ToString("dd.MM.yyyy");
+                }).ToList();
+
+                string sType = isLine ? "Line" : "Bar";
+
+                if (isPriceTrend && config.Series.Count >= 2)
+                {
+                    string numCol = config.Series[0].ColumnName;
+                    string denCol = config.Series[1].ColumnName;
+                    bool showHoverOnly = config.Series[0].ShowOnlyHoverLabels;
+
+                    foreach (var splitGroup in cleanSplitGroups)
+                    {
+                        var rawValsInGroup = splitGroup.ToList();
+                        string cleanTitle = hasSplit ? splitGroup.Key : "Efficiency Trend";
+
+                        var vals = new List<object>();
+                        var pts = new List<DashboardDataPoint>();
+                        int idx = 0;
+
+                        foreach (var g in sortedGroups)
+                        {
+                            var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(FormatCategoryKey(x.Row[config.SplitByColumn]))) : g;
+                            if (!filteredRows.Any())
+                            {
+                                vals.Add(double.NaN);
+                                pts.Add(new DashboardDataPoint { X = idx, Y = double.NaN });
+                                idx++;
+                                continue;
+                            }
+
+                            double numSum = filteredRows.Sum(x => (double)numberParser(x.Row[numCol]));
+                            double denSum = filteredRows.Sum(x => (double)numberParser(x.Row[denCol]));
+                            double val = denSum != 0 ? numSum / denSum : double.NaN;
+
+                            vals.Add(val);
+
+                            string dateStr = res.XAxisLabels[idx];
+                            string defaultLabel = $"{dateStr}\n{cleanTitle} {SmartLabelService.FormatKiloMega(val)}".Trim();
+
+                            pts.Add(new DashboardDataPoint
+                            {
+                                X = idx,
+                                Y = val,
+                                Label = defaultLabel,
+                                TooltipHeader = dateStr,
+                                TooltipLeft = cleanTitle,
+                                TooltipRight = SmartLabelService.FormatKiloMega(val)
+                            });
+                            idx++;
+                        }
+
+                        if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v != 0))
+                        {
+                            if (pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, sType);
+                            res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = sType, Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle, hasSplit ? (isPriceTrend ? config.Series[0].ColumnName : null) : null), ShowOnlyHoverLabels = showHoverOnly });
+                        }
+                    }
+                }
+                else if (!isPriceTrend)
+                {
+                    foreach (var ser in config.Series)
+                    {
+                        if (!ser.IsCombinationLabel && (string.IsNullOrEmpty(ser.ColumnName) || !dt.Columns.Contains(ser.ColumnName)))
+                            continue;
+
+                        foreach (var splitGroup in cleanSplitGroups)
+                        {
+                            var rawValsInGroup = splitGroup.ToList();
+                            string rawSerName = ser.ColumnName ?? "Series";
+                            string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {rawSerName}" : splitGroup.Key) : rawSerName;
+
+                            var vals = new List<object>();
+                            var pts = new List<DashboardDataPoint>();
+                            int idx = 0;
+
+                            foreach (var g in sortedGroups)
+                            {
+                                var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(FormatCategoryKey(x.Row[config.SplitByColumn]))) : g;
+                                if (!filteredRows.Any())
+                                {
+                                    vals.Add(double.NaN);
+                                    pts.Add(new DashboardDataPoint { X = idx, Y = double.NaN, Label = "" });
+                                    idx++;
+                                    continue;
+                                }
+
+                                var evalResult = EvaluateSeriesForGroup(ser, filteredRows.Select(r => (DataRow)r.Row), numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, null, res.XAxisLabels[idx], false, config.Series.Count * (hasSplit ? splitCategories.Count : 1));
+
+                                vals.Add(evalResult.YValue);
+                                pts.Add(new DashboardDataPoint
+                                {
+                                    X = idx,
+                                    Y = evalResult.YValue,
+                                    Label = evalResult.LabelText,
+                                    TooltipHeader = evalResult.TooltipHeader,
+                                    TooltipLeft = evalResult.TooltipLeft,
+                                    TooltipRight = evalResult.TooltipRight
+                                });
+                                idx++;
+                            }
+
+                            if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v != 0))
+                            {
+                                if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, sType);
+                                res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = sType, Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle, hasSplit ? rawSerName : null), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void ProcessPivotCategoricalChart(DataTable dt, DashboardConfiguration config, ChartResultDto res,
+            Func<string, string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreHyphen, bool globalIgnoreNumbers, bool isAvg)
+        {
+            if (!dt.Columns.Contains(config.DateColumn)) return;
+
+            var grouped = dt.AsEnumerable()
+                .Select(r => new
+                {
+                    RawVal = r[config.DateColumn],
+                    FormattedKey = FormatCategoryKey(r[config.DateColumn]),
+                    CleanKey = CleanLabelString(FormatCategoryKey(r[config.DateColumn]), config.HideNumbersInLabels || globalIgnoreNumbers, config.SimplifyLabels, globalIgnoreHyphen),
+                    Row = r
+                })
+                .GroupBy(x => x.CleanKey)
+                .Select(g => new
+                {
+                    Key = g.Key,
+                    SortDate = ParseDateSafe(g.First().RawVal),
+                    IsDate = ParseDateSafe(g.First().RawVal) != DateTime.MinValue,
+                    PrimarySum = config.Series.Any()
+                                 ? EvaluateSeriesForGroup(config.Series.First(), g.Select(x => x.Row), numberParser, isAvg, null, config.Series.First().ColumnName, null, g.Key, false, config.Series.Count).YValue
+                                 : 0,
+                    Rows = g.Select(x => x.Row).ToList()
+                })
+                .OrderBy(g => g.IsDate ? g.SortDate.Ticks : 0)
+                .ThenByDescending(g => !g.IsDate ? Math.Abs(g.PrimarySum) : 0)
+                .ToList();
+
+            int topN = 30;
+            var topGroups = grouped.Take(topN).ToList();
+
+            res.XAxisLabels = topGroups.Select(g => g.Key).ToList();
+            res.IsDateAxis = false;
+
+            bool hasSplit = !string.IsNullOrEmpty(config.SplitByColumn) && dt.Columns.Contains(config.SplitByColumn);
+            List<string> splitCategories = hasSplit
+                ? dt.AsEnumerable().Select(r => FormatCategoryKey(r[config.SplitByColumn])).Distinct().OrderBy(x => x).ToList()
+                : new List<string> { "Default" };
+
+            if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Any(c => c != "__NONE__"))
+                splitCategories = splitCategories.Where(c => config.SelectedSplitCategories.Contains(c)).ToList();
+            else if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Contains("__NONE__"))
+                splitCategories.Clear();
+
+            var cleanSplitGroups = splitCategories.GroupBy(c => CleanLabelString(c, config.HideNumbersInLabels || globalIgnoreNumbers, config.SimplifyLabels, globalIgnoreHyphen)).ToList();
+
+            bool isPriceTrend = string.Equals(config.ChartType, "Price Trend (Line)", StringComparison.OrdinalIgnoreCase);
+            string baseChartType = isPriceTrend ? "Line" : config.ChartType;
+
+            if (isPriceTrend && config.Series.Count >= 2)
+            {
+                string numCol = config.Series[0].ColumnName;
+                string denCol = config.Series[1].ColumnName;
+                bool showHoverOnly = config.Series[0].ShowOnlyHoverLabels;
+
+                foreach (var splitGroup in cleanSplitGroups)
+                {
+                    var rawValsInGroup = splitGroup.ToList();
+                    string cleanTitle = hasSplit ? splitGroup.Key : "Efficiency Trend";
+
+                    var vals = new List<object>();
+                    var pts = new List<DashboardDataPoint>();
+                    int idx = 0;
+
+                    foreach (var g in topGroups)
+                    {
+                        var rows = hasSplit ? g.Rows.Where(r => rawValsInGroup.Contains(FormatCategoryKey(r[config.SplitByColumn]))) : g.Rows;
+                        if (!rows.Any())
+                        {
+                            vals.Add(double.NaN);
+                            pts.Add(new DashboardDataPoint { X = idx, Y = double.NaN });
+                            idx++;
+                            continue;
+                        }
+
+                        double numSum = rows.Sum(r => numberParser(r[numCol]));
+                        double denSum = rows.Sum(r => numberParser(r[denCol]));
+                        double val = denSum != 0 ? numSum / denSum : double.NaN;
+
+                        vals.Add(val);
+
+                        string catStr = res.XAxisLabels[idx];
+                        string defaultLabel = $"{catStr}\n{cleanTitle} {SmartLabelService.FormatKiloMega(val)}".Trim();
+
+                        pts.Add(new DashboardDataPoint
+                        {
+                            X = idx,
+                            Y = val,
+                            Label = defaultLabel,
+                            TooltipHeader = catStr,
+                            TooltipLeft = cleanTitle,
+                            TooltipRight = SmartLabelService.FormatKiloMega(val)
+                        });
+                        idx++;
+                    }
+
+                    if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v != 0))
+                    {
+                        if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, "Line");
+                        res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = "Line", Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle, hasSplit ? config.Series[0].ColumnName : null), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
+                    }
+                }
+            }
+            else if (!isPriceTrend)
+            {
+                foreach (var ser in config.Series)
+                {
+                    if (!ser.IsCombinationLabel && (string.IsNullOrEmpty(ser.ColumnName) || !dt.Columns.Contains(ser.ColumnName)))
+                        continue;
+
+                    foreach (var splitGroup in cleanSplitGroups)
+                    {
+                        var rawValsInGroup = splitGroup.ToList();
+                        string rawSerName = ser.ColumnName ?? "Series";
+                        string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {rawSerName}" : splitGroup.Key) : rawSerName;
+
+                        var vals = new List<object>();
+                        var pts = new List<DashboardDataPoint>();
+                        int idx = 0;
+
+                        foreach (var g in topGroups)
+                        {
+                            var rows = hasSplit ? g.Rows.Where(r => rawValsInGroup.Contains(FormatCategoryKey(r[config.SplitByColumn]))) : g.Rows;
+                            if (!rows.Any())
+                            {
+                                vals.Add(double.NaN);
+                                pts.Add(new DashboardDataPoint { X = idx, Y = double.NaN, Label = "" });
+                                idx++;
+                                continue;
+                            }
+
+                                var evalResult = EvaluateSeriesForGroup(ser, rows, numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, null, res.XAxisLabels[idx], false, config.Series.Count * (hasSplit ? splitCategories.Count : 1));
+
+                                vals.Add(evalResult.YValue);
+                                pts.Add(new DashboardDataPoint
+                                {
+                                    X = idx,
+                                    Y = evalResult.YValue,
+                                    Label = evalResult.LabelText,
+                                    TooltipHeader = evalResult.TooltipHeader,
+                                    TooltipLeft = evalResult.TooltipLeft,
+                                    TooltipRight = evalResult.TooltipRight
+                                });
+                            idx++;
+                        }
+
+                        if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v != 0))
+                        {
+                            if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, baseChartType);
+                            res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = baseChartType, Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle, hasSplit ? rawSerName : null), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
+                        }
+                    }
+                }
+            }
+        }
+
+        private string CleanLabelString(string original, bool hideNumbers, bool simplify, bool ignoreAfterHyphen)
+        {
+            if (string.IsNullOrWhiteSpace(original)) return "NA";
+            string s = original;
+            if (ignoreAfterHyphen && s.Contains("-")) s = s.Split('-')[0];
+            if (hideNumbers) s = Regex.Replace(s, @"\d+", "");
+            s = s.Replace("_", " ").Replace("-", " ").Trim();
+            s = Regex.Replace(s, @"\s+", " ");
+            if (simplify) s = s.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? s;
+            return string.IsNullOrWhiteSpace(s) ? "NA" : s.Trim();
+        }
+
+        private void ApplySliderFilter(ref DataTable dt, double start, double end, double max)
+        {
+            if (max <= 0) return;
+            double ratioStart = start / max; double ratioEnd = end / max;
+            int totalRows = dt.Rows.Count; if (totalRows == 0) return;
+            int startIndex = (int)(totalRows * ratioStart); int endIndex = (int)(totalRows * ratioEnd);
+            if (startIndex < 0) startIndex = 0; if (endIndex >= totalRows) endIndex = totalRows - 1;
+            if (startIndex > endIndex) startIndex = endIndex;
+            var rowsToKeep = new List<DataRow>();
+            for (int i = startIndex; i <= endIndex; i++) rowsToKeep.Add(dt.Rows[i]);
+            DataTable filtered = dt.Clone();
+            foreach (var r in rowsToKeep) filtered.ImportRow(r);
+            dt = filtered;
+        }
+
+        private string FormatCategoryKey(object val)
+        {
+            if (val == null || val == DBNull.Value) return "NA";
+            if (val is DateTime dt) return dt.ToString("dd.MM.yyyy");
+            string str = val.ToString().Trim();
+            if (DateTime.TryParse(str, out DateTime parsed)) return parsed.ToString("dd.MM.yyyy");
+            return string.IsNullOrEmpty(str) ? "NA" : str;
+        }
+
+        private DateTime ParseDateSafe(object obj)
+        {
+            if (obj == null || obj == DBNull.Value) return DateTime.MinValue;
+            if (obj is DateTime d) return d;
+            if (DateTime.TryParse(obj.ToString(), out DateTime parsed)) return parsed;
+            return DateTime.MinValue;
+        }
+
+        private DateTime GetStartOfWeek(DateTime dt) => dt.AddDays(-1 * ((7 + (dt.DayOfWeek - DayOfWeek.Monday)) % 7)).Date;
+    }
+}
+
+File: Services\GeneralSettingsManager.cs
+// Services/GeneralSettingsManager.cs
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Windows;
+using WPF_LoginForm.Models;
+using WPF_LoginForm.Properties;
+
+namespace WPF_LoginForm.Services
+{
+    public class GeneralSettingsManager
+    {
+        private static GeneralSettingsManager _instance;
+        public static GeneralSettingsManager Instance => _instance ?? (_instance = new GeneralSettingsManager());
+
+        private readonly string _configLocationPointerFile;
+        public GeneralSettings Current { get; private set; }
+
+        private GeneralSettingsManager()
+        {
+            _configLocationPointerFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config_location.txt");
+            Load();
+        }
+
+        public string GetResolvedConfigPath()
+        {
+            // 1. Check LOCAL directory first (Highest Priority)
+            string localPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "general_config.json");
+            if (File.Exists(localPath))
+            {
+                return localPath;
+            }
+
+            // 2. Check for custom location pointer
+            if (File.Exists(_configLocationPointerFile))
+            {
+                try
+                {
+                    string customPath = File.ReadAllText(_configLocationPointerFile).Trim();
+                    if (!string.IsNullOrEmpty(customPath))
+                    {
+                        // Could be a directory or a full file path
+                        if (Directory.Exists(customPath))
+                            return Path.Combine(customPath, "general_config.json");
+                        else if (customPath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                            return customPath;
+                    }
+                }
+                catch { }
+            }
+
+            // 3. Fallback to local path as default
+            return localPath;
+        }
+
+        public void SetCustomConfigPath(string newPath)
+        {
+            File.WriteAllText(_configLocationPointerFile, newPath);
+            MessageBox.Show("Save File successfully changed. Restart of app is needed.", "Restart Required", MessageBoxButton.OK, MessageBoxImage.Information);
+            System.Diagnostics.Process.Start(Application.ResourceAssembly.Location);
+            Application.Current.Shutdown();
+        }
+
+        public void Load()
+        {
+            string configPath = GetResolvedConfigPath();
+
+            if (File.Exists(configPath))
+            {
+                try
+                {
+                    string json = File.ReadAllText(configPath);
+                    Current = JsonConvert.DeserializeObject<GeneralSettings>(json) ?? new GeneralSettings();
+                    
+                    // After loading the general part, ensure the dashboard part is loaded from legacy/backup
+                    LoadDashboardPart();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error loading general config: {ex.Message}");
+                    LoadFromLegacyBackup();
+                }
+            }
+            else
+            {
+                LoadFromLegacyBackup();
+            }
+        }
+
+        private void LoadFromLegacyBackup()
+        {
+            Current = new GeneralSettings();
+            LoadGeneralPartFromLegacy();
+            LoadDashboardPart();
+        }
+
+        private void LoadGeneralPartFromLegacy()
+        {
+            Current.DbProvider = Settings.Default.DbProvider;
+            Current.SqlAuthConnString = Settings.Default.SqlAuthConnString;
+            Current.SqlDataConnString = Settings.Default.SqlDataConnString;
+            Current.PostgresDataConnString = Settings.Default.PostgresDataConnString;
+            Current.PostgresAuthConnString = Settings.Default.PostgresAuthConnString;
+            Current.AppLanguage = Settings.Default.AppLanguage;
+            Current.AutoImportEnabled = Settings.Default.AutoImportEnabled;
+            Current.ImportIsRelative = Settings.Default.ImportIsRelative;
+            Current.ImportFileName = Settings.Default.ImportFileName;
+            Current.ImportAbsolutePath = Settings.Default.ImportAbsolutePath;
+            Current.ConnectionTimeout = Settings.Default.ConnectionTimeout;
+            Current.TrustServerCertificate = Settings.Default.TrustServerCertificate;
+            Current.DbServerName = Settings.Default.DbServerName;
+            Current.DbHost = Settings.Default.DbHost;
+            Current.DbPort = Settings.Default.DbPort;
+            Current.DbUser = Settings.Default.DbUser;
+
+            // Load offline path
+            string offlineConfig = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "offline_path.txt");
+            if (File.Exists(offlineConfig))
+                Current.OfflineFolderPath = File.ReadAllText(offlineConfig).Trim();
+            else
+                Current.OfflineFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "OfflineData");
+        }
+
+        private void LoadDashboardPart()
+        {
+            if (Current == null) Current = new GeneralSettings();
+
+            Current.ShowDashboardDateFilter = Settings.Default.ShowDashboardDateFilter;
+            Current.DashboardDateTickSize = Settings.Default.DashboardDateTickSize;
+            Current.DefaultRowLimit = Settings.Default.DefaultRowLimit;
+
+            // Load category rules from its dedicated file
+            string categoryRulesPath = "category_rules.json";
+            if (File.Exists(categoryRulesPath))
+            {
+                try
+                {
+                    string json = File.ReadAllText(categoryRulesPath);
+                    Current.CategoryRules = JsonConvert.DeserializeObject<List<CategoryRule>>(json) ?? new List<CategoryRule>();
+                }
+                catch { }
+            }
+        }
+
+        public void Save()
+        {
+            if (Current == null) return;
+
+            string configPath = GetResolvedConfigPath();
+
+            try
+            {
+                // Ensure directory exists
+                string dir = Path.GetDirectoryName(configPath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                // 1. Save GENERAL part to main general_config.json
+                // Because of [JsonIgnore] on dashboard properties, they are excluded here
+                string json = JsonConvert.SerializeObject(Current, Formatting.Indented);
+                File.WriteAllText(configPath, json);
+
+                // 2. Save DASHBOARD part to legacy backup (Properties.Settings)
+                // This keeps them persisted without cluttering the general config file
+                Settings.Default.DbProvider = Current.DbProvider;
+                Settings.Default.SqlAuthConnString = Current.SqlAuthConnString;
+                Settings.Default.SqlDataConnString = Current.SqlDataConnString;
+                Settings.Default.PostgresDataConnString = Current.PostgresDataConnString;
+                Settings.Default.PostgresAuthConnString = Current.PostgresAuthConnString;
+                Settings.Default.AppLanguage = Current.AppLanguage;
+                Settings.Default.AutoImportEnabled = Current.AutoImportEnabled;
+                Settings.Default.ImportIsRelative = Current.ImportIsRelative;
+                Settings.Default.ImportFileName = Current.ImportFileName;
+                Settings.Default.ImportAbsolutePath = Current.ImportAbsolutePath;
+                
+                // Dashboard specifically
+                Settings.Default.ShowDashboardDateFilter = Current.ShowDashboardDateFilter;
+                Settings.Default.DashboardDateTickSize = Current.DashboardDateTickSize;
+                Settings.Default.DefaultRowLimit = Current.DefaultRowLimit;
+                
+                Settings.Default.ConnectionTimeout = Current.ConnectionTimeout;
+                Settings.Default.TrustServerCertificate = Current.TrustServerCertificate;
+                Settings.Default.DbServerName = Current.DbServerName;
+                Settings.Default.DbHost = Current.DbHost;
+                Settings.Default.DbPort = Current.DbPort;
+                Settings.Default.DbUser = Current.DbUser;
+                Settings.Default.Save();
+
+                // 3. Save legacy offline path
+                string offlineConfig = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "offline_path.txt");
+                File.WriteAllText(offlineConfig, Current.OfflineFolderPath);
+
+                // 4. Save legacy category rules to its own file
+                string categoryRulesPath = "category_rules.json";
+                if (Current.CategoryRules != null)
+                {
+                    var orderedRules = Current.CategoryRules.OrderByDescending(r => r.Priority).ToList();
+                    string rulesJson = JsonConvert.SerializeObject(orderedRules, Formatting.Indented);
+                    File.WriteAllText(categoryRulesPath, rulesJson);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving general config: {ex.Message}");
+            }
+        }
+
+        public void ExportGeneralConfig(string filePath)
+        {
+            if (Current == null) return;
+            try
+            {
+                // Serialize only the non-ignored fields (General part)
+                string json = JsonConvert.SerializeObject(Current, Formatting.Indented);
+                File.WriteAllText(filePath, json);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Export failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+}
+
+
+File: Converters\BooleanToVisibilityConverter.cs
+using System;
+using System.Globalization;
+using System.Windows;
+using System.Windows.Data;
+
+namespace WPF_LoginForm.Converters
+{
+    [ValueConversion(typeof(bool), typeof(Visibility))]
+    public class BooleanToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool boolValue)
+            {
+                return boolValue ? Visibility.Visible : Visibility.Collapsed;
+            }
+            return Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is Visibility visibilityValue)
+            {
+                return visibilityValue == Visibility.Visible;
+            }
+            return false;
+        }
+    }
+}
+
+File: Converters\InverseBooleanConverter.cs
+using System;
+using System.Globalization;
+using System.Windows.Data;
+
+namespace WPF_LoginForm.Converters
+{
+    [ValueConversion(typeof(bool), typeof(bool))]
+    public class InverseBooleanConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool booleanValue)
+            {
+                return !booleanValue;
+            }
+            return value;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool booleanValue)
+            {
+                return !booleanValue;
+            }
+            return value;
+        }
+    }
+}
+
+File: ViewModels\ViewModelBase.cs
+// In WPF_LoginForm.ViewModels/ViewModelBase.cs
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
+namespace WPF_LoginForm.ViewModels
+{
+    public abstract class ViewModelBase : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        // --- THIS METHOD IS NEW AND REQUIRED ---
+        // It simplifies property setting and change notification in other view models.
+        protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
+        {
+            if (EqualityComparer<T>.Default.Equals(storage, value))
+                return false;
+
+            storage = value;
+            OnPropertyChanged(propertyName);
+            return true;
+        }
+    }
+}
+
+File: ViewModels\ViewModelCommand.cs
+using System;
+using System.Windows.Input;
+
+namespace WPF_LoginForm.ViewModels
+{
+    public class ViewModelCommand : ICommand
+    {
+        //Fields
+        private readonly Action<object> _executeAction;
+        private readonly Predicate<object> _canExecuteAction;
+
+        //Constructors
+        public ViewModelCommand(Action<object> executeAction)
+        {
+            _executeAction = executeAction;
+            _canExecuteAction = null;
+        }
+
+        public ViewModelCommand(Action<object> executeAction, Predicate<object> canExecuteAction)
+        {
+            _executeAction = executeAction;
+            _canExecuteAction = canExecuteAction;
+        }
+
+        //Events
+        public event EventHandler CanExecuteChanged
+        {
+            add { CommandManager.RequerySuggested += value; }
+            remove { CommandManager.RequerySuggested -= value; }
+        }
+
+        //Methods
+        public bool CanExecute(object parameter)
+        {
+            return _canExecuteAction == null ? true : _canExecuteAction(parameter);
+        }
+
+        public void Execute(object parameter)
+        {
+            _executeAction(parameter);
+        }
+
+        // --- NEW METHOD ---
+        /// <summary>
+        /// Raises the CanExecuteChanged event to indicate that the CanExecute status has changed.
+        /// UI elements bound to this command will re-evaluate their IsEnabled state.
+        /// </summary>
+        public void RaiseCanExecuteChanged()
+        {
+            // The CanExecuteChanged event is wired up to CommandManager.RequerySuggested.
+            // Forcing a RequerySuggested event will trigger any subscribers.
+            // A more direct way if not relying on CommandManager's global requery would be:
+            // CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            // However, since WPF buttons and other command-aware controls subscribe
+            // via CommandManager, forcing a requery is a common WPF pattern.
+            // If you want to be absolutely sure without CommandManager, you'd invoke directly.
+            // For now, let's stick to what CommandManager provides. If a direct invocation is needed
+            // the event would need to be declared like: public event EventHandler ActualCanExecuteChanged;
+            // and then Invoke(ActualCanExecuteChanged, ...)
+
+            // Forcing a requery is the standard way when CanExecuteChanged is implemented as above.
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+}
+

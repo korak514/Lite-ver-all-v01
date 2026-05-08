@@ -48,7 +48,8 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        public string ActiveZoneTitle => $"EDITING: ZONE {SelectedZone}";
+        // FIX: Replaced hardcoded text with localized text
+        public string ActiveZoneTitle => $"{WPF_LoginForm.Properties.Resources.Edit}: {SelectedZone}";
 
         private string _previewHeader; public string PreviewHeader { get => _previewHeader; set => SetProperty(ref _previewHeader, value); }
         private string _previewLeft; public string PreviewLeft { get => _previewLeft; set => SetProperty(ref _previewLeft, value); }
@@ -184,7 +185,7 @@ namespace WPF_LoginForm.ViewModels
             {
                 case "StaticText": return node.Value;
                 case "NewLine": return "\n";
-                case "SeriesName": return "[Series Name]";
+                case "SeriesName": return $"[{WPF_LoginForm.Properties.Resources.Str_Items}]"; // FIX: Mapped to resources
                 case "XAxis":
                     var dummyDate = new DateTime(2025, 11, 15);
                     string fmt = string.IsNullOrWhiteSpace(node.Value) ? "MMM yyyy" : node.Value;

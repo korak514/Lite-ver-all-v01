@@ -1,0 +1,1171 @@
+﻿File: Views\ErrorDrillDownWindow.xaml
+<!-- Views/ErrorDrillDownWindow.xaml -->
+<Window x:Class="WPF_LoginForm.Views.ErrorDrillDownWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:fa="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
+        xmlns:p="clr-namespace:WPF_LoginForm.Properties"
+        xmlns:local="clr-namespace:WPF_LoginForm.ViewModels"
+        mc:Ignorable="d"
+        Title="{Binding WindowTitle}"
+        Height="780" Width="1100"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource Theme.Background}">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="30" GlassFrameThickness="0" CornerRadius="0" ResizeBorderThickness="5" />
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <Style x:Key="TitleBarButtonStyle" TargetType="Button">
+                <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Width" Value="45" />
+                <Setter Property="Height" Value="30" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#44FFFFFF" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="FilterChipStyle" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource Theme.Accent}" />
+                <Setter Property="CornerRadius" Value="4" />
+                <Setter Property="Padding" Value="10,5" />
+                <Setter Property="Margin" Value="0,0,10,0" />
+            </Style>
+
+            <Style x:Key="SearchTextBoxStyle" TargetType="TextBox">
+                <Setter Property="Height" Value="32" />
+                <Setter Property="Padding" Value="8,0" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Background" Value="{DynamicResource Theme.Combo.Background}" />
+                <Setter Property="Foreground" Value="{DynamicResource Theme.Combo.Foreground}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="BorderBrush" Value="Gray" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+                                <Grid>
+                                    <ScrollViewer x:Name="PART_ContentHost" Margin="5,0,0,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Static p:Resources.Str_SearchDots}" Foreground="Gray" Margin="10,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed" x:Name="PlaceholderText" />
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Text.Length, RelativeSource={RelativeSource Self}}" Value="0">
+                                    <Setter TargetName="PlaceholderText" Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="FooterCloseButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Primary}" />
+                <Setter Property="FontWeight" Value="Bold" />
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Theme.Text.Primary}" />
+                <Setter Property="BorderThickness" Value="2" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="35,10" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource Theme.Text.Primary}" />
+                        <Setter Property="Foreground" Value="{DynamicResource Theme.Background}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ROW 0: TITLE BAR -->
+        <Border Grid.Row="0" Background="{DynamicResource Theme.TitleBar}">
+            <Grid>
+                <TextBlock Text="{Binding WindowTitle}" Foreground="White" VerticalAlignment="Center" Margin="15,0" FontSize="11" FontWeight="SemiBold" Opacity="0.8" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Click="ThemeToggle_Click" Background="Transparent" BorderThickness="0" Width="40" WindowChrome.IsHitTestVisibleInChrome="True">
+                        <fa:IconImage Icon="Adjust" Foreground="White" Width="14" Height="14" />
+                    </Button>
+                    <Button Style="{StaticResource TitleBarButtonStyle}" Click="MinimizeButton_Click">
+                        <TextBlock Text="â€”" VerticalAlignment="Center" />
+                    </Button>
+                    <Button Style="{StaticResource TitleBarButtonStyle}" Click="CloseButton_Click">
+                        <TextBlock Text="âœ•" FontSize="14" VerticalAlignment="Center" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ROW 1: HEADER & STATS -->
+        <Border Grid.Row="1" Background="{DynamicResource Theme.Panel}" Padding="25,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding WindowTitle}" FontSize="24" FontWeight="ExtraBold" Foreground="{DynamicResource Theme.Text.Primary}" />
+                    <TextBlock Text="{x:Static p:Resources.Drill_Title}" FontSize="13" Foreground="{DynamicResource Theme.Text.Secondary}" Margin="0,5,0,0" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Border Background="{DynamicResource Theme.Grid.Header}" CornerRadius="4" Padding="20,10" Margin="0,0,15,0">
+                        <StackPanel>
+                            <TextBlock Text="{x:Static p:Resources.Drill_Count}" Foreground="{DynamicResource Theme.Text.Secondary}" FontSize="11" FontWeight="Bold" />
+                            <TextBlock Text="{Binding RecordCount}" Foreground="{DynamicResource Theme.Text.Primary}" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#C0392B" CornerRadius="4" Padding="20,10">
+                        <StackPanel>
+                            <TextBlock Text="{x:Static p:Resources.Drill_TotalDuration}" Foreground="#FADBD8" FontSize="11" FontWeight="Bold" />
+                            <TextBlock Text="{Binding TotalDurationText}" Foreground="White" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ROW 2: ACTIVE FILTERS (Chips) -->
+        <ItemsControl Grid.Row="2" ItemsSource="{Binding ActiveFilters}" Margin="25,10,25,0">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource FilterChipStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Label}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" FontSize="13" />
+                            <Button Command="{Binding DataContext.RemoveFilterChipCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}" Margin="10,0,0,0" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                                <TextBlock Text="âœ•" Foreground="White" FontSize="12" />
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- ROW 3: DUAL LIST SELECTOR (Expandable) -->
+        <Grid Grid.Row="3" Margin="25,10,25,10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="2*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT: Machine Filter -->
+                <Border Grid.Column="0" Background="{DynamicResource Theme.Panel}" CornerRadius="6" Padding="10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="{x:Static p:Resources.Str_Machines}" Foreground="{DynamicResource Theme.Text.Primary}" FontWeight="Bold" Margin="0,0,0,8" />
+                        <TextBox Grid.Row="1" Text="{Binding MachineSearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SearchTextBoxStyle}" Margin="0,0,0,8" />
+
+                        <!-- Dynamic Height ScrollViewer -->
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer">
+                                    <Setter Property="Height" Value="60" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFiltersExpanded}" Value="True">
+                                            <Setter Property="Height" Value="170" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Style>
+
+                            <ItemsControl ItemsSource="{Binding FilteredMachineList}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding Name}"
+                                                  IsChecked="{Binding IsChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  Margin="0,4" Foreground="{DynamicResource Theme.Text.Primary}" FontSize="13" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+
+                <!-- RIGHT: Reason Filter -->
+                <Border Grid.Column="2" Background="{DynamicResource Theme.Panel}" CornerRadius="6" Padding="10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="{x:Static p:Resources.Str_ErrorCategories}" Foreground="{DynamicResource Theme.Text.Primary}" FontWeight="Bold" Margin="0,0,0,8" />
+                        <TextBox Grid.Row="1" Text="{Binding ReasonSearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource SearchTextBoxStyle}" Margin="0,0,0,8" />
+
+                        <!-- Dynamic Height ScrollViewer -->
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer">
+                                    <Setter Property="Height" Value="60" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFiltersExpanded}" Value="True">
+                                            <Setter Property="Height" Value="170" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Style>
+
+                            <ItemsControl ItemsSource="{Binding FilteredReasonList}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding Name}"
+                                                  IsChecked="{Binding IsChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  Margin="0,4" Foreground="{DynamicResource Theme.Text.Primary}" FontSize="13" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Expand/Collapse Toggle Button -->
+            <ToggleButton Grid.Row="1" HorizontalAlignment="Center" Margin="0,5,0,0"
+                          IsChecked="{Binding IsFiltersExpanded, Mode=TwoWay}"
+                          Background="Transparent" BorderThickness="0" Foreground="{DynamicResource Theme.Accent}" Cursor="Hand" FontWeight="Bold">
+                <ToggleButton.Style>
+                    <Style TargetType="ToggleButton">
+                        <Setter Property="Content" Value="{x:Static p:Resources.Str_ExpandFilters}" />
+                        <Style.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Content" Value="{x:Static p:Resources.Str_CollapseFilters}" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ToggleButton.Style>
+            </ToggleButton>
+        </Grid>
+
+        <!-- ROW 4: DATA GRID -->
+        <DataGrid Grid.Row="4"
+                  ItemsSource="{Binding DisplayedItems}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  IsReadOnly="True"
+                  CanUserSortColumns="True"
+                  HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal"
+                  HorizontalGridLinesBrush="{DynamicResource Theme.Grid.Lines}"
+                  VerticalGridLinesBrush="Transparent"
+                  RowHeight="40"
+                  FontSize="14"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  Margin="25,0,25,10">
+
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="{DynamicResource Theme.Grid.Header}" />
+                    <Setter Property="Foreground" Value="{DynamicResource Theme.Accent}" />
+                    <Setter Property="Padding" Value="12,12" />
+                    <Setter Property="FontWeight" Value="Bold" />
+                    <Setter Property="FontSize" Value="13" />
+                    <Setter Property="BorderThickness" Value="0,0,0,2" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Accent}" />
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
+
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="Background" Value="{DynamicResource Theme.Grid.Row}" />
+                    <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Primary}" />
+                    <Setter Property="BorderThickness" Value="0,0,0,1" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Theme.Grid.Lines}" />
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource Theme.Accent}" />
+                            <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource Theme.Grid.Header}" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="{x:Static p:Resources.Col_Date}" Binding="{Binding Date, StringFormat=dd.MM.yyyy}" Width="110" />
+                <DataGridTextColumn Header="{x:Static p:Resources.Col_Machine}" Binding="{Binding MachineDisplay}" Width="110" FontWeight="Bold" />
+                <DataGridTextColumn Header="{x:Static p:Resources.Col_Timeline}" Binding="{Binding TimeRange}" Width="150" />
+                <DataGridTextColumn Header="{x:Static p:Resources.Col_Duration}" Binding="{Binding DisplayDuration}" SortMemberPath="DurationMinutes" Width="100" FontWeight="Bold" />
+
+                <!-- MODIFIED: Description column now features a Hover-Activated Arrow button -->
+                <DataGridTemplateColumn Header="{x:Static p:Resources.Col_Description}" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Grid Background="Transparent">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding ErrorDescription}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,10,0" />
+                                <Button Grid.Column="1" x:Name="NavButton"
+                                        Command="{Binding DataContext.NavigateToDataCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                        Visibility="Hidden" Padding="15,0" ToolTip="{x:Static p:Resources.Tip_FindInDataReport}">
+                                    <fa:IconImage Icon="ArrowRight" Height="14" Foreground="{DynamicResource Theme.Accent}" />
+                                </Button>
+                            </Grid>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+                                    <Setter TargetName="NavButton" Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- ROW 5: FOOTER -->
+        <Border Grid.Row="5" Background="{DynamicResource Theme.Footer}" Padding="20">
+            <Grid>
+                <Button Content="{x:Static p:Resources.Cancel}" Style="{StaticResource FooterCloseButtonStyle}" Click="CloseButton_Click" HorizontalAlignment="Right" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
+
+File: Views\ErrorDrillDownWindow.xaml.cs
+using System;
+using System.Windows;
+using WPF_LoginForm.ViewModels;
+
+namespace WPF_LoginForm.Views
+{
+    /// <summary>
+    /// Interaction logic for ErrorDrillDownWindow.xaml
+    /// </summary>
+    public partial class ErrorDrillDownWindow : Window
+    {
+        public ErrorDrillDownWindow()
+        {
+            InitializeComponent();
+        }
+
+        /// <summary>
+        /// Event handler for the Close/OK button.
+        /// Matches the Click="CloseButton_Click" in the XAML.
+        /// </summary>
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.DialogResult = true;
+            this.Close();
+        }
+
+        private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.WindowState = WindowState.Minimized;
+        }
+
+        public void SetTheme(bool isDark)
+        {
+            var themeUri = isDark
+                ? new Uri("Themes/DarkTheme.xaml", UriKind.Relative)
+                : new Uri("Themes/LightTheme.xaml", UriKind.Relative);
+
+            ResourceDictionary newTheme = new ResourceDictionary { Source = themeUri };
+
+            // Find and replace the old theme dictionary
+            Application.Current.Resources.MergedDictionaries.Clear();
+            Application.Current.Resources.MergedDictionaries.Add(newTheme);
+        }
+
+        public void SetViewModel(ErrorDrillDownViewModel viewModel)
+        {
+            this.DataContext = viewModel;
+        }
+
+        private bool _isDark = true;
+
+        private void ThemeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            _isDark = !_isDark;
+            SetTheme(_isDark);
+        }
+    }
+}
+
+File: ViewModels\ErrorDrillDownViewModel.cs
+// ViewModels/ErrorDrillDownViewModel.cs
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Windows.Input;
+using WPF_LoginForm.Models;
+using WPF_LoginForm.Services;
+
+namespace WPF_LoginForm.ViewModels
+{
+    public class CheckableItem : ViewModelBase
+    {
+        private bool _isChecked;
+        public string Name { get; set; }
+        public string Type { get; set; }
+        public Action OnCheckChanged { get; set; }
+
+        public bool IsChecked
+        {
+            get => _isChecked;
+            set
+            {
+                if (SetProperty(ref _isChecked, value))
+                {
+                    OnCheckChanged?.Invoke();
+                }
+            }
+        }
+    }
+
+    public class FilterChip : ViewModelBase
+    {
+        public string Label { get; set; }
+        public string FilterType { get; set; }
+        public string Value { get; set; }
+    }
+
+    public class ErrorDrillDownViewModel : ViewModelBase
+    {
+        private readonly List<ErrorEventModel> _allItemsSource;
+        private readonly List<string> _excludedMachines;
+        private readonly bool _useClockFormat;
+        private readonly bool _excludeMachine00;
+
+        private readonly CategoryMappingService _mappingService;
+        private readonly List<CategoryRule> _activeRules;
+        private bool _isUpdatingFilters = false;
+
+        private string _windowTitle;
+        public string WindowTitle { get => _windowTitle; set => SetProperty(ref _windowTitle, value); }
+
+        private ObservableCollection<ErrorEventModel> _displayedItems;
+
+        public ObservableCollection<ErrorEventModel> DisplayedItems
+        {
+            get => _displayedItems;
+            set => SetProperty(ref _displayedItems, value);
+        }
+
+        public ObservableCollection<FilterChip> ActiveFilters { get; set; }
+
+        // Master Lists
+        public ObservableCollection<CheckableItem> MachineFilterList { get; set; }
+
+        public ObservableCollection<CheckableItem> ReasonFilterList { get; set; }
+
+        // Dynamic Filtered Lists bound to UI
+        private ObservableCollection<CheckableItem> _filteredMachineList;
+
+        public ObservableCollection<CheckableItem> FilteredMachineList { get => _filteredMachineList; set => SetProperty(ref _filteredMachineList, value); }
+
+        private ObservableCollection<CheckableItem> _filteredReasonList;
+        public ObservableCollection<CheckableItem> FilteredReasonList { get => _filteredReasonList; set => SetProperty(ref _filteredReasonList, value); }
+
+        private bool _isFiltersExpanded = false;
+        public bool IsFiltersExpanded { get => _isFiltersExpanded; set => SetProperty(ref _isFiltersExpanded, value); }
+
+        private string _machineSearchText;
+
+        public string MachineSearchText
+        {
+            get => _machineSearchText;
+            set
+            {
+                if (SetProperty(ref _machineSearchText, value))
+                {
+                    if (!string.IsNullOrWhiteSpace(value)) IsFiltersExpanded = true;
+                    TriggerFilterUpdate(); // Re-evaluate lists dynamically on type
+                }
+            }
+        }
+
+        private string _reasonSearchText;
+
+        public string ReasonSearchText
+        {
+            get => _reasonSearchText;
+            set
+            {
+                if (SetProperty(ref _reasonSearchText, value))
+                {
+                    if (!string.IsNullOrWhiteSpace(value)) IsFiltersExpanded = true;
+                    TriggerFilterUpdate(); // Re-evaluate lists dynamically on type
+                }
+            }
+        }
+
+        public int RecordCount => DisplayedItems?.Count ?? 0;
+        public string TotalDurationText => GetTotalDuration();
+
+        public ICommand RemoveFilterChipCommand { get; private set; }
+        public ICommand NavigateToDataCommand { get; private set; }
+        public Action<ErrorEventModel> OnNavigateRequested { get; set; }
+
+        public ErrorDrillDownViewModel(IEnumerable<ErrorEventModel> items, string title, string initialFilter, List<string> excludedMachines, bool useClockFormat, bool excludeMachine00)
+        {
+            WindowTitle = title;
+            _allItemsSource = items.ToList();
+            _excludedMachines = excludedMachines ?? new List<string>();
+            _useClockFormat = useClockFormat;
+            _excludeMachine00 = excludeMachine00;
+
+            _mappingService = new CategoryMappingService();
+            _activeRules = _mappingService.LoadRules();
+
+            ActiveFilters = new ObservableCollection<FilterChip>();
+
+            foreach (var item in _allItemsSource)
+            {
+                item.DisplayDuration = TimeFormatHelper.FormatDuration(item.DurationMinutes, _useClockFormat);
+            }
+
+            // Create Master Machine List
+            var uniqueMachines = _allItemsSource
+                .Select(x => x.MachineCode)
+                .Distinct()
+                .Where(m => !_excludeMachine00 || (m != "00" && m != "0" && m != "MA-00" && m != "MA-0"))
+                .OrderBy(m => m)
+                .Select(m => new CheckableItem { Name = m, Type = "Machine", IsChecked = false, OnCheckChanged = TriggerFilterUpdate })
+                .ToList();
+
+            MachineFilterList = new ObservableCollection<CheckableItem>(uniqueMachines);
+
+            // Create Master Reason List
+            var uniqueReasons = _allItemsSource
+                .Where(x => !string.IsNullOrEmpty(x.ErrorDescription))
+                .Select(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules))
+                .Distinct()
+                .OrderBy(r => r)
+                .Select(r => new CheckableItem { Name = r, Type = "Reason", IsChecked = false, OnCheckChanged = TriggerFilterUpdate })
+                .ToList();
+
+            ReasonFilterList = new ObservableCollection<CheckableItem>(uniqueReasons);
+
+            RemoveFilterChipCommand = new ViewModelCommand(ExecuteRemoveFilterChip);
+
+            NavigateToDataCommand = new ViewModelCommand((obj) =>
+            {
+                if (obj is ErrorEventModel ev)
+                {
+                    OnNavigateRequested?.Invoke(ev);
+                }
+            });
+
+            // This will automatically run TriggerFilterUpdate and populate the Dynamic Lists
+            ApplyInitialFilter(initialFilter);
+        }
+
+        private void ApplyInitialFilter(string filterText)
+        {
+            _isUpdatingFilters = true;
+
+            if (!string.IsNullOrEmpty(filterText))
+            {
+                if (filterText.StartsWith("MACHINE_OTHERS"))
+                {
+                    var parts = filterText.Split('|');
+                    if (parts.Length > 1)
+                    {
+                        _excludedMachines.Clear();
+                        _excludedMachines.AddRange(parts[1].Split(','));
+                    }
+
+                    foreach (var m in MachineFilterList)
+                    {
+                        if (!_excludedMachines.Contains(m.Name))
+                            m.IsChecked = true;
+                    }
+                }
+                else if (filterText.StartsWith("MACHINE_CATEGORY_OTHERS|"))
+                {
+                    var parts = filterText.Split('|');
+                    if (parts.Length == 3)
+                    {
+                        var visibleMachines = parts[1].Split(',').ToList();
+                        string category = parts[2];
+
+                        foreach (var m in MachineFilterList)
+                        {
+                            if (!visibleMachines.Contains(m.Name))
+                                m.IsChecked = true;
+                        }
+
+                        var rItem = ReasonFilterList.FirstOrDefault(r => string.Equals(r.Name, category, StringComparison.OrdinalIgnoreCase));
+                        if (rItem != null) rItem.IsChecked = true;
+                    }
+                }
+                else if (filterText.StartsWith("MACHINE_CATEGORY|"))
+                {
+                    var parts = filterText.Split('|');
+                    if (parts.Length == 3)
+                    {
+                        string machine = parts[1];
+                        string category = parts[2];
+
+                        var mItem = MachineFilterList.FirstOrDefault(m => string.Equals(m.Name, machine, StringComparison.OrdinalIgnoreCase));
+                        if (mItem != null) mItem.IsChecked = true;
+
+                        var rItem = ReasonFilterList.FirstOrDefault(r => string.Equals(r.Name, category, StringComparison.OrdinalIgnoreCase));
+                        if (rItem != null) rItem.IsChecked = true;
+                    }
+                }
+                else if (filterText.StartsWith("MA-"))
+                {
+                    string rawMachine = filterText.Replace("MA-", "");
+                    var item = MachineFilterList.FirstOrDefault(m => string.Equals(m.Name, rawMachine, StringComparison.OrdinalIgnoreCase));
+                    if (item != null) item.IsChecked = true;
+                }
+                else
+                {
+                    var item = ReasonFilterList.FirstOrDefault(r => string.Equals(r.Name, filterText, StringComparison.OrdinalIgnoreCase));
+                    if (item != null) item.IsChecked = true;
+                }
+            }
+
+            _isUpdatingFilters = false;
+            TriggerFilterUpdate();
+        }
+
+        private void TriggerFilterUpdate()
+        {
+            if (_isUpdatingFilters) return;
+            _isUpdatingFilters = true;
+
+            ActiveFilters.Clear();
+
+            foreach (var m in MachineFilterList.Where(x => x.IsChecked))
+                ActiveFilters.Add(new FilterChip { Label = m.Name, FilterType = "Machine", Value = m.Name });
+
+            foreach (var r in ReasonFilterList.Where(x => x.IsChecked))
+                ActiveFilters.Add(new FilterChip { Label = r.Name, FilterType = "Reason", Value = r.Name });
+
+            RefreshData();
+            _isUpdatingFilters = false;
+        }
+
+        private void RefreshData()
+        {
+            var query = _allItemsSource.AsEnumerable();
+
+            if (_excludeMachine00)
+            {
+                query = query.Where(x => x.MachineCode != "00" && x.MachineCode != "0" && x.MachineCode != "MA-00" && x.MachineCode != "MA-0");
+            }
+
+            var machineFilters = ActiveFilters.Where(x => x.FilterType == "Machine").Select(x => x.Value).ToList();
+            var reasonFilters = ActiveFilters.Where(x => x.FilterType == "Reason").Select(x => x.Value).ToList();
+
+            if (machineFilters.Any())
+            {
+                query = query.Where(x => machineFilters.Contains(x.MachineCode));
+            }
+
+            if (reasonFilters.Any())
+            {
+                query = query.Where(x => reasonFilters.Any(r =>
+                    !string.IsNullOrEmpty(x.ErrorDescription) &&
+                    _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules).Equals(r, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            DisplayedItems = new ObservableCollection<ErrorEventModel>(query);
+
+            OnPropertyChanged(nameof(RecordCount));
+            OnPropertyChanged(nameof(TotalDurationText));
+
+            // NEW: Execute the Cascading logic to shrink lists
+            UpdateFilterListsAvailability(machineFilters, reasonFilters);
+        }
+
+        // --- NEW CASCADING FILTER LOGIC ---
+        private void UpdateFilterListsAvailability(List<string> activeMachines, List<string> activeReasons)
+        {
+            var baseQuery = _allItemsSource.AsEnumerable();
+            if (_excludeMachine00)
+            {
+                baseQuery = baseQuery.Where(x => x.MachineCode != "00" && x.MachineCode != "0" && x.MachineCode != "MA-00" && x.MachineCode != "MA-0");
+            }
+
+            // 1. Calculate which machines are available (ignoring active Machine filters, applying only Reason filters)
+            var availableMachinesQuery = baseQuery;
+            if (activeReasons.Any())
+            {
+                availableMachinesQuery = availableMachinesQuery.Where(x => activeReasons.Any(r =>
+                    !string.IsNullOrEmpty(x.ErrorDescription) &&
+                    _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules).Equals(r, StringComparison.OrdinalIgnoreCase)));
+            }
+            var validMachineNames = availableMachinesQuery.Select(x => x.MachineCode).Distinct().ToList();
+
+            // 2. Calculate which reasons are available (ignoring active Reason filters, applying only Machine filters)
+            var availableReasonsQuery = baseQuery;
+            if (activeMachines.Any())
+            {
+                availableReasonsQuery = availableReasonsQuery.Where(x => activeMachines.Contains(x.MachineCode));
+            }
+            var validReasonNames = availableReasonsQuery
+                .Where(x => !string.IsNullOrEmpty(x.ErrorDescription))
+                .Select(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules))
+                .Distinct()
+                .ToList();
+
+            // 3. Filter Master Lists (Always keep currently checked items visible)
+            var newMachineList = MachineFilterList
+                .Where(m => m.IsChecked || validMachineNames.Contains(m.Name))
+                .ToList();
+
+            var newReasonList = ReasonFilterList
+                .Where(r => r.IsChecked || validReasonNames.Contains(r.Name))
+                .ToList();
+
+            // 4. Apply Search Texts on top of the shrunken lists
+            if (!string.IsNullOrWhiteSpace(MachineSearchText))
+            {
+                newMachineList = newMachineList
+                    .Where(m => m.Name.IndexOf(MachineSearchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                    .ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(ReasonSearchText))
+            {
+                newReasonList = newReasonList
+                    .Where(r => r.Name.IndexOf(ReasonSearchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                    .ToList();
+            }
+
+            // 5. Update UI Collections
+            FilteredMachineList = new ObservableCollection<CheckableItem>(newMachineList);
+            FilteredReasonList = new ObservableCollection<CheckableItem>(newReasonList);
+        }
+
+        private void ExecuteRemoveFilterChip(object obj)
+        {
+            if (obj is FilterChip chip)
+            {
+                _isUpdatingFilters = true;
+
+                ActiveFilters.Remove(chip);
+
+                if (chip.FilterType == "Machine")
+                {
+                    var item = MachineFilterList.FirstOrDefault(m => string.Equals(m.Name, chip.Value, StringComparison.OrdinalIgnoreCase));
+                    if (item != null) item.IsChecked = false;
+                }
+                else if (chip.FilterType == "Reason")
+                {
+                    var item = ReasonFilterList.FirstOrDefault(r => string.Equals(r.Name, chip.Value, StringComparison.OrdinalIgnoreCase));
+                    if (item != null) item.IsChecked = false;
+                }
+
+                _isUpdatingFilters = false;
+                TriggerFilterUpdate();
+            }
+        }
+
+        private string GetTotalDuration()
+        {
+            double total = DisplayedItems?.Sum(x => x.DurationMinutes) ?? 0;
+            return TimeFormatHelper.FormatDuration(total, _useClockFormat);
+        }
+    }
+}
+
+File: ViewModels\ErrorEventModel.cs
+// Models/ErrorEventModel.cs
+using System;
+using System.Text.RegularExpressions;
+
+namespace WPF_LoginForm.Models
+{
+    public class ErrorEventModel
+    {
+        // --- Identity ---
+        public string UniqueRowId { get; set; }
+
+        // --- Data Properties ---
+        public DateTime Date { get; set; }
+
+        public string Shift { get; set; }
+        public string RawData { get; set; }
+
+        // --- Metric Columns ---
+        public double RowTotalStopMinutes { get; set; }
+
+        public double RowSavedTimeBreak { get; set; }
+        public double RowSavedTimeMaint { get; set; }
+        public double RowActualWorkingMinutes { get; set; } // <-- NEW: Fiili_Çalışılan_Süre
+
+        // --- Parsed Properties ---
+        public string StartTime { get; set; }
+
+        public string EndTime { get; set; }
+        public int DurationMinutes { get; set; }
+        public string DisplayDuration { get; set; }
+        public string SectionCode { get; set; }
+        public string MachineCode { get; set; }
+        public string ErrorDescription { get; set; }
+
+        public string TimeRange => $"{StartTime} ➝ {EndTime}";
+        public string MachineDisplay => $"MA-{MachineCode}";
+
+        private static readonly Regex LogPattern = new Regex(
+            @"^(\d{4})\s*-\s*(\d+)\s*-\s*([A-Za-z]+)\s*-\s*([A-Za-z0-9]+)\s*-\s*(.*)$",
+            RegexOptions.Compiled);
+
+        // --- FIX: Added actualWork parameter ---
+        public static ErrorEventModel Parse(string cellData, DateTime rowDate, string rowShift, double totalStop, double savedBreak, double savedMaint, double actualWork, string uniqueId)
+        {
+            if (string.IsNullOrWhiteSpace(cellData)) return null;
+
+            var model = new ErrorEventModel
+            {
+                RawData = cellData,
+                Date = rowDate,
+                Shift = rowShift,
+                RowTotalStopMinutes = totalStop,
+                RowSavedTimeBreak = savedBreak,
+                RowSavedTimeMaint = savedMaint,
+                RowActualWorkingMinutes = actualWork, // Assign to model
+                UniqueRowId = uniqueId
+            };
+
+            var match = LogPattern.Match(cellData);
+            if (match.Success)
+            {
+                model.StartTime = FormatTime(match.Groups[1].Value);
+                if (int.TryParse(match.Groups[2].Value, out int dur)) model.DurationMinutes = dur;
+                model.SectionCode = match.Groups[3].Value;
+                model.MachineCode = match.Groups[4].Value;
+                model.ErrorDescription = match.Groups[5].Value.Trim();
+            }
+            else
+            {
+                var parts = cellData.Split('-');
+                if (parts.Length >= 4)
+                {
+                    model.StartTime = FormatTime(parts[0]);
+                    int.TryParse(parts[1], out int dur);
+                    model.DurationMinutes = dur;
+                    model.MachineCode = parts[3];
+                    if (parts.Length > 4) model.ErrorDescription = string.Join("-", parts, 4, parts.Length - 4);
+                }
+                else return null;
+            }
+
+            model.EndTime = CalculateEndTime(model.StartTime, model.DurationMinutes);
+            return model;
+        }
+
+        private static string FormatTime(string raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return "00:00";
+            if (raw.Contains(":")) return raw;
+            if (raw.Length == 4) return raw.Insert(2, ":");
+            return raw;
+        }
+
+        private static string CalculateEndTime(string startStr, int duration)
+        {
+            if (TimeSpan.TryParse(startStr, out TimeSpan ts))
+                return ts.Add(TimeSpan.FromMinutes(duration)).ToString(@"hh\:mm");
+            return "??:??";
+        }
+    }
+}
+
+File: Services\CategoryMappingService.cs
+// Services/CategoryMappingService.cs
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using WPF_LoginForm.Models;
+
+namespace WPF_LoginForm.Services
+{
+    public class CategoryMappingService
+    {
+        private const string FilePath = "category_rules.json";
+
+        public List<CategoryRule> LoadRules()
+        {
+            var rules = GeneralSettingsManager.Instance.Current.CategoryRules;
+            return (rules ?? new List<CategoryRule>()).OrderByDescending(r => r.Priority).ToList();
+        }
+
+        public void SaveRules(List<CategoryRule> rules)
+        {
+            if (rules == null) return;
+            try
+            {
+                var orderedRules = rules.OrderByDescending(r => r.Priority).ToList();
+                GeneralSettingsManager.Instance.Current.CategoryRules = orderedRules;
+                GeneralSettingsManager.Instance.Save();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving rules: {ex.Message}");
+            }
+        }
+
+        public string GetMappedCategory(string rawDescription, List<CategoryRule> rules)
+        {
+            if (string.IsNullOrWhiteSpace(rawDescription)) return "Unknown";
+
+            // 1. Check against user-defined rules (Priority runs first because LoadRules sorted them)
+            if (rules != null)
+            {
+                foreach (var rule in rules)
+                {
+                    if (!string.IsNullOrEmpty(rule.StartsWith) &&
+                        rawDescription.StartsWith(rule.StartsWith, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return rule.MapTo;
+                    }
+                }
+            }
+
+            // 2. Default Fallback (Standard Data Format Handling)
+            // Example: "TAMBUR-TEMIZLIGI-YAPILDI" -> "TAMBUR-TEMIZLIGI"
+            var parts = rawDescription.Split('-');
+
+            if (parts.Length >= 2)
+            {
+                return $"{parts[0].Trim()}-{parts[1].Trim()}".ToUpper();
+            }
+
+            return parts[0].Trim().ToUpper();
+        }
+    }
+}
+
+File: Services\TimeFormatHelper.cs
+// Services/TimeFormatHelper.cs
+using System;
+using System.Globalization;
+using WPF_LoginForm.Properties; // Access to Resources
+
+namespace WPF_LoginForm.Services
+{
+    public static class TimeFormatHelper
+    {
+        public static string FormatDuration(double minutes, bool useClockFormat)
+        {
+            // 1. If formatting is disabled OR value is small (< 60 min), return standard "90 min"
+            if (!useClockFormat || minutes < 60)
+            {
+                // Resources.Unit_Minutes usually contains "min" or "dk"
+                string unit = Resources.Unit_Minutes ?? "min";
+                return $"{minutes:N0} {unit}";
+            }
+
+            // 2. Convert to Clock Format (e.g., "1 h 30 m")
+            TimeSpan ts = TimeSpan.FromMinutes(minutes);
+            int h = (int)ts.TotalHours;
+            int m = ts.Minutes;
+
+            // Localization Logic
+            string currentLang = Resources.Culture?.Name ?? CultureInfo.CurrentCulture.Name;
+            bool isTurkish = currentLang == "tr-TR";
+
+            string hLabel = isTurkish ? "sa" : "h";
+            string mLabel = isTurkish ? "dk" : "m";
+
+            if (m == 0)
+                return $"{h} {hLabel}";
+
+            return $"{h} {hLabel} {m} {mLabel}";
+        }
+    }
+}
+
+File: Models\CategoryRule.cs
+// Models/CategoryRule.cs
+using System;
+
+namespace WPF_LoginForm.Models
+{
+    public class CategoryRule
+    {
+        /// <summary>
+        /// The raw string found in the database (even with typos).
+        /// </summary>
+        public string StartsWith { get; set; }
+
+        /// <summary>
+        /// The corrected/standardized category name.
+        /// </summary>
+        public string MapTo { get; set; }
+
+        /// <summary>
+        /// Higher value = higher priority.
+        /// Use higher priority for specific spelling corrections.
+        /// </summary>
+        public int Priority { get; set; } = 0;
+
+        public CategoryRule()
+        { }
+
+        public CategoryRule(string startsWith, string mapTo, int priority = 0)
+        {
+            StartsWith = startsWith;
+            MapTo = mapTo;
+            Priority = priority;
+        }
+    }
+}
+
+File: ViewModels\ViewModelBase.cs
+// In WPF_LoginForm.ViewModels/ViewModelBase.cs
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
+namespace WPF_LoginForm.ViewModels
+{
+    public abstract class ViewModelBase : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        // --- THIS METHOD IS NEW AND REQUIRED ---
+        // It simplifies property setting and change notification in other view models.
+        protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
+        {
+            if (EqualityComparer<T>.Default.Equals(storage, value))
+                return false;
+
+            storage = value;
+            OnPropertyChanged(propertyName);
+            return true;
+        }
+    }
+}
+
+File: ViewModels\ViewModelCommand.cs
+using System;
+using System.Windows.Input;
+
+namespace WPF_LoginForm.ViewModels
+{
+    public class ViewModelCommand : ICommand
+    {
+        //Fields
+        private readonly Action<object> _executeAction;
+        private readonly Predicate<object> _canExecuteAction;
+
+        //Constructors
+        public ViewModelCommand(Action<object> executeAction)
+        {
+            _executeAction = executeAction;
+            _canExecuteAction = null;
+        }
+
+        public ViewModelCommand(Action<object> executeAction, Predicate<object> canExecuteAction)
+        {
+            _executeAction = executeAction;
+            _canExecuteAction = canExecuteAction;
+        }
+
+        //Events
+        public event EventHandler CanExecuteChanged
+        {
+            add { CommandManager.RequerySuggested += value; }
+            remove { CommandManager.RequerySuggested -= value; }
+        }
+
+        //Methods
+        public bool CanExecute(object parameter)
+        {
+            return _canExecuteAction == null ? true : _canExecuteAction(parameter);
+        }
+
+        public void Execute(object parameter)
+        {
+            _executeAction(parameter);
+        }
+
+        // --- NEW METHOD ---
+        /// <summary>
+        /// Raises the CanExecuteChanged event to indicate that the CanExecute status has changed.
+        /// UI elements bound to this command will re-evaluate their IsEnabled state.
+        /// </summary>
+        public void RaiseCanExecuteChanged()
+        {
+            // The CanExecuteChanged event is wired up to CommandManager.RequerySuggested.
+            // Forcing a RequerySuggested event will trigger any subscribers.
+            // A more direct way if not relying on CommandManager's global requery would be:
+            // CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            // However, since WPF buttons and other command-aware controls subscribe
+            // via CommandManager, forcing a requery is a common WPF pattern.
+            // If you want to be absolutely sure without CommandManager, you'd invoke directly.
+            // For now, let's stick to what CommandManager provides. If a direct invocation is needed
+            // the event would need to be declared like: public event EventHandler ActualCanExecuteChanged;
+            // and then Invoke(ActualCanExecuteChanged, ...)
+
+            // Forcing a requery is the standard way when CanExecuteChanged is implemented as above.
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+}
+

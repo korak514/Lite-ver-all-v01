@@ -7,8 +7,9 @@
         xmlns:fa="http://schemas.fontawesome.io/icons/"
         xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
         xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+        xmlns:p="clr-namespace:WPF_LoginForm.Properties"
         mc:Ignorable="d"
-        Title="Combination Label Blueprint Editor"
+        Title="{x:Static p:Resources.Tip_NodeEditor}"
         Height="760" Width="1300"
         WindowStartupLocation="CenterOwner"
         Background="#F4F6F9"
@@ -45,15 +46,15 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="Node Toolbox" FontWeight="Bold" FontSize="14" Foreground="#2C3E50" Margin="0,0,0,10" />
+                <TextBlock Grid.Row="0" Text="{x:Static p:Resources.Str_Options}" FontWeight="Bold" FontSize="14" Foreground="#2C3E50" Margin="0,0,0,10" />
 
                 <!-- ZONE SELECTOR (TABS) -->
                 <Border Grid.Row="1" Margin="0,0,0,15" Background="#F8F9FA" CornerRadius="4" Padding="10">
                     <StackPanel>
-                        <TextBlock Text="Edit Tooltip Zone:" FontWeight="Bold" Foreground="#2C3E50" Margin="0,0,0,5" />
-                        <RadioButton Content="1. Top Header Zone" Command="{Binding SetZoneCommand}" CommandParameter="1" Margin="0,2" Foreground="#8E44AD" FontWeight="SemiBold" />
-                        <RadioButton Content="2. Left Side Zone" Command="{Binding SetZoneCommand}" CommandParameter="2" Margin="0,2" Foreground="#3498DB" FontWeight="SemiBold" />
-                        <RadioButton Content="3. Right Side Zone" IsChecked="True" Command="{Binding SetZoneCommand}" CommandParameter="3" Margin="0,2" Foreground="#E67E22" FontWeight="SemiBold" />
+                        <TextBlock Text="{x:Static p:Resources.Str_LabelingMode}" FontWeight="Bold" Foreground="#2C3E50" Margin="0,0,0,5" />
+                        <RadioButton Content="1. Top" Command="{Binding SetZoneCommand}" CommandParameter="1" Margin="0,2" Foreground="#8E44AD" FontWeight="SemiBold" />
+                        <RadioButton Content="2. Left" Command="{Binding SetZoneCommand}" CommandParameter="2" Margin="0,2" Foreground="#3498DB" FontWeight="SemiBold" />
+                        <RadioButton Content="3. Right" IsChecked="True" Command="{Binding SetZoneCommand}" CommandParameter="3" Margin="0,2" Foreground="#E67E22" FontWeight="SemiBold" />
                     </StackPanel>
                 </Border>
 
@@ -66,7 +67,7 @@
                     </Button.Resources>
                     <StackPanel Orientation="Horizontal">
                         <fa:ImageAwesome Icon="Calendar" Height="14" Foreground="White" Margin="0,0,8,0" />
-                        <TextBlock Text="+ Add Date / Category" FontWeight="SemiBold" />
+                        <TextBlock Text="{x:Static p:Resources.Col_Date}" FontWeight="SemiBold" />
                     </StackPanel>
                 </Button>
 
@@ -78,7 +79,7 @@
                     </Button.Resources>
                     <StackPanel Orientation="Horizontal">
                         <fa:ImageAwesome Icon="Tag" Height="14" Foreground="White" Margin="0,0,8,0" />
-                        <TextBlock Text="+ Add Chart Label" FontWeight="SemiBold" />
+                        <TextBlock Text="{x:Static p:Resources.Str_LabelSettings}" FontWeight="SemiBold" />
                     </StackPanel>
                 </Button>
 
@@ -90,7 +91,7 @@
                     </Button.Resources>
                     <StackPanel Orientation="Horizontal">
                         <fa:ImageAwesome Icon="Font" Height="14" Foreground="White" Margin="0,0,8,0" />
-                        <TextBlock Text="+ Add Static Text" FontWeight="SemiBold" />
+                        <TextBlock Text="{x:Static p:Resources.Str_Description}" FontWeight="SemiBold" />
                     </StackPanel>
                 </Button>
 
@@ -102,13 +103,13 @@
                     </Button.Resources>
                     <StackPanel Orientation="Horizontal">
                         <fa:ImageAwesome Icon="LevelDown" Height="14" Foreground="White" Margin="0,0,8,0" />
-                        <TextBlock Text="+ Add New Line (Enter)" FontWeight="SemiBold" />
+                        <TextBlock Text="+ ⏎ (Enter)" FontWeight="SemiBold" />
                     </StackPanel>
                 </Button>
 
                 <ScrollViewer Grid.Row="6" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <TextBlock Text="Data Columns (Values):" Foreground="Gray" FontSize="12" Margin="0,0,0,8" />
+                        <TextBlock Text="{x:Static p:Resources.Str_ValueColumnsY}" Foreground="Gray" FontSize="12" Margin="0,0,0,8" />
                         <ItemsControl ItemsSource="{Binding AvailableColumns}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -154,7 +155,6 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
-                                    <!-- Reduced MinHeight to 75 to keep cards sleek since text was removed -->
                                     <Border Width="210" MinHeight="75" Background="White" BorderThickness="1" CornerRadius="8" Margin="5" VerticalAlignment="Center">
                                         <Border.Style>
                                             <Style TargetType="Border">
@@ -285,10 +285,7 @@
                                                 </Grid>
                                             </Border>
 
-                                            <!-- Card Body -->
-                                            <!-- The SeriesName and NewLine stackpanels were totally removed here to remove their inner text -->
                                             <StackPanel Grid.Row="1" Margin="12">
-
                                                 <StackPanel>
                                                     <StackPanel.Style>
                                                         <Style TargetType="StackPanel">
@@ -301,7 +298,7 @@
                                                         </Style>
                                                     </StackPanel.Style>
                                                     <TextBlock Text="{Binding Value}" FontWeight="Bold" FontSize="13" Foreground="#2C3E50" TextTrimming="CharacterEllipsis" ToolTip="{Binding Value}" Margin="0,0,0,10" />
-                                                    <TextBlock Text="Aggregation:" FontSize="10" Foreground="Gray" />
+                                                    <TextBlock Text="{x:Static p:Resources.Str_DataAggregate}" FontSize="10" Foreground="Gray" />
                                                     <ComboBox SelectedValue="{Binding Aggregation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Content" Margin="0,2,0,0" Padding="4">
                                                         <ComboBoxItem Content="Sum" />
                                                         <ComboBoxItem Content="Average" />
@@ -319,7 +316,7 @@
                                                             </Style.Triggers>
                                                         </Style>
                                                     </StackPanel.Style>
-                                                    <TextBlock Text="Text/Symbol:" FontSize="10" Foreground="Gray" />
+                                                    <TextBlock Text="{x:Static p:Resources.Str_Description}" FontSize="10" Foreground="Gray" />
                                                     <TextBox Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,0" Padding="4" />
                                                 </StackPanel>
 
@@ -334,7 +331,7 @@
                                                             </Style.Triggers>
                                                         </Style>
                                                     </StackPanel.Style>
-                                                    <TextBlock Text="Date Format:" FontSize="10" Foreground="Gray" />
+                                                    <TextBlock Text="{x:Static p:Resources.Col_Date}" FontSize="10" Foreground="Gray" />
                                                     <ComboBox ItemsSource="{Binding DataContext.DateFormats, RelativeSource={RelativeSource AncestorType=Window}}"
                                                               SelectedItem="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,0" Padding="4" />
                                                 </StackPanel>
@@ -362,7 +359,7 @@
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Row="0" Margin="0,0,0,20">
-                    <TextBlock Text="Blueprint State Profile" FontWeight="Bold" FontSize="14" Foreground="#2C3E50" Margin="0,0,0,5" />
+                    <TextBlock Text="{x:Static p:Resources.Str_FilterMode}" FontWeight="Bold" FontSize="14" Foreground="#2C3E50" Margin="0,0,0,5" />
                     <ComboBox SelectedIndex="{Binding SelectedStateIndex, Mode=TwoWay}" Height="28">
                         <ComboBoxItem Content="State 1 (Default)" />
                         <ComboBoxItem Content="State 2" />
@@ -371,19 +368,19 @@
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Margin="0,0,0,25">
-                    <TextBlock Text="Chart Interaction Settings" FontWeight="Bold" FontSize="14" Foreground="#2C3E50" Margin="0,0,0,10" />
+                    <TextBlock Text="{x:Static p:Resources.Str_Options}" FontWeight="Bold" FontSize="14" Foreground="#2C3E50" Margin="0,0,0,10" />
 
-                    <TextBlock Text="Custom Detail View Title:" FontSize="11" Foreground="Gray" Margin="0,0,0,2" />
+                    <TextBlock Text="{x:Static p:Resources.Str_Rename}" FontSize="11" Foreground="Gray" Margin="0,0,0,2" />
                     <TextBox Text="{Binding CustomChartTitle, Mode=TwoWay}" Padding="4" Margin="0,0,0,10" />
 
-                    <TextBlock Text="Label Display Mode:" FontSize="11" Foreground="Gray" Margin="0,0,0,2" />
-                    <RadioButton Content="Always Show Labels (If small enough)" IsChecked="{Binding ShowOnlyHoverLabels, Converter={StaticResource EqualityConverter}, ConverterParameter=False}" Margin="0,2" Foreground="#444" FontSize="12" />
-                    <RadioButton Content="Show on Hover/Tooltip Only" IsChecked="{Binding ShowOnlyHoverLabels}" Margin="0,2" Foreground="#444" FontSize="12" />
+                    <TextBlock Text="{x:Static p:Resources.Str_LabelingMode}" FontSize="11" Foreground="Gray" Margin="0,0,0,2" />
+                    <RadioButton Content="{x:Static p:Resources.Str_FixedLabels}" IsChecked="{Binding ShowOnlyHoverLabels, Converter={StaticResource EqualityConverter}, ConverterParameter=False}" Margin="0,2" Foreground="#444" FontSize="12" />
+                    <RadioButton Content="{x:Static p:Resources.Str_HoverTooltips}" IsChecked="{Binding ShowOnlyHoverLabels}" Margin="0,2" Foreground="#444" FontSize="12" />
                 </StackPanel>
 
-                <!-- BRAND NEW: Authentic Live Tooltip Preview -->
+                <!-- Live Tooltip Preview -->
                 <StackPanel Grid.Row="2" Margin="0,0,0,15" VerticalAlignment="Top">
-                    <TextBlock Text="Live Tooltip Preview" FontWeight="Bold" FontSize="14" Foreground="#2C3E50" Margin="0,0,0,10" />
+                    <TextBlock Text="{x:Static p:Resources.Str_UpdatePreview}" FontWeight="Bold" FontSize="14" Foreground="#2C3E50" Margin="0,0,0,10" />
 
                     <Border Background="#F2000025" BorderBrush="#50FFFFFF" BorderThickness="1" CornerRadius="6" Padding="10">
                         <Border.Effect>
@@ -434,7 +431,7 @@
                         </Button.Resources>
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="Save" Height="14" Foreground="White" Margin="0,0,8,0" />
-                            <TextBlock Text="Save &amp; Apply Blueprint" />
+                            <TextBlock Text="{x:Static p:Resources.Str_SaveClose}" />
                         </StackPanel>
                     </Button>
                     <Button Command="{Binding CancelCommand}" Background="#E74C3C" Foreground="White" FontWeight="Bold" BorderThickness="0" Padding="12" Cursor="Hand">
@@ -445,7 +442,7 @@
                         </Button.Resources>
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="Times" Height="14" Foreground="White" Margin="0,0,8,0" />
-                            <TextBlock Text="Cancel" />
+                            <TextBlock Text="{x:Static p:Resources.Cancel}" />
                         </StackPanel>
                     </Button>
                 </StackPanel>
