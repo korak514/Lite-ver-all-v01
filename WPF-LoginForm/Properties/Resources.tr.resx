@@ -981,4 +981,100 @@
   <data name="Msg_ImportFailed" xml:space="preserve">
     <value>İçe aktarma başarısız:</value>
   </data>
+  <data name="Str_DashboardConfig" xml:space="preserve">
+    <value>Panel Yapılandırması</value>
+  </data>
+  <data name="Str_SelectChartPos" xml:space="preserve">
+    <value>Grafik Konumu Seçin</value>
+  </data>
+  <data name="Str_EnableChart" xml:space="preserve">
+    <value>Bu Grafiği Etkinleştir</value>
+  </data>
+  <data name="Str_DataStructure" xml:space="preserve">
+    <value>Veri Yapısı</value>
+  </data>
+  <data name="Str_IgnoreLastRows" xml:space="preserve">
+    <value>Son N Satırı Yoksay:</value>
+  </data>
+  <data name="Str_NumberFormatHint" xml:space="preserve">
+    <value>Sayıları Evrensel Formatta Oku (örn. 1,000.50)</value>
+  </data>
+  <data name="Str_ChartType" xml:space="preserve">
+    <value>Grafik Türü</value>
+  </data>
+  <data name="Str_PieChartFixed" xml:space="preserve">
+    <value>(Pasta grafikler özel gruplama kullanır)</value>
+  </data>
+  <data name="Str_ShowAsKpiCards" xml:space="preserve">
+    <value>KPI Kartları Olarak Göster</value>
+  </data>
+  <data name="Str_CategoryX" xml:space="preserve">
+    <value>Kategori Kolonu (X Ekseni)</value>
+  </data>
+  <data name="Str_GroupBy" xml:space="preserve">
+    <value>Grupla (Serileri Böl)</value>
+  </data>
+  <data name="Str_SelectItemsDisplay" xml:space="preserve">
+    <value>Görüntülenecek Öğeleri Seçin</value>
+  </data>
+  <data name="Str_LabelingMode" xml:space="preserve">
+    <value>Etiketleme Modu</value>
+  </data>
+  <data name="Str_HoverTooltips" xml:space="preserve">
+    <value>Sadece Üzerine Gelince</value>
+  </data>
+  <data name="Str_FixedLabels" xml:space="preserve">
+    <value>Sabit Etiketler</value>
+  </data>
+  <data name="Str_ValueColumnsY" xml:space="preserve">
+    <value>Değer Kolonları (Y Ekseni)</value>
+  </data>
+  <data name="Str_PriceTrendLegend" xml:space="preserve">
+    <value>Trend Verisi (1: Pay, 2: Payda)</value>
+  </data>
+  <data name="Str_Mix" xml:space="preserve">
+    <value>Birleştir</value>
+  </data>
+  <data name="Str_MixActive" xml:space="preserve">
+    <value>Birleştirildi</value>
+  </data>
+  <data name="Str_AddValueColumn" xml:space="preserve">
+    <value>+ Değer Kolonu Ekle</value>
+  </data>
+  <data name="Str_ValueAggregation" xml:space="preserve">
+    <value>Değer Hesaplama</value>
+  </data>
+  <data name="Str_DateRollUp" xml:space="preserve">
+    <value>Tarih Gruplaması</value>
+  </data>
+  <data name="Str_DateColumnFilter" xml:space="preserve">
+    <value>Tarih Kolonu (Filtreleme için)</value>
+  </data>
+  <data name="Str_GroupBySlices" xml:space="preserve">
+    <value>Grupla (Dilimler)</value>
+  </data>
+  <data name="Str_SelectSlicesDisplay" xml:space="preserve">
+    <value>Görüntülenecek Dilimleri Seçin</value>
+  </data>
+  <data name="Str_LabelAppearance" xml:space="preserve">
+    <value>Etiket Görünümü</value>
+  </data>
+  <data name="Str_HideNumbers" xml:space="preserve">
+    <value>Etiketlerdeki Sayıları Gizle</value>
+  </data>
+  <data name="Str_SimplifyLabels" xml:space="preserve">
+    <value>Etiketleri Basitleştir</value>
+  </data>
+  <data name="Str_DataAggregate" xml:space="preserve">
+    <value>Veri Toplama</value>
+  </data>
+  <data name="Str_AddDataColumn" xml:space="preserve">
+    <value>+ Veri Kolonu Ekle</value>
+  </data>
+  <data name="Str_ApplyClose" xml:space="preserve">
+    <value>Uygula ve Kapat</value>
+  </data>
+  <data name="Str_Range" xml:space="preserve">
+    <value>Tarih Aralığı</value>
+  </data>
 </root>

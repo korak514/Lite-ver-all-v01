@@ -974,16 +974,16 @@
     <value>Ana_RangeSlider</value>
   </data>
   <data name="Str_AddDataColumn" xml:space="preserve">
-    <value>Str_AddDataColumn</value>
+    <value>+ Add Data Column</value>
   </data>
   <data name="Str_AddRule" xml:space="preserve">
     <value>Str_AddRule</value>
   </data>
   <data name="Str_AddValueColumn" xml:space="preserve">
-    <value>Str_AddValueColumn</value>
+    <value>+ Add Value Column</value>
   </data>
   <data name="Str_ApplyClose" xml:space="preserve">
-    <value>Str_ApplyClose</value>
+    <value>Apply &amp; Close</value>
   </data>
   <data name="Str_BlankTable" xml:space="preserve">
     <value>Str_BlankTable</value>
@@ -1001,10 +1001,10 @@
     <value>Str_CategoryMappingRules</value>
   </data>
   <data name="Str_CategoryX" xml:space="preserve">
-    <value>Str_CategoryX</value>
+    <value>Category Column (X Axis)</value>
   </data>
   <data name="Str_ChartType" xml:space="preserve">
-    <value>Str_ChartType</value>
+    <value>Chart Type</value>
   </data>
   <data name="Str_CollapseFilters" xml:space="preserve">
     <value>Str_CollapseFilters</value>
@@ -1019,19 +1019,19 @@
     <value>Str_CreateTableHint</value>
   </data>
   <data name="Str_DashboardConfig" xml:space="preserve">
-    <value>Str_DashboardConfig</value>
+    <value>Dashboard Configuration</value>
   </data>
   <data name="Str_DataAggregate" xml:space="preserve">
-    <value>Str_DataAggregate</value>
+    <value>Data Aggregation</value>
   </data>
   <data name="Str_DataStructure" xml:space="preserve">
-    <value>Str_DataStructure</value>
+    <value>Data Structure</value>
   </data>
   <data name="Str_DateColumnFilter" xml:space="preserve">
-    <value>Str_DateColumnFilter</value>
+    <value>Date Column (For Filtering)</value>
   </data>
   <data name="Str_DateRollUp" xml:space="preserve">
-    <value>Str_DateRollUp</value>
+    <value>Date Roll-up</value>
   </data>
   <data name="Str_DefineRulesHint" xml:space="preserve">
     <value>Str_DefineRulesHint</value>
@@ -1052,7 +1052,7 @@
     <value>Str_DownloadTemplate</value>
   </data>
   <data name="Str_EnableChart" xml:space="preserve">
-    <value>Str_EnableChart</value>
+    <value>Enable this chart</value>
   </data>
   <data name="Str_ErrorCategories" xml:space="preserve">
     <value>Str_ErrorCategories</value>
@@ -1070,7 +1070,7 @@
     <value>Str_FilterMode</value>
   </data>
   <data name="Str_FixedLabels" xml:space="preserve">
-    <value>Str_FixedLabels</value>
+    <value>Fixed Labels on Chart</value>
   </data>
   <data name="Str_FormatHint" xml:space="preserve">
     <value>Str_FormatHint</value>
@@ -1085,13 +1085,13 @@
     <value>Str_GroupAsCategory</value>
   </data>
   <data name="Str_GroupBy" xml:space="preserve">
-    <value>Str_GroupBy</value>
+    <value>Group By (Split Series)</value>
   </data>
   <data name="Str_GroupBySlices" xml:space="preserve">
-    <value>Str_GroupBySlices</value>
+    <value>Group By (Slices)</value>
   </data>
   <data name="Str_HideNumbers" xml:space="preserve">
-    <value>Str_HideNumbers</value>
+    <value>Hide Numbers in Labels</value>
   </data>
   <data name="Str_Hierarchy" xml:space="preserve">
     <value>Str_Hierarchy</value>
@@ -1103,7 +1103,7 @@
     <value>Str_HierarchyImportWizard</value>
   </data>
   <data name="Str_HoverTooltips" xml:space="preserve">
-    <value>Str_HoverTooltips</value>
+    <value>Tooltips on Hover Only</value>
   </data>
   <data name="Str_Hub" xml:space="preserve">
     <value>Str_Hub</value>
@@ -1112,7 +1112,7 @@
     <value>Str_IgnoreHyphen</value>
   </data>
   <data name="Str_IgnoreLastRows" xml:space="preserve">
-    <value>Str_IgnoreLastRows</value>
+    <value>Ignore Last N Rows:</value>
   </data>
   <data name="Str_IgnoreNoDate" xml:space="preserve">
     <value>Str_IgnoreNoDate</value>
@@ -1142,10 +1142,10 @@
     <value>Str_InitialDate</value>
   </data>
   <data name="Str_LabelAppearance" xml:space="preserve">
-    <value>Str_LabelAppearance</value>
+    <value>Label Appearance</value>
   </data>
   <data name="Str_LabelingMode" xml:space="preserve">
-    <value>Str_LabelingMode</value>
+    <value>Labeling Mode</value>
   </data>
   <data name="Str_LabelSettings" xml:space="preserve">
     <value>Str_LabelSettings</value>
@@ -1157,10 +1157,10 @@
     <value>Str_MapColumns</value>
   </data>
   <data name="Str_Mix" xml:space="preserve">
-    <value>Str_Mix</value>
+    <value>Mix</value>
   </data>
   <data name="Str_MixActive" xml:space="preserve">
-    <value>Str_MixActive</value>
+    <value>Mix Active</value>
   </data>
   <data name="Str_NewRow" xml:space="preserve">
     <value>Str_NewRow</value>
@@ -1169,7 +1169,7 @@
     <value>Str_NewTableName</value>
   </data>
   <data name="Str_NumberFormatHint" xml:space="preserve">
-    <value>Str_NumberFormatHint</value>
+    <value>Parse numbers using Invariant Culture (e.g. 1,000.50)</value>
   </data>
   <data name="Str_OfflineMode" xml:space="preserve">
     <value>Str_OfflineMode</value>
@@ -1181,7 +1181,7 @@
     <value>Str_Options</value>
   </data>
   <data name="Str_PieChartFixed" xml:space="preserve">
-    <value>Str_PieChartFixed</value>
+    <value>(Pie Charts use specific groupings)</value>
   </data>
   <data name="Str_PortalHubConfig" xml:space="preserve">
     <value>Str_PortalHubConfig</value>
@@ -1196,7 +1196,7 @@
     <value>Str_PreviewData</value>
   </data>
   <data name="Str_PriceTrendLegend" xml:space="preserve">
-    <value>Str_PriceTrendLegend</value>
+    <value>Trend Data (1: Numerator, 2: Denominator)</value>
   </data>
   <data name="Str_Priority" xml:space="preserve">
     <value>Str_Priority</value>
@@ -1205,7 +1205,7 @@
     <value>Str_PriorityHint</value>
   </data>
   <data name="Str_Range" xml:space="preserve">
-    <value>Str_Range</value>
+    <value>Date Range</value>
   </data>
   <data name="Str_Rename" xml:space="preserve">
     <value>Str_Rename</value>
@@ -1232,22 +1232,22 @@
     <value>Str_SearchDots</value>
   </data>
   <data name="Str_SelectChartPos" xml:space="preserve">
-    <value>Str_SelectChartPos</value>
+    <value>Select Chart Position</value>
   </data>
   <data name="Str_SelectItemsDisplay" xml:space="preserve">
-    <value>Str_SelectItemsDisplay</value>
+    <value>Select Specific Items to Display</value>
   </data>
   <data name="Str_SelectSlicesDisplay" xml:space="preserve">
-    <value>Str_SelectSlicesDisplay</value>
+    <value>Select Specific Slices to Display</value>
   </data>
   <data name="Str_SelectSourceFile" xml:space="preserve">
     <value>Str_SelectSourceFile</value>
   </data>
   <data name="Str_ShowAsKpiCards" xml:space="preserve">
-    <value>Str_ShowAsKpiCards</value>
+    <value>Show as KPI Cards</value>
   </data>
   <data name="Str_SimplifyLabels" xml:space="preserve">
-    <value>Str_SimplifyLabels</value>
+    <value>Simplify Labels</value>
   </data>
   <data name="Str_SliderTickStep" xml:space="preserve">
     <value>Str_SliderTickStep</value>
@@ -1286,10 +1286,10 @@
     <value>Str_UseInitialDate</value>
   </data>
   <data name="Str_ValueAggregation" xml:space="preserve">
-    <value>Str_ValueAggregation</value>
+    <value>Value Aggregation</value>
   </data>
   <data name="Str_ValueColumnsY" xml:space="preserve">
-    <value>Str_ValueColumnsY</value>
+    <value>Value Columns (Y Axis)</value>
   </data>
   <data name="Str_VirtualDate" xml:space="preserve">
     <value>Str_VirtualDate</value>
