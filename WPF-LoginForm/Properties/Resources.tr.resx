@@ -618,9 +618,6 @@
   <data name="Tip_ConfigMachineCodes" xml:space="preserve">
     <value>Makine Kodlarını Yapılandır</value>
   </data>
-  <data name="Str_Ref" xml:space="preserve">
-    <value>Son</value>
-  </data>
   <data name="Str_HourlyTimeCorrection" xml:space="preserve">
     <value>Saatlik Zaman Düzeltmesi</value>
   </data>
@@ -954,6 +951,414 @@
   <data name="Filter_AllFiles" xml:space="preserve">
     <value>Tüm dosyalar|*.*</value>
   </data>
+  <data name="Str_Ref" xml:space="preserve">
+    <value>Son</value>
+  </data>
+  <data name="Msg_CopySuccess" xml:space="preserve">
+    <value>Başarıyla kopyalandı!</value>
+  </data>
+  <data name="Str_DetailedAnalysis" xml:space="preserve">
+    <value>Detaylı Giriş Analizi</value>
+  </data>
+  <data name="Msg_CopyError" xml:space="preserve">
+    <value>Kopyalama sırasında hata oluştu: {0}</value>
+  </data>
+  <data name="Msg_CopyNoData" xml:space="preserve">
+    <value>Kopyalanacak veri yok.</value>
+  </data>
+  <data name="Str_Error" xml:space="preserve">
+    <value>Hata</value>
+  </data>
+  <data name="Ana_RangeSlider" xml:space="preserve">
+    <value>Aralık Seçici</value>
+  </data>
+  <data name="Str_AddDataColumn" xml:space="preserve">
+    <value>+ Veri Kolonu Ekle</value>
+  </data>
+  <data name="Str_AddRule" xml:space="preserve">
+    <value>Yeni Kural Ekle</value>
+  </data>
+  <data name="Str_AddValueColumn" xml:space="preserve">
+    <value>+ Değer Kolonu Ekle</value>
+  </data>
+  <data name="Str_ApplyClose" xml:space="preserve">
+    <value>Uygula ve Kapat</value>
+  </data>
+  <data name="Str_BlankTable" xml:space="preserve">
+    <value>Boş Tablo</value>
+  </data>
+  <data name="Str_BrowseEllipsis" xml:space="preserve">
+    <value>Gözat</value>
+  </data>
+  <data name="Str_Cancel" xml:space="preserve">
+    <value>İptal</value>
+  </data>
+  <data name="Str_CategoryConfigTitle" xml:space="preserve">
+    <value>Kategori Yapılandırma Başlığı</value>
+  </data>
+  <data name="Str_CategoryMappingRules" xml:space="preserve">
+    <value>Kategori Eşleme Kuralları</value>
+  </data>
+  <data name="Str_CategoryX" xml:space="preserve">
+    <value>Kategori Kolonu (X Ekseni)</value>
+  </data>
+  <data name="Str_ChartType" xml:space="preserve">
+    <value>Grafik Türü</value>
+  </data>
+  <data name="Str_CollapseFilters" xml:space="preserve">
+    <value>Filtreleri Gizle</value>
+  </data>
+  <data name="Str_CreateNewDBTable" xml:space="preserve">
+    <value>Yeni DB Tablosu Oluştur</value>
+  </data>
+  <data name="Str_CreateNewTable" xml:space="preserve">
+    <value>Yeni Tablo Oluştur</value>
+  </data>
+  <data name="Str_CreateTableHint" xml:space="preserve">
+    <value>Tablos Oluştur</value>
+  </data>
+  <data name="Str_DashboardConfig" xml:space="preserve">
+    <value>Panel Yapılandırması</value>
+  </data>
+  <data name="Str_DataAggregate" xml:space="preserve">
+    <value>Veri Toplama</value>
+  </data>
+  <data name="Str_DataStructure" xml:space="preserve">
+    <value>Veri Yapısı</value>
+  </data>
+  <data name="Str_DateColumnFilter" xml:space="preserve">
+    <value>Tarih Kolonu (Filtreleme için)</value>
+  </data>
+  <data name="Str_DateRollUp" xml:space="preserve">
+    <value>Tarih Gruplaması</value>
+  </data>
+  <data name="Str_DefineRulesHint" xml:space="preserve">
+    <value>Kural atama </value>
+  </data>
+  <data name="Str_DeleteRule" xml:space="preserve">
+    <value>Kural Sil</value>
+  </data>
+  <data name="Str_DetailedEntryHint" xml:space="preserve">
+    <value>Detaylı Giriş </value>
+  </data>
+  <data name="Str_DetailedEntryWizard" xml:space="preserve">
+    <value>Detaylı Giriş Rehberi</value>
+  </data>
+  <data name="Str_DetailedRecordEntry" xml:space="preserve">
+    <value>Detaylı Veri Girişi</value>
+  </data>
+  <data name="Str_DownloadTemplate" xml:space="preserve">
+    <value>Şablonu İndir</value>
+  </data>
+  <data name="Str_EnableChart" xml:space="preserve">
+    <value>Bu Grafiği Etkinleştir</value>
+  </data>
+  <data name="Str_ErrorCategories" xml:space="preserve">
+    <value>ErrorCategories</value>
+  </data>
+  <data name="Str_ExcelFile" xml:space="preserve">
+    <value>Excel Dosyası</value>
+  </data>
+  <data name="Str_ExpandFilters" xml:space="preserve">
+    <value>Filtreleri Genişlet</value>
+  </data>
+  <data name="Str_ExportExcel" xml:space="preserve">
+    <value>Excel'e Aktar</value>
+  </data>
+  <data name="Str_FilterMode" xml:space="preserve">
+    <value>Filtreleme modu</value>
+  </data>
+  <data name="Str_FixedLabels" xml:space="preserve">
+    <value>Sabit Etiketler</value>
+  </data>
+  <data name="Str_FormatHint" xml:space="preserve">
+    <value>FormatHint fix is needed</value>
+  </data>
+  <data name="Str_Fullscreen" xml:space="preserve">
+    <value>Tam Ekran</value>
+  </data>
+  <data name="Str_Global" xml:space="preserve">
+    <value>Global</value>
+  </data>
+  <data name="Str_GroupAsCategory" xml:space="preserve">
+    <value>Kategori Olarak Grupla</value>
+  </data>
+  <data name="Str_GroupBy" xml:space="preserve">
+    <value>Grupla (Serileri Böl)</value>
+  </data>
+  <data name="Str_GroupBySlices" xml:space="preserve">
+    <value>Grupla (Dilimler)</value>
+  </data>
+  <data name="Str_HideNumbers" xml:space="preserve">
+    <value>Etiketlerdeki Sayıları Gizle</value>
+  </data>
+  <data name="Str_Hierarchy" xml:space="preserve">
+    <value>Hiyerarşi</value>
+  </data>
+  <data name="Str_HierarchyImport" xml:space="preserve">
+    <value>Hiyerarşi Haritası Yükleme</value>
+  </data>
+  <data name="Str_HierarchyImportWizard" xml:space="preserve">
+    <value>Hiyerarşi Haritası Yükleme Sayfası</value>
+  </data>
+  <data name="Str_HoverTooltips" xml:space="preserve">
+    <value>Sadece Üzerine Gelince</value>
+  </data>
+  <data name="Str_Hub" xml:space="preserve">
+    <value>Merkez</value>
+  </data>
+  <data name="Str_IgnoreHyphen" xml:space="preserve">
+    <value>Kısa Çizgiyi Yoksay</value>
+  </data>
+  <data name="Str_IgnoreLastRows" xml:space="preserve">
+    <value>Son N Satırı Yoksay:</value>
+  </data>
+  <data name="Str_IgnoreNoDate" xml:space="preserve">
+    <value>Tarihi Olmayan Verileri Görmezden Gel</value>
+  </data>
+  <data name="Str_IgnoreNumbers" xml:space="preserve">
+    <value>Sayıları Görmezden Gel</value>
+  </data>
+  <data name="Str_ImportData" xml:space="preserve">
+    <value>Veri Yükle</value>
+  </data>
+  <data name="Str_ImportExcel" xml:space="preserve">
+    <value>Excel'den İçe Aktar</value>
+  </data>
+  <data name="Str_ImportHierarchy" xml:space="preserve">
+    <value>İçe Aktarma Hiyerarşi</value>
+  </data>
+  <data name="Str_ImportHint" xml:space="preserve">
+    <value>ImportHint</value>
+  </data>
+  <data name="Str_ImportWizard" xml:space="preserve">
+    <value>İçe Aktarma</value>
+  </data>
+  <data name="Str_IncludeDataExport" xml:space="preserve">
+    <value>Dış verileri Dahil et</value>
+  </data>
+  <data name="Str_InitialDate" xml:space="preserve">
+    <value>İlk Tarih</value>
+  </data>
+  <data name="Str_LabelAppearance" xml:space="preserve">
+    <value>Etiket Görünümü</value>
+  </data>
+  <data name="Str_LabelingMode" xml:space="preserve">
+    <value>Etiketleme Modu</value>
+  </data>
+  <data name="Str_LabelSettings" xml:space="preserve">
+    <value>Etiket Ayarları</value>
+  </data>
+  <data name="Str_Machines" xml:space="preserve">
+    <value>Makineler</value>
+  </data>
+  <data name="Str_MapColumns" xml:space="preserve">
+    <value>Kolon Haritası</value>
+  </data>
+  <data name="Str_Mix" xml:space="preserve">
+    <value>Birleştir</value>
+  </data>
+  <data name="Str_MixActive" xml:space="preserve">
+    <value>Birleştirildi</value>
+  </data>
+  <data name="Str_NewRow" xml:space="preserve">
+    <value>Yeni Satır</value>
+  </data>
+  <data name="Str_NewTableName" xml:space="preserve">
+    <value>Yeni Tablo İsmi</value>
+  </data>
+  <data name="Str_NumberFormatHint" xml:space="preserve">
+    <value>Sayıları Evrensel Formatta Oku (örn. 1,000.50)</value>
+  </data>
+  <data name="Str_OfflineMode" xml:space="preserve">
+    <value>Çevrimdışı Mod</value>
+  </data>
+  <data name="Str_OK" xml:space="preserve">
+    <value>Tamam</value>
+  </data>
+  <data name="Str_Options" xml:space="preserve">
+    <value>Ayarlar</value>
+  </data>
+  <data name="Str_PieChartFixed" xml:space="preserve">
+    <value>(Pasta grafikler özel gruplama kullanır)</value>
+  </data>
+  <data name="Str_PortalHubConfig" xml:space="preserve">
+    <value>Portal Merkezi Yapılandırması</value>
+  </data>
+  <data name="Str_PortalSettings" xml:space="preserve">
+    <value>Portal Ayarları</value>
+  </data>
+  <data name="Str_PortalSettingsHint" xml:space="preserve">
+    <value>PortalSettingsHint need fix</value>
+  </data>
+  <data name="Str_PreviewData" xml:space="preserve">
+    <value>Veri Önizleme</value>
+  </data>
+  <data name="Str_PriceTrendLegend" xml:space="preserve">
+    <value>Trend Verisi (1: Pay, 2: Payda)</value>
+  </data>
+  <data name="Str_Priority" xml:space="preserve">
+    <value>Öncelik</value>
+  </data>
+  <data name="Str_PriorityHint" xml:space="preserve">
+    <value>PriorityHint</value>
+  </data>
+  <data name="Str_Range" xml:space="preserve">
+    <value>Tarih Aralığı</value>
+  </data>
+  <data name="Str_Rename" xml:space="preserve">
+    <value>Yeniden Adlandır</value>
+  </data>
+  <data name="Str_Reset" xml:space="preserve">
+    <value>Sıfırla</value>
+  </data>
+  <data name="Str_RowsToIgnore" xml:space="preserve">
+    <value>Satırları görmezden gel </value>
+  </data>
+  <data name="Str_RunAdvancedImport" xml:space="preserve">
+    <value>Gelişmiş Veri alımı</value>
+  </data>
+  <data name="Str_SaveClose" xml:space="preserve">
+    <value>Kaydet ve Kapat</value>
+  </data>
+  <data name="Str_SaveRecord" xml:space="preserve">
+    <value>Kaydet</value>
+  </data>
+  <data name="Str_SearchColumn" xml:space="preserve">
+    <value>Arama</value>
+  </data>
+  <data name="Str_SearchDots" xml:space="preserve">
+    <value>Arama</value>
+  </data>
+  <data name="Str_SelectChartPos" xml:space="preserve">
+    <value>Grafik Konumu Seçin</value>
+  </data>
+  <data name="Str_SelectItemsDisplay" xml:space="preserve">
+    <value>Görüntülenecek Öğeleri Seçin</value>
+  </data>
+  <data name="Str_SelectSlicesDisplay" xml:space="preserve">
+    <value>Görüntülenecek Dilimleri Seçin</value>
+  </data>
+  <data name="Str_SelectSourceFile" xml:space="preserve">
+    <value>Kaynak Dosyası Seç</value>
+  </data>
+  <data name="Str_ShowAsKpiCards" xml:space="preserve">
+    <value>KPI Kartları Olarak Göster</value>
+  </data>
+  <data name="Str_SimplifyLabels" xml:space="preserve">
+    <value>Etiketleri Basitleştir</value>
+  </data>
+  <data name="Str_SliderTickStep" xml:space="preserve">
+    <value>Kaydırıcı Adım Aralığı</value>
+  </data>
+  <data name="Str_StandardTimelineTemplate" xml:space="preserve">
+    <value>Standart Zaman Çizelgesi Şablonu</value>
+  </data>
+  <data name="Str_StartImport" xml:space="preserve">
+    <value>Veri Almayı Başlat</value>
+  </data>
+  <data name="Str_StartsWithRaw" xml:space="preserve">
+    <value>Ham Metinle Başlayan</value>
+  </data>
+  <data name="Str_StartWithTemplate" xml:space="preserve">
+    <value>Şablon ile Başla</value>
+  </data>
+  <data name="Str_SummaryBreakdown" xml:space="preserve">
+    <value>Özet Veri Dökümü</value>
+  </data>
+  <data name="Str_TableColumns" xml:space="preserve">
+    <value>Tablo Sütunları</value>
+  </data>
+  <data name="Str_TableNote" xml:space="preserve">
+    <value>Tablo Açıklaması</value>
+  </data>
+  <data name="Str_TargetTable" xml:space="preserve">
+    <value>Hedef Tablosu</value>
+  </data>
+  <data name="Str_To" xml:space="preserve">
+    <value>Bilinmeyen</value>
+  </data>
+  <data name="Str_UpdatePreview" xml:space="preserve">
+    <value>Güncelleştirmeyi Önizle</value>
+  </data>
+  <data name="Str_UseInitialDate" xml:space="preserve">
+    <value>İlk Tarihi Kullan</value>
+  </data>
+  <data name="Str_ValueAggregation" xml:space="preserve">
+    <value>Değer Hesaplama</value>
+  </data>
+  <data name="Str_ValueColumnsY" xml:space="preserve">
+    <value>Değer Kolonları (Y Ekseni)</value>
+  </data>
+  <data name="Str_VirtualDate" xml:space="preserve">
+    <value>Sanal Tarih</value>
+  </data>
+  <data name="Tip_ClearSearch" xml:space="preserve">
+    <value>Temizle</value>
+  </data>
+  <data name="Tip_ConfigCategories" xml:space="preserve">
+    <value>Yapılandırma Kategorileri</value>
+  </data>
+  <data name="Tip_CopyCategories" xml:space="preserve">
+    <value>Kopyala</value>
+  </data>
+  <data name="Tip_DailyTimeline" xml:space="preserve">
+    <value>Günlük Zaman Çizelgesi</value>
+  </data>
+  <data name="Tip_DeleteTable" xml:space="preserve">
+    <value>Tabloyu Sil</value>
+  </data>
+  <data name="Tip_FilterSettings" xml:space="preserve">
+    <value>Filtre Ayarları</value>
+  </data>
+  <data name="Tip_FindInDataReport" xml:space="preserve">
+    <value>Bul</value>
+  </data>
+  <data name="Tip_IgnoreHyphen" xml:space="preserve">
+    <value>Tireleri yoksay</value>
+  </data>
+  <data name="Tip_IgnoreNumbers" xml:space="preserve">
+    <value>Sayıları yoksay</value>
+  </data>
+  <data name="Tip_MinToClock" xml:space="preserve">
+    <value>Saatlik Gösterim</value>
+  </data>
+  <data name="Tip_NextDay" xml:space="preserve">
+    <value>Yarın</value>
+  </data>
+  <data name="Tip_NextWeek" xml:space="preserve">
+    <value>Bir Hafta Sonra</value>
+  </data>
+  <data name="Tip_NodeEditor" xml:space="preserve">
+    <value>Node Düzeneleme</value>
+  </data>
+  <data name="Tip_PrevDay" xml:space="preserve">
+    <value>Dün</value>
+  </data>
+  <data name="Tip_PrevWeek" xml:space="preserve">
+    <value>Geçen Hafta</value>
+  </data>
+  <data name="Tip_PrintReport" xml:space="preserve">
+    <value>Raporu Yazdır</value>
+  </data>
+  <data name="Tip_RefreshRecolor" xml:space="preserve">
+    <value>Renkledir</value>
+  </data>
+  <data name="Tip_ReturnHub" xml:space="preserve">
+    <value>Geri dön</value>
+  </data>
+  <data name="Tip_SetFixedColor" xml:space="preserve">
+    <value>Renk Belirle</value>
+  </data>
+  <data name="Tip_SwitchAdvanced" xml:space="preserve">
+    <value>Gelişmiş</value>
+  </data>
+  <data name="Tip_SwitchView" xml:space="preserve">
+    <value>Görünüşü Değiştir</value>
+  </data>
+  <data name="Tip_ToggleFullscreen" xml:space="preserve">
+    <value>Tam Ekranı Etkinleştir</value>
+  </data>
   <data name="Title_Saved" xml:space="preserve">
     <value>Kaydedildi</value>
   </data>
@@ -980,102 +1385,6 @@
   </data>
   <data name="Msg_ImportFailed" xml:space="preserve">
     <value>İçe aktarma başarısız:</value>
-  </data>
-  <data name="Str_DashboardConfig" xml:space="preserve">
-    <value>Panel Yapılandırması</value>
-  </data>
-  <data name="Str_SelectChartPos" xml:space="preserve">
-    <value>Grafik Konumu Seçin</value>
-  </data>
-  <data name="Str_EnableChart" xml:space="preserve">
-    <value>Bu Grafiği Etkinleştir</value>
-  </data>
-  <data name="Str_DataStructure" xml:space="preserve">
-    <value>Veri Yapısı</value>
-  </data>
-  <data name="Str_IgnoreLastRows" xml:space="preserve">
-    <value>Son N Satırı Yoksay:</value>
-  </data>
-  <data name="Str_NumberFormatHint" xml:space="preserve">
-    <value>Sayıları Evrensel Formatta Oku (örn. 1,000.50)</value>
-  </data>
-  <data name="Str_ChartType" xml:space="preserve">
-    <value>Grafik Türü</value>
-  </data>
-  <data name="Str_PieChartFixed" xml:space="preserve">
-    <value>(Pasta grafikler özel gruplama kullanır)</value>
-  </data>
-  <data name="Str_ShowAsKpiCards" xml:space="preserve">
-    <value>KPI Kartları Olarak Göster</value>
-  </data>
-  <data name="Str_CategoryX" xml:space="preserve">
-    <value>Kategori Kolonu (X Ekseni)</value>
-  </data>
-  <data name="Str_GroupBy" xml:space="preserve">
-    <value>Grupla (Serileri Böl)</value>
-  </data>
-  <data name="Str_SelectItemsDisplay" xml:space="preserve">
-    <value>Görüntülenecek Öğeleri Seçin</value>
-  </data>
-  <data name="Str_LabelingMode" xml:space="preserve">
-    <value>Etiketleme Modu</value>
-  </data>
-  <data name="Str_HoverTooltips" xml:space="preserve">
-    <value>Sadece Üzerine Gelince</value>
-  </data>
-  <data name="Str_FixedLabels" xml:space="preserve">
-    <value>Sabit Etiketler</value>
-  </data>
-  <data name="Str_ValueColumnsY" xml:space="preserve">
-    <value>Değer Kolonları (Y Ekseni)</value>
-  </data>
-  <data name="Str_PriceTrendLegend" xml:space="preserve">
-    <value>Trend Verisi (1: Pay, 2: Payda)</value>
-  </data>
-  <data name="Str_Mix" xml:space="preserve">
-    <value>Birleştir</value>
-  </data>
-  <data name="Str_MixActive" xml:space="preserve">
-    <value>Birleştirildi</value>
-  </data>
-  <data name="Str_AddValueColumn" xml:space="preserve">
-    <value>+ Değer Kolonu Ekle</value>
-  </data>
-  <data name="Str_ValueAggregation" xml:space="preserve">
-    <value>Değer Hesaplama</value>
-  </data>
-  <data name="Str_DateRollUp" xml:space="preserve">
-    <value>Tarih Gruplaması</value>
-  </data>
-  <data name="Str_DateColumnFilter" xml:space="preserve">
-    <value>Tarih Kolonu (Filtreleme için)</value>
-  </data>
-  <data name="Str_GroupBySlices" xml:space="preserve">
-    <value>Grupla (Dilimler)</value>
-  </data>
-  <data name="Str_SelectSlicesDisplay" xml:space="preserve">
-    <value>Görüntülenecek Dilimleri Seçin</value>
-  </data>
-  <data name="Str_LabelAppearance" xml:space="preserve">
-    <value>Etiket Görünümü</value>
-  </data>
-  <data name="Str_HideNumbers" xml:space="preserve">
-    <value>Etiketlerdeki Sayıları Gizle</value>
-  </data>
-  <data name="Str_SimplifyLabels" xml:space="preserve">
-    <value>Etiketleri Basitleştir</value>
-  </data>
-  <data name="Str_DataAggregate" xml:space="preserve">
-    <value>Veri Toplama</value>
-  </data>
-  <data name="Str_AddDataColumn" xml:space="preserve">
-    <value>+ Veri Kolonu Ekle</value>
-  </data>
-  <data name="Str_ApplyClose" xml:space="preserve">
-    <value>Uygula ve Kapat</value>
-  </data>
-  <data name="Str_Range" xml:space="preserve">
-    <value>Tarih Aralığı</value>
   </data>
   <data name="Str_FirstRunTitle" xml:space="preserve">
     <value>Hoş Geldiniz! Veritabanı kurulumu bulunamadı</value>

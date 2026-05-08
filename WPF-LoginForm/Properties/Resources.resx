@@ -971,13 +971,13 @@
     <value>Error</value>
   </data>
   <data name="Ana_RangeSlider" xml:space="preserve">
-    <value>Ana_RangeSlider</value>
+    <value>RangeSlider</value>
   </data>
   <data name="Str_AddDataColumn" xml:space="preserve">
     <value>+ Add Data Column</value>
   </data>
   <data name="Str_AddRule" xml:space="preserve">
-    <value>Str_AddRule</value>
+    <value>AddRule</value>
   </data>
   <data name="Str_AddValueColumn" xml:space="preserve">
     <value>+ Add Value Column</value>
@@ -986,19 +986,19 @@
     <value>Apply &amp; Close</value>
   </data>
   <data name="Str_BlankTable" xml:space="preserve">
-    <value>Str_BlankTable</value>
+    <value>Blank Table</value>
   </data>
   <data name="Str_BrowseEllipsis" xml:space="preserve">
-    <value>Str_BrowseEllipsis</value>
+    <value>Browse</value>
   </data>
   <data name="Str_Cancel" xml:space="preserve">
-    <value>Str_Cancel</value>
+    <value>Cancel</value>
   </data>
   <data name="Str_CategoryConfigTitle" xml:space="preserve">
-    <value>Str_CategoryConfigTitle</value>
+    <value>CategoryConfigTitle</value>
   </data>
   <data name="Str_CategoryMappingRules" xml:space="preserve">
-    <value>Str_CategoryMappingRules</value>
+    <value>CategoryMappingRules</value>
   </data>
   <data name="Str_CategoryX" xml:space="preserve">
     <value>Category Column (X Axis)</value>
@@ -1007,16 +1007,16 @@
     <value>Chart Type</value>
   </data>
   <data name="Str_CollapseFilters" xml:space="preserve">
-    <value>Str_CollapseFilters</value>
+    <value>Collapse Filters</value>
   </data>
   <data name="Str_CreateNewDBTable" xml:space="preserve">
-    <value>Str_CreateNewDBTable</value>
+    <value>Create New DBTable</value>
   </data>
   <data name="Str_CreateNewTable" xml:space="preserve">
-    <value>Str_CreateNewTable</value>
+    <value>Create NewTable</value>
   </data>
   <data name="Str_CreateTableHint" xml:space="preserve">
-    <value>Str_CreateTableHint</value>
+    <value>CreateTableHint</value>
   </data>
   <data name="Str_DashboardConfig" xml:space="preserve">
     <value>Dashboard Configuration</value>
@@ -1034,52 +1034,52 @@
     <value>Date Roll-up</value>
   </data>
   <data name="Str_DefineRulesHint" xml:space="preserve">
-    <value>Str_DefineRulesHint</value>
+    <value>Define Rules</value>
   </data>
   <data name="Str_DeleteRule" xml:space="preserve">
-    <value>Str_DeleteRule</value>
+    <value>DeleteRule</value>
   </data>
   <data name="Str_DetailedEntryHint" xml:space="preserve">
-    <value>Str_DetailedEntryHint</value>
+    <value>Dailed Entry</value>
   </data>
   <data name="Str_DetailedEntryWizard" xml:space="preserve">
-    <value>Str_DetailedEntryWizard</value>
+    <value>Detailed Entry Wizard</value>
   </data>
   <data name="Str_DetailedRecordEntry" xml:space="preserve">
-    <value>Str_DetailedRecordEntry</value>
+    <value>Detailed Record Entry</value>
   </data>
   <data name="Str_DownloadTemplate" xml:space="preserve">
-    <value>Str_DownloadTemplate</value>
+    <value>Download Template</value>
   </data>
   <data name="Str_EnableChart" xml:space="preserve">
     <value>Enable this chart</value>
   </data>
   <data name="Str_ErrorCategories" xml:space="preserve">
-    <value>Str_ErrorCategories</value>
+    <value>ErrorCategories</value>
   </data>
   <data name="Str_ExcelFile" xml:space="preserve">
-    <value>Str_ExcelFile</value>
+    <value>ExcelFile</value>
   </data>
   <data name="Str_ExpandFilters" xml:space="preserve">
-    <value>Str_ExpandFilters</value>
+    <value>ExpandFilters</value>
   </data>
   <data name="Str_ExportExcel" xml:space="preserve">
-    <value>Str_ExportExcel</value>
+    <value>ExportExcel</value>
   </data>
   <data name="Str_FilterMode" xml:space="preserve">
-    <value>Str_FilterMode</value>
+    <value>Filter Mode</value>
   </data>
   <data name="Str_FixedLabels" xml:space="preserve">
     <value>Fixed Labels on Chart</value>
   </data>
   <data name="Str_FormatHint" xml:space="preserve">
-    <value>Str_FormatHint</value>
+    <value>FormatHint</value>
   </data>
   <data name="Str_Fullscreen" xml:space="preserve">
-    <value>Str_Fullscreen</value>
+    <value>Fullscreen</value>
   </data>
   <data name="Str_Global" xml:space="preserve">
-    <value>Str_Global</value>
+    <value>Global</value>
   </data>
   <data name="Str_GroupAsCategory" xml:space="preserve">
     <value>Str_GroupAsCategory</value>
@@ -1094,52 +1094,52 @@
     <value>Hide Numbers in Labels</value>
   </data>
   <data name="Str_Hierarchy" xml:space="preserve">
-    <value>Str_Hierarchy</value>
+    <value>Hierarchy</value>
   </data>
   <data name="Str_HierarchyImport" xml:space="preserve">
-    <value>Str_HierarchyImport</value>
+    <value>HierarchyImport</value>
   </data>
   <data name="Str_HierarchyImportWizard" xml:space="preserve">
-    <value>Str_HierarchyImportWizard</value>
+    <value>HierarchyImportWizard</value>
   </data>
   <data name="Str_HoverTooltips" xml:space="preserve">
     <value>Tooltips on Hover Only</value>
   </data>
   <data name="Str_Hub" xml:space="preserve">
-    <value>Str_Hub</value>
+    <value>Hub</value>
   </data>
   <data name="Str_IgnoreHyphen" xml:space="preserve">
-    <value>Str_IgnoreHyphen</value>
+    <value>IgnoreHyphen</value>
   </data>
   <data name="Str_IgnoreLastRows" xml:space="preserve">
     <value>Ignore Last N Rows:</value>
   </data>
   <data name="Str_IgnoreNoDate" xml:space="preserve">
-    <value>Str_IgnoreNoDate</value>
+    <value>Ignore NoDate</value>
   </data>
   <data name="Str_IgnoreNumbers" xml:space="preserve">
-    <value>Str_IgnoreNumbers</value>
+    <value>IgnoreNumbers</value>
   </data>
   <data name="Str_ImportData" xml:space="preserve">
-    <value>Str_ImportData</value>
+    <value>ImportData</value>
   </data>
   <data name="Str_ImportExcel" xml:space="preserve">
-    <value>Str_ImportExcel</value>
+    <value>ImportExcel</value>
   </data>
   <data name="Str_ImportHierarchy" xml:space="preserve">
-    <value>Str_ImportHierarchy</value>
+    <value>ImportHierarchy</value>
   </data>
   <data name="Str_ImportHint" xml:space="preserve">
-    <value>Str_ImportHint</value>
+    <value>ImportHint</value>
   </data>
   <data name="Str_ImportWizard" xml:space="preserve">
-    <value>Str_ImportWizard</value>
+    <value>ImportWizard</value>
   </data>
   <data name="Str_IncludeDataExport" xml:space="preserve">
-    <value>Str_IncludeDataExport</value>
+    <value>IncludeDataExport</value>
   </data>
   <data name="Str_InitialDate" xml:space="preserve">
-    <value>Str_InitialDate</value>
+    <value>InitialDate</value>
   </data>
   <data name="Str_LabelAppearance" xml:space="preserve">
     <value>Label Appearance</value>
@@ -1148,13 +1148,13 @@
     <value>Labeling Mode</value>
   </data>
   <data name="Str_LabelSettings" xml:space="preserve">
-    <value>Str_LabelSettings</value>
+    <value>LabelSettings</value>
   </data>
   <data name="Str_Machines" xml:space="preserve">
-    <value>Str_Machines</value>
+    <value>Machines</value>
   </data>
   <data name="Str_MapColumns" xml:space="preserve">
-    <value>Str_MapColumns</value>
+    <value>Map Columns</value>
   </data>
   <data name="Str_Mix" xml:space="preserve">
     <value>Mix</value>
@@ -1163,73 +1163,73 @@
     <value>Mix Active</value>
   </data>
   <data name="Str_NewRow" xml:space="preserve">
-    <value>Str_NewRow</value>
+    <value>NewRow</value>
   </data>
   <data name="Str_NewTableName" xml:space="preserve">
-    <value>Str_NewTableName</value>
+    <value>NewTableName</value>
   </data>
   <data name="Str_NumberFormatHint" xml:space="preserve">
     <value>Parse numbers using Invariant Culture (e.g. 1,000.50)</value>
   </data>
   <data name="Str_OfflineMode" xml:space="preserve">
-    <value>Str_OfflineMode</value>
+    <value>OfflineMode</value>
   </data>
   <data name="Str_OK" xml:space="preserve">
-    <value>Str_OK</value>
+    <value>OK</value>
   </data>
   <data name="Str_Options" xml:space="preserve">
-    <value>Str_Options</value>
+    <value>Options</value>
   </data>
   <data name="Str_PieChartFixed" xml:space="preserve">
     <value>(Pie Charts use specific groupings)</value>
   </data>
   <data name="Str_PortalHubConfig" xml:space="preserve">
-    <value>Str_PortalHubConfig</value>
+    <value>Portal Hub Config</value>
   </data>
   <data name="Str_PortalSettings" xml:space="preserve">
-    <value>Str_PortalSettings</value>
+    <value>Portal Settings</value>
   </data>
   <data name="Str_PortalSettingsHint" xml:space="preserve">
-    <value>Str_PortalSettingsHint</value>
+    <value>Portal Settings Hint</value>
   </data>
   <data name="Str_PreviewData" xml:space="preserve">
-    <value>Str_PreviewData</value>
+    <value>Preview Data</value>
   </data>
   <data name="Str_PriceTrendLegend" xml:space="preserve">
     <value>Trend Data (1: Numerator, 2: Denominator)</value>
   </data>
   <data name="Str_Priority" xml:space="preserve">
-    <value>Str_Priority</value>
+    <value>Priority</value>
   </data>
   <data name="Str_PriorityHint" xml:space="preserve">
-    <value>Str_PriorityHint</value>
+    <value>PriorityHint</value>
   </data>
   <data name="Str_Range" xml:space="preserve">
     <value>Date Range</value>
   </data>
   <data name="Str_Rename" xml:space="preserve">
-    <value>Str_Rename</value>
+    <value>Rename</value>
   </data>
   <data name="Str_Reset" xml:space="preserve">
-    <value>Str_Reset</value>
+    <value>Reset</value>
   </data>
   <data name="Str_RowsToIgnore" xml:space="preserve">
-    <value>Str_RowsToIgnore</value>
+    <value>Rows To Ignore</value>
   </data>
   <data name="Str_RunAdvancedImport" xml:space="preserve">
-    <value>Str_RunAdvancedImport</value>
+    <value>Run Advanced Import</value>
   </data>
   <data name="Str_SaveClose" xml:space="preserve">
-    <value>Str_SaveClose</value>
+    <value>Save Close</value>
   </data>
   <data name="Str_SaveRecord" xml:space="preserve">
-    <value>Str_SaveRecord</value>
+    <value>SaveRecord</value>
   </data>
   <data name="Str_SearchColumn" xml:space="preserve">
-    <value>Str_SearchColumn</value>
+    <value>Search Column</value>
   </data>
   <data name="Str_SearchDots" xml:space="preserve">
-    <value>Str_SearchDots</value>
+    <value>Search Dot</value>
   </data>
   <data name="Str_SelectChartPos" xml:space="preserve">
     <value>Select Chart Position</value>
@@ -1241,7 +1241,7 @@
     <value>Select Specific Slices to Display</value>
   </data>
   <data name="Str_SelectSourceFile" xml:space="preserve">
-    <value>Str_SelectSourceFile</value>
+    <value>Select Source File</value>
   </data>
   <data name="Str_ShowAsKpiCards" xml:space="preserve">
     <value>Show as KPI Cards</value>
@@ -1250,40 +1250,40 @@
     <value>Simplify Labels</value>
   </data>
   <data name="Str_SliderTickStep" xml:space="preserve">
-    <value>Str_SliderTickStep</value>
+    <value>Slider Tick Step</value>
   </data>
   <data name="Str_StandardTimelineTemplate" xml:space="preserve">
-    <value>Str_StandardTimelineTemplate</value>
+    <value>Standard Timeline Template</value>
   </data>
   <data name="Str_StartImport" xml:space="preserve">
-    <value>Str_StartImport</value>
+    <value>StartImport</value>
   </data>
   <data name="Str_StartsWithRaw" xml:space="preserve">
-    <value>Str_StartsWithRaw</value>
+    <value>Starts With Raw</value>
   </data>
   <data name="Str_StartWithTemplate" xml:space="preserve">
-    <value>Str_StartWithTemplate</value>
+    <value>Start With Template</value>
   </data>
   <data name="Str_SummaryBreakdown" xml:space="preserve">
-    <value>Str_SummaryBreakdown</value>
+    <value>Summary Breakdown</value>
   </data>
   <data name="Str_TableColumns" xml:space="preserve">
-    <value>Str_TableColumns</value>
+    <value>Table Columns</value>
   </data>
   <data name="Str_TableNote" xml:space="preserve">
-    <value>Str_TableNote</value>
+    <value>Table Note</value>
   </data>
   <data name="Str_TargetTable" xml:space="preserve">
-    <value>Str_TargetTable</value>
+    <value>Target Table</value>
   </data>
   <data name="Str_To" xml:space="preserve">
-    <value>Str_To</value>
+    <value>To</value>
   </data>
   <data name="Str_UpdatePreview" xml:space="preserve">
-    <value>Str_UpdatePreview</value>
+    <value>Update Preview</value>
   </data>
   <data name="Str_UseInitialDate" xml:space="preserve">
-    <value>Str_UseInitialDate</value>
+    <value>Use Initial Date</value>
   </data>
   <data name="Str_ValueAggregation" xml:space="preserve">
     <value>Value Aggregation</value>
@@ -1292,73 +1292,73 @@
     <value>Value Columns (Y Axis)</value>
   </data>
   <data name="Str_VirtualDate" xml:space="preserve">
-    <value>Str_VirtualDate</value>
+    <value>VirtualDate</value>
   </data>
   <data name="Tip_ClearSearch" xml:space="preserve">
-    <value>Tip_ClearSearch</value>
+    <value>Clear Search</value>
   </data>
   <data name="Tip_ConfigCategories" xml:space="preserve">
-    <value>Tip_ConfigCategories</value>
+    <value>Config Categories</value>
   </data>
   <data name="Tip_CopyCategories" xml:space="preserve">
-    <value>Tip_CopyCategories</value>
+    <value>Copy Categories</value>
   </data>
   <data name="Tip_DailyTimeline" xml:space="preserve">
-    <value>Tip_DailyTimeline</value>
+    <value>DailyTimeline</value>
   </data>
   <data name="Tip_DeleteTable" xml:space="preserve">
-    <value>Tip_DeleteTable</value>
+    <value>DeleteTable</value>
   </data>
   <data name="Tip_FilterSettings" xml:space="preserve">
-    <value>Tip_FilterSettings</value>
+    <value>FilterSettings</value>
   </data>
   <data name="Tip_FindInDataReport" xml:space="preserve">
-    <value>Tip_FindInDataReport</value>
+    <value>Find In Data Report</value>
   </data>
   <data name="Tip_IgnoreHyphen" xml:space="preserve">
-    <value>Tip_IgnoreHyphen</value>
+    <value>IgnoreHyphen</value>
   </data>
   <data name="Tip_IgnoreNumbers" xml:space="preserve">
-    <value>Tip_IgnoreNumbers</value>
+    <value>IgnoreNumbers</value>
   </data>
   <data name="Tip_MinToClock" xml:space="preserve">
-    <value>Tip_MinToClock</value>
+    <value>Min To Clock</value>
   </data>
   <data name="Tip_NextDay" xml:space="preserve">
-    <value>Tip_NextDay</value>
+    <value>NextDay</value>
   </data>
   <data name="Tip_NextWeek" xml:space="preserve">
-    <value>Tip_NextWeek</value>
+    <value>NextWeek</value>
   </data>
   <data name="Tip_NodeEditor" xml:space="preserve">
-    <value>Tip_NodeEditor</value>
+    <value>NodeEditor</value>
   </data>
   <data name="Tip_PrevDay" xml:space="preserve">
-    <value>Tip_PrevDay</value>
+    <value>Yesterday</value>
   </data>
   <data name="Tip_PrevWeek" xml:space="preserve">
-    <value>Tip_PrevWeek</value>
+    <value>Last Week</value>
   </data>
   <data name="Tip_PrintReport" xml:space="preserve">
-    <value>Tip_PrintReport</value>
+    <value>Print Report</value>
   </data>
   <data name="Tip_RefreshRecolor" xml:space="preserve">
-    <value>Tip_RefreshRecolor</value>
+    <value>Refresh Recolor</value>
   </data>
   <data name="Tip_ReturnHub" xml:space="preserve">
-    <value>Tip_ReturnHub</value>
+    <value>Return Hub</value>
   </data>
   <data name="Tip_SetFixedColor" xml:space="preserve">
-    <value>Tip_SetFixedColor</value>
+    <value>SetFixedColor</value>
   </data>
   <data name="Tip_SwitchAdvanced" xml:space="preserve">
-    <value>Tip_SwitchAdvanced</value>
+    <value>Switch to Advanced</value>
   </data>
   <data name="Tip_SwitchView" xml:space="preserve">
-    <value>Tip_SwitchView</value>
+    <value>SwitchView</value>
   </data>
   <data name="Tip_ToggleFullscreen" xml:space="preserve">
-    <value>Tip_ToggleFullscreen</value>
+    <value>ToggleFullscreen</value>
   </data>
   <data name="Title_Saved" xml:space="preserve">
     <value>Saved</value>

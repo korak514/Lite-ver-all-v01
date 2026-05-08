@@ -44,7 +44,7 @@
                     <ControlTemplate TargetType="ToggleButton">
                         <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5">
                             <!-- Binding padding here ensures internal margins behave correctly -->
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
@@ -80,38 +80,38 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
-                    <fa:ImageAwesome Icon="Database" Width="16" Foreground="{StaticResource color6}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <fa:ImageAwesome Icon="Database" Width="16" Foreground="{StaticResource color6}" Margin="0,0,10,0" VerticalAlignment="Center" />
                     <TextBlock Text="{x:Static p:Resources.Table}" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="13" />
                     <ComboBox ItemsSource="{Binding TableNames}" SelectedItem="{Binding SelectedTable, Mode=TwoWay}" DisplayMemberPath="." MinWidth="200" Height="30" FontSize="12" VerticalContentAlignment="Center" />
-                    
+
                     <Button Command="{Binding DeleteTableCommand}" Visibility="{Binding IsAdminAndOnline, Converter={StaticResource BooleanToVisibilityConverter}}"
                             Background="Transparent" BorderThickness="0" Margin="12,0,0,0" ToolTip="{x:Static p:Resources.Tip_DeleteTable}" Cursor="Hand">
-                        <fa:ImageAwesome Icon="Trash" Width="16" Foreground="#FF4B4B" VerticalAlignment="Center"/>
+                        <fa:ImageAwesome Icon="Trash" Width="16" Foreground="#FF4B4B" VerticalAlignment="Center" />
                     </Button>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Border Background="#20FFFFFF" CornerRadius="15" Padding="12,3" Margin="0,0,15,0" BorderBrush="#50FFFFFF" BorderThickness="1">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <fa:ImageAwesome Icon="Search" Width="13" Foreground="LightGray" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
-                                     Background="Transparent" BorderThickness="0" Foreground="White" 
+                            <fa:ImageAwesome Icon="Search" Width="13" Foreground="LightGray" Margin="0,0,8,0" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="Transparent" BorderThickness="0" Foreground="White"
                                      MinWidth="200" VerticalAlignment="Center" FontSize="13" VerticalContentAlignment="Center" />
                         </StackPanel>
                     </Border>
                     <CheckBox Content="{x:Static p:Resources.Str_Global}" IsChecked="{Binding IsGlobalSearchActive}" Foreground="White" VerticalAlignment="Center" Margin="0,0,20,0" FontSize="12" FontWeight="SemiBold" />
                     <Button Command="{Binding ClearSearchCommand}" Background="Transparent" BorderThickness="0" ToolTip="{x:Static p:Resources.Tip_ClearSearch}" Cursor="Hand">
-                        <fa:ImageAwesome Icon="TimesCircle" Width="18" Foreground="#E74C3C" VerticalAlignment="Center"/>
+                        <fa:ImageAwesome Icon="TimesCircle" Width="18" Foreground="#E74C3C" VerticalAlignment="Center" />
                     </Button>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Grid.Column="3" Margin="25,0,0,0" VerticalAlignment="Center">
                     <Button Command="{Binding DecreaseFontSizeCommand}" Background="#20FFFFFF" BorderThickness="0" Padding="8,4" Style="{StaticResource BaseButtonStyle}" Cursor="Hand" Margin="0,0,5,0">
-                        <fa:ImageAwesome Icon="Minus" Width="10" Foreground="White" VerticalAlignment="Center"/>
+                        <fa:ImageAwesome Icon="Minus" Width="10" Foreground="White" VerticalAlignment="Center" />
                     </Button>
-                    <TextBlock Text="A" Foreground="White" FontSize="14" VerticalAlignment="Center" FontWeight="Bold" Margin="5,0"/>
+                    <TextBlock Text="A" Foreground="White" FontSize="14" VerticalAlignment="Center" FontWeight="Bold" Margin="5,0" />
                     <Button Command="{Binding IncreaseFontSizeCommand}" Background="#20FFFFFF" BorderThickness="0" Padding="8,4" Style="{StaticResource BaseButtonStyle}" Cursor="Hand" Margin="5,0,0,0">
-                        <fa:ImageAwesome Icon="Plus" Width="10" Foreground="White" VerticalAlignment="Center"/>
+                        <fa:ImageAwesome Icon="Plus" Width="10" Foreground="White" VerticalAlignment="Center" />
                     </Button>
                 </StackPanel>
             </Grid>
@@ -120,50 +120,50 @@
         <!-- 2. ACTION BAR: Data Operations (Uses WrapPanels for responsiveness) -->
         <Border Grid.Row="1" Background="{StaticResource primaryBackColor2Brush}" Padding="10,8,10,2" BorderBrush="{StaticResource panelActiveColor}" BorderThickness="0,0,0,1">
             <DockPanel LastChildFill="True">
-                
+
                 <!-- Right Side Actions (Settings, Export, Import) -->
                 <WrapPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
                     <ToggleButton IsChecked="{Binding IsColumnSelectorVisible, Mode=TwoWay}" Style="{StaticResource StandardToggleButtonStyle}" Margin="0,0,8,6" Height="34">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                            <fa:ImageAwesome Icon="Gear" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Static p:Resources.Str_Options}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <fa:ImageAwesome Icon="Gear" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.Str_Options}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </StackPanel>
                     </ToggleButton>
-                    
+
                     <ToggleButton IsChecked="{Binding IsDateFilterPanelVisible, Mode=TwoWay}" Style="{StaticResource StandardToggleButtonStyle}" Margin="0,0,8,6" Height="34" Visibility="{Binding IsDateFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                            <fa:ImageAwesome Icon="Calendar" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Static p:Resources.Filter}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <fa:ImageAwesome Icon="Calendar" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.Filter}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </StackPanel>
                     </ToggleButton>
-                    
+
                     <Border Width="1" Background="#40FFFFFF" Margin="4,4,12,10" Height="24" />
-                    
+
                     <Button Command="{Binding ExportDataCommand}" Style="{StaticResource StandardButtonStyle}" Background="#16A085" Margin="0,0,8,6" Height="34">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                            <fa:ImageAwesome Icon="Download" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Static p:Resources.Export}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <fa:ImageAwesome Icon="Download" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.Export}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    
+
                     <Button Command="{Binding ImportDataCommand}" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource StandardButtonStyle}" Background="#8E44AD" Margin="0,0,8,6" Height="34">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                            <fa:ImageAwesome Icon="Upload" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Static p:Resources.Import}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <fa:ImageAwesome Icon="Upload" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.Import}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    
+
                     <Button Command="{Binding ShowHierarchyImportCommand}" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource StandardButtonStyle}" Background="#A04000" Margin="0,0,8,6" Height="34">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                            <fa:ImageAwesome Icon="Sitemap" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Static p:Resources.Str_Hierarchy}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <fa:ImageAwesome Icon="Sitemap" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.Str_Hierarchy}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    
+
                     <Button Command="{Binding ShowCreateTableCommand}" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource StandardButtonStyle}" Background="#D35400" Margin="0,0,0,6" Height="34">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                            <fa:ImageAwesome Icon="PlusCircle" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Static p:Resources.CreateNewTable}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <fa:ImageAwesome Icon="PlusCircle" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.CreateNewTable}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
                 </WrapPanel>
@@ -172,56 +172,56 @@
                 <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top">
                     <Button Command="{Binding AddNewRowCommand}" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource StandardButtonStyle}" Background="#2ECC71" Margin="0,0,8,6" Height="34">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                            <fa:ImageAwesome Icon="Plus" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Static p:Resources.Str_NewRow}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
-                    
-                    <Button Command="{Binding EditSelectedRowsCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource StandardButtonStyle}" Background="#3498DB" Margin="0,0,8,6" Height="34">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                            <fa:ImageAwesome Icon="Edit" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Static p:Resources.Edit}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
-                    
-                    <Button Command="{Binding DeleteSelectedRowCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource StandardButtonStyle}" Background="#E74C3C" Margin="0,0,8,6" Height="34">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                            <fa:ImageAwesome Icon="Trash" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Static p:Resources.Delete}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
-                    
-                    <Border Width="1" Background="#40FFFFFF" Margin="4,4,12,10" Height="24" />
-                    
-                    <Button Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDirty}" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource StandardButtonStyle}" Background="{StaticResource color5}" Margin="0,0,8,6" Height="34">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                            <fa:ImageAwesome Icon="Save" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Static p:Resources.Save}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
-                    
-                    <Button Command="{Binding UndoChangesCommand}" Style="{StaticResource StandardButtonStyle}" Background="#CC9900" Margin="0,0,8,6" Height="34" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                            <fa:ImageAwesome Icon="Undo" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Static p:Resources.Undo}" Foreground="White" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
-                    
-                    <Button Command="{Binding ShowFindReplaceCommand}" Style="{StaticResource StandardButtonStyle}" Background="#5D6D7E" Margin="0,0,8,6" Height="34">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                            <fa:ImageAwesome Icon="SearchPlus" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Static p:Resources.Str_Find}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
-                    
-                    <Button Command="{Binding ReloadDataCommand}" Style="{StaticResource StandardButtonStyle}" Background="#2A2A5A" Margin="0,0,8,6" Height="34">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                            <fa:ImageAwesome Icon="Refresh" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Static p:Resources.Reload}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <fa:ImageAwesome Icon="Plus" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.Str_NewRow}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
 
-                    <TextBlock Text="{Binding ErrorMessage}" Foreground="#E74C3C" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" Margin="10,0,10,6" TextWrapping="Wrap" Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <Button Command="{Binding EditSelectedRowsCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource StandardButtonStyle}" Background="#3498DB" Margin="0,0,8,6" Height="34">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+                            <fa:ImageAwesome Icon="Edit" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.Edit}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding DeleteSelectedRowCommand}" CommandParameter="{Binding ElementName=DataDisplayGrid, Path=SelectedItems}" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource StandardButtonStyle}" Background="#E74C3C" Margin="0,0,8,6" Height="34">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+                            <fa:ImageAwesome Icon="Trash" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.Delete}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Border Width="1" Background="#40FFFFFF" Margin="4,4,12,10" Height="24" />
+
+                    <Button Command="{Binding SaveChangesCommand}" IsEnabled="{Binding IsDirty}" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource StandardButtonStyle}" Background="{StaticResource color5}" Margin="0,0,8,6" Height="34">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+                            <fa:ImageAwesome Icon="Save" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.Save}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding UndoChangesCommand}" Style="{StaticResource StandardButtonStyle}" Background="#CC9900" Margin="0,0,8,6" Height="34" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+                            <fa:ImageAwesome Icon="Undo" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.Undo}" Foreground="White" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding ShowFindReplaceCommand}" Style="{StaticResource StandardButtonStyle}" Background="#5D6D7E" Margin="0,0,8,6" Height="34">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+                            <fa:ImageAwesome Icon="SearchPlus" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.Str_Find}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding ReloadDataCommand}" Style="{StaticResource StandardButtonStyle}" Background="#2A2A5A" Margin="0,0,8,6" Height="34">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+                            <fa:ImageAwesome Icon="Refresh" Width="13" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.Reload}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="#E74C3C" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" Margin="10,0,10,6" TextWrapping="Wrap" Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 </WrapPanel>
             </DockPanel>
         </Border>
@@ -231,34 +231,34 @@
             <Border Visibility="{Binding IsColumnSelectorVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Background="#E6060543" Padding="20,12,20,4" BorderBrush="{StaticResource panelActiveColor}" BorderThickness="0,0,0,1">
                 <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <StackPanel Margin="0,0,25,8">
-                        <TextBlock Text="{x:Static p:Resources.Str_SearchColumn}" Foreground="LightGray" FontSize="11" Margin="0,0,0,4"/>
-                        <ComboBox ItemsSource="{Binding SearchableColumns}" SelectedItem="{Binding SelectedSearchColumn, Mode=TwoWay}" Width="160" Height="26" FontSize="11" VerticalContentAlignment="Center"/>
+                        <TextBlock Text="{x:Static p:Resources.Str_SearchColumn}" Foreground="LightGray" FontSize="11" Margin="0,0,0,4" />
+                        <ComboBox ItemsSource="{Binding SearchableColumns}" SelectedItem="{Binding SelectedSearchColumn, Mode=TwoWay}" Width="160" Height="26" FontSize="11" VerticalContentAlignment="Center" />
                     </StackPanel>
-                    
+
                     <StackPanel Margin="0,0,25,8" VerticalAlignment="Bottom">
-                        <CheckBox Content="{x:Static p:Resources.HideId}" IsChecked="{Binding IsIdHidden, Mode=TwoWay}" Foreground="White" FontSize="11" Margin="0,0,0,5"/>
-                        <CheckBox Content="{x:Static p:Resources.EditId}" IsChecked="{Binding IsIdEditable, Mode=TwoWay}" Foreground="White" FontSize="11" Margin="0,0,0,5"/>
-                        <CheckBox Content="{x:Static p:Resources.Str_HourlyTimeCorrection}" IsChecked="{Binding IsTimeCorrectionEnabled, Mode=TwoWay}" Foreground="LightGreen" FontSize="11" ToolTip="{x:Static p:Resources.Tip_HourlyTimeCorrection}"/>
+                        <CheckBox Content="{x:Static p:Resources.HideId}" IsChecked="{Binding IsIdHidden, Mode=TwoWay}" Foreground="White" FontSize="11" Margin="0,0,0,5" />
+                        <CheckBox Content="{x:Static p:Resources.EditId}" IsChecked="{Binding IsIdEditable, Mode=TwoWay}" Foreground="White" FontSize="11" Margin="0,0,0,5" />
+                        <CheckBox Content="{x:Static p:Resources.Str_HourlyTimeCorrection}" IsChecked="{Binding IsTimeCorrectionEnabled, Mode=TwoWay}" Foreground="LightGreen" FontSize="11" ToolTip="{x:Static p:Resources.Tip_HourlyTimeCorrection}" />
                     </StackPanel>
-                    
+
                     <Button Command="{Binding RenameColumnCommand}" Visibility="{Binding IsAdminAndOnline, Converter={StaticResource BooleanToVisibilityConverter}}" Background="#2A2A5A" BorderThickness="1" BorderBrush="#40FFFFFF" Height="28" VerticalAlignment="Bottom" Margin="0,0,25,8">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0">
-                            <fa:ImageAwesome Icon="Pencil" Width="11" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Static p:Resources.Str_Rename}" Foreground="White" FontSize="11" VerticalAlignment="Center"/>
+                            <fa:ImageAwesome Icon="Pencil" Width="11" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static p:Resources.Str_Rename}" Foreground="White" FontSize="11" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    
+
                     <StackPanel VerticalAlignment="Bottom" Orientation="Horizontal" Margin="0,0,25,8">
-                        <CheckBox Content="{x:Static p:Resources.Str_AdvancedImport}" IsChecked="{Binding IsAdvancedImportVisible, Mode=TwoWay}" Foreground="{StaticResource color6}" FontSize="11" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <CheckBox Content="{x:Static p:Resources.Str_AdvancedImport}" IsChecked="{Binding IsAdvancedImportVisible, Mode=TwoWay}" Foreground="{StaticResource color6}" FontSize="11" VerticalAlignment="Center" Margin="0,0,15,0" />
                         <Button Command="{Binding ShowAdvancedImportCommand}" Visibility="{Binding IsAdvancedImportVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Background="#8E44AD" BorderThickness="0" Height="26" VerticalAlignment="Center" Margin="0,0,20,0">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0">
-                                <fa:ImageAwesome Icon="Magic" Width="11" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="{x:Static p:Resources.Str_RunAdvancedImport}" Foreground="White" FontSize="11" VerticalAlignment="Center"/>
+                                <fa:ImageAwesome Icon="Magic" Width="11" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                <TextBlock Text="{x:Static p:Resources.Str_RunAdvancedImport}" Foreground="White" FontSize="11" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
-                        <CheckBox Content="{x:Static p:Resources.LoadFullHistory}" IsChecked="{Binding LoadAllData, Mode=TwoWay}" Foreground="LightBlue" FontSize="11" VerticalAlignment="Center" ToolTip="{x:Static p:Resources.Tip_LoadFullHistory}"/>
+                        <CheckBox Content="{x:Static p:Resources.LoadFullHistory}" IsChecked="{Binding LoadAllData, Mode=TwoWay}" Foreground="LightBlue" FontSize="11" VerticalAlignment="Center" ToolTip="{x:Static p:Resources.Tip_LoadFullHistory}" />
                     </StackPanel>
-                    
+
                     <Button Command="{Binding AddIdColumnCommand}" Content="{x:Static p:Resources.AddId}" Background="{StaticResource color5}" Height="28" FontSize="11" FontWeight="Bold" VerticalAlignment="Bottom" Margin="0,0,0,8" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
@@ -270,7 +270,7 @@
                     </Button>
                 </WrapPanel>
             </Border>
-            
+
             <Border Visibility="{Binding IsDateFilterPanelVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Background="#E6060543" Padding="20,12" BorderBrush="{StaticResource panelActiveColor}" BorderThickness="0,0,0,1">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -278,20 +278,20 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    
+
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                         <DatePicker SelectedDate="{Binding FilterStartDate, Mode=TwoWay}" Width="130" Height="26" FontSize="11" />
-                        <TextBlock Text="{x:Static p:Resources.Str_To}" Foreground="White" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold" FontSize="11"/>
+                        <TextBlock Text="{x:Static p:Resources.Str_To}" Foreground="White" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold" FontSize="11" />
                         <DatePicker SelectedDate="{Binding FilterEndDate, Mode=TwoWay}" Width="130" Height="26" FontSize="11" />
                     </StackPanel>
-                    
+
                     <xctk:RangeSlider Grid.Column="1" Margin="30,0" VerticalAlignment="Center" Minimum="0" Maximum="{Binding SliderMaximum}" LowerValue="{Binding StartMonthSliderValue, Mode=TwoWay}" HigherValue="{Binding EndMonthSliderValue, Mode=TwoWay}" IsSnapToTickEnabled="True" TickFrequency="1" />
-                    
+
                     <Button Grid.Column="2" Content="{x:Static p:Resources.Str_Reset}" Command="{Binding ClearDateFilterCommand}" Style="{StaticResource StandardButtonStyle}" Height="28" FontSize="11" FontWeight="Bold" VerticalAlignment="Center">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
                                 <Border Background="{TemplateBinding Background}" CornerRadius="3">
-                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="15,0"/>
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="15,0" />
                                 </Border>
                             </ControlTemplate>
                         </Button.Template>
@@ -370,8 +370,8 @@
 
             <Border Background="#80000000" Visibility="{Binding IsProgressBarVisible, Converter={StaticResource BooleanToVisibilityConverter}}" CornerRadius="5">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <ProgressBar IsIndeterminate="True" Width="200" Height="6" Foreground="{DynamicResource color5}" Background="Transparent" BorderThickness="0"/>
-                    <TextBlock Text="{x:Static p:Resources.Status_Loading}" Foreground="White" HorizontalAlignment="Center" Margin="0,10,0,0" FontWeight="SemiBold"/>
+                    <ProgressBar IsIndeterminate="True" Width="200" Height="6" Foreground="{DynamicResource color5}" Background="Transparent" BorderThickness="0" />
+                    <TextBlock Text="{x:Static p:Resources.Status_Loading}" Foreground="White" HorizontalAlignment="Center" Margin="0,10,0,0" FontWeight="SemiBold" />
                 </StackPanel>
             </Border>
         </Grid>
