@@ -17,14 +17,17 @@ namespace WPF_LoginForm
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            // 1. Initialize Logging Service FIRST
+            // 1. Setup Global Exception Handling FIRST!
+            SetupExceptionHandling();
+
+            // 2. Initialize Logging Service BEFORE loading config so we can log errors
             var fileLogger = new FileLogger("AppLog");
             GlobalLogger = new DatabaseLogger(fileLogger);
 
-            // 2. Setup Global Exception Handling
-            SetupExceptionHandling();
+            // 3. FORCE LOAD JSON CONFIGURATION
+            WPF_LoginForm.Services.GeneralSettingsManager.Instance.Load();
 
-            // 3. Apply Language Settings BEFORE showing any windows
+            // 4. Apply Language Settings
             ApplyLocalization();
 
             base.OnStartup(e);
@@ -32,7 +35,7 @@ namespace WPF_LoginForm
             var dbType = DbConnectionFactory.CurrentDatabaseType;
             GlobalLogger.LogInfo($"App Starting... Lang: {Thread.CurrentThread.CurrentUICulture.Name} | Provider: {dbType}");
 
-            // 4. Manually launch the StartupView now that the culture is set
+            // 5. Manually launch the StartupView
             var startupWindow = new StartupView();
             startupWindow.Show();
         }
@@ -41,9 +44,6 @@ namespace WPF_LoginForm
         {
             try
             {
-                // Force load settings to ensure GeneralSettingsManager loads correctly before UI binds to it
-                GeneralSettingsManager.Instance.Load();
-                
                 string languageCode = GeneralSettingsManager.Instance.Current.AppLanguage;
                 
                 if (string.IsNullOrEmpty(languageCode)) 
@@ -51,22 +51,19 @@ namespace WPF_LoginForm
 
                 var culture = new CultureInfo(languageCode);
 
-                // UI Thread Culture
                 Thread.CurrentThread.CurrentCulture = culture;
                 Thread.CurrentThread.CurrentUICulture = culture;
 
-                // Background Thread Culture (.NET 4.5+)
                 CultureInfo.DefaultThreadCurrentCulture = culture;
                 CultureInfo.DefaultThreadCurrentUICulture = culture;
 
-                // WPF Framework Element Localization
                 FrameworkElement.LanguageProperty.OverrideMetadata(
                     typeof(FrameworkElement),
                     new FrameworkPropertyMetadata(System.Windows.Markup.XmlLanguage.GetLanguage(culture.IetfLanguageTag)));
             }
             catch (Exception ex)
             {
-                GlobalLogger.LogError("Error applying localization", ex);
+                GlobalLogger?.LogError("Error applying localization", ex);
             }
         }
 
@@ -79,14 +76,14 @@ namespace WPF_LoginForm
 
         private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
-            GlobalLogger.LogError("CRITICAL UI ERROR", e.Exception);
+            GlobalLogger?.LogError("CRITICAL UI ERROR", e.Exception);
             ShowCrashMessage(e.Exception);
             e.Handled = true;
         }
 
         private void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
         {
-            GlobalLogger.LogError("BACKGROUND TASK ERROR", e.Exception);
+            GlobalLogger?.LogError("BACKGROUND TASK ERROR", e.Exception);
             e.SetObserved();
         }
 
@@ -94,7 +91,7 @@ namespace WPF_LoginForm
         {
             if (e.ExceptionObject is Exception ex)
             {
-                GlobalLogger.LogError("FATAL APP ERROR", ex);
+                GlobalLogger?.LogError("FATAL APP ERROR", ex);
                 MessageBox.Show($"A fatal error occurred and the application must close.\n\nError: {ex.Message}",
                     "Fatal Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -108,7 +105,7 @@ namespace WPF_LoginForm
 
         protected override void OnExit(ExitEventArgs e)
         {
-            GlobalLogger.LogInfo("App Shutting Down.");
+            GlobalLogger?.LogInfo("App Shutting Down.");
             base.OnExit(e);
         }
     }

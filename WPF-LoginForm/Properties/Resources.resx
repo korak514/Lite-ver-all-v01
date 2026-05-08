@@ -1387,4 +1387,18 @@
   <data name="Msg_ImportFailed" xml:space="preserve">
     <value>Import failed:</value>
   </data>
+  <data name="Str_FirstRunTitle" xml:space="preserve">
+    <value>Welcome! Database setup not found</value>
+  </data>
+  <data name="Str_FirstRunMessage" xml:space="preserve">
+    <value>This appears to be your first time running the application. No database connection has been configured yet.
+
+Would you like to configure a database connection now, or start using Offline mode? You can always change this later in Settings.</value>
+  </data>
+  <data name="Str_FirstRunSetupDB" xml:space="preserve">
+    <value>Configure Database</value>
+  </data>
+  <data name="Str_FirstRunOffline" xml:space="preserve">
+    <value>Use Offline Mode</value>
+  </data>
 </root>

@@ -2141,6 +2141,26 @@ namespace WPF_LoginForm.Properties {
                 return ResourceManager.GetString("Msg_ImportFailed", resourceCulture);
             }
         }
+        public static string Str_FirstRunTitle {
+            get {
+                return ResourceManager.GetString("Str_FirstRunTitle", resourceCulture);
+            }
+        }
+        public static string Str_FirstRunMessage {
+            get {
+                return ResourceManager.GetString("Str_FirstRunMessage", resourceCulture);
+            }
+        }
+        public static string Str_FirstRunSetupDB {
+            get {
+                return ResourceManager.GetString("Str_FirstRunSetupDB", resourceCulture);
+            }
+        }
+        public static string Str_FirstRunOffline {
+            get {
+                return ResourceManager.GetString("Str_FirstRunOffline", resourceCulture);
+            }
+        }
     }
 }
 

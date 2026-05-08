@@ -1077,4 +1077,18 @@
   <data name="Str_Range" xml:space="preserve">
     <value>Tarih Aralığı</value>
   </data>
+  <data name="Str_FirstRunTitle" xml:space="preserve">
+    <value>Hoş Geldiniz! Veritabanı kurulumu bulunamadı</value>
+  </data>
+  <data name="Str_FirstRunMessage" xml:space="preserve">
+    <value>Uygulamayı ilk kez çalıştırıyorsunuz gibi görünüyor. Henüz hiçbir veritabanı bağlantısı yapılandırılmadı.
+
+Şimdi bir veritabanı bağlantısı yapılandırmak mı yoksa Çevrimdışı modda başlamak mı istiyorsunuz? Bunu daha sonra Ayarlar bölümünden her zaman değiştirebilirsiniz.</value>
+  </data>
+  <data name="Str_FirstRunSetupDB" xml:space="preserve">
+    <value>Veritabanını Yapılandır</value>
+  </data>
+  <data name="Str_FirstRunOffline" xml:space="preserve">
+    <value>Çevrimdışı Modu Kullan</value>
+  </data>
 </root>
