@@ -253,13 +253,13 @@ namespace WPF_LoginForm.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string DbPassword {
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool PureOfflineMode {
             get {
-                return ((string)(this["DbPassword"]));
+                return ((bool)(this["PureOfflineMode"]));
             }
             set {
-                this["DbPassword"] = value;
+                this["PureOfflineMode"] = value;
             }
         }
     }

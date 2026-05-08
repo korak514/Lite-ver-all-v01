@@ -2161,6 +2161,11 @@ namespace WPF_LoginForm.Properties {
                 return ResourceManager.GetString("Str_FirstRunOffline", resourceCulture);
             }
         }
+        public static string Str_FirstRunAlwaysOffline {
+            get {
+                return ResourceManager.GetString("Str_FirstRunAlwaysOffline", resourceCulture);
+            }
+        }
     }
 }
 

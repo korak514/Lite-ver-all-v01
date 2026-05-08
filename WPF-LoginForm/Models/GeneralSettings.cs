@@ -44,5 +44,9 @@ namespace WPF_LoginForm.Models
         // Category Rules (Analytics) - Excluded from General Config Export (stored in category_rules.json)
         [JsonIgnore]
         public List<CategoryRule> CategoryRules { get; set; } = new List<CategoryRule>();
+
+        // Pure Offline Mode - Suppresses first-run dialog permanently
+        [JsonIgnore]
+        public bool PureOfflineMode { get; set; } = false;
     }
 }

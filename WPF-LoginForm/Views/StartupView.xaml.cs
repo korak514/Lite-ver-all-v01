@@ -30,8 +30,11 @@ namespace WPF_LoginForm.Views
                 UpdateStatus("Loading Resources...", 60);
                 await Task.Delay(400);
 
-                // First-run detection before launching login
-                if (IsFirstRunWithoutDatabase())
+                var current = GeneralSettingsManager.Instance.Current;
+                bool isFirstRun = IsFirstRunWithoutDatabase();
+                bool isPureOffline = current != null && current.PureOfflineMode;
+
+                if (isFirstRun && !isPureOffline)
                 {
                     var result = MessageBox.Show(
                         WPF_LoginForm.Properties.Resources.Str_FirstRunMessage,
@@ -43,17 +46,22 @@ namespace WPF_LoginForm.Views
 
                     if (result == MessageBoxResult.Yes)
                     {
-                        // User chose to configure database - open settings mode
                         OpenLoginWithSettings();
                         return;
                     }
                     else if (result == MessageBoxResult.Cancel)
                     {
-                        // User cancelled - close app
-                        this.Close();
+                        // Always Offline Mode - save flag permanently
+                        current.PureOfflineMode = true;
+                        Settings.Default.PureOfflineMode = true;
+                        try { Settings.Default.Save(); } catch { }
+
+                        UpdateStatus("Starting in Offline Mode...", 100);
+                        await Task.Delay(200);
+                        OpenLoginAndListen();
                         return;
                     }
-                    // MessageBoxResult.No = Continue in offline mode
+                    // MessageBoxResult.No = One-time Offline Mode (will ask again next run)
                 }
 
                 UpdateStatus("Starting...", 100);

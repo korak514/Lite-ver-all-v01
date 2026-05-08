@@ -1091,4 +1091,7 @@
   <data name="Str_FirstRunOffline" xml:space="preserve">
     <value>Çevrimdışı Modu Kullan</value>
   </data>
+  <data name="Str_FirstRunAlwaysOffline" xml:space="preserve">
+    <value>Tamamen Çevrimdışı (Bir Daha Sorma)</value>
+  </data>
 </root>

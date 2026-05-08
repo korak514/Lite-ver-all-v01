@@ -1401,4 +1401,7 @@ Would you like to configure a database connection now, or start using Offline mo
   <data name="Str_FirstRunOffline" xml:space="preserve">
     <value>Use Offline Mode</value>
   </data>
+  <data name="Str_FirstRunAlwaysOffline" xml:space="preserve">
+    <value>Always Offline (Don't Ask Again)</value>
+  </data>
 </root>

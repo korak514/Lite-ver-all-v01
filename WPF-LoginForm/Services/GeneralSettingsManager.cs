@@ -143,6 +143,9 @@ namespace WPF_LoginForm.Services
                 Current.DbHost = Settings.Default.DbHost;
                 Current.DbPort = Settings.Default.DbPort;
                 Current.DbUser = Settings.Default.DbUser;
+
+                // Pure Offline Mode flag
+                Current.PureOfflineMode = Settings.Default.PureOfflineMode;
             }
             catch { }
             
@@ -221,6 +224,7 @@ namespace WPF_LoginForm.Services
                     Settings.Default.DbHost = Current.DbHost;
                     Settings.Default.DbPort = Current.DbPort;
                     Settings.Default.DbUser = Current.DbUser;
+                    Settings.Default.PureOfflineMode = Current.PureOfflineMode;
                     Settings.Default.Save();
                 }
                 catch { } // Ignore save failure for legacy settings if restricted
