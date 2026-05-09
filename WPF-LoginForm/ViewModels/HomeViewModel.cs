@@ -88,12 +88,16 @@ namespace WPF_LoginForm.ViewModels
                 if (SetProperty(ref _maximizedChartIndex, value))
                 {
                     OnPropertyChanged(nameof(IsAnyChartMaximized));
-                    UpdateDataLabelsVisibility();
+                    OnPropertyChanged(nameof(IsChart4Maximized));
+                    OnPropertyChanged(nameof(IsChart6Maximized));
+                    UpdatePieHoverable();
                 }
             }
         }
 
         public bool IsAnyChartMaximized => MaximizedChartIndex > 0;
+        public bool IsChart4Maximized => MaximizedChartIndex == 4;
+        public bool IsChart6Maximized => MaximizedChartIndex == 6;
 
         public ICommand MaximizeChartCommand { get; }
         public ICommand CloseMaximizeCommand { get; }
@@ -430,7 +434,7 @@ namespace WPF_LoginForm.ViewModels
                 {
                     if (token.IsCancellationRequested || !_isActive) return;
 
-                    UpdateDataLabelsVisibility();
+                    UpdatePieHoverable();
                     OnPropertyChanged(nameof(IsChart6Visible));
                     KpiCards.Clear();
                     var colors = new[] { "#3498DB", "#2ECC71", "#9B59B6", "#F1C40F", "#E67E22", "#E74C3C" };
@@ -464,23 +468,13 @@ namespace WPF_LoginForm.ViewModels
             catch (Exception ex) { _logger?.LogError($"Error loading charts: {ex.Message}"); }
         }
 
-        private void UpdateDataLabelsVisibility()
+        // Controls pie chart hoverable state via XAML bindings (IsChart4Maximized / IsChart6Maximized)
+        // When not maximized → Hoverable=false → no tooltip/labels on hover
+        // When maximized → Hoverable=true → tooltip shows LabelPoint text with %
+        private void UpdatePieHoverable()
         {
-            void UpdateSeries(SeriesCollection seriesCol, int index)
-            {
-                if (seriesCol == null) return;
-                bool isMaximized = (MaximizedChartIndex == index);
-
-                foreach (var series in seriesCol)
-                {
-                    if (series is LineSeries lineSeries)
-                    {
-                        bool isSmall = lineSeries.Values != null && lineSeries.Values.Count <= 35;
-                    }
-                }
-            }
-            UpdateSeries(Chart1Series, 1); UpdateSeries(Chart2Series, 2); UpdateSeries(Chart3Series, 3);
-            UpdateSeries(Chart4Series, 4); UpdateSeries(Chart5Series, 5); UpdateSeries(Chart6Series, 6);
+            OnPropertyChanged(nameof(IsChart4Maximized));
+            OnPropertyChanged(nameof(IsChart6Maximized));
         }
 
         private async Task ProcessChartConfigurationAsync(DashboardConfiguration config, CancellationToken token)
@@ -642,7 +636,6 @@ namespace WPF_LoginForm.ViewModels
                     var cv = new ChartValues<DashboardDataPoint>();
                     if (s.Points != null) foreach (var pt in s.Points) cv.Add(pt);
 
-                    bool isMaximized = (position == MaximizedChartIndex);
                     bool isSmall = cv.Count <= 35;
                     bool showLabels = isSmall && !s.ShowOnlyHoverLabels;
 
@@ -1079,7 +1072,6 @@ namespace WPF_LoginForm.ViewModels
 
             try
             {
-                // BUG FIX: Clean up any corrupted States array immediately upon load so the UI doesn't crash on empty duplicates
                 if (s.Configurations != null)
                 {
                     foreach (var config in s.Configurations)
@@ -1090,7 +1082,6 @@ namespace WPF_LoginForm.ViewModels
                             {
                                 if (series.SavedStates != null && series.SavedStates.Count > 3)
                                 {
-                                    // Take the last 3 items which represent the actual loaded data (due to the Newtonsoft append bug)
                                     series.SavedStates = series.SavedStates.Skip(series.SavedStates.Count - 3).ToList();
                                 }
                             }

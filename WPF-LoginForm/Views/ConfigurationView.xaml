@@ -250,9 +250,9 @@
                                             <!-- Fixed Color Picker -->
                                             <Border Grid.Column="2" Width="55" Height="26" Margin="5,0,0,0" VerticalAlignment="Center" BorderBrush="#CCC" BorderThickness="1" CornerRadius="3">
                                                 <xctk:ColorPicker SelectedColor="{Binding SeriesColorHex, Mode=TwoWay, Converter={StaticResource ColorToHexConverter}}"
-                                                                  ToolTip="{x:Static prop:Resources.Tip_SetFixedColor}"
-                                                                  VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
-                                                                  ShowRecentColors="True" UsingAlphaChannel="False" />
+                                                                   ToolTip="{x:Static prop:Resources.Tip_SetFixedColor}"
+                                                                   VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                                                                   ShowRecentColors="True" UsingAlphaChannel="False" />
                                             </Border>
 
                                             <!-- Remove Series Button -->
