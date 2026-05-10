@@ -13,6 +13,15 @@ param (
 
 $ErrorActionPreference = "Stop"
 
+# 0. Kill any running instance (file lock prevention)
+$procName = "WPF-LoginForm"
+$running = Get-Process -Name $procName -ErrorAction SilentlyContinue
+if ($running) {
+    Write-Host "Killing running $procName (PID $($running.Id))..." -ForegroundColor Yellow
+    $running | Stop-Process -Force
+    Start-Sleep -Seconds 1
+}
+
 # 1. Locate MSBuild
 $msBuildPaths = @(
     "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe",

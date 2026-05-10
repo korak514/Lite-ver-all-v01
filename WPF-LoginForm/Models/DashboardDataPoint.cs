@@ -10,7 +10,12 @@ namespace WPF_LoginForm.Models
         public double X { get; set; }
         public double Y { get; set; }
 
-        public string Label { get; set; }
+        private string _label;
+        public string Label
+        {
+            get => _label;
+            set { var v = value?.Replace("_", " "); if (_label != v) { _label = v; OnPropertyChanged(); } }
+        }
 
         // --- NEW PROPERTIES FOR CUSTOM 3-PART TOOLTIP ---
         private string _tooltipHeader;
@@ -18,7 +23,7 @@ namespace WPF_LoginForm.Models
         public string TooltipHeader
         {
             get => _tooltipHeader;
-            set { if (_tooltipHeader != value) { _tooltipHeader = value; OnPropertyChanged(); } }
+            set { var v = value?.Replace("_", " "); if (_tooltipHeader != v) { _tooltipHeader = v; OnPropertyChanged(); } }
         }
 
         private string _tooltipLeft;
@@ -26,7 +31,7 @@ namespace WPF_LoginForm.Models
         public string TooltipLeft
         {
             get => _tooltipLeft;
-            set { if (_tooltipLeft != value) { _tooltipLeft = value; OnPropertyChanged(); } }
+            set { var v = value?.Replace("_", " "); if (_tooltipLeft != v) { _tooltipLeft = v; OnPropertyChanged(); } }
         }
 
         private string _tooltipRight;
@@ -34,7 +39,7 @@ namespace WPF_LoginForm.Models
         public string TooltipRight
         {
             get => _tooltipRight;
-            set { if (_tooltipRight != value) { _tooltipRight = value; OnPropertyChanged(); } }
+            set { var v = value?.Replace("_", " "); if (_tooltipRight != v) { _tooltipRight = v; OnPropertyChanged(); } }
         }
 
         // ------------------------------------------------

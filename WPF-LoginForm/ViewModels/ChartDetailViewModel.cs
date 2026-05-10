@@ -116,6 +116,30 @@ namespace WPF_LoginForm.ViewModels
             await LoadDataAsync(startDate, endDate);
         }
 
+        public void Initialize(DashboardConfiguration config, DashboardChartService.ChartResultDto chartResult)
+        {
+            if (config == null) return;
+
+            _config = config;
+            OnPropertyChanged(nameof(CurrentConfiguration));
+
+            Title = $"Detailed Chart Analysis: {config.TableName}";
+            if (_config.Series != null && _config.Series.Any())
+            {
+                var firstSeries = _config.Series.FirstOrDefault();
+                if (firstSeries != null && !string.IsNullOrWhiteSpace(firstSeries.CustomDetailTitle))
+                {
+                    Title = firstSeries.CustomDetailTitle;
+                }
+            }
+
+            ChartSeries = new SeriesCollection();
+            PieChartSeries = new SeriesCollection();
+            IsPieChart = false;
+
+            Application.Current.Dispatcher.Invoke(() => ApplyChartResultToUI(chartResult));
+        }
+
         private async Task LoadDataAsync(DateTime startDate, DateTime endDate)
         {
             try
@@ -155,7 +179,7 @@ namespace WPF_LoginForm.ViewModels
                 if (dt == null || dt.Rows.Count == 0) return;
 
                 var chartResult = await Task.Run(() => _chartService.ProcessChartData(
-                    dt, _config, true, true, 0, 100, 100, _colorMap, _globalIgnoreAfterHyphen, _globalIgnoreNumbers));
+                    dt, _config, true, true, 0, 100, 100, _colorMap, null, _globalIgnoreAfterHyphen, _globalIgnoreNumbers));
 
                 Application.Current.Dispatcher.Invoke(() => ApplyChartResultToUI(chartResult));
             }
@@ -217,7 +241,23 @@ namespace WPF_LoginForm.ViewModels
                     var cv = new ChartValues<DashboardDataPoint>();
                     if (s.Points != null)
                     {
-                        foreach (var pt in s.Points) cv.Add(pt);
+                        foreach (var pt in s.Points)
+                            cv.Add(new DashboardDataPoint
+                            {
+                                X = pt.X,
+                                Y = pt.Y,
+                                Label = pt.Label,
+                                TooltipHeader = pt.TooltipHeader,
+                                TooltipLeft = pt.TooltipLeft,
+                                TooltipRight = pt.TooltipRight,
+                                IsImportant = pt.IsImportant,
+                                HasLeaderLine = pt.HasLeaderLine,
+                                LeaderLineX2 = pt.LeaderLineX2,
+                                LeaderLineY2 = pt.LeaderLineY2,
+                                LabelDx = pt.LabelDx,
+                                LabelDy = pt.LabelDy,
+                                ShowLabel = pt.ShowLabel
+                            });
                     }
 
                     // --- HOVER LOGIC APPLIED ---

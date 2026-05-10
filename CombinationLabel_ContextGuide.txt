@@ -1,0 +1,2292 @@
+Context Guide: Combination Label (Node Editor) System
+====================================================
+
+PROJECT METADATA
+----------------
+Target Framework: .NET Framework 4.8 (v4.8)
+Language Version: C# 7.3
+Project Type: WPF (WinExe)
+Root Namespace: WPF_LoginForm
+
+Key NuGet Packages:
+- LiveCharts.Wpf v0.9.7
+- Newtonsoft.Json v13.0.3
+- Extended.Wpf.Toolkit v4.7.25104.5739
+- FontAwesome.Sharp v6.6.0
+- FontAwesome.WPF v4.7.0
+- Microsoft.Data.SqlClient v6.0.1
+- Npgsql v4.1.12
+- ClosedXML v0.105.0
+- EPPlus v7.7.3
+- Costura.Fody v6.0.0
+- LinqForEEPlus v1.0.1
+
+SCOPE VIEWS
+-----------
+The system revolves around these Views:
+1. HomeView.xaml   - Main dashboard with CartesianCharts (positions 1-5) + PieCharts (positions 4,6)
+2. ConfigurationView.xaml - Chart configuration panel (embedded in ConfigurationWindow)
+3. ConfigurationWindow.xaml - Host window for ConfigurationView
+4. NodeEditorWindow.xaml   - The combination label node editor dialog
+5. ChartDetailView.xaml    - Detail/maximized chart view
+6. CustomChartTooltip.xaml - Custom tooltip control for charts
+
+=============================== FILE CONTENTS ===============================
+
+File: App.xaml
+<?xml version="1.0" encoding="utf-8"?>
+<Application x:Class="WPF_LoginForm.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+             xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
+             xmlns:views="clr-namespace:WPF_LoginForm.Views">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Styles/UIColors.xaml" />
+                <ResourceDictionary Source="/Styles/ButtonStyles.xaml" />
+                <ResourceDictionary Source="/Styles/ThemeColors.xaml" />
+                <ResourceDictionary Source="/Styles/Themes/DarkTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+            <DataTemplate DataType="{x:Type viewModels:ChartDetailViewModel}">
+                <views:ChartDetailView />
+            </DataTemplate>
+
+            <Style TargetType="Button" x:Key="BaseButtonStyle">
+                <Setter Property="Background" Value="#FF0078D7" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="12,4" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <DataTemplate x:Key="SmartLabelTemplate">
+                <Canvas Width="0" Height="0" ClipToBounds="False">
+                    <Line X1="0" Y1="0"
+                          X2="{Binding Point.Instance.LeaderLineX2}"
+                          Y2="{Binding Point.Instance.LeaderLineY2}"
+                          Stroke="#804A90E2" StrokeThickness="1.5" StrokeDashArray="2,2">
+                        <Line.Style>
+                            <Style TargetType="Line">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Point.Instance.HasLeaderLine}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Line.Style>
+                    </Line>
+                    <Border Canvas.Left="{Binding Point.Instance.LabelDx}"
+                            Canvas.Top="{Binding Point.Instance.LabelDy}"
+                            Background="#CC1A1A2E" BorderBrush="#804A90E2" BorderThickness="1.5" CornerRadius="4" Padding="4,2">
+                        <TextBlock Text="{Binding Point.Instance.Label}" Foreground="#F8F9FA" FontSize="11" FontWeight="Bold" TextAlignment="Center" />
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Point.Instance.ShowLabel}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
+                </Canvas>
+            </DataTemplate>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
+
+---
+File: Models/SeriesConfiguration.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using Newtonsoft.Json;
+
+namespace WPF_LoginForm.Models
+{
+    public class SeriesConfiguration : INotifyPropertyChanged
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        private string _columnName;
+
+        public string ColumnName
+        {
+            get => _columnName;
+            set { if (_columnName != value) { _columnName = value; OnPropertyChanged(); } }
+        }
+
+        public bool IsCombinationLabel { get; set; } = false;
+        public string CustomDetailTitle { get; set; }
+        public bool ShowOnlyHoverLabels { get; set; }
+        public string TooltipDateFormat { get; set; } = "MMM yyyy";
+        public bool IncludeSeriesName { get; set; } = true;
+        public string SeriesColorHex { get; set; }
+
+        [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+        public List<NodeFlowState> SavedStates { get; set; } = new List<NodeFlowState>
+        {
+            new NodeFlowState { StateName = "State 1" },
+            new NodeFlowState { StateName = "State 2" },
+            new NodeFlowState { StateName = "State 3" }
+        };
+
+        public int ActiveStateIndex { get; set; } = 0;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    public class NodeFlowState
+    {
+        public string StateName { get; set; }
+
+        [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+        public List<FlowNode> Nodes { get; set; } = new List<FlowNode>();
+    }
+
+    public class FlowNode : INotifyPropertyChanged
+    {
+        public Guid NodeId { get; set; } = Guid.NewGuid();
+        public string NodeType { get; set; }
+
+        private string _value;
+
+        public string Value
+        {
+            get => _value;
+            set { if (_value != value) { _value = value; OnPropertyChanged(); } }
+        }
+
+        private string _aggregation = "Sum";
+
+        public string Aggregation
+        {
+            get => _aggregation;
+            set { if (_aggregation != value) { _aggregation = value; OnPropertyChanged(); } }
+        }
+
+        private int _zone = 3;
+
+        public int Zone
+        {
+            get => _zone;
+            set { if (_zone != value) { _zone = value; OnPropertyChanged(); } }
+        }
+
+        public double X { get; set; }
+        public double Y { get; set; }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+}
+
+---
+File: Models/DashboardConfiguration.cs
+using System.Collections.Generic;
+
+namespace WPF_LoginForm.Models
+{
+    public class DashboardConfiguration
+    {
+        public int ChartPosition { get; set; }
+        public bool IsEnabled { get; set; } = true;
+        public string TableName { get; set; }
+        public string ChartType { get; set; } = "Line";
+
+        public string DataStructureType { get; set; } = "Daily Date";
+
+        public int RowsToIgnore { get; set; } = 0;
+
+        public bool UseInvariantCultureForNumbers { get; set; } = false;
+
+        public string DateColumn { get; set; }
+
+        public string SplitByColumn { get; set; }
+
+        public List<SeriesConfiguration> Series { get; set; } = new List<SeriesConfiguration>();
+
+        public string AggregationType { get; set; } = "Daily";
+
+        public string ValueAggregation { get; set; } = "Sum";
+
+        public bool HideNumbersInLabels { get; set; } = false;
+
+        public bool SimplifyLabels { get; set; } = false;
+        public bool ShowLabelsOnChart { get; set; } = false;
+        public bool ShowAsKpiCards { get; set; } = false;
+        public List<string> SelectedSplitCategories { get; set; } = new List<string>();
+    }
+}
+
+---
+File: Models/DashboardDataPoint.cs
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Windows;
+
+namespace WPF_LoginForm.Models
+{
+    public class DashboardDataPoint : INotifyPropertyChanged
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+
+        public string Label { get; set; }
+
+        private string _tooltipHeader;
+
+        public string TooltipHeader
+        {
+            get => _tooltipHeader;
+            set { if (_tooltipHeader != value) { _tooltipHeader = value; OnPropertyChanged(); } }
+        }
+
+        private string _tooltipLeft;
+
+        public string TooltipLeft
+        {
+            get => _tooltipLeft;
+            set { if (_tooltipLeft != value) { _tooltipLeft = value; OnPropertyChanged(); } }
+        }
+
+        private string _tooltipRight;
+
+        public string TooltipRight
+        {
+            get => _tooltipRight;
+            set { if (_tooltipRight != value) { _tooltipRight = value; OnPropertyChanged(); } }
+        }
+
+        public bool IsImportant { get; set; }
+        public bool HasLeaderLine { get; set; }
+        public double LeaderLineX2 { get; set; }
+        public double LeaderLineY2 { get; set; }
+
+        private double _labelDx;
+
+        public double LabelDx
+        {
+            get => _labelDx;
+            set { if (_labelDx != value) { _labelDx = value; OnPropertyChanged(); } }
+        }
+
+        private double _labelDy;
+
+        public double LabelDy
+        {
+            get => _labelDy;
+            set { if (_labelDy != value) { _labelDy = value; OnPropertyChanged(); } }
+        }
+
+        private bool _showLabel;
+
+        public bool ShowLabel
+        {
+            get => _showLabel;
+            set { if (_showLabel != value) { _showLabel = value; OnPropertyChanged(); } }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+}
+
+---
+File: Services/DashboardChartService.cs
+using LiveCharts.Defaults;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Data;
+using System.Globalization;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Windows.Media;
+using WPF_LoginForm.Models;
+
+namespace WPF_LoginForm.Services
+{
+    public class DashboardChartService
+    {
+        private readonly Random _random = new Random();
+        private readonly object _randomLock = new object();
+
+        public class ChartResultDto
+        {
+            public List<SeriesDto> Series { get; set; } = new List<SeriesDto>();
+            public List<string> XAxisLabels { get; set; }
+            public bool IsDateAxis { get; set; }
+        }
+
+        public class SeriesDto
+        {
+            public string Title { get; set; }
+            public string FullName { get; set; }
+            public string SeriesType { get; set; }
+            public List<object> Values { get; set; }
+            public List<DashboardDataPoint> Points { get; set; } = new List<DashboardDataPoint>();
+            public List<double> PieValues { get; set; } = new List<double>();
+            public string ColorHex { get; set; }
+            public bool ShowOnlyHoverLabels { get; set; }
+        }
+
+        public static string FormatKiloMega(double value)
+        {
+            return SmartLabelService.FormatKiloMega(value);
+        }
+
+        public ChartResultDto ProcessChartData(DataTable dataTable, DashboardConfiguration config,
+                                               bool isFilterByDate, bool ignoreNonDateData,
+                                               double sliderStart, double sliderEnd, double sliderMax,
+                                               ConcurrentDictionary<(int, string), string> colorMap,
+                                               bool globalIgnoreAfterHyphen,
+                                               bool globalIgnoreNumbers)
+        {
+            var result = new ChartResultDto();
+            if (dataTable == null) return result;
+
+            if (config.RowsToIgnore > 0 && dataTable.Rows.Count > 0)
+            {
+                int rowsToRemove = Math.Min(config.RowsToIgnore, dataTable.Rows.Count);
+                for (int i = 0; i < rowsToRemove; i++) dataTable.Rows.RemoveAt(dataTable.Rows.Count - 1);
+            }
+
+            if (ignoreNonDateData && !string.IsNullOrEmpty(config.DateColumn) && dataTable.Columns.Contains(config.DateColumn))
+            {
+                for (int i = dataTable.Rows.Count - 1; i >= 0; i--)
+                {
+                    if (dataTable.Rows[i][config.DateColumn] == DBNull.Value) dataTable.Rows.RemoveAt(i);
+                }
+            }
+
+            if (config.DataStructureType == "Monthly Date" && dataTable.Rows.Count > 100)
+            {
+                config.DataStructureType = "General";
+            }
+
+            bool isDateBasedChart = config.DataStructureType == "Daily Date" && !string.IsNullOrEmpty(config.DateColumn);
+            if (!isDateBasedChart || !isFilterByDate)
+            {
+                ApplySliderFilter(ref dataTable, sliderStart, sliderEnd, sliderMax);
+            }
+
+            Func<object, double> safeConvertToDouble = (obj) =>
+            {
+                if (obj == null || obj == DBNull.Value) return 0.0;
+                string strVal = obj.ToString().Replace("₺", "").Replace("TL", "").Replace("%", "").Trim();
+                if (string.IsNullOrWhiteSpace(strVal)) return 0.0;
+                int lastComma = strVal.LastIndexOf(',');
+                int lastDot = strVal.LastIndexOf('.');
+                int dotCount = strVal.Count(c => c == '.');
+                if (lastComma > lastDot) strVal = strVal.Replace(".", "").Replace(",", ".");
+                else if (lastDot > lastComma && lastComma != -1) strVal = strVal.Replace(",", "");
+                else if (lastComma != -1 && lastDot == -1) strVal = strVal.Replace(",", ".");
+                else if (lastDot != -1 && lastComma == -1 && dotCount > 1) strVal = strVal.Replace(".", "");
+                double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double res);
+                return res;
+            };
+
+            Func<string, string, string> colorProvider = GetColor;
+
+            string GetColor(string title, string seriesTitle = null)
+            {
+                if (colorMap != null)
+                {
+                    if (colorMap.TryGetValue((config.ChartPosition, title), out string hex)) return hex;
+                    if (seriesTitle != null && colorMap.TryGetValue((config.ChartPosition, seriesTitle), out string seriesHex))
+                    {
+                        return GetColorVariation(seriesHex, title);
+                    }
+                    lock (_randomLock)
+                    {
+                        var color = Color.FromRgb((byte)_random.Next(50, 240), (byte)_random.Next(50, 240), (byte)_random.Next(50, 240));
+                        string newHex = color.ToString();
+                        colorMap.TryAdd((config.ChartPosition, title), newHex);
+                        return newHex;
+                    }
+                }
+                lock (_randomLock)
+                {
+                    return Color.FromRgb((byte)_random.Next(50, 240), (byte)_random.Next(50, 240), (byte)_random.Next(50, 240)).ToString();
+                }
+            }
+
+            string GetColorVariation(string baseHex, string variationKey)
+            {
+                try
+                {
+                    var color = (Color)ColorConverter.ConvertFromString(baseHex);
+                    int hash = variationKey.GetHashCode();
+                    int r = Math.Max(30, Math.Min(225, color.R + (hash % 40)));
+                    int g = Math.Max(30, Math.Min(225, color.G + ((hash >> 8) % 40)));
+                    int b = Math.Max(30, Math.Min(225, color.B + ((hash >> 16) % 40)));
+                    return Color.FromRgb((byte)r, (byte)g, (byte)b).ToString();
+                }
+                catch { return baseHex; }
+            }
+
+            bool isAvg = string.Equals(config.ValueAggregation, "Average", StringComparison.OrdinalIgnoreCase);
+
+            if (string.Equals(config.ChartType, "Pie", StringComparison.OrdinalIgnoreCase))
+            {
+                ProcessPieChart(dataTable, config, result, colorProvider, safeConvertToDouble, globalIgnoreAfterHyphen, globalIgnoreNumbers, isAvg);
+            }
+            else
+            {
+                switch (config.DataStructureType)
+                {
+                    case "Daily Date":
+                        ProcessDailyDateChart(dataTable, config, result, colorProvider, safeConvertToDouble, globalIgnoreAfterHyphen, globalIgnoreNumbers, isAvg);
+                        break;
+                    case "Monthly Date":
+                    case "ID":
+                    case "General":
+                    default:
+                        ProcessPivotCategoricalChart(dataTable, config, result, colorProvider, safeConvertToDouble, globalIgnoreAfterHyphen, globalIgnoreNumbers, isAvg);
+                        break;
+                }
+            }
+
+            return result;
+        }
+
+        private (double YValue, string LabelText, string TooltipHeader, string TooltipLeft, string TooltipRight) EvaluateSeriesForGroup(
+            SeriesConfiguration ser, IEnumerable<DataRow> rows, Func<object, double> numberParser,
+            bool globalIsAvg, string splitCategory, string rawSeriesName, DateTime? xDate, string xCategory, bool isDateAxis, int totalSeriesCount)
+        {
+            if (rows == null || !rows.Any()) return (0.0, "", "", "", "");
+
+            if (ser.IsCombinationLabel && ser.SavedStates != null && ser.ActiveStateIndex >= 0 && ser.SavedStates.Count > ser.ActiveStateIndex)
+            {
+                var state = ser.SavedStates[ser.ActiveStateIndex];
+                if (state == null || state.Nodes == null || !state.Nodes.Any()) return (0.0, "", "", "", "");
+
+                string tHeader = "";
+                string tLeft = "";
+                string tRight = "";
+                double? firstYValue = null;
+
+                foreach (var node in state.Nodes)
+                {
+                    string nodeString = "";
+                    if (node.NodeType == "StaticText") nodeString = node.Value;
+                    else if (node.NodeType == "NewLine") nodeString = "\n";
+                    else if (node.NodeType == "SeriesName")
+                    {
+                        if (totalSeriesCount > 1 && !string.IsNullOrEmpty(splitCategory))
+                        {
+                            if (node.Zone == 2) nodeString = splitCategory;
+                            else if (node.Zone == 3) nodeString = rawSeriesName;
+                            else nodeString = $"{splitCategory} - {rawSeriesName}";
+                        }
+                        else
+                        {
+                            nodeString = (!string.IsNullOrEmpty(splitCategory) ? (totalSeriesCount > 1 ? $"{splitCategory} - {rawSeriesName}" : splitCategory) : rawSeriesName) ?? "";
+                        }
+                    }
+                    else if (node.NodeType == "XAxis")
+                    {
+                        if (isDateAxis && xDate.HasValue)
+                        {
+                            string fmt = string.IsNullOrWhiteSpace(node.Value) ? "MMM yyyy" : node.Value;
+                            nodeString = xDate.Value.ToString(fmt, new CultureInfo("tr-TR"));
+                        }
+                        else nodeString = xCategory ?? "";
+                    }
+                    else if (node.NodeType == "DataColumn")
+                    {
+                        string col = node.Value;
+                        double val = 0;
+                        if (!string.IsNullOrEmpty(col) && rows.First().Table.Columns.Contains(col))
+                        {
+                            bool isNodeAvg = node.Aggregation == "Average" || (globalIsAvg && node.Aggregation != "Sum");
+                            val = isNodeAvg ? rows.Average(r => numberParser(r[col])) : rows.Sum(r => numberParser(r[col]));
+                        }
+                        if (firstYValue == null) firstYValue = val;
+                        nodeString = SmartLabelService.FormatKiloMega(val);
+                    }
+
+                    if (node.Zone == 1) tHeader += nodeString;
+                    else if (node.Zone == 2) tLeft += nodeString;
+                    else tRight += nodeString;
+                }
+
+                string combinedLabel = "";
+                if (!string.IsNullOrWhiteSpace(tHeader)) combinedLabel += tHeader + "\n";
+                if (!string.IsNullOrWhiteSpace(tLeft) || !string.IsNullOrWhiteSpace(tRight))
+                    combinedLabel += $"{tLeft} {tRight}".Trim();
+
+                return (firstYValue ?? 0.0, combinedLabel.Trim(), tHeader.Trim(), tLeft.Trim(), tRight.Trim());
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(ser.ColumnName) || !rows.First().Table.Columns.Contains(ser.ColumnName))
+                    return (0.0, "", "", "", "");
+
+                double val = globalIsAvg ? rows.Average(r => numberParser(r[ser.ColumnName])) : rows.Sum(r => numberParser(r[ser.ColumnName]));
+
+                string defHeader = isDateAxis && xDate.HasValue ? xDate.Value.ToString("dd.MM.yyyy") : (xCategory ?? "");
+                string formattedVal = SmartLabelService.FormatKiloMega(val);
+
+                string defLeft;
+                string defRight;
+
+                if (totalSeriesCount > 1 && !string.IsNullOrEmpty(splitCategory))
+                {
+                    defLeft = splitCategory;
+                    defRight = $"{rawSeriesName} {formattedVal}";
+                }
+                else
+                {
+                    defLeft = !string.IsNullOrEmpty(splitCategory) ? (totalSeriesCount > 1 ? $"{splitCategory} - {rawSeriesName}" : splitCategory) : rawSeriesName;
+                    defRight = formattedVal;
+                }
+
+                string defaultLabel = string.IsNullOrWhiteSpace(defHeader)
+                    ? $"{defLeft} {defRight}".Trim()
+                    : $"{defHeader}\n{defLeft} {defRight}".Trim();
+
+                return (val, defaultLabel, defHeader, defLeft, defRight);
+            }
+        }
+
+        private void ProcessPieChart(DataTable dataTable, DashboardConfiguration config, ChartResultDto result,
+            Func<string, string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreAfterHyphen, bool globalIgnoreNumbers, bool isAvg)
+        {
+            string groupByCol = !string.IsNullOrEmpty(config.SplitByColumn) ? config.SplitByColumn : config.DateColumn;
+
+            if (!string.IsNullOrEmpty(groupByCol) && dataTable.Columns.Contains(groupByCol) && config.Series.Any())
+            {
+                var seriesConfig = config.Series.FirstOrDefault();
+                if (seriesConfig != null)
+                {
+                    bool hasSplit = !string.IsNullOrEmpty(config.SplitByColumn);
+                    List<string> allowedCategories = null;
+
+                    if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Any())
+                        allowedCategories = config.SelectedSplitCategories;
+
+                    var grouped = dataTable.AsEnumerable()
+                        .Where(r => r[groupByCol] != DBNull.Value)
+                        .Select(r => new { RawCategory = FormatCategoryKey(r[groupByCol]), Row = r })
+                        .Where(x => allowedCategories == null || (!allowedCategories.Contains("__NONE__") && allowedCategories.Contains(x.RawCategory)))
+                        .GroupBy(x => x.RawCategory)
+                        .Select(g => new
+                        {
+                            RawCategory = g.Key,
+                            CleanCategory = CleanLabelString(g.Key, config.HideNumbersInLabels || globalIgnoreNumbers, config.SimplifyLabels, globalIgnoreAfterHyphen),
+                            Total = EvaluateSeriesForGroup(seriesConfig, g.Select(x => x.Row), numberParser, isAvg, null, seriesConfig.ColumnName, null, g.Key, false, config.Series.Count).YValue
+                        })
+                        .GroupBy(x => x.CleanCategory)
+                        .Select(g => new
+                        {
+                            Category = g.Key,
+                            OriginalNames = g.Select(x => x.RawCategory).Distinct().ToList(),
+                            Total = g.Sum(x => x.Total)
+                        })
+                        .Where(x => x.Total > 0)
+                        .OrderByDescending(x => x.Total)
+                        .ToList();
+
+                    int maxSlices = 8;
+                    var topItems = grouped.Take(maxSlices).ToList();
+                    var othersSum = grouped.Skip(maxSlices).Sum(x => x.Total);
+
+                    foreach (var g in topItems)
+                    {
+                        string tooltipName = g.OriginalNames.Count > 1 ? $"{g.Category} (Grouped)" : g.OriginalNames.FirstOrDefault() ?? g.Category;
+                        result.Series.Add(new SeriesDto
+                        {
+                            Title = g.Category,
+                            FullName = tooltipName,
+                            SeriesType = "Pie",
+                            Values = new List<object> { g.Total },
+                            PieValues = new List<double> { g.Total },
+                            ColorHex = colorProvider(g.Category, null),
+                            ShowOnlyHoverLabels = !config.ShowLabelsOnChart
+                        });
+                    }
+
+                    if (othersSum > 0)
+                        result.Series.Add(new SeriesDto { Title = "Others", FullName = "Others (Minor Values)", SeriesType = "Pie", Values = new List<object> { othersSum }, PieValues = new List<double> { othersSum }, ColorHex = "#808080" });
+                }
+            }
+            else
+            {
+                foreach (var seriesConfig in config.Series)
+                {
+                    if (!seriesConfig.IsCombinationLabel && (string.IsNullOrEmpty(seriesConfig.ColumnName) || !dataTable.Columns.Contains(seriesConfig.ColumnName))) continue;
+
+                    var evalResult = EvaluateSeriesForGroup(seriesConfig, dataTable.AsEnumerable(), numberParser, isAvg, null, seriesConfig.ColumnName, null, "", false, config.Series.Count);
+                    if (evalResult.YValue <= 0) continue;
+
+                    string rawName = seriesConfig.ColumnName ?? "Series";
+                    string cleanName = CleanLabelString(rawName, config.HideNumbersInLabels, config.SimplifyLabels, globalIgnoreAfterHyphen);
+
+                    result.Series.Add(new SeriesDto
+                    {
+                        Title = cleanName,
+                        FullName = rawName,
+                        SeriesType = "Pie",
+                        Values = new List<object> { evalResult.YValue },
+                        PieValues = new List<double> { evalResult.YValue },
+                        ColorHex = colorProvider(cleanName, null),
+                        ShowOnlyHoverLabels = !config.ShowLabelsOnChart
+                    });
+                }
+            }
+        }
+
+        private void ProcessDailyDateChart(DataTable dt, DashboardConfiguration config, ChartResultDto res,
+            Func<string, string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreHyphen, bool globalIgnoreNumbers, bool isAvg)
+        {
+            if (!dt.Columns.Contains(config.DateColumn)) return;
+
+            var points = dt.AsEnumerable()
+                .Select(r => new { Date = ParseDateSafe(r[config.DateColumn]), Row = r })
+                .Where(p => p.Date != DateTime.MinValue)
+                .ToList();
+
+            if (!points.Any()) return;
+
+            DateTime minDate = points.Min(p => p.Date);
+            DateTime maxDate = points.Max(p => p.Date);
+            double totalDays = (maxDate - minDate).TotalDays;
+
+            string effectiveAgg = config.AggregationType;
+            if (effectiveAgg == "Daily" && totalDays > 90) effectiveAgg = "Weekly";
+            if ((effectiveAgg == "Daily" || effectiveAgg == "Weekly") && totalDays > 365) effectiveAgg = "Monthly";
+
+            IEnumerable<IGrouping<DateTime, dynamic>> groups;
+            if (effectiveAgg == "Weekly") groups = points.GroupBy(p => GetStartOfWeek(p.Date));
+            else if (effectiveAgg == "Monthly") groups = points.GroupBy(p => new DateTime(p.Date.Year, p.Date.Month, 1));
+            else groups = points.GroupBy(p => p.Date.Date);
+
+            var sortedGroups = groups.OrderBy(g => g.Key).ToList();
+
+            bool hasSplit = !string.IsNullOrEmpty(config.SplitByColumn) && dt.Columns.Contains(config.SplitByColumn);
+            List<string> splitCategories = hasSplit
+                ? dt.AsEnumerable().Select(r => FormatCategoryKey(r[config.SplitByColumn])).Distinct().OrderBy(x => x).ToList()
+                : new List<string> { "Default" };
+
+            if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Any(c => c != "__NONE__"))
+                splitCategories = splitCategories.Where(c => config.SelectedSplitCategories.Contains(c)).ToList();
+            else if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Contains("__NONE__"))
+                splitCategories.Clear();
+
+            var cleanSplitGroups = splitCategories.GroupBy(c => CleanLabelString(c, config.HideNumbersInLabels || globalIgnoreNumbers, config.SimplifyLabels, globalIgnoreHyphen)).ToList();
+
+            bool isPriceTrend = string.Equals(config.ChartType, "Price Trend (Line)", StringComparison.OrdinalIgnoreCase);
+            bool isLine = isPriceTrend || config.ChartType == "Line";
+            bool isDailyLine = isLine && effectiveAgg == "Daily";
+
+            if (isDailyLine)
+            {
+                res.IsDateAxis = true;
+
+                if (isPriceTrend && config.Series.Count >= 2)
+                {
+                    string numCol = config.Series[0].ColumnName;
+                    string denCol = config.Series[1].ColumnName;
+                    bool showHoverOnly = config.Series[0].ShowOnlyHoverLabels;
+
+                    foreach (var splitGroup in cleanSplitGroups)
+                    {
+                        var rawValsInGroup = splitGroup.ToList();
+                        string cleanTitle = hasSplit ? splitGroup.Key : "Efficiency Trend";
+
+                        var vals = new List<object>();
+                        var pts = new List<DashboardDataPoint>();
+
+                        foreach (var g in sortedGroups)
+                        {
+                            var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(FormatCategoryKey(x.Row[config.SplitByColumn]))) : g;
+                            if (!filteredRows.Any())
+                            {
+                                vals.Add(new DateTimePoint(g.Key, double.NaN));
+                                pts.Add(new DashboardDataPoint { X = g.Key.Ticks, Y = double.NaN });
+                                continue;
+                            }
+
+                            double numSum = filteredRows.Sum(x => (double)numberParser(x.Row[numCol]));
+                            double denSum = filteredRows.Sum(x => (double)numberParser(x.Row[denCol]));
+                            double avg = denSum != 0 ? numSum / denSum : double.NaN;
+
+                            vals.Add(new DateTimePoint(g.Key, avg));
+
+                            string dateStr = g.Key.ToString("dd.MM.yyyy");
+                            string defaultLabel = $"{dateStr}\n{cleanTitle} {SmartLabelService.FormatKiloMega(avg)}".Trim();
+
+                            pts.Add(new DashboardDataPoint
+                            {
+                                X = g.Key.Ticks,
+                                Y = avg,
+                                Label = defaultLabel,
+                                TooltipHeader = dateStr,
+                                TooltipLeft = cleanTitle,
+                                TooltipRight = SmartLabelService.FormatKiloMega(avg)
+                            });
+                        }
+
+                        if (!hasSplit || vals.Any(v => !double.IsNaN(((DateTimePoint)v).Value) && ((DateTimePoint)v).Value != 0))
+                        {
+                             if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, true, null, "Line");
+                             res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = "Line", Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle, hasSplit ? config.Series[0].ColumnName : null), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
+                        }
+                    }
+                }
+                else if (!isPriceTrend)
+                {
+                    foreach (var ser in config.Series)
+                    {
+                        if (!ser.IsCombinationLabel && (string.IsNullOrEmpty(ser.ColumnName) || !dt.Columns.Contains(ser.ColumnName)))
+                            continue;
+
+                        foreach (var splitGroup in cleanSplitGroups)
+                        {
+                            var rawValsInGroup = splitGroup.ToList();
+                            string rawSerName = ser.ColumnName ?? "Series";
+                            string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {rawSerName}" : splitGroup.Key) : rawSerName;
+
+                            var vals = new List<object>();
+                            var pts = new List<DashboardDataPoint>();
+
+                            foreach (var g in sortedGroups)
+                            {
+                                var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(FormatCategoryKey(x.Row[config.SplitByColumn]))) : g;
+                                if (!filteredRows.Any())
+                                {
+                                    vals.Add(new DateTimePoint(g.Key, double.NaN));
+                                    pts.Add(new DashboardDataPoint { X = g.Key.Ticks, Y = double.NaN, Label = "" });
+                                    continue;
+                                }
+
+                                var evalResult = EvaluateSeriesForGroup(ser, filteredRows.Select(r => (DataRow)r.Row), numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, g.Key, null, true, config.Series.Count * (hasSplit ? splitCategories.Count : 1));
+
+                                vals.Add(new DateTimePoint(g.Key, evalResult.YValue));
+                                pts.Add(new DashboardDataPoint
+                                {
+                                    X = g.Key.Ticks,
+                                    Y = evalResult.YValue,
+                                    Label = evalResult.LabelText,
+                                    TooltipHeader = evalResult.TooltipHeader,
+                                    TooltipLeft = evalResult.TooltipLeft,
+                                    TooltipRight = evalResult.TooltipRight
+                                });
+                            }
+
+                            if (!hasSplit || vals.Any(v => !double.IsNaN(((DateTimePoint)v).Value) && ((DateTimePoint)v).Value != 0))
+                            {
+                                if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, true, null, "Line");
+                                res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = "Line", Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle, hasSplit ? rawSerName : null), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                res.IsDateAxis = false;
+                res.XAxisLabels = sortedGroups.Select(g =>
+                {
+                    if (effectiveAgg == "Monthly") return g.Key.ToString("MMM yyyy", new CultureInfo("tr-TR"));
+                    if (effectiveAgg == "Weekly") return g.Key.ToString("dd.MM.yyyy") + " (Wk)";
+                    return g.Key.ToString("dd.MM.yyyy");
+                }).ToList();
+
+                string sType = isLine ? "Line" : "Bar";
+
+                if (isPriceTrend && config.Series.Count >= 2)
+                {
+                    string numCol = config.Series[0].ColumnName;
+                    string denCol = config.Series[1].ColumnName;
+                    bool showHoverOnly = config.Series[0].ShowOnlyHoverLabels;
+
+                    foreach (var splitGroup in cleanSplitGroups)
+                    {
+                        var rawValsInGroup = splitGroup.ToList();
+                        string cleanTitle = hasSplit ? splitGroup.Key : "Efficiency Trend";
+
+                        var vals = new List<object>();
+                        var pts = new List<DashboardDataPoint>();
+                        int idx = 0;
+
+                        foreach (var g in sortedGroups)
+                        {
+                            var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(FormatCategoryKey(x.Row[config.SplitByColumn]))) : g;
+                            if (!filteredRows.Any())
+                            {
+                                vals.Add(double.NaN);
+                                pts.Add(new DashboardDataPoint { X = idx, Y = double.NaN });
+                                idx++;
+                                continue;
+                            }
+
+                            double numSum = filteredRows.Sum(x => (double)numberParser(x.Row[numCol]));
+                            double denSum = filteredRows.Sum(x => (double)numberParser(x.Row[denCol]));
+                            double val = denSum != 0 ? numSum / denSum : double.NaN;
+
+                            vals.Add(val);
+
+                            string dateStr = res.XAxisLabels[idx];
+                            string defaultLabel = $"{dateStr}\n{cleanTitle} {SmartLabelService.FormatKiloMega(val)}".Trim();
+
+                            pts.Add(new DashboardDataPoint
+                            {
+                                X = idx,
+                                Y = val,
+                                Label = defaultLabel,
+                                TooltipHeader = dateStr,
+                                TooltipLeft = cleanTitle,
+                                TooltipRight = SmartLabelService.FormatKiloMega(val)
+                            });
+                            idx++;
+                        }
+
+                        if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v != 0))
+                        {
+                            if (pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, sType);
+                            res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = sType, Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle, hasSplit ? (isPriceTrend ? config.Series[0].ColumnName : null) : null), ShowOnlyHoverLabels = showHoverOnly });
+                        }
+                    }
+                }
+                else if (!isPriceTrend)
+                {
+                    foreach (var ser in config.Series)
+                    {
+                        if (!ser.IsCombinationLabel && (string.IsNullOrEmpty(ser.ColumnName) || !dt.Columns.Contains(ser.ColumnName)))
+                            continue;
+
+                        foreach (var splitGroup in cleanSplitGroups)
+                        {
+                            var rawValsInGroup = splitGroup.ToList();
+                            string rawSerName = ser.ColumnName ?? "Series";
+                            string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {rawSerName}" : splitGroup.Key) : rawSerName;
+
+                            var vals = new List<object>();
+                            var pts = new List<DashboardDataPoint>();
+                            int idx = 0;
+
+                            foreach (var g in sortedGroups)
+                            {
+                                var filteredRows = hasSplit ? g.Where(x => rawValsInGroup.Contains(FormatCategoryKey(x.Row[config.SplitByColumn]))) : g;
+                                if (!filteredRows.Any())
+                                {
+                                    vals.Add(double.NaN);
+                                    pts.Add(new DashboardDataPoint { X = idx, Y = double.NaN, Label = "" });
+                                    idx++;
+                                    continue;
+                                }
+
+                                var evalResult = EvaluateSeriesForGroup(ser, filteredRows.Select(r => (DataRow)r.Row), numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, null, res.XAxisLabels[idx], false, config.Series.Count * (hasSplit ? splitCategories.Count : 1));
+
+                                vals.Add(evalResult.YValue);
+                                pts.Add(new DashboardDataPoint
+                                {
+                                    X = idx,
+                                    Y = evalResult.YValue,
+                                    Label = evalResult.LabelText,
+                                    TooltipHeader = evalResult.TooltipHeader,
+                                    TooltipLeft = evalResult.TooltipLeft,
+                                    TooltipRight = evalResult.TooltipRight
+                                });
+                                idx++;
+                            }
+
+                            if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v != 0))
+                            {
+                                if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, sType);
+                                res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = sType, Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle, hasSplit ? rawSerName : null), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void ProcessPivotCategoricalChart(DataTable dt, DashboardConfiguration config, ChartResultDto res,
+            Func<string, string, string> colorProvider, Func<object, double> numberParser, bool globalIgnoreHyphen, bool globalIgnoreNumbers, bool isAvg)
+        {
+            if (!dt.Columns.Contains(config.DateColumn)) return;
+
+            var grouped = dt.AsEnumerable()
+                .Select(r => new
+                {
+                    RawVal = r[config.DateColumn],
+                    FormattedKey = FormatCategoryKey(r[config.DateColumn]),
+                    CleanKey = CleanLabelString(FormatCategoryKey(r[config.DateColumn]), config.HideNumbersInLabels || globalIgnoreNumbers, config.SimplifyLabels, globalIgnoreHyphen),
+                    Row = r
+                })
+                .GroupBy(x => x.CleanKey)
+                .Select(g => new
+                {
+                    Key = g.Key,
+                    SortDate = ParseDateSafe(g.First().RawVal),
+                    IsDate = ParseDateSafe(g.First().RawVal) != DateTime.MinValue,
+                    PrimarySum = config.Series.Any()
+                                 ? EvaluateSeriesForGroup(config.Series.First(), g.Select(x => x.Row), numberParser, isAvg, null, config.Series.First().ColumnName, null, g.Key, false, config.Series.Count).YValue
+                                 : 0,
+                    Rows = g.Select(x => x.Row).ToList()
+                })
+                .OrderBy(g => g.IsDate ? g.SortDate.Ticks : 0)
+                .ThenByDescending(g => !g.IsDate ? Math.Abs(g.PrimarySum) : 0)
+                .ToList();
+
+            int topN = 30;
+            var topGroups = grouped.Take(topN).ToList();
+
+            res.XAxisLabels = topGroups.Select(g => g.Key).ToList();
+            res.IsDateAxis = false;
+
+            bool hasSplit = !string.IsNullOrEmpty(config.SplitByColumn) && dt.Columns.Contains(config.SplitByColumn);
+            List<string> splitCategories = hasSplit
+                ? dt.AsEnumerable().Select(r => FormatCategoryKey(r[config.SplitByColumn])).Distinct().OrderBy(x => x).ToList()
+                : new List<string> { "Default" };
+
+            if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Any(c => c != "__NONE__"))
+                splitCategories = splitCategories.Where(c => config.SelectedSplitCategories.Contains(c)).ToList();
+            else if (hasSplit && config.SelectedSplitCategories != null && config.SelectedSplitCategories.Contains("__NONE__"))
+                splitCategories.Clear();
+
+            var cleanSplitGroups = splitCategories.GroupBy(c => CleanLabelString(c, config.HideNumbersInLabels || globalIgnoreNumbers, config.SimplifyLabels, globalIgnoreHyphen)).ToList();
+
+            bool isPriceTrend = string.Equals(config.ChartType, "Price Trend (Line)", StringComparison.OrdinalIgnoreCase);
+            string baseChartType = isPriceTrend ? "Line" : config.ChartType;
+
+            if (isPriceTrend && config.Series.Count >= 2)
+            {
+                string numCol = config.Series[0].ColumnName;
+                string denCol = config.Series[1].ColumnName;
+                bool showHoverOnly = config.Series[0].ShowOnlyHoverLabels;
+
+                foreach (var splitGroup in cleanSplitGroups)
+                {
+                    var rawValsInGroup = splitGroup.ToList();
+                    string cleanTitle = hasSplit ? splitGroup.Key : "Efficiency Trend";
+
+                    var vals = new List<object>();
+                    var pts = new List<DashboardDataPoint>();
+                    int idx = 0;
+
+                    foreach (var g in topGroups)
+                    {
+                        var rows = hasSplit ? g.Rows.Where(r => rawValsInGroup.Contains(FormatCategoryKey(r[config.SplitByColumn]))) : g.Rows;
+                        if (!rows.Any())
+                        {
+                            vals.Add(double.NaN);
+                            pts.Add(new DashboardDataPoint { X = idx, Y = double.NaN });
+                            idx++;
+                            continue;
+                        }
+
+                        double numSum = rows.Sum(r => numberParser(r[numCol]));
+                        double denSum = rows.Sum(r => numberParser(r[denCol]));
+                        double val = denSum != 0 ? numSum / denSum : double.NaN;
+
+                        vals.Add(val);
+
+                        string catStr = res.XAxisLabels[idx];
+                        string defaultLabel = $"{catStr}\n{cleanTitle} {SmartLabelService.FormatKiloMega(val)}".Trim();
+
+                        pts.Add(new DashboardDataPoint
+                        {
+                            X = idx,
+                            Y = val,
+                            Label = defaultLabel,
+                            TooltipHeader = catStr,
+                            TooltipLeft = cleanTitle,
+                            TooltipRight = SmartLabelService.FormatKiloMega(val)
+                        });
+                        idx++;
+                    }
+
+                    if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v != 0))
+                    {
+                        if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, "Line");
+                        res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = "Line", Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle, hasSplit ? config.Series[0].ColumnName : null), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
+                    }
+                }
+            }
+            else if (!isPriceTrend)
+            {
+                foreach (var ser in config.Series)
+                {
+                    if (!ser.IsCombinationLabel && (string.IsNullOrEmpty(ser.ColumnName) || !dt.Columns.Contains(ser.ColumnName)))
+                        continue;
+
+                    foreach (var splitGroup in cleanSplitGroups)
+                    {
+                        var rawValsInGroup = splitGroup.ToList();
+                        string rawSerName = ser.ColumnName ?? "Series";
+                        string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {rawSerName}" : splitGroup.Key) : rawSerName;
+
+                        var vals = new List<object>();
+                        var pts = new List<DashboardDataPoint>();
+                        int idx = 0;
+
+                        foreach (var g in topGroups)
+                        {
+                            var rows = hasSplit ? g.Rows.Where(r => rawValsInGroup.Contains(FormatCategoryKey(r[config.SplitByColumn]))) : g.Rows;
+                            if (!rows.Any())
+                            {
+                                vals.Add(double.NaN);
+                                pts.Add(new DashboardDataPoint { X = idx, Y = double.NaN, Label = "" });
+                                idx++;
+                                continue;
+                            }
+
+                                var evalResult = EvaluateSeriesForGroup(ser, rows, numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, null, res.XAxisLabels[idx], false, config.Series.Count * (hasSplit ? splitCategories.Count : 1));
+
+                                vals.Add(evalResult.YValue);
+                                pts.Add(new DashboardDataPoint
+                                {
+                                    X = idx,
+                                    Y = evalResult.YValue,
+                                    Label = evalResult.LabelText,
+                                    TooltipHeader = evalResult.TooltipHeader,
+                                    TooltipLeft = evalResult.TooltipLeft,
+                                    TooltipRight = evalResult.TooltipRight
+                                });
+                            idx++;
+                        }
+
+                        if (!hasSplit || vals.Any(v => !double.IsNaN((double)v) && (double)v != 0))
+                        {
+                            if (config.ShowLabelsOnChart && pts.Count <= 35) SmartLabelService.ApplyLabels(pts, false, res.XAxisLabels, baseChartType);
+                            res.Series.Add(new SeriesDto { Title = cleanTitle, FullName = cleanTitle, SeriesType = baseChartType, Values = vals, Points = pts, ColorHex = colorProvider(cleanTitle, hasSplit ? rawSerName : null), ShowOnlyHoverLabels = !config.ShowLabelsOnChart });
+                        }
+                    }
+                }
+            }
+        }
+
+        private string CleanLabelString(string original, bool hideNumbers, bool simplify, bool ignoreAfterHyphen)
+        {
+            if (string.IsNullOrWhiteSpace(original)) return "NA";
+            string s = original;
+            if (ignoreAfterHyphen && s.Contains("-")) s = s.Split('-')[0];
+            if (hideNumbers) s = Regex.Replace(s, @"\d+", "");
+            s = s.Replace("_", " ").Replace("-", " ").Trim();
+            s = Regex.Replace(s, @"\s+", " ");
+            if (simplify) s = s.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? s;
+            return string.IsNullOrWhiteSpace(s) ? "NA" : s.Trim();
+        }
+
+        private void ApplySliderFilter(ref DataTable dt, double start, double end, double max)
+        {
+            if (max <= 0) return;
+            double ratioStart = start / max; double ratioEnd = end / max;
+            int totalRows = dt.Rows.Count; if (totalRows == 0) return;
+            int startIndex = (int)(totalRows * ratioStart); int endIndex = (int)(totalRows * ratioEnd);
+            if (startIndex < 0) startIndex = 0; if (endIndex >= totalRows) endIndex = totalRows - 1;
+            if (startIndex > endIndex) startIndex = endIndex;
+            var rowsToKeep = new List<DataRow>();
+            for (int i = startIndex; i <= endIndex; i++) rowsToKeep.Add(dt.Rows[i]);
+            DataTable filtered = dt.Clone();
+            foreach (var r in rowsToKeep) filtered.ImportRow(r);
+            dt = filtered;
+        }
+
+        private string FormatCategoryKey(object val)
+        {
+            if (val == null || val == DBNull.Value) return "NA";
+            if (val is DateTime dt) return dt.ToString("dd.MM.yyyy");
+            string str = val.ToString().Trim();
+            if (DateTime.TryParse(str, out DateTime parsed)) return parsed.ToString("dd.MM.yyyy");
+            return string.IsNullOrEmpty(str) ? "NA" : str;
+        }
+
+        private DateTime ParseDateSafe(object obj)
+        {
+            if (obj == null || obj == DBNull.Value) return DateTime.MinValue;
+            if (obj is DateTime d) return d;
+            if (DateTime.TryParse(obj.ToString(), out DateTime parsed)) return parsed;
+            return DateTime.MinValue;
+        }
+
+        private DateTime GetStartOfWeek(DateTime dt) => dt.AddDays(-1 * ((7 + (dt.DayOfWeek - DayOfWeek.Monday)) % 7)).Date;
+    }
+}
+
+---
+File: Services/SmartLabelService.cs
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using WPF_LoginForm.Models;
+
+namespace WPF_LoginForm.Services
+{
+    public static class SmartLabelService
+    {
+        public static class Config
+        {
+            public static double PeakGapY = 6;
+            public static double ValleyGapY = 10;
+            public static double DefaultTopGapY = 6;
+            public static double DefaultBottomGapY = 10;
+            public static double PeakOffsetX = 0;
+            public static double PeakOffsetY = 0;
+            public static double ValleyOffsetX = 0;
+            public static double ValleyOffsetY = 0;
+            public static double GapX = 8;
+            public static double FarGapY_Add = 20;
+            public static double FarGapX_Add = 15;
+            public static double DiagonalSnugY = 4;
+            public static double DiagonalSnugX = 4;
+            public static double FirstLabelOffsetX = 0;
+            public static double FirstLabelOffsetY = 0;
+            public static double CharWidth = 7.0;
+            public static double BoxPaddingX = 16;
+            public static double BoxHeight = 36;
+            public static double CollisionPadX = 2;
+            public static double CollisionPadY = 2;
+            public static double SteepSlope = 0.08;
+            public static double FlatSlope = 0.06;
+            public static double VirtualWidthPerPoint = 100.0;
+            public static double VirtualHeight = 450.0;
+            public static double BarLabelGapY = 10.0;
+        }
+
+        private enum Dir
+        {
+            N, S, E, W, NE, NW, SE, SW,
+            N_Up5, N_Up7, N_Up10, S_Down5, S_Down7, S_Down10,
+            Far_N, Far_S, Far_NE, Far_NW, Far_SE, Far_SW, Far_E, Far_W
+        }
+
+        private class Rect
+        {
+            public double X, Y, W, H;
+            public Rect(double x, double y, double w, double h)
+            { X = x; Y = y; W = w; H = h; }
+            public bool Intersects(Rect o)
+            {
+                return X - Config.CollisionPadX < o.X + o.W && X + W + Config.CollisionPadX > o.X &&
+                       Y - Config.CollisionPadY < o.Y + o.H && Y + H + Config.CollisionPadY > o.Y;
+            }
+        }
+
+        private class LabelPlacement
+        {
+            public int Index { get; set; }
+            public Rect Bounds { get; set; }
+            public double Dx { get; set; }
+            public double Dy { get; set; }
+            public bool Show { get; set; }
+            public Dir DirUsed { get; set; }
+        }
+
+        public static void ApplyLabels(List<DashboardDataPoint> points, bool isDateAxis, List<string> xAxisLabels, string seriesType)
+        {
+            if (points == null || points.Count == 0) return;
+
+            if (string.Equals(seriesType, "Bar", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(seriesType, "Column", StringComparison.OrdinalIgnoreCase))
+            {
+                int count = points.Count;
+                if (count <= 6)
+                {
+                    foreach (var p in points) { if (p != null) p.ShowLabel = false; }
+                    return;
+                }
+
+                int maxIdx = 0; int minIdx = 0;
+                double maxVal = double.MinValue; double minVal = double.MaxValue;
+
+                for (int i = 0; i < count; i++)
+                {
+                    var p = points[i];
+                    if (p == null) continue;
+                    double val = p.Y;
+                    if (val > maxVal) { maxVal = val; maxIdx = i; }
+                    if (val < minVal) { minVal = val; minIdx = i; }
+                }
+
+                HashSet<int> indicesToLabel = new HashSet<int> { 0, count - 1, maxIdx, minIdx };
+
+                for (int i = 0; i < count; i++)
+                {
+                    var p = points[i];
+                    if (p == null) continue;
+
+                    if (indicesToLabel.Contains(i) && p.Y != 0)
+                    {
+                        if (string.IsNullOrEmpty(p.Label))
+                        {
+                            p.Label = FormatKiloMega(p.Y);
+                        }
+                        double w = (p.Label.Length * Config.CharWidth) + Config.BoxPaddingX;
+                        p.LabelDx = -w / 2.0;
+                        p.LabelDy = -Config.BoxHeight - Config.BarLabelGapY;
+                        p.ShowLabel = true;
+                        p.HasLeaderLine = false;
+                    }
+                    else
+                    {
+                        p.ShowLabel = false;
+                    }
+                }
+                return;
+            }
+
+            // (remaining line label collision logic omitted for brevity - 400+ lines of label placement algorithm)
+            // Full implementation handles N/S/E/W/NW/NE/SW/SE label placement with collision avoidance
+        }
+
+        private static bool LineIntersectsRect(double x1, double y1, double x2, double y2, Rect r)
+        {
+            return LineIntersectsLine(x1, y1, x2, y2, r.X, r.Y, r.X + r.W, r.Y) ||
+                   LineIntersectsLine(x1, y1, x2, y2, r.X + r.W, r.Y, r.X + r.W, r.Y + r.H) ||
+                   LineIntersectsLine(x1, y1, x2, y2, r.X + r.W, r.Y + r.H, r.X, r.Y + r.H) ||
+                   LineIntersectsLine(x1, y1, x2, y2, r.X, r.Y + r.H, r.X, r.Y) ||
+                   (r.X < x1 && x1 < r.X + r.W && r.Y < y1 && y1 < r.Y + r.H) ||
+                   (r.X < x2 && x2 < r.X + r.W && r.Y < y2 && y2 < r.Y + r.H);
+        }
+
+        private static bool LineIntersectsLine(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4)
+        {
+            double den = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+            if (den == 0) return false;
+            double ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / den;
+            double ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / den;
+            return (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1);
+        }
+
+        public static string FormatKiloMega(double value)
+        {
+            double abs = Math.Abs(value);
+            if (abs >= 1_000_000) return (value / 1_000_000D).ToString("0.##") + "M";
+            if (abs >= 10_000) return (value / 1_000D).ToString("0.##") + "K";
+            if (value % 1 == 0) return value.ToString("N0");
+            return value.ToString("N2");
+        }
+    }
+}
+
+---
+File: ViewModels/ViewModelBase.cs
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
+namespace WPF_LoginForm.ViewModels
+{
+    public abstract class ViewModelBase : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
+        {
+            if (EqualityComparer<T>.Default.Equals(storage, value))
+                return false;
+
+            storage = value;
+            OnPropertyChanged(propertyName);
+            return true;
+        }
+    }
+}
+
+---
+File: ViewModels/HomeViewModel.cs
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Data;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
+using LiveCharts;
+using LiveCharts.Configurations;
+using LiveCharts.Defaults;
+using LiveCharts.Wpf;
+using Microsoft.Win32;
+using Newtonsoft.Json;
+using WPF_LoginForm.Models;
+using WPF_LoginForm.Properties;
+using WPF_LoginForm.Repositories;
+using WPF_LoginForm.Services;
+
+namespace WPF_LoginForm.ViewModels
+{
+    public class KpiModel : ViewModelBase
+    {
+        public string Title { get; set; }
+        public string Value { get; set; }
+        public string ColorHex { get; set; }
+        public string TrendIcon { get; set; }
+        public string TrendColor { get; set; }
+    }
+
+    public class TickOption
+    {
+        public string Label { get; set; }
+        public int Value { get; set; }
+    }
+
+    public class HomeViewModel : ViewModelBase
+    {
+        private readonly IDataRepository _dataRepository;
+        private readonly IDialogService _dialogService;
+        private readonly ILogger _logger;
+        private readonly DashboardStorageService _storageService;
+        private readonly DashboardChartService _chartService;
+        private readonly DataTemplate _smartLabelTemplate;
+
+        private List<DashboardConfiguration> _dashboardConfigurations;
+        public List<DashboardConfiguration> DashboardConfigs => _dashboardConfigurations;
+
+        private bool _isSyncing = false;
+        private DateTime _minSliderDate;
+        private DateTime _maxSliderDate;
+        private bool _isActive = false;
+        private CancellationTokenSource _cts;
+        private CancellationTokenSource _fileLoadCts;
+        private ConcurrentDictionary<string, double> _kpiTotals;
+        private ConcurrentDictionary<string, double> _kpiPrevTotals;
+        private ConcurrentDictionary<(int, string), string> _colorMap = new ConcurrentDictionary<(int, string), string>();
+        public ConcurrentDictionary<(int, string), string> ColorMap => _colorMap;
+        private string _currentLoadedFilePath;
+
+        public Action<int, DashboardConfiguration> OpenChartDetailAction { get; set; }
+        public Action ReturnToPortalAction { get; set; }
+        public ICommand GoBackCommand { get; }
+        public ICommand CopyImageCommand { get; }
+        public ICommand ExportChartDataCommand { get; }
+
+        private bool _showMaximizeButtons;
+        public bool ShowMaximizeButtons { get => _showMaximizeButtons; set => SetProperty(ref _showMaximizeButtons, value); }
+
+        private int _maximizedChartIndex = 0;
+        public int MaximizedChartIndex
+        {
+            get => _maximizedChartIndex;
+            set
+            {
+                if (SetProperty(ref _maximizedChartIndex, value))
+                {
+                    OnPropertyChanged(nameof(IsAnyChartMaximized));
+                    OnPropertyChanged(nameof(IsChart4Maximized));
+                    OnPropertyChanged(nameof(IsChart6Maximized));
+                    UpdatePieHoverable();
+                }
+            }
+        }
+
+        public bool IsAnyChartMaximized => MaximizedChartIndex > 0;
+        public bool IsChart4Maximized => MaximizedChartIndex == 4;
+        public bool IsChart6Maximized => MaximizedChartIndex == 6;
+
+        public ICommand MaximizeChartCommand { get; }
+        public ICommand CloseMaximizeCommand { get; }
+
+        private bool _isSecondPageActive;
+        public bool IsSecondPageActive { get => _isSecondPageActive; set => SetProperty(ref _isSecondPageActive, value); }
+
+        public ObservableCollection<string> ErrorCategories { get; set; } = new ObservableCollection<string>();
+        public ObservableCollection<string> DashboardFiles { get; } = new ObservableCollection<string>();
+        public ObservableCollection<KpiModel> KpiCards { get; } = new ObservableCollection<KpiModel>();
+        public List<TickOption> TickOptions { get; } = new List<TickOption>();
+
+        // ... (full slider/date/UI state properties - 200+ lines)
+
+        private SeriesCollection _chart1Series = new SeriesCollection(); public SeriesCollection Chart1Series { get => _chart1Series; set => SetProperty(ref _chart1Series, value); }
+        private SeriesCollection _chart2Series = new SeriesCollection(); public SeriesCollection Chart2Series { get => _chart2Series; set => SetProperty(ref _chart2Series, value); }
+        private SeriesCollection _chart3Series = new SeriesCollection(); public SeriesCollection Chart3Series { get => _chart3Series; set => SetProperty(ref _chart3Series, value); }
+        private SeriesCollection _chart4Series = new SeriesCollection(); public SeriesCollection Chart4Series { get => _chart4Series; set => SetProperty(ref _chart4Series, value); }
+        private SeriesCollection _chart5Series = new SeriesCollection(); public SeriesCollection Chart5Series { get => _chart5Series; set => SetProperty(ref _chart5Series, value); }
+        private SeriesCollection _chart6Series = new SeriesCollection(); public SeriesCollection Chart6Series { get => _chart6Series; set => SetProperty(ref _chart6Series, value); }
+
+        private AxesCollection _chart1X = new AxesCollection { new Axis() }; public AxesCollection Chart1X { get => _chart1X; set => SetProperty(ref _chart1X, value); }
+        private AxesCollection _chart1Y = new AxesCollection { new Axis() }; public AxesCollection Chart1Y { get => _chart1Y; set => SetProperty(ref _chart1Y, value); }
+        private AxesCollection _chart2X = new AxesCollection { new Axis() }; public AxesCollection Chart2X { get => _chart2X; set => SetProperty(ref _chart2X, value); }
+        private AxesCollection _chart2Y = new AxesCollection { new Axis() }; public AxesCollection Chart2Y { get => _chart2Y; set => SetProperty(ref _chart2Y, value); }
+        private AxesCollection _chart3X = new AxesCollection { new Axis() }; public AxesCollection Chart3X { get => _chart3X; set => SetProperty(ref _chart3X, value); }
+        private AxesCollection _chart3Y = new AxesCollection { new Axis() }; public AxesCollection Chart3Y { get => _chart3Y; set => SetProperty(ref _chart3Y, value); }
+        private AxesCollection _chart5X = new AxesCollection { new Axis() }; public AxesCollection Chart5X { get => _chart5X; set => SetProperty(ref _chart5X, value); }
+        private AxesCollection _chart5Y = new AxesCollection { new Axis() }; public AxesCollection Chart5Y { get => _chart5Y; set => SetProperty(ref _chart5Y, value); }
+
+        public Func<double, string> DateFormatter { get; }
+        public Func<double, string> NumberFormatter { get; set; }
+
+        // KEY METHOD: Applies chart result to LiveCharts UI
+        private void ApplyChartResultToUI(int position, DashboardChartService.ChartResultDto result)
+        {
+            if (result == null || result.Series == null) return;
+
+            var newSeries = new SeriesCollection();
+            var axisColor = Brushes.WhiteSmoke;
+            var xyMapper = Mappers.Xy<DashboardDataPoint>().X(p => p != null ? p.X : 0).Y(p => p != null ? p.Y : 0);
+
+            foreach (var s in result.Series)
+            {
+                if (s == null) continue;
+                Brush colorBrush = (Brush)new BrushConverter().ConvertFrom(s.ColorHex);
+
+                if (s.SeriesType == "Pie")
+                {
+                    // Pie series creation with LabelPoint
+                    string hoverName = string.IsNullOrEmpty(s.FullName) ? s.Title : s.FullName;
+                    var pieMapper = Mappers.Pie<DashboardDataPoint>().Value(p => p.Y);
+                    var pieCv = new ChartValues<DashboardDataPoint>
+                    {
+                        new DashboardDataPoint
+                        {
+                            Y = s.PieValues.FirstOrDefault(),
+                            TooltipHeader = hoverName,
+                            TooltipLeft = "Total:",
+                            TooltipRight = DashboardChartService.FormatKiloMega(s.PieValues.FirstOrDefault())
+                        }
+                    };
+                    newSeries.Add(new PieSeries
+                    {
+                        Title = s.Title,
+                        Values = pieCv,
+                        Configuration = pieMapper,
+                        DataLabels = false,
+                        LabelPoint = p => $"{hoverName}\n{DashboardChartService.FormatKiloMega(p.Y)} ({p.Participation:P0})",
+                        Fill = colorBrush
+                    });
+                }
+                else
+                {
+                    var cv = new ChartValues<DashboardDataPoint>();
+                    if (s.Points != null) foreach (var pt in s.Points) cv.Add(pt);
+
+                    bool isSmall = cv.Count <= 35;
+                    bool showLabels = isSmall && !s.ShowOnlyHoverLabels;
+
+                    if (s.SeriesType == "Line")
+                    {
+                        newSeries.Add(new LineSeries
+                        {
+                            Title = s.Title,
+                            Values = cv,
+                            Configuration = xyMapper,
+                            PointGeometry = DefaultGeometries.Circle,
+                            PointGeometrySize = 9,
+                            StrokeThickness = 2.5,
+                            Stroke = colorBrush,
+                            Fill = Brushes.Transparent,
+                            DataLabels = showLabels,
+                            Foreground = Brushes.WhiteSmoke,
+                            LabelPoint = p =>
+                            {
+                                if (p == null) return "";
+                                var ddp = p.Instance as DashboardDataPoint;
+                                return (ddp != null && !string.IsNullOrEmpty(ddp.Label)) ? ddp.Label : DashboardChartService.FormatKiloMega(p.Y);
+                            },
+                            DataLabelsTemplate = _smartLabelTemplate
+                        });
+                    }
+                    else
+                    {
+                        newSeries.Add(new ColumnSeries
+                        {
+                            Title = s.Title,
+                            Values = cv,
+                            Configuration = xyMapper,
+                            Fill = colorBrush,
+                            DataLabels = showLabels,
+                            Foreground = Brushes.WhiteSmoke,
+                            LabelPoint = p =>
+                            {
+                                if (p == null) return "";
+                                var ddp = p.Instance as DashboardDataPoint;
+                                return (ddp != null && !string.IsNullOrEmpty(ddp.Label)) ? ddp.Label : DashboardChartService.FormatKiloMega(p.Y);
+                            },
+                            DataLabelsTemplate = _smartLabelTemplate
+                        });
+                    }
+                }
+            }
+
+            // Create axes
+            var newX = new AxesCollection();
+            var newY = new AxesCollection();
+
+            if (result.Series.Any(x => x.SeriesType != "Pie"))
+            {
+                // Calculate min/max values and build Y axis
+                double minVal = double.MaxValue, maxVal = double.MinValue;
+                // ... axis calculation logic ...
+
+                var yAxis = new Axis { Title = "Values", LabelFormatter = NumberFormatter, Foreground = axisColor, FontSize = 12 };
+                // ... axis range calculation ...
+
+                var xAxis = new Axis { Foreground = axisColor, Separator = new LiveCharts.Wpf.Separator { StrokeThickness = 0, Stroke = Brushes.Transparent } };
+
+                if (result.IsDateAxis)
+                {
+                    xAxis.LabelFormatter = DateFormatter;
+                    xAxis.Labels = null;
+                }
+                else
+                {
+                    xAxis.LabelFormatter = null;
+                    xAxis.Labels = result.XAxisLabels;
+                }
+
+                newY.Add(yAxis);
+                newX.Add(xAxis);
+            }
+            else
+            {
+                newX.Add(new Axis());
+                newY.Add(new Axis());
+            }
+
+            SetSeriesCollection(position, newSeries);
+            SetXAxes(position, newX);
+            SetYAxes(position, newY);
+        }
+
+        private void UpdatePieHoverable()
+        {
+            OnPropertyChanged(nameof(IsChart4Maximized));
+            OnPropertyChanged(nameof(IsChart6Maximized));
+        }
+
+        private void SetSeriesCollection(int pos, SeriesCollection collection)
+        {
+            switch (pos) { case 1: Chart1Series = collection; break; case 2: Chart2Series = collection; break; case 3: Chart3Series = collection; break; case 4: Chart4Series = collection; break; case 5: Chart5Series = collection; break; case 6: Chart6Series = collection; break; }
+        }
+
+        private void SetXAxes(int pos, AxesCollection ax)
+        {
+            switch (pos) { case 1: Chart1X = ax; break; case 2: Chart2X = ax; break; case 3: Chart3X = ax; break; case 5: Chart5X = ax; break; }
+        }
+
+        private void SetYAxes(int pos, AxesCollection ax)
+        {
+            switch (pos) { case 1: Chart1Y = ax; break; case 2: Chart2Y = ax; break; case 3: Chart3Y = ax; break; case 5: Chart5Y = ax; break; }
+        }
+    }
+}
+
+---
+File: ViewModels/ConfigurationViewModel.cs
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Data;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using WPF_LoginForm.Models;
+using WPF_LoginForm.Repositories;
+
+namespace WPF_LoginForm.ViewModels
+{
+    public class ConfigurationViewModel : ViewModelBase
+    {
+        private readonly IDataRepository _dataRepository;
+        private DashboardConfigurationViewModel _currentConfiguration;
+        private bool _isInitializing = true;
+
+        public ObservableCollection<DashboardConfigurationViewModel> ChartConfigurations { get; }
+        public List<string> AvailableTables { get; private set; }
+        public List<string> AvailableColumns { get; private set; }
+
+        public Action CloseAction { get; set; }
+        public Action<SeriesConfiguration, List<string>> OpenNodeEditorAction { get; set; }
+
+        public bool WasApplied { get; private set; }
+        public bool IsConfigurationVisible => CurrentConfiguration != null;
+        public ICommand ApplyCommand { get; }
+
+        public DashboardConfigurationViewModel CurrentConfiguration
+        {
+            get => _currentConfiguration;
+            set
+            {
+                if (SetProperty(ref _currentConfiguration, value))
+                {
+                    OnPropertyChanged(nameof(IsConfigurationVisible));
+                    if (_currentConfiguration != null && !_isInitializing)
+                    {
+                        _ = LoadColumnsForTable(_currentConfiguration.TableName);
+                    }
+                }
+            }
+        }
+
+        public ConfigurationViewModel(IDataRepository dataRepository)
+        {
+            _dataRepository = dataRepository;
+            ChartConfigurations = new ObservableCollection<DashboardConfigurationViewModel>();
+            ApplyCommand = new ViewModelCommand(ExecuteApply);
+        }
+
+        public async Task InitializeAsync()
+        {
+            await LoadTables();
+            _isInitializing = false;
+        }
+
+        public void LoadConfigurations(List<DashboardConfiguration> configs)
+        {
+            ChartConfigurations.Clear();
+            var existingConfigs = configs ?? new List<DashboardConfiguration>();
+
+            for (int i = 1; i <= 6; i++)
+            {
+                var configForSlot = existingConfigs.FirstOrDefault(c => c.ChartPosition == i)
+                                 ?? new DashboardConfiguration { ChartPosition = i, IsEnabled = false };
+
+                var configVM = new DashboardConfigurationViewModel(configForSlot, _dataRepository, OnChildRequestedNodeEditor);
+                configVM.PropertyChanged += OnCurrentConfigPropertyChanged;
+                ChartConfigurations.Add(configVM);
+            }
+
+            var selected = ChartConfigurations.FirstOrDefault(c => c.IsSelected) ?? ChartConfigurations.First();
+            selected.IsSelected = true;
+            CurrentConfiguration = selected;
+        }
+
+        private void OnChildRequestedNodeEditor(SeriesConfiguration series)
+        {
+            OpenNodeEditorAction?.Invoke(series, AvailableColumns);
+        }
+
+        public List<DashboardConfiguration> GetFinalConfigurations()
+        {
+            return ChartConfigurations.Select(vm => vm.GetModel()).ToList();
+        }
+
+        private async Task LoadColumnsForTable(string tableName)
+        {
+            if (string.IsNullOrEmpty(tableName))
+            {
+                AvailableColumns = new List<string>();
+            }
+            else
+            {
+                try
+                {
+                    var result = await _dataRepository.GetTableDataAsync(tableName, 1);
+                    if (result.Data != null)
+                    {
+                        DataTable dataTable = result.Data;
+                        var cols = dataTable.Columns
+                            .Cast<DataColumn>()
+                            .Select(c => c.ColumnName)
+                            .Where(name => !name.Equals("ID", StringComparison.OrdinalIgnoreCase))
+                            .ToList();
+
+                        // Inject combo label placeholders so dropdown can show them
+                        cols.Insert(0, "[Combined] State 3");
+                        cols.Insert(0, "[Combined] State 2");
+                        cols.Insert(0, "[Combined] State 1");
+
+                        AvailableColumns = cols;
+                    }
+                    else
+                    {
+                        AvailableColumns = new List<string>();
+                    }
+                }
+                catch
+                {
+                    AvailableColumns = new List<string>();
+                }
+            }
+            OnPropertyChanged(nameof(AvailableColumns));
+        }
+    }
+
+    public class DashboardConfigurationViewModel : ViewModelBase
+    {
+        private readonly DashboardConfiguration _model;
+        private readonly IDataRepository _dataRepository;
+        private readonly Action<SeriesConfiguration> _openNodeEditorAction;
+
+        public DashboardConfigurationViewModel(DashboardConfiguration model, IDataRepository dataRepository, Action<SeriesConfiguration> openNodeEditorAction)
+        {
+            _model = model;
+            _dataRepository = dataRepository;
+            _openNodeEditorAction = openNodeEditorAction;
+
+            if (_model.ChartPosition == 4 || _model.ChartPosition == 6)
+                _model.ChartType = "Pie";
+
+            Series = new ObservableCollection<SeriesConfiguration>(_model.Series);
+            AddSeriesCommand = new ViewModelCommand(ExecuteAddSeries, CanExecuteAddSeries);
+            RemoveSeriesCommand = new ViewModelCommand(ExecuteRemoveSeries);
+            OpenNodeEditorCommand = new ViewModelCommand(ExecuteOpenNodeEditor);
+            ClearSplitByCommand = new ViewModelCommand(p => { _model.SelectedSplitCategories?.Clear(); SplitByColumn = null; });
+        }
+
+        public DashboardConfiguration GetModel()
+        {
+            _model.Series = Series.ToList();
+            _model.SelectedSplitCategories = AvailableSplitCategories.Where(c => c.IsSelected).Select(c => c.Name).ToList();
+            if (!string.IsNullOrEmpty(_model.SplitByColumn) && !_model.SelectedSplitCategories.Any())
+                _model.SelectedSplitCategories.Add("__NONE__");
+            return _model;
+        }
+
+        public ICommand AddSeriesCommand { get; }
+        public ICommand RemoveSeriesCommand { get; }
+        public ICommand ClearSplitByCommand { get; }
+        public ICommand OpenNodeEditorCommand { get; }
+
+        public ObservableCollection<SeriesConfiguration> Series { get; }
+
+        // KEY: Opens the node editor for a series
+        private void ExecuteOpenNodeEditor(object obj)
+        {
+            if (obj is SeriesConfiguration series)
+            {
+                _openNodeEditorAction?.Invoke(series);
+            }
+        }
+
+        // ... other properties (ChartType, DataStructureType, etc.)
+    }
+}
+
+---
+File: ViewModels/NodeEditorViewModel.cs
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Globalization;
+using System.Linq;
+using System.Windows.Input;
+using WPF_LoginForm.Models;
+
+namespace WPF_LoginForm.ViewModels
+{
+    public class NodeEditorViewModel : ViewModelBase
+    {
+        private SeriesConfiguration _series;
+        public Action CloseAction { get; set; }
+
+        public List<string> AvailableColumns { get; }
+        public List<string> DateFormats { get; } = new List<string> { "MMM yyyy", "MMM yy", "yyyy", "dd.MM.yyyy", "MM/dd/yyyy", "dd MMM yyyy" };
+
+        public ObservableCollection<FlowNode> HeaderFlow { get; } = new ObservableCollection<FlowNode>();
+        public ObservableCollection<FlowNode> LeftFlow { get; } = new ObservableCollection<FlowNode>();
+        public ObservableCollection<FlowNode> RightFlow { get; } = new ObservableCollection<FlowNode>();
+
+        private int _selectedZone = 3;
+        public int SelectedZone
+        {
+            get => _selectedZone;
+            set
+            {
+                if (SetProperty(ref _selectedZone, value))
+                {
+                    OnPropertyChanged(nameof(ActiveFlow));
+                    OnPropertyChanged(nameof(ActiveZoneTitle));
+                }
+            }
+        }
+
+        public ObservableCollection<FlowNode> ActiveFlow
+        {
+            get
+            {
+                if (SelectedZone == 1) return HeaderFlow;
+                if (SelectedZone == 2) return LeftFlow;
+                return RightFlow;
+            }
+        }
+
+        public string ActiveZoneTitle => $"{WPF_LoginForm.Properties.Resources.Edit}: {SelectedZone}";
+
+        private string _previewHeader; public string PreviewHeader { get => _previewHeader; set => SetProperty(ref _previewHeader, value); }
+        private string _previewLeft; public string PreviewLeft { get => _previewLeft; set => SetProperty(ref _previewLeft, value); }
+        private string _previewRight; public string PreviewRight { get => _previewRight; set => SetProperty(ref _previewRight, value); }
+
+        private int _selectedStateIndex;
+        public int SelectedStateIndex
+        { get => _selectedStateIndex; set { if (SetProperty(ref _selectedStateIndex, value)) LoadState(value); } }
+
+        public string CustomChartTitle { get; set; }
+        public bool ShowOnlyHoverLabels { get; set; }
+
+        public ICommand AddDataNodeCommand { get; }
+        public ICommand AddTextNodeCommand { get; }
+        public ICommand AddNewLineNodeCommand { get; }
+        public ICommand AddDateNodeCommand { get; }
+        public ICommand AddSeriesNameNodeCommand { get; }
+        public ICommand RemoveNodeCommand { get; }
+        public ICommand MoveNodeLeftCommand { get; }
+        public ICommand MoveNodeRightCommand { get; }
+        public ICommand SaveCommand { get; }
+        public ICommand CancelCommand { get; }
+        public ICommand SetZoneCommand { get; }
+
+        public NodeEditorViewModel(SeriesConfiguration series, List<string> availableColumns)
+        {
+            _series = series;
+            AvailableColumns = availableColumns?.Where(c => !c.Contains("[Combined]")).ToList() ?? new List<string>();
+
+            AddDataNodeCommand = new ViewModelCommand(ExecuteAddDataNode);
+            AddTextNodeCommand = new ViewModelCommand(p => ExecuteAddGenericNode("StaticText", " - "));
+            AddNewLineNodeCommand = new ViewModelCommand(p => ExecuteAddGenericNode("NewLine", "⏎"));
+            AddDateNodeCommand = new ViewModelCommand(p => ExecuteAddGenericNode("XAxis", "MMM yyyy"));
+            AddSeriesNameNodeCommand = new ViewModelCommand(p => ExecuteAddGenericNode("SeriesName", "Label"));
+
+            RemoveNodeCommand = new ViewModelCommand(ExecuteRemoveNode);
+            MoveNodeLeftCommand = new ViewModelCommand(ExecuteMoveNodeLeft);
+            MoveNodeRightCommand = new ViewModelCommand(ExecuteMoveNodeRight);
+            SaveCommand = new ViewModelCommand(ExecuteSave);
+            CancelCommand = new ViewModelCommand(ExecuteCancel);
+            SetZoneCommand = new ViewModelCommand(p => { if (int.TryParse(p?.ToString(), out int z)) SelectedZone = z; });
+
+            CustomChartTitle = _series.CustomDetailTitle;
+            ShowOnlyHoverLabels = _series.ShowOnlyHoverLabels;
+
+            SelectedStateIndex = _series.ActiveStateIndex;
+            LoadState(SelectedStateIndex);
+        }
+
+        private void LoadState(int index)
+        {
+            foreach (var node in HeaderFlow.Concat(LeftFlow).Concat(RightFlow)) node.PropertyChanged -= OnNodePropertyChanged;
+            HeaderFlow.Clear(); LeftFlow.Clear(); RightFlow.Clear();
+            var state = _series.SavedStates[index];
+            foreach (var node in state.Nodes)
+            {
+                var copy = new FlowNode { NodeType = node.NodeType, Value = node.Value, Aggregation = node.Aggregation, Zone = node.Zone <= 0 ? 3 : node.Zone };
+                copy.PropertyChanged += OnNodePropertyChanged;
+                if (copy.Zone == 1) HeaderFlow.Add(copy);
+                else if (copy.Zone == 2) LeftFlow.Add(copy);
+                else RightFlow.Add(copy);
+            }
+            GeneratePreviews();
+        }
+
+        // KEY: Saves the combo label state back to SeriesConfiguration
+        private void ExecuteSave(object obj)
+        {
+            var state = _series.SavedStates[SelectedStateIndex];
+            var allNodes = HeaderFlow.Concat(LeftFlow).Concat(RightFlow).ToList();
+
+            foreach (var node in allNodes)
+                node.PropertyChanged -= OnNodePropertyChanged;
+
+            state.Nodes = allNodes;
+            _series.ActiveStateIndex = SelectedStateIndex;
+            _series.IsCombinationLabel = state.Nodes.Any();
+            _series.CustomDetailTitle = CustomChartTitle;
+            _series.ShowOnlyHoverLabels = ShowOnlyHoverLabels;
+
+            if (_series.IsCombinationLabel)
+                _series.ColumnName = $"[Combined] State {SelectedStateIndex + 1}";
+
+            CloseAction?.Invoke();
+        }
+    }
+}
+
+---
+File: ViewModels/ChartDetailViewModel.cs
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
+using LiveCharts;
+using LiveCharts.Configurations;
+using LiveCharts.Wpf;
+using WPF_LoginForm.Models;
+using WPF_LoginForm.Repositories;
+using WPF_LoginForm.Services;
+
+namespace WPF_LoginForm.ViewModels
+{
+    public class ChartDetailViewModel : ViewModelBase
+    {
+        // ... similar structure to HomeViewModel.ApplyChartResultToUI
+        // Has its own ApplyChartResultToUI that mirrors the one in HomeViewModel
+        // Uses LabelPoint lambda to check DashboardDataPoint.Label for combo labels
+    }
+}
+
+---
+File: Views/HomeView.xaml
+(Full 619-line XAML file - see above for complete content)
+Key aspects:
+- 6 chart positions in a 2x3 grid (Page1) + Page2 (Chart6 big pie + KPI cards)
+- Charts 1-3,5 use CartesianChart with AxisX/AxisY bindings to Chart*X/Chart*Y
+- Charts 4,6 use PieChart with Hoverable="False" and DataTooltip="{x:Null}" (home view static)
+- All use CustomChartTooltip resource and InverseBooleanConverter for Hoverable
+- SmartLabelTemplate defined in local resources
+
+---
+File: Views/HomeView.xaml.cs
+using System.Windows.Controls;
+
+namespace WPF_LoginForm.Views
+{
+    public partial class HomeView : UserControl
+    {
+        public HomeView()
+        {
+            InitializeComponent();
+        }
+    }
+}
+
+---
+File: Views/ConfigurationView.xaml
+(Full 435-line XAML file - see above for complete content)
+Key aspects:
+- RadioButton chart position selector (1-6)
+- Table/DataStructure/ChartType combos
+- Series list with ComboBox + Combination Label Button + ColorPicker + Remove button
+- Combo label button: ⚡ Mix / ⚡ MixActive (green when IsCombinationLabel=True)
+- Opens node editor via OpenNodeEditorCommand on CurrentConfiguration
+
+---
+File: Views/ConfigurationView.xaml.cs
+using System.Windows.Controls;
+
+namespace WPF_LoginForm.Views
+{
+    public partial class ConfigurationView : UserControl
+    {
+        public ConfigurationView()
+        {
+            InitializeComponent();
+        }
+    }
+}
+
+---
+File: Views/ConfigurationWindow.xaml
+<Window x:Class="WPF_LoginForm.Views.ConfigurationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:WPF_LoginForm.Views"
+        Title="Dashboard Configuration"
+        Height="650" Width="520"
+        MinHeight="450" MinWidth="450"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip">
+    <Grid Background="#F5F5F5">
+        <local:ConfigurationView />
+    </Grid>
+</Window>
+
+---
+File: Views/ConfigurationWindow.xaml.cs
+using System;
+using System.Windows;
+using WPF_LoginForm.ViewModels;
+
+namespace WPF_LoginForm.Views
+{
+    public partial class ConfigurationWindow : Window
+    {
+        public ConfigurationWindow()
+        {
+            InitializeComponent();
+            this.DataContextChanged += ConfigurationWindow_DataContextChanged;
+        }
+
+        // KEY: Wires up the node editor dialog when user clicks combo label button
+        private void ConfigurationWindow_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is ConfigurationViewModel viewModel)
+            {
+                viewModel.OpenNodeEditorAction = (series, availableColumns) =>
+                {
+                    var nodeEditorVM = new NodeEditorViewModel(series, availableColumns);
+                    var nodeEditorWin = new NodeEditorWindow
+                    {
+                        DataContext = nodeEditorVM,
+                        Owner = this
+                    };
+                    nodeEditorVM.CloseAction = () => nodeEditorWin.Close();
+                    nodeEditorWin.ShowDialog();
+                };
+            }
+        }
+    }
+}
+
+---
+File: Views/NodeEditorWindow.xaml
+(Full 452-line XAML file - see above for complete content)
+Key aspects:
+- Left pane: zone selector (Top/Left/Right) + toolbox buttons (Date/ChartLabel/Text/NewLine/DataColumn)
+- Middle pane: horizontal flow of node cards (draggable via move left/right)
+- Right pane: State selector (3 states), custom title, hover/fixed labels, live tooltip preview, save/cancel
+
+---
+File: Views/NodeEditorWindow.xaml.cs
+using System.Windows;
+
+namespace WPF_LoginForm.Views
+{
+    public partial class NodeEditorWindow : Window
+    {
+        public NodeEditorWindow()
+        {
+            InitializeComponent();
+        }
+    }
+}
+
+---
+File: Views/ChartDetailView.xaml
+(Full 105-line XAML - see above for complete content)
+Key aspects:
+- Contains both CartesianChart and PieChart, toggled by IsPieChart visibility
+- CartesianChart uses Hoverable="{Binding CurrentConfiguration.ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}"
+- PieChart uses Hoverable="True" (detail view)
+- Uses CustomChartTooltip (CustomTooltip and CustomPieTooltip)
+- SmartLabelTemplate defined locally
+
+---
+File: Views/ChartDetailView.xaml.cs
+using System.Windows.Controls;
+
+namespace WPF_LoginForm.Views
+{
+    public partial class ChartDetailView : UserControl
+    {
+        public ChartDetailView()
+        {
+            InitializeComponent();
+        }
+    }
+}
+
+---
+File: Views/CustomChartTooltip.xaml
+(Full 113-line XAML - see above for complete content)
+Key aspects:
+- Custom tooltip with dark semi-transparent background
+- GlobalHeader (top), SharedTooltipLeft (left column when shared), ItemsControl for right side
+- Each item shows series dot + TooltipLeft + TooltipRight
+
+---
+File: Views/CustomChartTooltip.xaml.cs
+using System.ComponentModel;
+using System.Linq;
+using System.Windows.Controls;
+using LiveCharts;
+using LiveCharts.Wpf;
+using WPF_LoginForm.Models;
+
+namespace WPF_LoginForm.Views
+{
+    public partial class CustomChartTooltip : UserControl, IChartTooltip
+    {
+        private TooltipData _data;
+        public CustomChartTooltip()
+        {
+            InitializeComponent();
+            DataContext = this;
+        }
+
+        public TooltipData Data
+        {
+            get => _data;
+            set
+            {
+                _data = value;
+                OnPropertyChanged(nameof(Data));
+                OnPropertyChanged(nameof(GlobalHeader));
+                OnPropertyChanged(nameof(SharedTooltipLeft));
+            }
+        }
+
+        public TooltipSelectionMode? SelectionMode { get; set; }
+
+        public string GlobalHeader => Data?.Points?.FirstOrDefault()?.ChartPoint?.Instance is DashboardDataPoint dp ? dp.TooltipHeader : "";
+
+        public string SharedTooltipLeft
+        {
+            get
+            {
+                if (Data?.Points == null || !Data.Points.Any()) return "";
+                var first = (Data.Points.FirstOrDefault()?.ChartPoint?.Instance as DashboardDataPoint)?.TooltipLeft;
+                if (Data.Points.All(p => (p.ChartPoint?.Instance as DashboardDataPoint)?.TooltipLeft == first))
+                    return first;
+                return null;
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected virtual void OnPropertyChanged(string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+}
+
+---
+File: Converters/InverseBooleanConverter.cs
+using System;
+using System.Globalization;
+using System.Windows.Data;
+
+namespace WPF_LoginForm.Converters
+{
+    [ValueConversion(typeof(bool), typeof(bool))]
+    public class InverseBooleanConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool booleanValue) return !booleanValue;
+            return value;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool booleanValue) return !booleanValue;
+            return value;
+        }
+    }
+}
+
+---
+File: Converters/BooleanToVisibilityConverter.cs
+using System;
+using System.Globalization;
+using System.Windows;
+using System.Windows.Data;
+
+namespace WPF_LoginForm.Converters
+{
+    [ValueConversion(typeof(bool), typeof(Visibility))]
+    public class BooleanToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool boolValue) return boolValue ? Visibility.Visible : Visibility.Collapsed;
+            return Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is Visibility visibilityValue) return visibilityValue == Visibility.Visible;
+            return false;
+        }
+    }
+}
+
+---
+File: Converters/ColorToHexConverter.cs
+using System;
+using System.Globalization;
+using System.Windows.Data;
+using System.Windows.Media;
+
+namespace WPF_LoginForm.Converters
+{
+    public class ColorToHexConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is string hex && !string.IsNullOrEmpty(hex))
+            {
+                try { return (Color)ColorConverter.ConvertFromString(hex); }
+                catch { return null; }
+            }
+            return null;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is Color color) return color.ToString();
+            return null;
+        }
+    }
+}
+
+---
+File: Converters/EqualityConverter.cs
+using System;
+using System.Globalization;
+using System.Linq;
+using System.Windows;
+using System.Windows.Data;
+
+namespace WPF_LoginForm.Converters
+{
+    public class EqualityConverter : IValueConverter, IMultiValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return value?.ToString()?.Equals(parameter?.ToString(), StringComparison.OrdinalIgnoreCase) ?? false;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool b && b) return parameter;
+            return DependencyProperty.UnsetValue;
+        }
+
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values == null || values.Length < 2) return false;
+            var inputValue = values[0]?.ToString();
+            return values.Skip(1).Any(v => v?.ToString()?.Equals(inputValue, StringComparison.OrdinalIgnoreCase) ?? false);
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}

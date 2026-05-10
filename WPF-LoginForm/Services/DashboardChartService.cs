@@ -47,6 +47,7 @@ namespace WPF_LoginForm.Services
                                                bool isFilterByDate, bool ignoreNonDateData,
                                                double sliderStart, double sliderEnd, double sliderMax,
                                                ConcurrentDictionary<(int, string), string> colorMap,
+                                               ConcurrentDictionary<(int, string), string> userColorMap,
                                                bool globalIgnoreAfterHyphen,
                                                bool globalIgnoreNumbers)
         {
@@ -102,9 +103,17 @@ namespace WPF_LoginForm.Services
 
             string GetColor(string title, string seriesTitle = null)
             {
+                // 0a. Direct match in user-specified colors (always takes priority)
+                if (userColorMap != null && userColorMap.TryGetValue((config.ChartPosition, title), out string userExactHex))
+                    return userExactHex;
+
+                // 0b. Fallback via seriesTitle to user color — return exact color, not a variation
+                if (seriesTitle != null && userColorMap != null && userColorMap.TryGetValue((config.ChartPosition, seriesTitle), out string userSeriesHex))
+                    return userSeriesHex;
+
                 if (colorMap != null)
                 {
-                    // 1. Direct match (Fixed color for this exact label)
+                    // 1. Direct match (cached color)
                     if (colorMap.TryGetValue((config.ChartPosition, title), out string hex)) return hex;
 
                     // 2. Fallback to Series Color (if this is a split category)
@@ -318,6 +327,7 @@ namespace WPF_LoginForm.Services
                     var topItems = grouped.Take(maxSlices).ToList();
                     var othersSum = grouped.Skip(maxSlices).Sum(x => x.Total);
 
+                    string pieSeriesTitle = seriesConfig?.ColumnName;
                     foreach (var g in topItems)
                     {
                         string tooltipName = g.OriginalNames.Count > 1 ? $"{g.Category} (Grouped)" : g.OriginalNames.FirstOrDefault() ?? g.Category;
@@ -328,7 +338,7 @@ namespace WPF_LoginForm.Services
                             SeriesType = "Pie",
                             Values = new List<object> { g.Total },
                             PieValues = new List<double> { g.Total },
-                            ColorHex = colorProvider(g.Category, null),
+                            ColorHex = colorProvider(g.Category, pieSeriesTitle),
                             ShowOnlyHoverLabels = !config.ShowLabelsOnChart
                         });
                     }

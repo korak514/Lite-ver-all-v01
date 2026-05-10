@@ -195,14 +195,14 @@ namespace WPF_LoginForm.ViewModels
         }
 
         // --- NEW: Triggered when "Maximize" is clicked on a chart ---
-        private void OnOpenChartDetail(int position, DashboardConfiguration config)
+        private void OnOpenChartDetail(int position, DashboardConfiguration config, DashboardChartService.ChartResultDto chartResult)
         {
             if (_chartDetailViewModel == null)
             {
                 _chartDetailViewModel = new ChartDetailViewModel(_dataRepository, _logger);
             }
 
-            _chartDetailViewModel.Initialize(config, _homeViewModel.StartDate, _homeViewModel.EndDate, _homeViewModel.GlobalIgnoreAfterHyphen, _homeViewModel.GlobalIgnoreNumbers, _homeViewModel.ColorMap);
+            _chartDetailViewModel.Initialize(config, chartResult);
 
             // Allows the detailed view to jump back to the Home Dashboard
             _chartDetailViewModel.GoBackAction = () =>

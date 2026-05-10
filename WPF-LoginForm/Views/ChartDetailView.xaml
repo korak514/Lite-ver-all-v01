@@ -81,7 +81,6 @@
 
                 <lvc:PieChart Series="{Binding PieChartSeries}"
                               LegendLocation="Right"
-                              InnerRadius="60"
                               Hoverable="True"
                               AnimationsSpeed="0:0:0.4"
                               DataTooltip="{StaticResource CustomPieTooltip}">
