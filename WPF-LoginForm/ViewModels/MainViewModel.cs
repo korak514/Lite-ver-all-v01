@@ -163,7 +163,7 @@ namespace WPF_LoginForm.ViewModels
                 _portalViewModel.OpenDashboardAction = OnOpenDashboardModule;
             }
             CurrentChildView = _portalViewModel;
-            Caption = "Analytics Hub";
+            Caption = Resources.Str_AnalyticsHub;
             Icon = IconChar.ThLarge;
 
             PrewarmHomeViewModel();
@@ -191,7 +191,7 @@ namespace WPF_LoginForm.ViewModels
             if (_homeViewModel == null) PrewarmHomeViewModel();
 
             CurrentChildView = _homeViewModel;
-            Caption = "Dashboard Module";
+            Caption = Resources.Str_DashboardModule;
             Icon = IconChar.ChartPie;
 
             _homeViewModel.SelectedDashboardFile = targetFileName;
@@ -211,12 +211,12 @@ namespace WPF_LoginForm.ViewModels
             _chartDetailViewModel.GoBackAction = () =>
             {
                 CurrentChildView = _homeViewModel;
-                Caption = "Dashboard Module";
+                Caption = Resources.Str_DashboardModule;
                 Icon = IconChar.ChartPie;
             };
 
             CurrentChildView = _chartDetailViewModel;
-            Caption = $"Advanced Chart Detail - Position {position}";
+            Caption = string.Format(Resources.Str_AdvancedChartDetail, position);
             Icon = IconChar.ChartArea;
         }
 
@@ -278,7 +278,7 @@ namespace WPF_LoginForm.ViewModels
             _errorViewModel.NavigateToDataReportRequested += OnNavigateToDataReport;
 
             CurrentChildView = _errorViewModel;
-            Caption = "Error Analytics";
+            Caption = Resources.Str_ErrorAnalytics;
             Icon = IconChar.PieChart;
         }
 

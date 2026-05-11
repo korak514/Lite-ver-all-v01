@@ -1428,4 +1428,121 @@ Would you like to configure a database connection now, or start using Offline mo
   <data name="Str_FirstRunAlwaysOffline" xml:space="preserve">
     <value>Always Offline (Don't Ask Again)</value>
   </data>
+  <data name="Str_AnalyticsHub" xml:space="preserve">
+    <value>Analytics Hub</value>
+  </data>
+  <data name="Str_SelectDashboardModule" xml:space="preserve">
+    <value>Select a dashboard module to view detailed analytics.</value>
+  </data>
+  <data name="Str_ConfigureHub" xml:space="preserve">
+    <value>Configure Hub</value>
+  </data>
+  <data name="Str_GoOnline" xml:space="preserve">
+    <value>Go Online</value>
+  </data>
+  <data name="Str_ReturnToDashboard" xml:space="preserve">
+    <value>Return to Dashboard</value>
+  </data>
+  <data name="Str_SystemInitialization" xml:space="preserve">
+    <value>System Initialization App Configuration</value>
+  </data>
+  <data name="Str_SearchSettings" xml:space="preserve">
+    <value>Search Settings</value>
+  </data>
+  <data name="Str_DataOptions" xml:space="preserve">
+    <value>Data Options</value>
+  </data>
+  <data name="Str_ReportConfiguration" xml:space="preserve">
+    <value>Report Configuration</value>
+  </data>
+  <data name="Str_LiveVisualEditor" xml:space="preserve">
+    <value>Live Visual Editor</value>
+  </data>
+  <data name="Str_DashboardModule" xml:space="preserve">
+    <value>Dashboard Module</value>
+  </data>
+  <data name="Str_AdvancedChartDetail" xml:space="preserve">
+    <value>Advanced Chart Detail - Position {0}</value>
+  </data>
+  <data name="Str_ErrorAnalytics" xml:space="preserve">
+    <value>Error Analytics</value>
+  </data>
+  <data name="Msg_PortalConfigSaved" xml:space="preserve">
+    <value>Portal configuration saved successfully!</value>
+  </data>
+  <data name="Str_ConfigurePortalModules" xml:space="preserve">
+    <value>Configure Portal Modules</value>
+  </data>
+  <data name="Str_VisibilityRules" xml:space="preserve">
+    <value>Visibility &amp; Rules</value>
+  </data>
+  <data name="Str_SystemLogs" xml:space="preserve">
+    <value>System Logs</value>
+  </data>
+  <data name="Str_Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Str_ClearLogs" xml:space="preserve">
+    <value>Clear Logs</value>
+  </data>
+  <data name="Str_HelpUserGuide" xml:space="preserve">
+    <value>Help &amp; User Guide</value>
+  </data>
+  <data name="Str_CheckConnectDatabase" xml:space="preserve">
+    <value>Check to connect to database</value>
+  </data>
+  <data name="Str_Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Str_ShowAllCategories" xml:space="preserve">
+    <value>Show all categories</value>
+  </data>
+  <data name="Str_OpenSettings" xml:space="preserve">
+    <value>Open Settings</value>
+  </data>
+  <data name="Str_BlockVisualStyles" xml:space="preserve">
+    <value>Block Visual Styles</value>
+  </data>
+  <data name="Str_RoundedBlockCorners" xml:space="preserve">
+    <value>Rounded Block Corners (Soft Look)</value>
+  </data>
+  <data name="Str_ForceSharpEdges" xml:space="preserve">
+    <value>Force Sharp Edges on Events &lt; 5 mins</value>
+  </data>
+  <data name="Str_ShowBlockOutlines" xml:space="preserve">
+    <value>Show Block Outlines (Black Separation)</value>
+  </data>
+  <data name="Str_DisplayDBHours" xml:space="preserve">
+    <value>Display DB numeric values in Hours</value>
+  </data>
+  <data name="Str_ShowMachineIdTexts" xml:space="preserve">
+    <value>Show Machine ID &amp; Texts on Errors</value>
+  </data>
+  <data name="Str_HideGenelTemizlik" xml:space="preserve">
+    <value>Hide 'Genel Temizlik' Labels (MA-00)</value>
+  </data>
+  <data name="Str_ShowMachineLegend" xml:space="preserve">
+    <value>Show Machine Legend on Top</value>
+  </data>
+  <data name="Str_ShowMonthSummary" xml:space="preserve">
+    <value>Show Month Summary Legend</value>
+  </data>
+  <data name="Str_Sum" xml:space="preserve">
+    <value>Sum</value>
+  </data>
+  <data name="Str_Average" xml:space="preserve">
+    <value>Average</value>
+  </data>
+  <data name="Str_Browse" xml:space="preserve">
+    <value>Browse...</value>
+  </data>
+  <data name="Str_Worksheet" xml:space="preserve">
+    <value>Worksheet:</value>
+  </data>
+  <data name="Str_HeaderIsOnRow" xml:space="preserve">
+    <value>Header is on Row:</value>
+  </data>
+  <data name="Str_AutoIncrementID" xml:space="preserve">
+    <value>Add auto-incrementing ID column as Primary Key</value>
+  </data>
 </root>

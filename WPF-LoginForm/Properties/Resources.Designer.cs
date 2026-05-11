@@ -3985,5 +3985,356 @@ namespace WPF_LoginForm.Properties {
                 return ResourceManager.GetString("UseWindowsAuth", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Analytics Hub.
+        /// </summary>
+        public static string Str_AnalyticsHub {
+            get {
+                return ResourceManager.GetString("Str_AnalyticsHub", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Select a dashboard module to view detailed analytics..
+        /// </summary>
+        public static string Str_SelectDashboardModule {
+            get {
+                return ResourceManager.GetString("Str_SelectDashboardModule", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Configure Hub.
+        /// </summary>
+        public static string Str_ConfigureHub {
+            get {
+                return ResourceManager.GetString("Str_ConfigureHub", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Go Online.
+        /// </summary>
+        public static string Str_GoOnline {
+            get {
+                return ResourceManager.GetString("Str_GoOnline", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Return to Dashboard.
+        /// </summary>
+        public static string Str_ReturnToDashboard {
+            get {
+                return ResourceManager.GetString("Str_ReturnToDashboard", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to System Initialization App Configuration.
+        /// </summary>
+        public static string Str_SystemInitialization {
+            get {
+                return ResourceManager.GetString("Str_SystemInitialization", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Search Settings.
+        /// </summary>
+        public static string Str_SearchSettings {
+            get {
+                return ResourceManager.GetString("Str_SearchSettings", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Data Options.
+        /// </summary>
+        public static string Str_DataOptions {
+            get {
+                return ResourceManager.GetString("Str_DataOptions", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Report Configuration.
+        /// </summary>
+        public static string Str_ReportConfiguration {
+            get {
+                return ResourceManager.GetString("Str_ReportConfiguration", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Live Visual Editor.
+        /// </summary>
+        public static string Str_LiveVisualEditor {
+            get {
+                return ResourceManager.GetString("Str_LiveVisualEditor", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dashboard Module.
+        /// </summary>
+        public static string Str_DashboardModule {
+            get {
+                return ResourceManager.GetString("Str_DashboardModule", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Advanced Chart Detail - Position {0}.
+        /// </summary>
+        public static string Str_AdvancedChartDetail {
+            get {
+                return ResourceManager.GetString("Str_AdvancedChartDetail", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Error Analytics.
+        /// </summary>
+        public static string Str_ErrorAnalytics {
+            get {
+                return ResourceManager.GetString("Str_ErrorAnalytics", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Portal configuration saved successfully!.
+        /// </summary>
+        public static string Msg_PortalConfigSaved {
+            get {
+                return ResourceManager.GetString("Msg_PortalConfigSaved", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Configure Portal Modules.
+        /// </summary>
+        public static string Str_ConfigurePortalModules {
+            get {
+                return ResourceManager.GetString("Str_ConfigurePortalModules", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Visibility &amp; Rules.
+        /// </summary>
+        public static string Str_VisibilityRules {
+            get {
+                return ResourceManager.GetString("Str_VisibilityRules", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to System Logs.
+        /// </summary>
+        public static string Str_SystemLogs {
+            get {
+                return ResourceManager.GetString("Str_SystemLogs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Refresh.
+        /// </summary>
+        public static string Str_Refresh {
+            get {
+                return ResourceManager.GetString("Str_Refresh", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Clear Logs.
+        /// </summary>
+        public static string Str_ClearLogs {
+            get {
+                return ResourceManager.GetString("Str_ClearLogs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Help &amp; User Guide.
+        /// </summary>
+        public static string Str_HelpUserGuide {
+            get {
+                return ResourceManager.GetString("Str_HelpUserGuide", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Check to connect to database.
+        /// </summary>
+        public static string Str_CheckConnectDatabase {
+            get {
+                return ResourceManager.GetString("Str_CheckConnectDatabase", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Search.
+        /// </summary>
+        public static string Str_Search {
+            get {
+                return ResourceManager.GetString("Str_Search", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show all categories.
+        /// </summary>
+        public static string Str_ShowAllCategories {
+            get {
+                return ResourceManager.GetString("Str_ShowAllCategories", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Open Settings.
+        /// </summary>
+        public static string Str_OpenSettings {
+            get {
+                return ResourceManager.GetString("Str_OpenSettings", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Block Visual Styles.
+        /// </summary>
+        public static string Str_BlockVisualStyles {
+            get {
+                return ResourceManager.GetString("Str_BlockVisualStyles", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Rounded Block Corners (Soft Look).
+        /// </summary>
+        public static string Str_RoundedBlockCorners {
+            get {
+                return ResourceManager.GetString("Str_RoundedBlockCorners", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Force Sharp Edges on Events &lt; 5 mins.
+        /// </summary>
+        public static string Str_ForceSharpEdges {
+            get {
+                return ResourceManager.GetString("Str_ForceSharpEdges", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show Block Outlines (Black Separation).
+        /// </summary>
+        public static string Str_ShowBlockOutlines {
+            get {
+                return ResourceManager.GetString("Str_ShowBlockOutlines", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Display DB numeric values in Hours.
+        /// </summary>
+        public static string Str_DisplayDBHours {
+            get {
+                return ResourceManager.GetString("Str_DisplayDBHours", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show Machine ID &amp; Texts on Errors.
+        /// </summary>
+        public static string Str_ShowMachineIdTexts {
+            get {
+                return ResourceManager.GetString("Str_ShowMachineIdTexts", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Hide &apos;Genel Temizlik&apos; Labels (MA-00).
+        /// </summary>
+        public static string Str_HideGenelTemizlik {
+            get {
+                return ResourceManager.GetString("Str_HideGenelTemizlik", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show Machine Legend on Top.
+        /// </summary>
+        public static string Str_ShowMachineLegend {
+            get {
+                return ResourceManager.GetString("Str_ShowMachineLegend", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show Month Summary Legend.
+        /// </summary>
+        public static string Str_ShowMonthSummary {
+            get {
+                return ResourceManager.GetString("Str_ShowMonthSummary", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sum.
+        /// </summary>
+        public static string Str_Sum {
+            get {
+                return ResourceManager.GetString("Str_Sum", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Average.
+        /// </summary>
+        public static string Str_Average {
+            get {
+                return ResourceManager.GetString("Str_Average", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Browse....
+        /// </summary>
+        public static string Str_Browse {
+            get {
+                return ResourceManager.GetString("Str_Browse", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Worksheet:.
+        /// </summary>
+        public static string Str_Worksheet {
+            get {
+                return ResourceManager.GetString("Str_Worksheet", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Header is on Row:.
+        /// </summary>
+        public static string Str_HeaderIsOnRow {
+            get {
+                return ResourceManager.GetString("Str_HeaderIsOnRow", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Add auto-incrementing ID column as Primary Key.
+        /// </summary>
+        public static string Str_AutoIncrementID {
+            get {
+                return ResourceManager.GetString("Str_AutoIncrementID", resourceCulture);
+            }
+        }
     }
 }

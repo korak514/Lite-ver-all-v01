@@ -300,8 +300,8 @@
                                                     <TextBlock Text="{Binding Value}" FontWeight="Bold" FontSize="13" Foreground="#2C3E50" TextTrimming="CharacterEllipsis" ToolTip="{Binding Value}" Margin="0,0,0,10" />
                                                     <TextBlock Text="{x:Static p:Resources.Str_DataAggregate}" FontSize="10" Foreground="Gray" />
                                                     <ComboBox SelectedValue="{Binding Aggregation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Content" Margin="0,2,0,0" Padding="4">
-                                                        <ComboBoxItem Content="Sum" />
-                                                        <ComboBoxItem Content="Average" />
+                                                        <ComboBoxItem Content="{x:Static p:Resources.Str_Sum}" />
+                                                        <ComboBoxItem Content="{x:Static p:Resources.Str_Average}" />
                                                     </ComboBox>
                                                 </StackPanel>
 

@@ -1427,4 +1427,121 @@
   <data name="Str_FirstRunAlwaysOffline" xml:space="preserve">
     <value>Tamamen Çevrimdışı (Bir Daha Sorma)</value>
   </data>
+  <data name="Str_AnalyticsHub" xml:space="preserve">
+    <value>Analytics Merkezi</value>
+  </data>
+  <data name="Str_SelectDashboardModule" xml:space="preserve">
+    <value>Ayrıntılı analizleri görüntülemek için bir dashboard modülü seçin.</value>
+  </data>
+  <data name="Str_ConfigureHub" xml:space="preserve">
+    <value>Merkezi Yapılandır</value>
+  </data>
+  <data name="Str_GoOnline" xml:space="preserve">
+    <value>Çevrimiçi Ol</value>
+  </data>
+  <data name="Str_ReturnToDashboard" xml:space="preserve">
+    <value>Dashboard'a Dön</value>
+  </data>
+  <data name="Str_SystemInitialization" xml:space="preserve">
+    <value>Sistem Başlatma Uygulama Yapılandırması</value>
+  </data>
+  <data name="Str_SearchSettings" xml:space="preserve">
+    <value>Arama Ayarları</value>
+  </data>
+  <data name="Str_DataOptions" xml:space="preserve">
+    <value>Veri Seçenekleri</value>
+  </data>
+  <data name="Str_ReportConfiguration" xml:space="preserve">
+    <value>Rapor Yapılandırması</value>
+  </data>
+  <data name="Str_LiveVisualEditor" xml:space="preserve">
+    <value>Canlı Görsel Düzenleyici</value>
+  </data>
+  <data name="Str_DashboardModule" xml:space="preserve">
+    <value>Dashboard Modülü</value>
+  </data>
+  <data name="Str_AdvancedChartDetail" xml:space="preserve">
+    <value>Gelişmiş Grafik Detayı - Pozisyon {0}</value>
+  </data>
+  <data name="Str_ErrorAnalytics" xml:space="preserve">
+    <value>Hata Analizi</value>
+  </data>
+  <data name="Msg_PortalConfigSaved" xml:space="preserve">
+    <value>Portal yapılandırması başarıyla kaydedildi!</value>
+  </data>
+  <data name="Str_ConfigurePortalModules" xml:space="preserve">
+    <value>Portal Modüllerini Yapılandır</value>
+  </data>
+  <data name="Str_VisibilityRules" xml:space="preserve">
+    <value>Görünürlük &amp; Kurallar</value>
+  </data>
+  <data name="Str_SystemLogs" xml:space="preserve">
+    <value>Sistem Günlükleri</value>
+  </data>
+  <data name="Str_Refresh" xml:space="preserve">
+    <value>Yenile</value>
+  </data>
+  <data name="Str_ClearLogs" xml:space="preserve">
+    <value>Günlükleri Temizle</value>
+  </data>
+  <data name="Str_HelpUserGuide" xml:space="preserve">
+    <value>Yardım &amp; Kullanım Kılavuzu</value>
+  </data>
+  <data name="Str_CheckConnectDatabase" xml:space="preserve">
+    <value>Veritabanına bağlanmak için işaretleyin</value>
+  </data>
+  <data name="Str_Search" xml:space="preserve">
+    <value>Ara</value>
+  </data>
+  <data name="Str_ShowAllCategories" xml:space="preserve">
+    <value>Tüm kategorileri göster</value>
+  </data>
+  <data name="Str_OpenSettings" xml:space="preserve">
+    <value>Ayarları Aç</value>
+  </data>
+  <data name="Str_BlockVisualStyles" xml:space="preserve">
+    <value>Blok Görsel Stilleri</value>
+  </data>
+  <data name="Str_RoundedBlockCorners" xml:space="preserve">
+    <value>Yuvarlatılmış Blok Köşeleri (Yumuşak Görünüm)</value>
+  </data>
+  <data name="Str_ForceSharpEdges" xml:space="preserve">
+    <value>5 dk altındaki Olaylarda Keskin Kenarları Zorla</value>
+  </data>
+  <data name="Str_ShowBlockOutlines" xml:space="preserve">
+    <value>Blok Anahatlarını Göster (Siyah Ayırma)</value>
+  </data>
+  <data name="Str_DisplayDBHours" xml:space="preserve">
+    <value>DB sayısal değerlerini Saat cinsinden göster</value>
+  </data>
+  <data name="Str_ShowMachineIdTexts" xml:space="preserve">
+    <value>Hatalarda Makine ID &amp; Metinlerini Göster</value>
+  </data>
+  <data name="Str_HideGenelTemizlik" xml:space="preserve">
+    <value>'Genel Temizlik' Etiketlerini Gizle (MA-00)</value>
+  </data>
+  <data name="Str_ShowMachineLegend" xml:space="preserve">
+    <value>Makine Lejantını Üstte Göster</value>
+  </data>
+  <data name="Str_ShowMonthSummary" xml:space="preserve">
+    <value>Ay Özeti Lejantını Göster</value>
+  </data>
+  <data name="Str_Sum" xml:space="preserve">
+    <value>Toplam</value>
+  </data>
+  <data name="Str_Average" xml:space="preserve">
+    <value>Ortalama</value>
+  </data>
+  <data name="Str_Browse" xml:space="preserve">
+    <value>Gözat...</value>
+  </data>
+  <data name="Str_Worksheet" xml:space="preserve">
+    <value>Çalışma Sayfası:</value>
+  </data>
+  <data name="Str_HeaderIsOnRow" xml:space="preserve">
+    <value>Başlık Satırı:</value>
+  </data>
+  <data name="Str_AutoIncrementID" xml:space="preserve">
+    <value>Otomatik artan ID sütununu birincil anahtar olarak ekle</value>
+  </data>
 </root>

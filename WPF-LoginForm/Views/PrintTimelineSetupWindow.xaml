@@ -6,6 +6,7 @@
         xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
         xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        xmlns:p="clr-namespace:WPF_LoginForm.Properties"
         mc:Ignorable="d"
         Title="Printable Timeline Report" Height="760" Width="1300"
         WindowStartupLocation="CenterOwner" Background="#F0F2F5">
@@ -50,7 +51,7 @@
                         </Style>
                     </ScrollViewer.Style>
                     <StackPanel>
-                        <TextBlock Text="Report Configuration" FontSize="18" FontWeight="Bold" Foreground="#0056B3" Margin="0,0,0,15" />
+                        <TextBlock Text="{x:Static p:Resources.Str_ReportConfiguration}" FontSize="18" FontWeight="Bold" Foreground="#0056B3" Margin="0,0,0,15" />
 
                         <TextBlock Text="Primary Database Table" Style="{StaticResource HeaderStyle}" />
                         <ComboBox ItemsSource="{Binding AvailableTables}" SelectedItem="{Binding SelectedTable}" Height="25" Margin="0,0,0,10" />
@@ -237,17 +238,17 @@
                                 </StackPanel>
 
                                 <Border BorderBrush="#DDD" BorderThickness="0,1,0,0" Margin="0,5,0,10" />
-                                <TextBlock Text="Block Visual Styles" FontWeight="Bold" Foreground="#333" Margin="0,0,0,5" />
-                                <CheckBox Content="Rounded Block Corners (Soft Look)" IsChecked="{Binding EnableSoftCorners, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
-                                <CheckBox Content="Force Sharp Edges on Events &lt; 5 mins" IsChecked="{Binding DisableSoftCornersUnder5Min, Mode=TwoWay}" Margin="20,0,0,5" Foreground="#777" IsEnabled="{Binding EnableSoftCorners}" />
-                                <CheckBox Content="Show Block Outlines (Black Separation)" IsChecked="{Binding EnableBlockBorders, Mode=TwoWay}" Margin="0,5,0,15" Foreground="#555" />
+                                <TextBlock Text="{x:Static p:Resources.Str_BlockVisualStyles}" FontWeight="Bold" Foreground="#333" Margin="0,0,0,5" />
+                                <CheckBox Content="{x:Static p:Resources.Str_RoundedBlockCorners}" IsChecked="{Binding EnableSoftCorners, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
+                                <CheckBox Content="{x:Static p:Resources.Str_ForceSharpEdges}" IsChecked="{Binding DisableSoftCornersUnder5Min, Mode=TwoWay}" Margin="20,0,0,5" Foreground="#777" IsEnabled="{Binding EnableSoftCorners}" />
+                                <CheckBox Content="{x:Static p:Resources.Str_ShowBlockOutlines}" IsChecked="{Binding EnableBlockBorders, Mode=TwoWay}" Margin="0,5,0,15" Foreground="#555" />
 
                                 <Border BorderBrush="#DDD" BorderThickness="0,1,0,0" Margin="0,5,0,10" />
-                                <CheckBox Content="Display DB numeric values in Hours" IsChecked="{Binding ShowValuesInHours, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
-                                <CheckBox Content="Show Machine ID &amp; Texts on Errors" IsChecked="{Binding ShowMajorErrorLabels, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
-                                <CheckBox Content="Hide 'Genel Temizlik' Labels (MA-00)" IsChecked="{Binding HideGenelTemizlik, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
-                                <CheckBox Content="Show Machine Legend on Top" IsChecked="{Binding ShowMachineLegend, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
-                                <CheckBox Content="Show Month Summary Legend" IsChecked="{Binding ShowMonthSummary, Mode=TwoWay}" Margin="0,0,0,15" Foreground="#1265B5" FontWeight="Bold" />
+                                <CheckBox Content="{x:Static p:Resources.Str_DisplayDBHours}" IsChecked="{Binding ShowValuesInHours, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
+                                <CheckBox Content="{x:Static p:Resources.Str_ShowMachineIdTexts}" IsChecked="{Binding ShowMajorErrorLabels, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
+                                <CheckBox Content="{x:Static p:Resources.Str_HideGenelTemizlik}" IsChecked="{Binding HideGenelTemizlik, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
+                                <CheckBox Content="{x:Static p:Resources.Str_ShowMachineLegend}" IsChecked="{Binding ShowMachineLegend, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
+                                <CheckBox Content="{x:Static p:Resources.Str_ShowMonthSummary}" IsChecked="{Binding ShowMonthSummary, Mode=TwoWay}" Margin="0,0,0,15" Foreground="#1265B5" FontWeight="Bold" />
                             </StackPanel>
                         </Expander>
 
@@ -270,7 +271,7 @@
                     <StackPanel>
                         <Button Content="⬅ Back to Configuration" Command="{Binding CancelBlockEditCommand}" Background="Transparent" Foreground="#0056B3" BorderThickness="0" HorizontalAlignment="Left" Margin="0,0,0,10" FontWeight="Bold" Cursor="Hand" />
 
-                        <TextBlock Text="Live Visual Editor" FontSize="18" FontWeight="Bold" Foreground="#E67E22" Margin="0,0,0,5" />
+                        <TextBlock Text="{x:Static p:Resources.Str_LiveVisualEditor}" FontSize="18" FontWeight="Bold" Foreground="#E67E22" Margin="0,0,0,5" />
                         <TextBlock Text="Edit exactly what prints for this block. Changes are automatically saved as overrides when you click Apply." FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,0,0,15" />
 
                         <TextBlock Text="Block Time Info" Style="{StaticResource HeaderStyle}" Foreground="#E67E22" />

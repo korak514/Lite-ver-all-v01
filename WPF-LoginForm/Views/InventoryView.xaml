@@ -7,6 +7,7 @@
              xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
              xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
              xmlns:fa="http://schemas.fontawesome.io/icons/"
+             xmlns:p="clr-namespace:WPF_LoginForm.Properties"
              mc:Ignorable="d"
              d:DesignHeight="500" d:DesignWidth="800"
              d:DataContext="{d:DesignInstance Type=viewModels:InventoryViewModel, IsDesignTimeCreatable=False}">
@@ -30,7 +31,7 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Orientation="Vertical">
-                <TextBlock Text="System Logs"
+                <TextBlock Text="{x:Static p:Resources.Str_SystemLogs}"
                            Foreground="{StaticResource titleColor2}"
                            FontSize="24"
                            FontFamily="Montserrat"
@@ -45,7 +46,7 @@
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                 <!-- Refresh Button: Using Standard Style -->
                 <Button Command="{Binding RefreshLogsCommand}"
-                        Content="Refresh"
+                        Content="{x:Static p:Resources.Str_Refresh}"
                         Width="90"
                         Margin="0,0,10,0"
                         Style="{StaticResource StandardButtonStyle}" />
@@ -53,7 +54,7 @@
 
                 <!-- Clear Logs Button: Red normally, Light Blue on Hover -->
                 <Button Command="{Binding ClearLogsCommand}"
-                        Content="Clear Logs"
+                        Content="{x:Static p:Resources.Str_ClearLogs}"
                         Width="90"
                         Background="#FFD14545"
                         Style="{StaticResource StandardButtonStyle}" />

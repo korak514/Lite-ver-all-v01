@@ -132,7 +132,7 @@
                                     <TextBlock Text="{x:Static p:Resources.Chart_ShiftDist}" Foreground="LightGray" FontWeight="Bold" />
                                     <TextBlock Text="{Binding SelectedErrorCategory}" Foreground="#FFC047" FontWeight="Bold" Margin="0,2,0,0" FontSize="11" />
                                 </StackPanel>
-                                <Button Grid.Column="1" Command="{Binding ResetAllFiltersCommand}" ToolTip="Show all categories" Width="16" Height="16" Background="Transparent" BorderThickness="0" Cursor="Hand" VerticalAlignment="Top" Margin="0,2,0,0">
+                                <Button Grid.Column="1" Command="{Binding ResetAllFiltersCommand}" ToolTip="{x:Static p:Resources.Str_ShowAllCategories}" Width="16" Height="16" Background="Transparent" BorderThickness="0" Cursor="Hand" VerticalAlignment="Top" Margin="0,2,0,0">
                                     <Viewbox Stretch="Uniform">
                                         <Path Data="M0,0 h3 v3 h-3 Z M0.5,1 l1,1 l1.5,-1 M0,5 h3 v3 h-3 Z M0.5,6 l1,1 l1.5,-1 M0,10 h3 v3 h-3 Z M0.5,11 l1,1 l1.5,-1" Stretch="Uniform" Fill="#FFDF22" />
                                     </Viewbox>

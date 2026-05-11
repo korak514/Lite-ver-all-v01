@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:p="clr-namespace:WPF_LoginForm.Properties"
         mc:Ignorable="d"
         Title="Starting..." Height="350" Width="500"
         WindowStyle="None" ResizeMode="NoResize"
@@ -29,12 +30,13 @@
             <!-- Logo Area -->
             <StackPanel Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Center">
                 <!-- Replace with your Logo path if available, using text for safety -->
+                <TextBlock Text="{x:Static p:Resources.Str_SystemInitialization}" FontSize="52" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" Visibility="Collapsed" />
                 <TextBlock Text="BIOSUN" FontSize="52" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center">
                     <TextBlock.Effect>
                         <DropShadowEffect Color="#16AC21" BlurRadius="20" ShadowDepth="0" />
                     </TextBlock.Effect>
                 </TextBlock>
-                <TextBlock Text="System Initialization App Configiration" FontSize="16" Foreground="#AAAAAA" HorizontalAlignment="Center" Margin="0,5,0,0" />
+                <TextBlock Text="{x:Static p:Resources.Str_SystemInitialization}" FontSize="16" Foreground="#AAAAAA" HorizontalAlignment="Center" Margin="0,5,0,0" />
             </StackPanel>
 
             <!-- Status Text -->
@@ -52,7 +54,7 @@
                        VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,15,10" />
 
             <!-- Error Action Area (Hidden by default) -->
-            <Button x:Name="btnSettings" Grid.Row="3" Content="Open Settings"
+            <Button x:Name="btnSettings" Grid.Row="3" Content="{x:Static p:Resources.Str_OpenSettings}"
                     Width="120" Height="30" Visibility="Collapsed"
                     Click="btnSettings_Click"
                     Background="#D14545" Foreground="White" FontWeight="Bold" BorderThickness="0" />

@@ -128,7 +128,7 @@ namespace WPF_LoginForm.ViewModels
                 // Force UI update
                 foreach (var pb in PortalButtons) pb.Refresh();
 
-                System.Windows.MessageBox.Show("Portal configuration saved successfully!", "Saved", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                System.Windows.MessageBox.Show(Resources.Msg_PortalConfigSaved, "Saved", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             }
             catch (Exception ex)
             {

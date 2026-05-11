@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:fa="http://schemas.fontawesome.io/icons/"
              xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
+             xmlns:p="clr-namespace:WPF_LoginForm.Properties"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="1000"
              d:DataContext="{d:DesignInstance Type=viewModels:DashboardPortalViewModel, IsDesignTimeCreatable=False}">
@@ -23,15 +24,15 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0">
-                <TextBlock Text="Analytics Hub" Foreground="White" FontSize="28" FontWeight="Bold" FontFamily="Montserrat" />
-                <TextBlock Text="Select a dashboard module to view detailed analytics." Foreground="Gray" FontSize="14" Margin="0,5,0,0" />
+                <TextBlock Text="{x:Static p:Resources.Str_AnalyticsHub}" Foreground="White" FontSize="28" FontWeight="Bold" FontFamily="Montserrat" />
+                <TextBlock Text="{x:Static p:Resources.Str_SelectDashboardModule}" Foreground="Gray" FontSize="14" Margin="0,5,0,0" />
             </StackPanel>
 
             <Button Grid.Column="1" Command="{Binding OpenPortalSettingsCommand}"
-                    Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Configure Portal Modules">
+                    Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="{x:Static p:Resources.Str_ConfigurePortalModules}">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <fa:ImageAwesome Icon="Gear" Width="20" Height="20" Foreground="Gray" Margin="0,0,8,0" />
-                    <TextBlock Text="Configure Hub" Foreground="Gray" FontSize="14" VerticalAlignment="Center" />
+                    <TextBlock Text="{x:Static p:Resources.Str_ConfigureHub}" Foreground="Gray" FontSize="14" VerticalAlignment="Center" />
                 </StackPanel>
                 <Button.Style>
                     <Style TargetType="Button">

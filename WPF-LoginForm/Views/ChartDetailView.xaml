@@ -9,6 +9,7 @@
              xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
              xmlns:viewModels="clr-namespace:WPF_LoginForm.ViewModels"
              xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+             xmlns:p="clr-namespace:WPF_LoginForm.Properties"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="1000"
              d:DataContext="{d:DesignInstance Type=viewModels:ChartDetailViewModel, IsDesignTimeCreatable=False}">
@@ -47,7 +48,7 @@
                 <Button Grid.Column="0" Command="{Binding GoBackCommand}" Background="Transparent" BorderThickness="0" Cursor="Hand" Padding="5,0">
                     <StackPanel Orientation="Horizontal">
                         <fa:ImageAwesome Icon="ArrowLeft" Height="16" Foreground="#FFC047" Margin="0,0,10,0" />
-                        <TextBlock Text="Return to Dashboard" Foreground="White" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" />
+                        <TextBlock Text="{x:Static p:Resources.Str_ReturnToDashboard}" Foreground="White" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
 

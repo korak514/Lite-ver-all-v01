@@ -407,8 +407,10 @@ namespace WPF_LoginForm.ViewModels
                 int dotCount = strVal.Count(c => c == '.');
                 if (dotCount > 1) strVal = strVal.Replace(".", "");
             }
-            double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double res);
-            return res;
+            if (double.TryParse(strVal, NumberStyles.Any, culture, out double res))
+                return res;
+            _logger?.LogWarning($"ParseSafeDouble failed for input: '{strVal}'");
+            return double.NaN;
         }
 
         private async void LoadAllChartsData()
@@ -533,11 +535,12 @@ namespace WPF_LoginForm.ViewModels
                     if (!seriesConfig.IsCombinationLabel && dt.Columns.Contains(seriesConfig.ColumnName))
                     {
                         var validRows = dt.AsEnumerable().Where(r => r[seriesConfig.ColumnName] != DBNull.Value).ToList();
-                        if (validRows.Any())
+                        var parsedValues = validRows.Select(r => ParseSafeDouble(r[seriesConfig.ColumnName], culture)).Where(v => !double.IsNaN(v)).ToList();
+                        if (parsedValues.Any())
                         {
                             double aggVal = isAvg
-                                ? validRows.Average(r => ParseSafeDouble(r[seriesConfig.ColumnName], culture))
-                                : validRows.Sum(r => ParseSafeDouble(r[seriesConfig.ColumnName], culture));
+                                ? parsedValues.Average()
+                                : parsedValues.Sum();
                             _kpiTotals.AddOrUpdate(seriesConfig.ColumnName, aggVal, (key, old) => isAvg ? _kpiCounts.GetOrAdd(key, 1) * old / (_kpiCounts[key] + 1) + aggVal / (_kpiCounts[key] + 1) : aggVal + old);
                             if (isAvg) _kpiCounts.AddOrUpdate(seriesConfig.ColumnName, 1, (key, old) => old + 1);
                         }
@@ -613,7 +616,7 @@ namespace WPF_LoginForm.ViewModels
                 if (s == null) continue;
 
                 Brush colorBrush;
-                try { colorBrush = (Brush)new BrushConverter().ConvertFrom(s.ColorHex); }
+                try { colorBrush = (Brush)new BrushConverter().ConvertFrom(s.ColorHex) ?? Brushes.Gray; }
                 catch { colorBrush = Brushes.Gray; }
 
                 if (s.SeriesType == "Pie")
@@ -899,7 +902,7 @@ namespace WPF_LoginForm.ViewModels
 
                         if (targetSeries[0] is PieSeries)
                         {
-                            foreach (PieSeries p in targetSeries) if (p.Values.Count > 0) sb.AppendLine($"{p.Title.Replace(",", " ")},{(double)p.Values[0]}");
+                            foreach (PieSeries p in targetSeries) if (p.Values.Count > 0 && p.Values[0] is DashboardDataPoint pieDp) sb.AppendLine($"{p.Title.Replace(",", " ")},{pieDp.Y}");
                         }
                         else
                         {
@@ -1124,7 +1127,7 @@ namespace WPF_LoginForm.ViewModels
                     }
                 }
 
-                _dashboardConfigurations = s.Configurations?.OrderBy(c => c.ChartPosition).ToList(); IsFilterByDate = s.IsFilterByDate; IgnoreNonDateData = s.IgnoreNonDateData; UseIdToDateConversion = s.UseIdToDateConversion; GlobalIgnoreAfterHyphen = s.GlobalIgnoreAfterHyphen;
+                _dashboardConfigurations = s.Configurations?.OrderBy(c => c.ChartPosition).ToList(); OnPropertyChanged(nameof(DashboardConfigs)); IsFilterByDate = s.IsFilterByDate; IgnoreNonDateData = s.IgnoreNonDateData; UseIdToDateConversion = s.UseIdToDateConversion; GlobalIgnoreAfterHyphen = s.GlobalIgnoreAfterHyphen;
                 if (s.InitialDateForConversion != default) InitialDateForConversion = s.InitialDateForConversion;
 
                 _isSyncing = true;

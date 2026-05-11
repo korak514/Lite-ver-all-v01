@@ -6,6 +6,7 @@
              xmlns:local="clr-namespace:WPF_LoginForm.Views"
              xmlns:fa="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
              xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
+             xmlns:p="clr-namespace:WPF_LoginForm.Properties"
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
 
@@ -50,7 +51,7 @@
             <!-- Corrected Command Binding -->
             <Button Grid.Column="1"
                     Command="{Binding SearchCommand}"
-                    Content="Search"
+                    Content="{x:Static p:Resources.Str_Search}"
                     FontSize="12"
                     FontFamily="Montserrat"
                     Cursor="Hand"
@@ -82,7 +83,7 @@
             </Button>
 
             <!-- Reload Button -->
-            <Button Grid.Column="2" Command="{Binding ReloadCommand}" ToolTip="Reload" Background="Transparent" BorderThickness="0" Margin="0,0,10,0">
+            <Button Grid.Column="2" Command="{Binding ReloadCommand}" ToolTip="{x:Static p:Resources.Reload}" Background="Transparent" BorderThickness="0" Margin="0,0,10,0">
                 <fa:IconImage Icon="Refresh" Height="20" Width="20" Foreground="{StaticResource plainTextColor3}" />
             </Button>
         </Grid>

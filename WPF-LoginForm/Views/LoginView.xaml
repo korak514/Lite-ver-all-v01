@@ -75,9 +75,9 @@
 
                     <!-- MODIFIED: "Go Online" Toggle -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,15,0">
-                        <TextBlock Text="Go Online" Foreground="LightGray" FontSize="11" FontFamily="Montserrat" VerticalAlignment="Center" Margin="0,0,5,0" />
+                        <TextBlock Text="{x:Static p:Resources.Str_GoOnline}" Foreground="LightGray" FontSize="11" FontFamily="Montserrat" VerticalAlignment="Center" Margin="0,0,5,0" />
                         <!-- Binds to IsOnlineMode (Defaults to False) -->
-                        <CheckBox IsChecked="{Binding IsOnlineMode, Mode=TwoWay}" VerticalAlignment="Center" ToolTip="Check to connect to database" />
+                        <CheckBox IsChecked="{Binding IsOnlineMode, Mode=TwoWay}" VerticalAlignment="Center" ToolTip="{x:Static p:Resources.Str_CheckConnectDatabase}" />
                     </StackPanel>
 
                     <Button x:Name="btnMinimize" Content="-" Style="{StaticResource WindowControlButtonStyle}" Grid.Column="2" Click="btnMinimize_Click" />
@@ -170,13 +170,13 @@
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,0">
                         <TextBlock Text="{x:Static p:Resources.ForgotPassword}" Foreground="DarkGray" FontSize="12" FontWeight="Medium" FontFamily="Montserrat" />
-                        <TextBlock Text="Reset" Foreground="White" FontSize="12" FontWeight="Medium" FontFamily="Montserrat" Cursor="Hand" Margin="8,0,0,0" />
+                        <TextBlock Text="{x:Static p:Resources.Str_Reset}" Foreground="White" FontSize="12" FontWeight="Medium" FontFamily="Montserrat" Cursor="Hand" Margin="8,0,0,0" />
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Offline Settings Button -->
                 <Button Grid.Row="1"
-                        Content="--> Settings"
+                        Content="{x:Static p:Resources.Settings}"
                         Command="{Binding OpenSettingsCommand}"
                         HorizontalAlignment="Left"
                         VerticalAlignment="Bottom"

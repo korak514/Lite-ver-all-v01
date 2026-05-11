@@ -39,7 +39,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="{x:Static p:Resources.Str_TableNote}" Foreground="#888" FontSize="11" FontStyle="Italic" TextWrapping="Wrap" Margin="0,0,5,0"/>
-                    <Button Grid.Column="1" Content="Browse..." Command="{Binding BrowseCommand}" Padding="8,4" Margin="5,0,0,0"/>
+                    <Button Grid.Column="1" Content="{x:Static p:Resources.Str_Browse}" Command="{Binding BrowseCommand}" Padding="8,4" Margin="5,0,0,0"/>
                 </Grid>
             </GroupBox>
 
@@ -58,18 +58,18 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Label Grid.Row="0" Grid.Column="0" Content="Worksheet:" VerticalAlignment="Center"/>
+                    <Label Grid.Row="0" Grid.Column="0" Content="{x:Static p:Resources.Str_Worksheet}" VerticalAlignment="Center"/>
                     <ComboBox Grid.Row="0" Grid.Column="1" Margin="5"
                               ItemsSource="{Binding WorksheetNames}"
                               SelectedItem="{Binding SelectedWorksheetName, Mode=TwoWay}"/>
 
-                    <Label Grid.Row="0" Grid.Column="2" Content="Header is on Row:" VerticalAlignment="Center"/>
+                    <Label Grid.Row="0" Grid.Column="2" Content="{x:Static p:Resources.Str_HeaderIsOnRow}" VerticalAlignment="Center"/>
                     <ComboBox Grid.Row="0" Grid.Column="3" Margin="5"
                               ItemsSource="{Binding AvailableHeaderRows}"
                               SelectedItem="{Binding HeaderRowNumber, Mode=TwoWay}"/>
 
                     <CheckBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4" Margin="0,10,0,0"
-                              Content="Add auto-incrementing ID column as Primary Key"
+                              Content="{x:Static p:Resources.Str_AutoIncrementID}"
                               IsChecked="{Binding AutoAddIdColumn, Mode=TwoWay}"/>
                 </Grid>
             </GroupBox>

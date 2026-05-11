@@ -68,12 +68,9 @@ namespace WPF_LoginForm.Services
                 }
             }
 
-            if (config.DataStructureType == "Monthly Date" && dataTable.Rows.Count > 100)
-            {
-                config.DataStructureType = "General";
-            }
+            string effectiveDataStructureType = (config.DataStructureType == "Monthly Date" && dataTable.Rows.Count > 100) ? "General" : config.DataStructureType;
 
-            bool isDateBasedChart = config.DataStructureType == "Daily Date" && !string.IsNullOrEmpty(config.DateColumn);
+            bool isDateBasedChart = effectiveDataStructureType == "Daily Date" && !string.IsNullOrEmpty(config.DateColumn);
             if (!isDateBasedChart || !isFilterByDate)
             {
                 ApplySliderFilter(ref dataTable, sliderStart, sliderEnd, sliderMax);
@@ -162,7 +159,7 @@ namespace WPF_LoginForm.Services
             }
             else
             {
-                switch (config.DataStructureType)
+                switch (effectiveDataStructureType)
                 {
                     case "Daily Date":
                         ProcessDailyDateChart(dataTable, config, result, colorProvider, safeConvertToDouble, globalIgnoreAfterHyphen, globalIgnoreNumbers, isAvg);
