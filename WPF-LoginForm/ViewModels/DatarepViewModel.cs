@@ -116,7 +116,7 @@ namespace WPF_LoginForm.ViewModels
         { get => _searchText; set { if (SetProperty(ref _searchText, value)) ApplyCombinedFiltersAsync(); } }
 
         public string SelectedSearchColumn
-        { get => _selectedSearchColumn; set { if (SetProperty(ref _selectedSearchColumn, value)) { _isGlobalSearchActive = false; ApplyCombinedFiltersAsync(); } } }
+        { get => _selectedSearchColumn; set { if (SetProperty(ref _selectedSearchColumn, value)) { IsGlobalSearchActive = false; ApplyCombinedFiltersAsync(); } } }
 
         public bool IsGlobalSearchActive
         { get => _isGlobalSearchActive; set { if (SetProperty(ref _isGlobalSearchActive, value)) ApplyCombinedFiltersAsync(); } }
@@ -149,14 +149,14 @@ namespace WPF_LoginForm.ViewModels
 
         private bool _isTimeCorrectionEnabled;
         public bool IsTimeCorrectionEnabled
-        { get => _isTimeCorrectionEnabled; set { if (SetProperty(ref _isTimeCorrectionEnabled, value)) OnPropertyChanged(nameof(IsTimeCorrectionEnabled)); } }
+        { get => _isTimeCorrectionEnabled; set { SetProperty(ref _isTimeCorrectionEnabled, value); } }
 
         public bool IsIdHidden
         { get => _isIdHidden; set { if (SetProperty(ref _isIdHidden, value)) OnPropertyChanged(nameof(IsIdVisible)); } }
 
         private bool _isIdEditable;
         public bool IsIdEditable
-        { get => _isIdEditable; set { if (SetProperty(ref _isIdEditable, value)) OnPropertyChanged(nameof(IsIdEditable)); } }
+        { get => _isIdEditable; set { SetProperty(ref _isIdEditable, value); } }
 
         public bool IsIdVisible => !_isIdHidden;
 
@@ -211,7 +211,7 @@ namespace WPF_LoginForm.ViewModels
             DecreaseFontSizeCommand = new ViewModelCommand(p => DataGridFontSize--, p => DataGridFontSize > 8);
             IncreaseFontSizeCommand = new ViewModelCommand(p => DataGridFontSize++, p => DataGridFontSize < 24);
             ClearSearchCommand = new ViewModelCommand(p => { SearchText = ""; IsGlobalSearchActive = false; });
-            ClearDateFilterCommand = new ViewModelCommand(p => { FilterStartDate = null; FilterEndDate = null; IsDateFilterPanelVisible = false; ApplyCombinedFiltersAsync(); });
+            ClearDateFilterCommand = new ViewModelCommand(p => { FilterStartDate = null; FilterEndDate = null; StartMonthSliderValue = 0; EndMonthSliderValue = 0; IsDateFilterPanelVisible = false; ApplyCombinedFiltersAsync(); });
 
             DatabaseRetryPolicy.OnRetryStatus += OnRetryStatusReceived;
             LoadInitialDataAsync();
@@ -230,7 +230,6 @@ namespace WPF_LoginForm.ViewModels
                     if (item is System.Data.DataRowView drv) EditableRows.Add(drv);
                 }
                 OnPropertyChanged(nameof(EditableRows));
-                (EditSelectedRowsCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             }
         }
 
@@ -270,7 +269,7 @@ namespace WPF_LoginForm.ViewModels
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 TableNames.Clear();
-                foreach (var n in names) TableNames.Add(n);
+                foreach (var n in names.Where(name => !name.Equals("ColumnHierarchyMap", StringComparison.OrdinalIgnoreCase))) TableNames.Add(n);
                 if (!TableNames.Contains(SelectedTable)) SelectedTable = TableNames.FirstOrDefault();
             });
         });
@@ -554,7 +553,7 @@ namespace WPF_LoginForm.ViewModels
 
         private void CurrentDataTable_RowChanged(object sender, DataRowChangeEventArgs e)
         {
-            if (e.Action != DataRowAction.Commit) { _rowChangeHistory.Add(e.Row); CheckIfDirty(); }
+            if (e.Action != DataRowAction.Commit) { if (!_rowChangeHistory.Contains(e.Row)) _rowChangeHistory.Add(e.Row); CheckIfDirty(); }
         }
 
         private void SubscribeToTableEvents()
