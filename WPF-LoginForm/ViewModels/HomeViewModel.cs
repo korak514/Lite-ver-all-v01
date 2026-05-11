@@ -158,7 +158,7 @@ namespace WPF_LoginForm.ViewModels
 
             try
             {
-                await Task.Delay(200, token);
+                await Task.Delay(100, token);
 
                 if (!token.IsCancellationRequested)
                 {
@@ -419,7 +419,7 @@ namespace WPF_LoginForm.ViewModels
 
             try
             {
-                await Task.Delay(300, token);
+                await Task.Delay(150, token);
                 if (token.IsCancellationRequested || !_isActive) return;
 
                 if (_dashboardConfigurations == null) return;

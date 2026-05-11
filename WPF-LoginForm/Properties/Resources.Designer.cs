@@ -142,6 +142,60 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Remove single time errors.
+        /// </summary>
+        public static string Ana_RemoveSingleTime {
+            get {
+                return ResourceManager.GetString("Ana_RemoveSingleTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove less than {0} min errors.
+        /// </summary>
+        public static string Ana_RemoveShortErrors {
+            get {
+                return ResourceManager.GetString("Ana_RemoveShortErrors", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Min. minutes:.
+        /// </summary>
+        public static string Ana_ThresholdLabel {
+            get {
+                return ResourceManager.GetString("Ana_ThresholdLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Bar Chart:.
+        /// </summary>
+        public static string Ana_BarChart {
+            get {
+                return ResourceManager.GetString("Ana_BarChart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Group Data.
+        /// </summary>
+        public static string Ana_GroupData {
+            get {
+                return ResourceManager.GetString("Ana_GroupData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Single Data.
+        /// </summary>
+        public static string Ana_SingleData {
+            get {
+                return ResourceManager.GetString("Ana_SingleData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Start Date.
         /// </summary>
         public static string Ana_StartDate {

@@ -279,7 +279,7 @@ namespace WPF_LoginForm.ViewModels
                     _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules).Equals(r, StringComparison.OrdinalIgnoreCase)));
             }
 
-            DisplayedItems = new ObservableCollection<ErrorEventModel>(query);
+            DisplayedItems = new ObservableCollection<ErrorEventModel>(query.OrderByDescending(x => x.DurationMinutes));
 
             OnPropertyChanged(nameof(RecordCount));
             OnPropertyChanged(nameof(TotalDurationText));

@@ -87,6 +87,17 @@ namespace WPF_LoginForm.Services
             return result;
         }
 
+        public static List<ChartDataPoint> GetTopSingleErrors(List<ErrorEventModel> data, int topN = 5)
+        {
+            return data
+                .GroupBy(x => x.ErrorDescription)
+                .Select(g => new ChartDataPoint { Label = g.Key, Value = g.Max(x => x.DurationMinutes) })
+                .Where(x => !string.IsNullOrEmpty(x.Label))
+                .OrderByDescending(x => x.Value)
+                .Take(topN)
+                .ToList();
+        }
+
         public static List<ChartDataPoint> GetCategoryStats(List<ErrorEventModel> data, string category, CategoryMappingService mappingService, List<CategoryRule> rules, int topN = 5)
         {
             var grouped = data

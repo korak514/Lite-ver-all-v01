@@ -57,6 +57,28 @@ namespace WPF_LoginForm.ViewModels
         public bool IsMachine00Excluded
         { get => _isMachine00Excluded; set { if (SetProperty(ref _isMachine00Excluded, value)) { SaveState(); _ = LoadDataWithDebounce(); } } }
 
+        private bool _isSingleTimeErrorsRemoved;
+        public bool IsSingleTimeErrorsRemoved
+        { get => _isSingleTimeErrorsRemoved; set { if (SetProperty(ref _isSingleTimeErrorsRemoved, value)) { SaveState(); _ = LoadDataWithDebounce(); } } }
+
+        private bool _isShortErrorsRemoved;
+        public bool IsShortErrorsRemoved
+        { get => _isShortErrorsRemoved; set { if (SetProperty(ref _isShortErrorsRemoved, value)) { OnPropertyChanged(nameof(RemoveShortErrorsLabel)); SaveState(); _ = LoadDataWithDebounce(); } } }
+
+        private int _errorMinThreshold = 60;
+        public int ErrorMinThreshold
+        { get => _errorMinThreshold; set { var v = Math.Max(1, Math.Min(999, value)); if (SetProperty(ref _errorMinThreshold, v)) { OnPropertyChanged(nameof(RemoveShortErrorsLabel)); SaveState(); if (IsShortErrorsRemoved) _ = LoadDataWithDebounce(); } } }
+
+        public string RemoveShortErrorsLabel => string.Format(WPF_LoginForm.Properties.Resources.Ana_RemoveShortErrors, ErrorMinThreshold);
+
+        private bool _isGroupedData = true;
+        public bool IsGroupedData
+        { get => _isGroupedData; set { if (SetProperty(ref _isGroupedData, value)) { OnPropertyChanged(nameof(ChartModeLabel)); SaveState(); _ = LoadDataWithDebounce(); } } }
+
+        public string ChartModeLabel => IsGroupedData
+            ? WPF_LoginForm.Properties.Resources.Ana_GroupData
+            : WPF_LoginForm.Properties.Resources.Ana_SingleData;
+
         // --- Date ---
         private DateTime _startDate = DateTime.Today.AddDays(-7);
 
@@ -187,6 +209,7 @@ namespace WPF_LoginForm.ViewModels
 
         // --- Commands ---
         public ICommand CopyCategoriesCommand { get; }
+        public ICommand ResetAllFiltersCommand { get; }
 
         public ICommand LoadDataCommand { get; set; }
 
@@ -256,6 +279,8 @@ namespace WPF_LoginForm.ViewModels
             TogglePageCommand = new ViewModelCommand(p => IsSecondPageActive = !IsSecondPageActive);
             OpenDailyTimelineCommand = new ViewModelCommand(ExecuteOpenDailyTimeline);
 
+            ResetAllFiltersCommand = new ViewModelCommand(p => ExecuteOpenCategoryDrillDown());
+
             // FIX: Initialize Copy Command
             CopyCategoriesCommand = new ViewModelCommand(p => ExecuteCopyCategories());
 
@@ -318,7 +343,9 @@ namespace WPF_LoginForm.ViewModels
                 var filteredList = InputHelper.PreProcessData(rawData, IsMachine00Excluded);
                 var strictNoM00List = InputHelper.PreProcessData(rawData, true);
 
-                var reasonStats = InputHelper.GetTopReasons(filteredList, _mappingService, _activeRules, 5);
+                var reasonStats = IsGroupedData
+                    ? InputHelper.GetTopReasons(filteredList, _mappingService, _activeRules, 5)
+                    : InputHelper.GetTopSingleErrors(filteredList, 5);
                 var reasonValues = new ChartValues<double>(reasonStats.Select(x => x.Value));
                 var reasonLabels = reasonStats.Select((x, index) => { string l = x.Label; if (l.Length > 15) l = l.Substring(0, 12) + "..."; return (index % 2 != 0) ? "\n" + l : l; }).ToArray();
                 var reasonFullNames = reasonStats.Select(x => x.Label).ToList();
@@ -328,7 +355,16 @@ namespace WPF_LoginForm.ViewModels
                 var shiftStats = InputHelper.GetShiftStats(rawData, filteredList);
                 var severityStats = InputHelper.GetSeverityStats(filteredList);
 
-                var uniqueCategories = filteredList.Select(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules)).Distinct().OrderBy(x => x).ToList();
+                var categoryGroups = filteredList
+                    .GroupBy(x => _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules))
+                    .Select(g => new { Category = g.Key, TotalDuration = g.Sum(x => x.DurationMinutes), Count = g.Count() })
+                    .Where(x => !string.IsNullOrEmpty(x.Category))
+                    .ToList();
+                if (IsSingleTimeErrorsRemoved)
+                    categoryGroups = categoryGroups.Where(g => g.Count > 1).ToList();
+                if (IsShortErrorsRemoved)
+                    categoryGroups = categoryGroups.Where(g => g.TotalDuration >= ErrorMinThreshold).ToList();
+                var uniqueCategories = categoryGroups.OrderByDescending(x => x.TotalDuration).Select(x => x.Category).ToList();
 
                 double maxReasonVal = reasonStats.Any() ? reasonStats.Max(x => x.Value) : 0;
                 double calculatedReasonStep = CalculateCleanStep(maxReasonVal);
@@ -387,12 +423,12 @@ namespace WPF_LoginForm.ViewModels
                     string stopText = WPF_LoginForm.Properties.Resources.AnalyticsP2_Stop ?? "Stops";
 
                     EfficiencySeries = new SeriesCollection {
-                        new PieSeries { Title = errorText, Values = new ChartValues<double> { page2Stats.TotalErrorDuration }, DataLabels = true, Fill = Brushes.OrangeRed, LabelPoint = p => TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat) },
-                        new PieSeries { Title = stopText, Values = new ChartValues<double> { page2Stats.TotalStopDuration }, DataLabels = true, Fill = Brushes.DodgerBlue, LabelPoint = p => TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat) }
+                        new PieSeries { Title = errorText, Values = new ChartValues<double> { page2Stats.TotalErrorDuration }, DataLabels = false, Fill = Brushes.OrangeRed },
+                        new PieSeries { Title = stopText, Values = new ChartValues<double> { page2Stats.TotalStopDuration }, DataLabels = false, Fill = Brushes.DodgerBlue }
                     };
 
                     var shiftColl = new SeriesCollection();
-                    foreach (var s in shiftStats) shiftColl.Add(new PieSeries { Title = s.Label, Values = new ChartValues<double> { s.Value }, DataLabels = true, LabelPoint = p => $"{TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat)} ({p.Participation:P0})" });
+                    foreach (var s in shiftStats) shiftColl.Add(new PieSeries { Title = s.Label, Values = new ChartValues<double> { s.Value }, DataLabels = false });
                     ShiftImpactSeries = shiftColl;
 
                     var sevColl = new SeriesCollection();
@@ -444,7 +480,7 @@ namespace WPF_LoginForm.ViewModels
             var filteredList = InputHelper.PreProcessData(_cachedRawData, IsMachine00Excluded);
             var catStats = InputHelper.GetCategoryStats(filteredList, SelectedErrorCategory, _mappingService, _activeRules);
             var catColl = new SeriesCollection();
-            foreach (var item in catStats) catColl.Add(new PieSeries { Title = $"MA-{item.Label}", Values = new ChartValues<double> { item.Value }, DataLabels = true, LabelPoint = p => $"{p.Y:N0}m" });
+            foreach (var item in catStats) catColl.Add(new PieSeries { Title = $"MA-{item.Label}", Values = new ChartValues<double> { item.Value }, DataLabels = false, LabelPoint = p => TimeFormatHelper.FormatDuration(p.Y, IsMinToClockFormat) });
             ShiftSeries = catColl;
         }
 
@@ -458,6 +494,42 @@ namespace WPF_LoginForm.ViewModels
                 _activeRules = _mappingService.LoadRules();
                 _ = LoadDataWithDebounce();
             }
+        }
+
+        private void ExecuteOpenCategoryDrillDown()
+        {
+            if (string.IsNullOrEmpty(SelectedErrorCategory) || _cachedRawData == null) return;
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var drillDownVm = new ErrorDrillDownViewModel(
+                    _cachedRawData,
+                    $"{WPF_LoginForm.Properties.Resources.Str_DetailedAnalysis} {SelectedTable}",
+                    SelectedErrorCategory,
+                    new List<string>(),
+                    IsMinToClockFormat,
+                    IsMachine00Excluded
+                );
+
+                var win = new WPF_LoginForm.Views.ErrorDrillDownWindow();
+                win.SetViewModel(drillDownVm);
+
+                drillDownVm.OnNavigateRequested = (errorEvent) =>
+                {
+                    win.DialogResult = true;
+                    win.Close();
+
+                    NavigateToDataReportRequested?.Invoke(
+                        SelectedTable,
+                        errorEvent.Date.Date,
+                        errorEvent.Date.Date.AddDays(1).AddSeconds(-1),
+                        errorEvent.RawData ?? errorEvent.ErrorDescription);
+                };
+
+                if (Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
+                    win.Owner = Application.Current.MainWindow;
+
+                win.ShowDialog();
+            });
         }
 
         private void ExecuteChartClick(object obj)
@@ -623,9 +695,9 @@ namespace WPF_LoginForm.ViewModels
         { if (p is string s && s.Contains("|")) { var parts = s.Split('|'); if (int.TryParse(parts[1], out int d)) { if (parts[0] == "Start") StartDate = StartDate.AddDays(d); else EndDate = EndDate.AddDays(d); if (StartDate > EndDate) { if (parts[0] == "Start") EndDate = StartDate; else StartDate = EndDate; } } } }
 
         private void SaveState()
-        { try { string dir = Path.GetDirectoryName(StateFilePath); if (!Directory.Exists(dir)) Directory.CreateDirectory(dir); var state = new { SelectedTable, StartDate, EndDate, IsMachine00Excluded, SelectedErrorCategory, IsMinToClockFormat }; File.WriteAllText(StateFilePath, JsonConvert.SerializeObject(state)); } catch { } }
+        { try { string dir = Path.GetDirectoryName(StateFilePath); if (!Directory.Exists(dir)) Directory.CreateDirectory(dir); var state = new { SelectedTable, StartDate, EndDate, IsMachine00Excluded, SelectedErrorCategory, IsMinToClockFormat, IsSingleTimeErrorsRemoved, IsShortErrorsRemoved, ErrorMinThreshold, IsGroupedData }; File.WriteAllText(StateFilePath, JsonConvert.SerializeObject(state)); } catch { } }
 
         private void LoadState()
-        { try { if (File.Exists(StateFilePath)) { dynamic state = JsonConvert.DeserializeObject(File.ReadAllText(StateFilePath)); if (state != null) { _selectedTable = state.SelectedTable; _startDate = state.StartDate; _endDate = state.EndDate; _isMachine00Excluded = state.IsMachine00Excluded; _selectedErrorCategory = state.SelectedErrorCategory; _isMinToClockFormat = state.IsMinToClockFormat ?? false; OnPropertyChanged(nameof(SelectedTable)); OnPropertyChanged(nameof(StartDate)); OnPropertyChanged(nameof(EndDate)); OnPropertyChanged(nameof(IsMachine00Excluded)); OnPropertyChanged(nameof(SelectedErrorCategory)); OnPropertyChanged(nameof(IsMinToClockFormat)); } } } catch { } }
+        { try { if (File.Exists(StateFilePath)) { dynamic state = JsonConvert.DeserializeObject(File.ReadAllText(StateFilePath)); if (state != null) { _selectedTable = state.SelectedTable; _startDate = state.StartDate; _endDate = state.EndDate; _isMachine00Excluded = state.IsMachine00Excluded; _selectedErrorCategory = state.SelectedErrorCategory; _isMinToClockFormat = state.IsMinToClockFormat ?? false; _isSingleTimeErrorsRemoved = state.IsSingleTimeErrorsRemoved ?? false; _isShortErrorsRemoved = state.IsShortErrorsRemoved ?? false; _errorMinThreshold = state.ErrorMinThreshold ?? 60; _isGroupedData = state.IsGroupedData ?? true; OnPropertyChanged(nameof(SelectedTable)); OnPropertyChanged(nameof(StartDate)); OnPropertyChanged(nameof(EndDate)); OnPropertyChanged(nameof(IsMachine00Excluded)); OnPropertyChanged(nameof(SelectedErrorCategory)); OnPropertyChanged(nameof(IsMinToClockFormat)); OnPropertyChanged(nameof(IsSingleTimeErrorsRemoved)); OnPropertyChanged(nameof(IsShortErrorsRemoved)); OnPropertyChanged(nameof(ErrorMinThreshold)); OnPropertyChanged(nameof(IsGroupedData)); OnPropertyChanged(nameof(ChartModeLabel)); } } } catch { } }
     }
 }

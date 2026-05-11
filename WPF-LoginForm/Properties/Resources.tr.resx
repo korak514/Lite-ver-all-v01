@@ -972,6 +972,24 @@
   <data name="Ana_RangeSlider" xml:space="preserve">
     <value>Aralık Seçici</value>
   </data>
+  <data name="Ana_RemoveSingleTime" xml:space="preserve">
+    <value>Tek seferlik hataları kaldır</value>
+  </data>
+  <data name="Ana_RemoveShortErrors" xml:space="preserve">
+    <value>{0} dk altındaki hataları kaldır</value>
+  </data>
+  <data name="Ana_ThresholdLabel" xml:space="preserve">
+    <value>Min. dakika:</value>
+  </data>
+  <data name="Ana_BarChart" xml:space="preserve">
+    <value>Bar Grafik:</value>
+  </data>
+  <data name="Ana_GroupData" xml:space="preserve">
+    <value>Gruplu Veri</value>
+  </data>
+  <data name="Ana_SingleData" xml:space="preserve">
+    <value>Tek Veri</value>
+  </data>
   <data name="Str_AddDataColumn" xml:space="preserve">
     <value>+ Veri Kolonu Ekle</value>
   </data>

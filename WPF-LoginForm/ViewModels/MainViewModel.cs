@@ -165,9 +165,11 @@ namespace WPF_LoginForm.ViewModels
             CurrentChildView = _portalViewModel;
             Caption = "Analytics Hub";
             Icon = IconChar.ThLarge;
+
+            PrewarmHomeViewModel();
         }
 
-        private void OnOpenDashboardModule(string targetFileName)
+        private void PrewarmHomeViewModel()
         {
             if (_homeViewModel != null)
             {
@@ -179,19 +181,20 @@ namespace WPF_LoginForm.ViewModels
             _homeViewModel = new HomeViewModel(_dataRepository, _dialogService, _logger);
             _homeViewModel.DrillDownRequested += OnDashboardDrillDown;
             _homeViewModel.ReturnToPortalAction = () => ExecuteShowHomeViewCommand(null);
-
-            // --- NEW: Hooking up the Maximize Navigation ---
             _homeViewModel.OpenChartDetailAction = OnOpenChartDetail;
+
+            _homeViewModel.Activate();
+        }
+
+        private void OnOpenDashboardModule(string targetFileName)
+        {
+            if (_homeViewModel == null) PrewarmHomeViewModel();
 
             CurrentChildView = _homeViewModel;
             Caption = "Dashboard Module";
             Icon = IconChar.ChartPie;
 
-            Task.Delay(100).ContinueWith(_ => Application.Current.Dispatcher.Invoke(() =>
-            {
-                if (_homeViewModel != null)
-                    _homeViewModel.SelectedDashboardFile = targetFileName;
-            }));
+            _homeViewModel.SelectedDashboardFile = targetFileName;
         }
 
         // --- NEW: Triggered when "Maximize" is clicked on a chart ---
