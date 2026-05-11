@@ -8,7 +8,7 @@
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         xmlns:p="clr-namespace:WPF_LoginForm.Properties"
         mc:Ignorable="d"
-        Title="Printable Timeline Report" Height="760" Width="1300"
+        Title="{x:Static p:Resources.Str_PrintableTimelineReport}" Height="760" Width="1300"
         WindowStartupLocation="CenterOwner" Background="#F0F2F5">
 
     <Window.Resources>
@@ -53,10 +53,10 @@
                     <StackPanel>
                         <TextBlock Text="{x:Static p:Resources.Str_ReportConfiguration}" FontSize="18" FontWeight="Bold" Foreground="#0056B3" Margin="0,0,0,15" />
 
-                        <TextBlock Text="Primary Database Table" Style="{StaticResource HeaderStyle}" />
+                        <TextBlock Text="{x:Static p:Resources.Str_PrimaryDatabaseTable}" Style="{StaticResource HeaderStyle}" />
                         <ComboBox ItemsSource="{Binding AvailableTables}" SelectedItem="{Binding SelectedTable}" Height="25" Margin="0,0,0,10" />
 
-                        <TextBlock Text="Date Range (Auto 12-Days, Max 20)" Style="{StaticResource HeaderStyle}" />
+                        <TextBlock Text="{x:Static p:Resources.Str_DateRangeAuto}" Style="{StaticResource HeaderStyle}" />
                         <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -269,18 +269,18 @@
                         </Style>
                     </ScrollViewer.Style>
                     <StackPanel>
-                        <Button Content="⬅ Back to Configuration" Command="{Binding CancelBlockEditCommand}" Background="Transparent" Foreground="#0056B3" BorderThickness="0" HorizontalAlignment="Left" Margin="0,0,0,10" FontWeight="Bold" Cursor="Hand" />
+                        <Button Content="{x:Static p:Resources.Str_BackToConfiguration}" Command="{Binding CancelBlockEditCommand}" Background="Transparent" Foreground="#0056B3" BorderThickness="0" HorizontalAlignment="Left" Margin="0,0,0,10" FontWeight="Bold" Cursor="Hand" />
 
                         <TextBlock Text="{x:Static p:Resources.Str_LiveVisualEditor}" FontSize="18" FontWeight="Bold" Foreground="#E67E22" Margin="0,0,0,5" />
                         <TextBlock Text="Edit exactly what prints for this block. Changes are automatically saved as overrides when you click Apply." FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,0,0,15" />
 
-                        <TextBlock Text="Block Time Info" Style="{StaticResource HeaderStyle}" Foreground="#E67E22" />
+                        <TextBlock Text="{x:Static p:Resources.Str_BlockTimeInfo}" Style="{StaticResource HeaderStyle}" Foreground="#E67E22" />
                         <TextBlock Text="{Binding EditBlockTimeData}" FontSize="13" FontWeight="SemiBold" Foreground="#34495E" Margin="0,0,0,15" />
 
-                        <TextBlock Text="Forced Category Assignment" Style="{StaticResource HeaderStyle}" />
+                        <TextBlock Text="{x:Static p:Resources.Str_ForcedCategoryAssignment}" Style="{StaticResource HeaderStyle}" />
                         <ComboBox ItemsSource="{Binding AvailableBlockCategories}" SelectedItem="{Binding SelectedBlockCategory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="25" Margin="0,0,0,15" />
 
-                        <TextBlock Text="Block Fill Color" Style="{StaticResource HeaderStyle}" />
+                        <TextBlock Text="{x:Static p:Resources.Str_BlockFillColor}" Style="{StaticResource HeaderStyle}" />
                         <xctk:ColorPicker SelectedColor="{Binding EditBlockColor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="25" Margin="0,0,0,15" />
 
                         <!-- TEXT & LABEL SECTION -->
@@ -334,21 +334,21 @@
 
                         <Border Background="#F5F5F5" BorderBrush="#DDD" BorderThickness="1" Padding="10" Margin="0,5,0,15">
                             <StackPanel>
-                                <CheckBox Content="Force into Footnotes" IsChecked="{Binding EditBlockIsFootnote}" FontWeight="Bold" Margin="0,0,0,10" />
-                                <TextBlock Text="Footnote Description:" FontSize="11" Foreground="#555" Margin="0,0,0,5" />
+                                <CheckBox Content="{x:Static p:Resources.Str_ForceIntoFootnotes}" IsChecked="{Binding EditBlockIsFootnote}" FontWeight="Bold" Margin="0,0,0,10" />
+                                <TextBlock Text="{x:Static p:Resources.Str_FootnoteDescription}" FontSize="11" Foreground="#555" Margin="0,0,0,5" />
                                 <TextBox Text="{Binding EditBlockDesc, UpdateSourceTrigger=PropertyChanged}" Height="25" VerticalContentAlignment="Center" IsEnabled="{Binding EditBlockIsFootnote}" />
                             </StackPanel>
                         </Border>
 
-                        <Button Content="✓ Apply Overrides" Command="{Binding ApplyBlockEditCommand}" Height="35" Background="#28A745" Foreground="White" FontWeight="Bold" Margin="0,15,0,10" />
-                        <Button Content="✗ Cancel &amp; Revert" Command="{Binding CancelBlockEditCommand}" Height="30" Background="#E74C3C" Foreground="White" FontWeight="Bold" />
+                        <Button Content="{x:Static p:Resources.Str_ApplyOverrides}" Command="{Binding ApplyBlockEditCommand}" Height="35" Background="#28A745" Foreground="White" FontWeight="Bold" Margin="0,15,0,10" />
+                        <Button Content="{x:Static p:Resources.Str_CancelRevert}" Command="{Binding CancelBlockEditCommand}" Height="30" Background="#E74C3C" Foreground="White" FontWeight="Bold" />
                     </StackPanel>
                 </ScrollViewer>
 
                 <StackPanel Grid.Row="1" Margin="0,15,0,0">
-                    <Button Content="Reset Manual Edits" Command="{Binding ResetOverridesCommand}" Height="28" Background="#6C757D" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" ToolTip="Clear all manual color, text, and layout overrides you made." />
-                    <Button Content="Generate Preview (Saves Settings)" Command="{Binding GeneratePreviewCommand}" Height="35" Background="#0056B3" Foreground="White" FontWeight="Bold" Margin="0,0,0,10" />
-                    <Button Content="🖨 Print to A4 Landscape" Command="{Binding PrintCommand}" Height="35" Background="#2ECC71" Foreground="White" FontWeight="Bold" />
+                    <Button Content="{x:Static p:Resources.Str_ResetManualEdits}" Command="{Binding ResetOverridesCommand}" Height="28" Background="#6C757D" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" ToolTip="Clear all manual color, text, and layout overrides you made." />
+                    <Button Content="{x:Static p:Resources.Str_GeneratePreview}" Command="{Binding GeneratePreviewCommand}" Height="35" Background="#0056B3" Foreground="White" FontWeight="Bold" Margin="0,0,0,10" />
+                    <Button Content="{x:Static p:Resources.Str_PrintA4Landscape}" Command="{Binding PrintCommand}" Height="35" Background="#2ECC71" Foreground="White" FontWeight="Bold" />
                 </StackPanel>
             </Grid>
         </Border>

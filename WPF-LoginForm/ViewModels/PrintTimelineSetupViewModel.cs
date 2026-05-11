@@ -268,7 +268,13 @@ namespace WPF_LoginForm.ViewModels
             CancelBlockEditCommand = new ViewModelCommand(ExecuteCancelBlockEdit);
             ResetOverridesCommand = new ViewModelCommand(ExecuteResetOverrides, p => _blockOverrides.Count > 0);
 
-            _ = InitializeAsync();
+            _ = InitializeAsyncSafe();
+        }
+
+        private async Task InitializeAsyncSafe()
+        {
+            try { await InitializeAsync(); }
+            catch (Exception ex) { MessageBox.Show($"Failed to initialize: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
         private void ExecuteResetOverrides(object obj)
@@ -715,16 +721,13 @@ namespace WPF_LoginForm.ViewModels
                         if (!string.IsNullOrEmpty(checkFp) && _blockOverrides.TryGetValue(checkFp, out var overrideData))
                         {
                             block.ColorHex = overrideData.ColorHex;
-                            if (block.PanelZIndex >= 80 || block.PanelZIndex <= 20)
-                            {
-                                block.Label = overrideData.Label; block.MachineCode = overrideData.MachineCode;
-                                block.OriginalDescription = overrideData.Description; block.IsFootnote = overrideData.IsFootnote;
-                                block.DisplayStartTime = overrideData.DisplayStartTime; block.DisplayEndTime = overrideData.DisplayEndTime;
-                                block.HeightMultiplier = overrideData.HeightMultiplier; block.TopOffset = overrideData.TopOffset;
-                                block.PanelZIndex = overrideData.PanelZIndex;
-                                block.LabelOffsetX = overrideData.LabelOffsetX; block.LabelOffsetY = overrideData.LabelOffsetY;
-                                block.BlockFontSize = overrideData.BlockFontSize;
-                            }
+                            block.Label = overrideData.Label; block.MachineCode = overrideData.MachineCode;
+                            block.OriginalDescription = overrideData.Description; block.IsFootnote = overrideData.IsFootnote;
+                            block.DisplayStartTime = overrideData.DisplayStartTime; block.DisplayEndTime = overrideData.DisplayEndTime;
+                            block.HeightMultiplier = overrideData.HeightMultiplier; block.TopOffset = overrideData.TopOffset;
+                            block.PanelZIndex = overrideData.PanelZIndex;
+                            block.LabelOffsetX = overrideData.LabelOffsetX; block.LabelOffsetY = overrideData.LabelOffsetY;
+                            block.BlockFontSize = overrideData.BlockFontSize;
                         }
                     }
                 }
@@ -746,19 +749,27 @@ namespace WPF_LoginForm.ViewModels
                     new MachineLegendItem { Code = "97", Name = "KAMYON" }, new MachineLegendItem { Code = "96", Name = "BESLEME-KONVEYÖR" }
                 };
 
-                var ticks = new List<PrintAxisTick>
+                var ticks = new List<PrintAxisTick>();
+                int shiftStartHour = 8;
+                int totalMinutes = 720;
+                int intervalMinutes = 120;
+                for (int m = 0; m <= totalMinutes; m += intervalMinutes)
                 {
-                    new PrintAxisTick { PositionPercent = 0.0, TopLabel = "08:00", BottomLabel = "20:00", TimelineWidth = timelineWidth, RowHeight = this.RowHeight },
-                    new PrintAxisTick { PositionPercent = 120.0 / 720.0, TopLabel = "10:00", BottomLabel = "22:00", TimelineWidth = timelineWidth, RowHeight = this.RowHeight },
-                    new PrintAxisTick { PositionPercent = 270.0 / 720.0, TopLabel = "12:30", BottomLabel = "00:30", TimelineWidth = timelineWidth, RowHeight = this.RowHeight },
-                    new PrintAxisTick { PositionPercent = 420.0 / 720.0, TopLabel = "15:00", BottomLabel = "03:30", TimelineWidth = timelineWidth, RowHeight = this.RowHeight },
-                    new PrintAxisTick { PositionPercent = 540.0 / 720.0, TopLabel = "17:00", BottomLabel = "05:30", TimelineWidth = timelineWidth, RowHeight = this.RowHeight },
-                    new PrintAxisTick { PositionPercent = 720.0 / 720.0, TopLabel = "20:00", BottomLabel = "08:00", TimelineWidth = timelineWidth, RowHeight = this.RowHeight }
-                };
+                    int topHour = shiftStartHour + (m / 60);
+                    int bottomHour = (topHour + 12) % 24;
+                    ticks.Add(new PrintAxisTick
+                    {
+                        PositionPercent = (double)m / totalMinutes,
+                        TopLabel = $"{topHour:D2}:00",
+                        BottomLabel = $"{bottomHour:D2}:00",
+                        TimelineWidth = timelineWidth,
+                        RowHeight = this.RowHeight
+                    });
+                }
 
                 var config = new PrintReportConfig
                 {
-                    ReportTitle = "Vardiya Raporu",
+                    ReportTitle = WPF_LoginForm.Properties.Resources.Str_ShiftReport,
                     DateRangeText = $"{StartDate:dd.MM.yyyy} - {EndDate:dd.MM.yyyy}",
                     RunningColor = this.RunningColor.ToString(),
                     ErrorColor = this.ErrorColor.ToString(),
@@ -784,14 +795,14 @@ namespace WPF_LoginForm.ViewModels
                     HeaderDate = resDate,
                     HeaderShift = resShift,
                     LegendRunning = resRun,
-                    LegendBreak = "Bypass (Çalışıyor)",
+                    LegendBreak = WPF_LoginForm.Properties.Resources.P_Bypass,
                     LegendError = resErr,
                     LegendError2 = resErr2,
-                    LegendFacilityStop = "Duruş",
-                    LegendMa00Genel = "Genel Temizlik",
-                    LegendMa00Cay = "Çay Molası",
-                    LegendMa00Yemek = "Yemek Molası",
-                    LegendMa00Other = "Diğer",
+                    LegendFacilityStop = WPF_LoginForm.Properties.Resources.P_Total_Stop,
+                    LegendMa00Genel = WPF_LoginForm.Properties.Resources.P_GeneralCleaning,
+                    LegendMa00Cay = WPF_LoginForm.Properties.Resources.P_TeaBreak,
+                    LegendMa00Yemek = WPF_LoginForm.Properties.Resources.P_MealBreak,
+                    LegendMa00Other = WPF_LoginForm.Properties.Resources.P_Other,
                     LegendItems = legendList,
                     AxisTicks = ticks,
                     MonthlySummary = context.MonthlySummaryData // NEW

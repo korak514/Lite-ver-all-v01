@@ -1544,4 +1544,73 @@
   <data name="Str_AutoIncrementID" xml:space="preserve">
     <value>Otomatik artan ID sütununu birincil anahtar olarak ekle</value>
   </data>
+  <data name="Str_ShiftReport" xml:space="preserve">
+    <value>Vardiya Raporu</value>
+  </data>
+  <data name="P_Bypass" xml:space="preserve">
+    <value>Bypass</value>
+  </data>
+  <data name="P_GeneralCleaning" xml:space="preserve">
+    <value>Genel Temizlik</value>
+  </data>
+  <data name="P_TeaBreak" xml:space="preserve">
+    <value>Çay Molası</value>
+  </data>
+  <data name="P_MealBreak" xml:space="preserve">
+    <value>Yemek Molası</value>
+  </data>
+  <data name="P_Other" xml:space="preserve">
+    <value>Diğer</value>
+  </data>
+  <data name="Str_PrintableTimelineReport" xml:space="preserve">
+    <value>Yazdırılabilir Zaman Çizelgesi Raporu</value>
+  </data>
+  <data name="Str_PrimaryDatabaseTable" xml:space="preserve">
+    <value>Birincil Veritabanı Tablosu</value>
+  </data>
+  <data name="Str_DateRangeAuto" xml:space="preserve">
+    <value>Tarih Aralığı (Otomatik 12 Gün, Maks 20)</value>
+  </data>
+  <data name="Str_BackToConfiguration" xml:space="preserve">
+    <value>Yapılandırmaya Dön</value>
+  </data>
+  <data name="Str_BlockTimeInfo" xml:space="preserve">
+    <value>Blok Zaman Bilgisi</value>
+  </data>
+  <data name="Str_ForcedCategoryAssignment" xml:space="preserve">
+    <value>Zorunlu Kategori Ataması</value>
+  </data>
+  <data name="Str_BlockFillColor" xml:space="preserve">
+    <value>Blok Dolgu Rengi</value>
+  </data>
+  <data name="Str_ForceIntoFootnotes" xml:space="preserve">
+    <value>Dipnotlara Zorla</value>
+  </data>
+  <data name="Str_FootnoteDescription" xml:space="preserve">
+    <value>Dipnot Açıklaması:</value>
+  </data>
+  <data name="Str_ApplyOverrides" xml:space="preserve">
+    <value>Geçersiz Kılmaları Uygula</value>
+  </data>
+  <data name="Str_CancelRevert" xml:space="preserve">
+    <value>İptal &amp; Geri Al</value>
+  </data>
+  <data name="Str_ResetManualEdits" xml:space="preserve">
+    <value>Manuel Düzenlemeleri Sıfırla</value>
+  </data>
+  <data name="Str_GeneratePreview" xml:space="preserve">
+    <value>Önizleme Oluştur (Ayarları Kaydeder)</value>
+  </data>
+  <data name="Str_PrintA4Landscape" xml:space="preserve">
+    <value>A4 Yatay Yazdır</value>
+  </data>
+  <data name="Str_LunchBreak" xml:space="preserve">
+    <value>Öğle Molası</value>
+  </data>
+  <data name="Str_NewEvent" xml:space="preserve">
+    <value>Yeni Olay</value>
+  </data>
+  <data name="Msg_NegativeFiiliSure" xml:space="preserve">
+    <value>Ham FiiliSure değeri negatif ({0}). Bu, veritabanında bozuk veri olduğunu gösterir.</value>
+  </data>
 </root>

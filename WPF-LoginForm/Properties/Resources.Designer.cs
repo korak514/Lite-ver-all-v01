@@ -4336,5 +4336,194 @@ namespace WPF_LoginForm.Properties {
                 return ResourceManager.GetString("Str_AutoIncrementID", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Shift Report.
+        /// </summary>
+        public static string Str_ShiftReport {
+            get {
+                return ResourceManager.GetString("Str_ShiftReport", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Bypass.
+        /// </summary>
+        public static string P_Bypass {
+            get {
+                return ResourceManager.GetString("P_Bypass", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to General Cleaning.
+        /// </summary>
+        public static string P_GeneralCleaning {
+            get {
+                return ResourceManager.GetString("P_GeneralCleaning", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Tea Break.
+        /// </summary>
+        public static string P_TeaBreak {
+            get {
+                return ResourceManager.GetString("P_TeaBreak", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Meal Break.
+        /// </summary>
+        public static string P_MealBreak {
+            get {
+                return ResourceManager.GetString("P_MealBreak", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Other.
+        /// </summary>
+        public static string P_Other {
+            get {
+                return ResourceManager.GetString("P_Other", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Printable Timeline Report.
+        /// </summary>
+        public static string Str_PrintableTimelineReport {
+            get {
+                return ResourceManager.GetString("Str_PrintableTimelineReport", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Primary Database Table.
+        /// </summary>
+        public static string Str_PrimaryDatabaseTable {
+            get {
+                return ResourceManager.GetString("Str_PrimaryDatabaseTable", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Date Range (Auto 12-Days, Max 20).
+        /// </summary>
+        public static string Str_DateRangeAuto {
+            get {
+                return ResourceManager.GetString("Str_DateRangeAuto", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Back to Configuration.
+        /// </summary>
+        public static string Str_BackToConfiguration {
+            get {
+                return ResourceManager.GetString("Str_BackToConfiguration", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Block Time Info.
+        /// </summary>
+        public static string Str_BlockTimeInfo {
+            get {
+                return ResourceManager.GetString("Str_BlockTimeInfo", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Forced Category Assignment.
+        /// </summary>
+        public static string Str_ForcedCategoryAssignment {
+            get {
+                return ResourceManager.GetString("Str_ForcedCategoryAssignment", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Block Fill Color.
+        /// </summary>
+        public static string Str_BlockFillColor {
+            get {
+                return ResourceManager.GetString("Str_BlockFillColor", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Apply Overrides.
+        /// </summary>
+        public static string Str_ApplyOverrides {
+            get {
+                return ResourceManager.GetString("Str_ApplyOverrides", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cancel &amp; Revert.
+        /// </summary>
+        public static string Str_CancelRevert {
+            get {
+                return ResourceManager.GetString("Str_CancelRevert", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Reset Manual Edits.
+        /// </summary>
+        public static string Str_ResetManualEdits {
+            get {
+                return ResourceManager.GetString("Str_ResetManualEdits", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Generate Preview (Saves Settings).
+        /// </summary>
+        public static string Str_GeneratePreview {
+            get {
+                return ResourceManager.GetString("Str_GeneratePreview", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Print to A4 Landscape.
+        /// </summary>
+        public static string Str_PrintA4Landscape {
+            get {
+                return ResourceManager.GetString("Str_PrintA4Landscape", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Lunch Break.
+        /// </summary>
+        public static string Str_LunchBreak {
+            get {
+                return ResourceManager.GetString("Str_LunchBreak", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to New Event.
+        /// </summary>
+        public static string Str_NewEvent {
+            get {
+                return ResourceManager.GetString("Str_NewEvent", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Raw FiiliSure value is negative ({0}). This indicates corrupted data in the database..
+        /// </summary>
+        public static string Msg_NegativeFiiliSure {
+            get {
+                return ResourceManager.GetString("Msg_NegativeFiiliSure", resourceCulture);
+            }
+        }
     }
 }

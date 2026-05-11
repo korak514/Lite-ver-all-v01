@@ -1545,4 +1545,73 @@ Would you like to configure a database connection now, or start using Offline mo
   <data name="Str_AutoIncrementID" xml:space="preserve">
     <value>Add auto-incrementing ID column as Primary Key</value>
   </data>
+  <data name="Str_ShiftReport" xml:space="preserve">
+    <value>Shift Report</value>
+  </data>
+  <data name="P_Bypass" xml:space="preserve">
+    <value>Bypass</value>
+  </data>
+  <data name="P_GeneralCleaning" xml:space="preserve">
+    <value>General Cleaning</value>
+  </data>
+  <data name="P_TeaBreak" xml:space="preserve">
+    <value>Tea Break</value>
+  </data>
+  <data name="P_MealBreak" xml:space="preserve">
+    <value>Meal Break</value>
+  </data>
+  <data name="P_Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="Str_PrintableTimelineReport" xml:space="preserve">
+    <value>Printable Timeline Report</value>
+  </data>
+  <data name="Str_PrimaryDatabaseTable" xml:space="preserve">
+    <value>Primary Database Table</value>
+  </data>
+  <data name="Str_DateRangeAuto" xml:space="preserve">
+    <value>Date Range (Auto 12-Days, Max 20)</value>
+  </data>
+  <data name="Str_BackToConfiguration" xml:space="preserve">
+    <value>Back to Configuration</value>
+  </data>
+  <data name="Str_BlockTimeInfo" xml:space="preserve">
+    <value>Block Time Info</value>
+  </data>
+  <data name="Str_ForcedCategoryAssignment" xml:space="preserve">
+    <value>Forced Category Assignment</value>
+  </data>
+  <data name="Str_BlockFillColor" xml:space="preserve">
+    <value>Block Fill Color</value>
+  </data>
+  <data name="Str_ForceIntoFootnotes" xml:space="preserve">
+    <value>Force into Footnotes</value>
+  </data>
+  <data name="Str_FootnoteDescription" xml:space="preserve">
+    <value>Footnote Description:</value>
+  </data>
+  <data name="Str_ApplyOverrides" xml:space="preserve">
+    <value>Apply Overrides</value>
+  </data>
+  <data name="Str_CancelRevert" xml:space="preserve">
+    <value>Cancel &amp; Revert</value>
+  </data>
+  <data name="Str_ResetManualEdits" xml:space="preserve">
+    <value>Reset Manual Edits</value>
+  </data>
+  <data name="Str_GeneratePreview" xml:space="preserve">
+    <value>Generate Preview (Saves Settings)</value>
+  </data>
+  <data name="Str_PrintA4Landscape" xml:space="preserve">
+    <value>Print to A4 Landscape</value>
+  </data>
+  <data name="Str_LunchBreak" xml:space="preserve">
+    <value>Lunch Break</value>
+  </data>
+  <data name="Str_NewEvent" xml:space="preserve">
+    <value>New Event</value>
+  </data>
+  <data name="Msg_NegativeFiiliSure" xml:space="preserve">
+    <value>Raw FiiliSure value is negative ({0}). This indicates corrupted data in the database.</value>
+  </data>
 </root>

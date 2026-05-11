@@ -84,7 +84,6 @@
                 <Trigger Property="IsChecked" Value="True">
                     <Setter Property="Background" Value="#F1C40F" />
                     <Setter Property="Foreground" Value="Black" />
-                    <Setter Property="FontWeight" Value="Bold" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -109,7 +108,6 @@
                 <Trigger Property="IsChecked" Value="True">
                     <Setter Property="Background" Value="#2980B9" />
                     <Setter Property="Foreground" Value="White" />
-                    <Setter Property="FontWeight" Value="Bold" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -317,8 +315,8 @@
                     </Border>
 
                     <StackPanel Orientation="Horizontal">
-                        <RadioButton Content="{x:Static p:Resources.Str_DayShift}" IsChecked="{Binding IsNightShift, Converter={StaticResource BooleanInverter}}" Style="{StaticResource DayToggleStyle}" />
-                        <RadioButton Content="{x:Static p:Resources.Str_NightShift}" IsChecked="{Binding IsNightShift}" Style="{StaticResource NightToggleStyle}" />
+                        <RadioButton Content="☼" IsChecked="{Binding IsNightShift, Converter={StaticResource BooleanInverter}}" Style="{StaticResource DayToggleStyle}" ToolTip="{x:Static p:Resources.Str_DayShift}" FontSize="20" />
+                        <RadioButton Content="☾" IsChecked="{Binding IsNightShift}" Style="{StaticResource NightToggleStyle}" ToolTip="{x:Static p:Resources.Str_NightShift}" FontSize="20" />
                     </StackPanel>
                 </StackPanel>
             </Grid>

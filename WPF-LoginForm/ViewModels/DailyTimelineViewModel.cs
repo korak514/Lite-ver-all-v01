@@ -6,6 +6,7 @@ using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -115,6 +116,7 @@ namespace WPF_LoginForm.ViewModels
         private readonly string _tableName;
         private double _lastViewportWidth = 800;
         private readonly string _configFilePath;
+        private CancellationTokenSource _loadCts;
 
         private DataTable _currentData;
         private List<string> _errorColumns = new List<string>();
@@ -124,7 +126,15 @@ namespace WPF_LoginForm.ViewModels
         public DateTime TargetDate
         {
             get => _targetDate;
-            set { if (SetProperty(ref _targetDate, value)) { UpdateHeaderStrings(); _ = LoadDataAsync(); _ = LoadRulerDataAsync(); } }
+            set { if (SetProperty(ref _targetDate, value)) { UpdateHeaderStrings(); ReloadData(); } }
+        }
+
+        private void ReloadData()
+        {
+            _loadCts?.Cancel();
+            _loadCts = new CancellationTokenSource();
+            _ = LoadDataAsync(_loadCts.Token);
+            _ = LoadRulerDataAsync(_loadCts.Token);
         }
 
         private bool _isNightShift;
@@ -262,7 +272,7 @@ namespace WPF_LoginForm.ViewModels
         public string SelectedRulerTable
         {
             get => _selectedRulerTable;
-            set { if (SetProperty(ref _selectedRulerTable, value)) _ = LoadRulerDataAsync(); }
+            set { if (SetProperty(ref _selectedRulerTable, value)) ReloadData(); }
         }
 
         // --- TIMELINE COLLECTIONS ---
@@ -315,12 +325,12 @@ namespace WPF_LoginForm.ViewModels
 
             SaveToDatabaseCommand = new ViewModelCommand(p => ExecuteSaveToDatabase(), p => IsDirty && IsOnlineMode);
             UndoCommand = new ViewModelCommand(p => ExecuteUndo(), p => IsDirty);
-            RefreshCommand = new ViewModelCommand(p => { _ = LoadDataAsync(); _ = LoadRulerDataAsync(); });
+            RefreshCommand = new ViewModelCommand(p => { ReloadData(); });
 
             _ = InitializeTablesAsync();
             LoadConfigData();
             UpdateHeaderStrings();
-            _ = LoadDataAsync();
+            ReloadData();
         }
 
         private async Task InitializeTablesAsync()
@@ -358,7 +368,7 @@ namespace WPF_LoginForm.ViewModels
             if (!AvailableMachineCodes.Any()) { AvailableMachineCodes.Add("00"); AvailableMachineCodes.Add("01"); }
             if (!AvailableMachineCodes.Contains("99")) AvailableMachineCodes.Add("99");
 
-            if (!FavoriteEvents.Any()) { FavoriteEvents.Add(new FavoriteEvent { Title = "Lunch Break", MachineCode = "00", Description = Resources.Str_MA00_3, DefaultDuration = 60, ColorHex = "#2ECC71" }); }
+            if (!FavoriteEvents.Any()) { FavoriteEvents.Add(new FavoriteEvent { Title = Resources.Str_LunchBreak, MachineCode = "00", Description = Resources.Str_MA00_3, DefaultDuration = 60, ColorHex = "#2ECC71" }); }
         }
 
         private void SaveConfigData()
@@ -427,7 +437,7 @@ namespace WPF_LoginForm.ViewModels
                     EndTime = eventEnd.ToString("HH:mm"),
                     DurationMinutes = dur,
                     MachineCode = fav?.MachineCode ?? "00",
-                    ErrorDescription = fav?.Description ?? "New Event"
+                    ErrorDescription = fav?.Description ?? Resources.Str_NewEvent
                 },
                 LaneIndex = lane,
                 StartMinuteInShift = startMin,
@@ -684,6 +694,12 @@ namespace WPF_LoginForm.ViewModels
                     else if (DateTime.TryParse(fStr, out DateTime fDt)) RawFiiliSure = fDt.TimeOfDay.TotalMinutes;
                     else if (double.TryParse(fStr, out double fDbl)) RawFiiliSure = fDbl;
                     else RawFiiliSure = 0;
+
+                    if (RawFiiliSure < 0)
+                    {
+                        MessageBox.Show(string.Format(Resources.Msg_NegativeFiiliSure, RawFiiliSure), Resources.Str_Error, MessageBoxButton.OK, MessageBoxImage.Warning);
+                        RawFiiliSure = 0;
+                    }
                 }
                 else RawFiiliSure = 0;
             }
@@ -768,31 +784,29 @@ namespace WPF_LoginForm.ViewModels
             RefreshDimensions();
         }
 
-        private async Task LoadDataAsync()
+        private async Task LoadDataAsync(CancellationToken ct = default)
         {
             if (string.IsNullOrEmpty(_tableName)) return;
+            if (ct.IsCancellationRequested) return;
 
-            // PERFORMANCE FIX: Use Task.Run to fetch data off UI thread
-            var result = await Task.Run(() => _repository.GetTableDataAsync(_tableName, 0));
-            if (result.Data != null)
+            var result = await _repository.GetTableDataAsync(_tableName, 0);
+            if (ct.IsCancellationRequested || result.Data == null) return;
+
+            _currentData = result.Data;
+
+            _errorColumns.Clear();
+            foreach (DataColumn c in _currentData.Columns)
             {
-                _currentData = result.Data;
-
-                _errorColumns.Clear();
-                foreach (DataColumn c in _currentData.Columns)
-                {
-                    string n = c.ColumnName.ToLower();
-                    if (n.StartsWith("hata_kodu") || n.StartsWith("error_code") || n.StartsWith("code"))
-                        _errorColumns.Add(c.ColumnName);
-                }
-
-                IsDirty = false;
-                await Task.Run(() => ParseDataToTimeline());
+                string n = c.ColumnName.ToLower();
+                if (n.StartsWith("hata_kodu") || n.StartsWith("error_code") || n.StartsWith("code"))
+                    _errorColumns.Add(c.ColumnName);
             }
+
+            IsDirty = false;
+            if (!ct.IsCancellationRequested) ParseDataToTimeline();
         }
 
-        // NEW: Load Reference Ruler Data
-        private async Task LoadRulerDataAsync()
+        private async Task LoadRulerDataAsync(CancellationToken ct = default)
         {
             if (string.IsNullOrEmpty(SelectedRulerTable) || SelectedRulerTable == "None")
             {
@@ -804,81 +818,80 @@ namespace WPF_LoginForm.ViewModels
                 return;
             }
 
-            var result = await Task.Run(() => _repository.GetTableDataAsync(SelectedRulerTable, 0));
-            if (result.Data == null) return;
+            if (ct.IsCancellationRequested) return;
 
-            await Task.Run(() =>
+            var result = await _repository.GetTableDataAsync(SelectedRulerTable, 0);
+            if (ct.IsCancellationRequested || result.Data == null) return;
+
+            var dt = result.Data;
+            var masterReferenceBlocks = new List<TimelineBlockModel>();
+
+            var dateCol = dt.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("tarih", StringComparison.OrdinalIgnoreCase) >= 0);
+            var shiftCol = dt.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("shift", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("vardiya", StringComparison.OrdinalIgnoreCase) >= 0);
+
+            var durusColumns = dt.Columns.Cast<DataColumn>()
+                .Where(c => c.ColumnName.StartsWith("duruş", StringComparison.OrdinalIgnoreCase) ||
+                            c.ColumnName.StartsWith("durus", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            DateTime shiftStart = IsNightShift ? TargetDate.Date.AddHours(20) : TargetDate.Date.AddHours(8);
+
+            foreach (DataRow row in dt.Rows)
             {
-                var dt = result.Data;
-                var masterReferenceBlocks = new List<TimelineBlockModel>();
+                if (row.RowState == DataRowState.Deleted) continue;
 
-                var dateCol = dt.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("tarih", StringComparison.OrdinalIgnoreCase) >= 0);
-                var shiftCol = dt.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("shift", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("vardiya", StringComparison.OrdinalIgnoreCase) >= 0);
+                DateTime rDate = dateCol != null && row[dateCol] != DBNull.Value ? Convert.ToDateTime(row[dateCol]) : DateTime.MinValue;
+                string rShift = shiftCol != null && row[shiftCol] != DBNull.Value ? row[shiftCol].ToString() : "";
 
-                var durusColumns = dt.Columns.Cast<DataColumn>()
-                    .Where(c => c.ColumnName.StartsWith("duruş", StringComparison.OrdinalIgnoreCase) ||
-                                c.ColumnName.StartsWith("durus", StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-
-                DateTime shiftStart = IsNightShift ? TargetDate.Date.AddHours(20) : TargetDate.Date.AddHours(8);
-
-                foreach (DataRow row in dt.Rows)
+                bool isTargetShiftRow = false;
+                if (rDate.Date == TargetDate.Date)
                 {
-                    if (row.RowState == DataRowState.Deleted) continue;
+                    bool isRowNightShift = rShift.IndexOf("gece", StringComparison.OrdinalIgnoreCase) >= 0 || rShift.IndexOf("night", StringComparison.OrdinalIgnoreCase) >= 0;
+                    bool isRowDayShift = rShift.IndexOf("gündüz", StringComparison.OrdinalIgnoreCase) >= 0 || rShift.IndexOf("gunduz", StringComparison.OrdinalIgnoreCase) >= 0 || rShift.IndexOf("day", StringComparison.OrdinalIgnoreCase) >= 0;
 
-                    DateTime rDate = dateCol != null && row[dateCol] != DBNull.Value ? Convert.ToDateTime(row[dateCol]) : DateTime.MinValue;
-                    string rShift = shiftCol != null && row[shiftCol] != DBNull.Value ? row[shiftCol].ToString() : "";
+                    if (IsNightShift && isRowNightShift) isTargetShiftRow = true;
+                    else if (!IsNightShift && isRowDayShift) isTargetShiftRow = true;
+                }
 
-                    bool isTargetShiftRow = false;
-                    if (rDate.Date == TargetDate.Date)
+                if (isTargetShiftRow)
+                {
+                    foreach (var col in durusColumns)
                     {
-                        bool isRowNightShift = rShift.IndexOf("gece", StringComparison.OrdinalIgnoreCase) >= 0 || rShift.IndexOf("night", StringComparison.OrdinalIgnoreCase) >= 0;
-                        bool isRowDayShift = rShift.IndexOf("gündüz", StringComparison.OrdinalIgnoreCase) >= 0 || rShift.IndexOf("gunduz", StringComparison.OrdinalIgnoreCase) >= 0 || rShift.IndexOf("day", StringComparison.OrdinalIgnoreCase) >= 0;
+                        string rawVal = row[col]?.ToString();
+                        if (string.IsNullOrWhiteSpace(rawVal)) continue;
 
-                        if (IsNightShift && isRowNightShift) isTargetShiftRow = true;
-                        else if (!IsNightShift && isRowDayShift) isTargetShiftRow = true;
-                    }
+                        if (rawVal.StartsWith("F-", StringComparison.OrdinalIgnoreCase))
+                            rawVal = rawVal.Substring(2);
 
-                    if (isTargetShiftRow)
-                    {
-                        foreach (var col in durusColumns)
+                        var parts = rawVal.Split('-');
+                        if (parts.Length >= 2)
                         {
-                            string rawVal = row[col]?.ToString();
-                            if (string.IsNullOrWhiteSpace(rawVal)) continue;
+                            string timePart = parts[0].Trim();
+                            string durPart = parts[1].Trim();
 
-                            if (rawVal.StartsWith("F-", StringComparison.OrdinalIgnoreCase))
-                                rawVal = rawVal.Substring(2);
-
-                            var parts = rawVal.Split('-');
-                            if (parts.Length >= 2)
+                            if (TimeSpan.TryParse(timePart, out TimeSpan ts) && int.TryParse(durPart, out int duration))
                             {
-                                string timePart = parts[0].Trim();
-                                string durPart = parts[1].Trim();
+                                DateTime eventStartFull = TargetDate.Date.Add(ts);
+                                if (IsNightShift && ts.Hours < 12) eventStartFull = eventStartFull.AddDays(1);
 
-                                if (TimeSpan.TryParse(timePart, out TimeSpan ts) && int.TryParse(durPart, out int duration))
+                                masterReferenceBlocks.Add(new TimelineBlockModel
                                 {
-                                    DateTime eventStartFull = TargetDate.Date.Add(ts);
-                                    if (IsNightShift && ts.Hours < 12) eventStartFull = eventStartFull.AddDays(1);
-
-                                    masterReferenceBlocks.Add(new TimelineBlockModel
-                                    {
-                                        IsReferenceBlock = true,
-                                        StartMinuteInShift = (eventStartFull - shiftStart).TotalMinutes,
-                                        DurationMinutes = duration,
-                                        CurrentZoomHours = this.TimeWindowHours
-                                    });
-                                }
+                                    IsReferenceBlock = true,
+                                    StartMinuteInShift = (eventStartFull - shiftStart).TotalMinutes,
+                                    DurationMinutes = duration,
+                                    CurrentZoomHours = this.TimeWindowHours
+                                });
                             }
                         }
                     }
                 }
+            }
 
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    ReferenceBlocks.Clear();
-                    foreach (var rb in masterReferenceBlocks) ReferenceBlocks.Add(rb);
-                    RefreshDimensions();
-                });
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                ReferenceBlocks.Clear();
+                foreach (var rb in masterReferenceBlocks) ReferenceBlocks.Add(rb);
+                RefreshDimensions();
             });
         }
 
