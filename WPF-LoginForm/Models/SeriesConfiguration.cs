@@ -22,6 +22,10 @@ namespace WPF_LoginForm.Models
 
         public bool IsCombinationLabel { get; set; } = false;
         public string CustomDetailTitle { get; set; }
+        public string LegendLabel { get; set; }
+
+        [JsonIgnore]
+        public List<string> PendingPreloadColumns { get; set; }
         public bool ShowOnlyHoverLabels { get; set; }
         public string TooltipDateFormat { get; set; } = "MMM yyyy";
         public bool IncludeSeriesName { get; set; } = true;

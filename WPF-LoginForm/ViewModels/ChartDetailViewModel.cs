@@ -208,7 +208,9 @@ namespace WPF_LoginForm.ViewModels
             {
                 if (s == null) continue;
 
-                Brush colorBrush = (Brush)new BrushConverter().ConvertFrom(s.ColorHex);
+                Brush colorBrush;
+                try { colorBrush = (Brush)new BrushConverter().ConvertFrom(s.ColorHex) ?? Brushes.Gray; }
+                catch { colorBrush = Brushes.Gray; }
 
                 if (s.SeriesType == "Pie")
                 {

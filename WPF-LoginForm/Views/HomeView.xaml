@@ -426,9 +426,12 @@
                     <Border Background="#181838" CornerRadius="10" Padding="15">
                         <Grid>
                             <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" 
-                                          Hoverable="False" 
-                                          Margin="0,10,0,0" AnimationsSpeed="0:0:0.4"
-                                          DataTooltip="{x:Null}" />
+                                          Hoverable="True" 
+                                          Margin="0,10,0,0" AnimationsSpeed="0:0:0.4">
+                                <lvc:PieChart.DataTooltip>
+                                    <lvc:DefaultTooltip SelectionMode="OnlySender" Background="#F2000025" BorderBrush="#50FFFFFF" BorderThickness="1" Foreground="White" />
+                                </lvc:PieChart.DataTooltip>
+                            </lvc:PieChart>
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="4" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
                             <Button Command="{Binding CloseMaximizeCommand}">
                                 <Button.Style>
@@ -573,13 +576,12 @@
                                 </Button>
                             </Grid>
 
-                            <lvc:PieChart Grid.Row="1" Series="{Binding Chart6Series}" LegendLocation="Bottom" InnerRadius="80" Margin="20,10,20,20" 
-                                          Hoverable="False" 
-                                          AnimationsSpeed="0:0:0.4"
-                                          DataTooltip="{x:Null}">
-                                <lvc:PieChart.ChartLegend>
-                                    <lvc:DefaultLegend Foreground="#CCCCCC" FontSize="13" />
-                                </lvc:PieChart.ChartLegend>
+                            <lvc:PieChart Grid.Row="1" Series="{Binding Chart6Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" 
+                                          Hoverable="True" 
+                                          Margin="0,10,0,0" AnimationsSpeed="0:0:0.4">
+                                <lvc:PieChart.DataTooltip>
+                                    <lvc:DefaultTooltip SelectionMode="OnlySender" Background="#F2000025" BorderBrush="#50FFFFFF" BorderThickness="1" Foreground="White" />
+                                </lvc:PieChart.DataTooltip>
                             </lvc:PieChart>
                         </Grid>
                     </Border>
@@ -603,6 +605,15 @@
                                             <StackPanel Orientation="Horizontal" Grid.Row="1">
                                                 <TextBlock Text="{Binding Value}" Foreground="{Binding ColorHex}" FontSize="24" FontWeight="Bold" Margin="0,5,10,0" />
                                                 <Border Background="#10FFFFFF" CornerRadius="4" Padding="5,2" VerticalAlignment="Center">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding TrendIcon}" Value="">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
                                                     <TextBlock Text="{Binding TrendIcon}" Foreground="{Binding TrendColor}" FontSize="12" FontWeight="Bold" />
                                                 </Border>
                                             </StackPanel>

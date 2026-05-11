@@ -1,0 +1,51 @@
+File: AssemblyInfo.cs
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Windows;
+
+[assembly: AssemblyTitle("WPF-LoginForm")]
+[assembly: AssemblyDescription("")]
+[assembly: AssemblyConfiguration("")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyProduct("WPF-LoginForm")]
+[assembly: AssemblyCopyright("Copyright ©  2022")]
+[assembly: AssemblyTrademark("")]
+[assembly: AssemblyCulture("")]
+[assembly: ComVisible(false)]
+[assembly: ThemeInfo(
+    ResourceDictionaryLocation.None,
+    ResourceDictionaryLocation.SourceAssembly)]
+[assembly: AssemblyVersion("12.5.0.0")]
+[assembly: AssemblyFileVersion("12.5.0.0")]
+
+File: WPF-LoginForm.csproj (Metadata)
+  Target Framework: .NET Framework v4.8
+  Output Type: WinExe (WPF Application)
+  Root Namespace: WPF_LoginForm
+  Assembly Name: WPF-LoginForm
+  Application Version: 12.5.0.*
+  Language Version: C# 7.3
+  Deterministic: true
+
+NuGet Dependencies (packages.config):
+  FontAwesome 4.7.0
+
+NuGet Dependencies (PackageReference):
+  ClosedXML
+  Costura.Fody
+  EPPlus
+  Extended.Wpf.Toolkit
+  FontAwesome.Sharp
+  FontAwesome.WPF 4.7.0
+  LinqForEEPlus
+  LiveCharts.Wpf
+  Microsoft.Data.SqlClient
+  Newtonsoft.Json 13.0.3
+  Npgsql
+
+Framework References:
+  ReachFramework, System, System.Configuration, System.Data,
+  System.Drawing, System.Printing, System.Windows.Forms,
+  System.Xml, Microsoft.CSharp, System.Core, System.Xml.Linq,
+  System.Data.DataSetExtensions, System.Net.Http, System.Xaml,
+  WindowsBase, PresentationCore, PresentationFramework

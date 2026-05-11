@@ -1005,6 +1005,9 @@
   <data name="Str_ChartType" xml:space="preserve">
     <value>Grafik Türü</value>
   </data>
+  <data name="Str_CombineLabels" xml:space="preserve">
+    <value>Etiketleri Birleştir</value>
+  </data>
   <data name="Str_CollapseFilters" xml:space="preserve">
     <value>Filtreleri Gizle</value>
   </data>
@@ -1147,7 +1150,10 @@
     <value>Etiketleme Modu</value>
   </data>
   <data name="Str_LabelSettings" xml:space="preserve">
-    <value>Etiket Ayarları</value>
+    <value>LabelSettings</value>
+  </data>
+  <data name="Str_LegendLabel" xml:space="preserve">
+    <value>Lejant Etiketi</value>
   </data>
   <data name="Str_Machines" xml:space="preserve">
     <value>Makineler</value>

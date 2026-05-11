@@ -1006,6 +1006,9 @@
   <data name="Str_ChartType" xml:space="preserve">
     <value>Chart Type</value>
   </data>
+  <data name="Str_CombineLabels" xml:space="preserve">
+    <value>Combine Labels</value>
+  </data>
   <data name="Str_CollapseFilters" xml:space="preserve">
     <value>Collapse Filters</value>
   </data>
@@ -1149,6 +1152,9 @@
   </data>
   <data name="Str_LabelSettings" xml:space="preserve">
     <value>LabelSettings</value>
+  </data>
+  <data name="Str_LegendLabel" xml:space="preserve">
+    <value>Legend Label</value>
   </data>
   <data name="Str_Machines" xml:space="preserve">
     <value>Machines</value>

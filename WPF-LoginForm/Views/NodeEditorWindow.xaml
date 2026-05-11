@@ -373,6 +373,9 @@
                     <TextBlock Text="{x:Static p:Resources.Str_Rename}" FontSize="11" Foreground="Gray" Margin="0,0,0,2" />
                     <TextBox Text="{Binding CustomChartTitle, Mode=TwoWay}" Padding="4" Margin="0,0,0,10" />
 
+                    <TextBlock Text="{x:Static p:Resources.Str_LegendLabel}" FontSize="11" Foreground="Gray" Margin="0,0,0,2" />
+                    <TextBox Text="{Binding LegendLabel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4" Margin="0,0,0,10" />
+
                     <TextBlock Text="{x:Static p:Resources.Str_LabelingMode}" FontSize="11" Foreground="Gray" Margin="0,0,0,2" />
                     <RadioButton Content="{x:Static p:Resources.Str_FixedLabels}" IsChecked="{Binding ShowOnlyHoverLabels, Converter={StaticResource EqualityConverter}, ConverterParameter=False}" Margin="0,2" Foreground="#444" FontSize="12" />
                     <RadioButton Content="{x:Static p:Resources.Str_HoverTooltips}" IsChecked="{Binding ShowOnlyHoverLabels}" Margin="0,2" Foreground="#444" FontSize="12" />

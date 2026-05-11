@@ -183,15 +183,36 @@ namespace WPF_LoginForm.Services
         // --- UPDATED: Evaluates the series and specifically targets the Blueprint Zones for Tooltips ---
         private (double YValue, string LabelText, string TooltipHeader, string TooltipLeft, string TooltipRight) EvaluateSeriesForGroup(
             SeriesConfiguration ser, IEnumerable<DataRow> rows, Func<object, double> numberParser,
-            bool globalIsAvg, string splitCategory, string rawSeriesName, DateTime? xDate, string xCategory, bool isDateAxis, int totalSeriesCount)
+            bool globalIsAvg, string splitCategory, string rawSeriesName, DateTime? xDate, string xCategory, bool isDateAxis, int totalSeriesCount,
+            DashboardConfiguration config = null)
         {
             if (rows == null || !rows.Any()) return (0.0, "", "", "", "");
 
+            bool useTemplate = false;
+            NodeFlowState state = null;
+
             if (ser.IsCombinationLabel && ser.SavedStates != null && ser.ActiveStateIndex >= 0 && ser.SavedStates.Count > ser.ActiveStateIndex)
             {
-                var state = ser.SavedStates[ser.ActiveStateIndex];
-                if (state == null || state.Nodes == null || !state.Nodes.Any()) return (0.0, "", "", "", "");
+                state = ser.SavedStates[ser.ActiveStateIndex];
+            }
 
+            if ((state == null || state.Nodes == null || !state.Nodes.Any()) && config != null && config.Series.Count > 0 && ser != config.Series[0])
+            {
+                var templateSer = config.Series[0];
+                if (templateSer.IsCombinationLabel && templateSer.SavedStates != null && 
+                    templateSer.ActiveStateIndex >= 0 && templateSer.SavedStates.Count > templateSer.ActiveStateIndex)
+                {
+                    var tmplState = templateSer.SavedStates[templateSer.ActiveStateIndex];
+                    if (tmplState != null && tmplState.Nodes != null && tmplState.Nodes.Any())
+                    {
+                        state = tmplState;
+                        useTemplate = true;
+                    }
+                }
+            }
+
+            if (state != null && state.Nodes != null && state.Nodes.Any())
+            {
                 string tHeader = "";
                 string tLeft = "";
                 string tRight = "";
@@ -200,13 +221,13 @@ namespace WPF_LoginForm.Services
                 foreach (var node in state.Nodes)
                 {
                     string nodeString = "";
+
                     if (node.NodeType == "StaticText") nodeString = node.Value;
                     else if (node.NodeType == "NewLine") nodeString = "\n";
                     else if (node.NodeType == "SeriesName")
                     {
                         if (totalSeriesCount > 1 && !string.IsNullOrEmpty(splitCategory))
                         {
-                            // AUTOMATED MERGE LOGIC: Split the name across zones
                             if (node.Zone == 2) nodeString = splitCategory;
                             else if (node.Zone == 3) nodeString = rawSeriesName;
                             else nodeString = $"{splitCategory} - {rawSeriesName}";
@@ -227,7 +248,8 @@ namespace WPF_LoginForm.Services
                     }
                     else if (node.NodeType == "DataColumn")
                     {
-                        string col = node.Value;
+                        string col = useTemplate ? ser.ColumnName : node.Value;
+
                         double val = 0;
                         if (!string.IsNullOrEmpty(col) && rows.First().Table.Columns.Contains(col))
                         {
@@ -238,13 +260,11 @@ namespace WPF_LoginForm.Services
                         nodeString = SmartLabelService.FormatKiloMega(val);
                     }
 
-                    // Assign parsed string directly to the designated zone
                     if (node.Zone == 1) tHeader += nodeString;
                     else if (node.Zone == 2) tLeft += nodeString;
                     else tRight += nodeString;
                 }
 
-                // Fallback composition for physical label string so standard labels keep working
                 string combinedLabel = "";
                 if (!string.IsNullOrWhiteSpace(tHeader)) combinedLabel += tHeader + "\n";
                 if (!string.IsNullOrWhiteSpace(tLeft) || !string.IsNullOrWhiteSpace(tRight))
@@ -252,37 +272,33 @@ namespace WPF_LoginForm.Services
 
                 return (firstYValue ?? 0.0, combinedLabel.Trim(), tHeader.Trim(), tLeft.Trim(), tRight.Trim());
             }
+
+            if (string.IsNullOrEmpty(ser.ColumnName) || !rows.First().Table.Columns.Contains(ser.ColumnName))
+                return (0.0, "", "", "", "");
+
+            double fallbackVal = globalIsAvg ? rows.Average(r => numberParser(r[ser.ColumnName])) : rows.Sum(r => numberParser(r[ser.ColumnName]));
+            string defHeader = isDateAxis && xDate.HasValue ? xDate.Value.ToString("dd.MM.yyyy") : (xCategory ?? "");
+            string formattedVal = SmartLabelService.FormatKiloMega(fallbackVal);
+
+            string defLeft;
+            string defRight;
+
+            if (totalSeriesCount > 1 && !string.IsNullOrEmpty(splitCategory))
+            {
+                defLeft = splitCategory;
+                defRight = $"{rawSeriesName} {formattedVal}";
+            }
             else
             {
-                if (string.IsNullOrEmpty(ser.ColumnName) || !rows.First().Table.Columns.Contains(ser.ColumnName))
-                    return (0.0, "", "", "", "");
-
-                double val = globalIsAvg ? rows.Average(r => numberParser(r[ser.ColumnName])) : rows.Sum(r => numberParser(r[ser.ColumnName]));
-
-                string defHeader = isDateAxis && xDate.HasValue ? xDate.Value.ToString("dd.MM.yyyy") : (xCategory ?? "");
-                string formattedVal = SmartLabelService.FormatKiloMega(val);
-                
-                string defLeft;
-                string defRight;
-
-                // AUTOMATED MERGE LOGIC: If multiple series and split category exists
-                if (totalSeriesCount > 1 && !string.IsNullOrEmpty(splitCategory))
-                {
-                    defLeft = splitCategory;
-                    defRight = $"{rawSeriesName} {formattedVal}";
-                }
-                else
-                {
-                    defLeft = !string.IsNullOrEmpty(splitCategory) ? (totalSeriesCount > 1 ? $"{splitCategory} - {rawSeriesName}" : splitCategory) : rawSeriesName;
-                    defRight = formattedVal;
-                }
-
-                string defaultLabel = string.IsNullOrWhiteSpace(defHeader)
-                    ? $"{defLeft} {defRight}".Trim()
-                    : $"{defHeader}\n{defLeft} {defRight}".Trim();
-
-                return (val, defaultLabel, defHeader, defLeft, defRight);
+                defLeft = !string.IsNullOrEmpty(splitCategory) ? (totalSeriesCount > 1 ? $"{splitCategory} - {rawSeriesName}" : splitCategory) : rawSeriesName;
+                defRight = formattedVal;
             }
+
+            string defaultLabel = string.IsNullOrWhiteSpace(defHeader)
+                ? $"{defLeft} {defRight}".Trim()
+                : $"{defHeader}\n{defLeft} {defRight}".Trim();
+
+            return (fallbackVal, defaultLabel, defHeader, defLeft, defRight);
         }
 
         private void ProcessPieChart(DataTable dataTable, DashboardConfiguration config, ChartResultDto result,
@@ -310,7 +326,7 @@ namespace WPF_LoginForm.Services
                         {
                             RawCategory = g.Key,
                             CleanCategory = CleanLabelString(g.Key, config.HideNumbersInLabels || globalIgnoreNumbers, config.SimplifyLabels, globalIgnoreAfterHyphen),
-                            Total = EvaluateSeriesForGroup(seriesConfig, g.Select(x => x.Row), numberParser, isAvg, null, seriesConfig.ColumnName, null, g.Key, false, config.Series.Count).YValue
+                             Total = EvaluateSeriesForGroup(seriesConfig, g.Select(x => x.Row), numberParser, isAvg, null, seriesConfig.ColumnName, null, g.Key, false, config.Series.Count, config).YValue
                         })
                         .GroupBy(x => x.CleanCategory)
                         .Select(g => new
@@ -353,7 +369,7 @@ namespace WPF_LoginForm.Services
                 {
                     if (!seriesConfig.IsCombinationLabel && (string.IsNullOrEmpty(seriesConfig.ColumnName) || !dataTable.Columns.Contains(seriesConfig.ColumnName))) continue;
 
-                    var evalResult = EvaluateSeriesForGroup(seriesConfig, dataTable.AsEnumerable(), numberParser, isAvg, null, seriesConfig.ColumnName, null, "", false, config.Series.Count);
+                    var evalResult = EvaluateSeriesForGroup(seriesConfig, dataTable.AsEnumerable(), numberParser, isAvg, null, seriesConfig.ColumnName, null, "", false, config.Series.Count, config);
                     if (evalResult.YValue <= 0) continue;
 
                     string rawName = seriesConfig.ColumnName ?? "Series";
@@ -481,11 +497,12 @@ namespace WPF_LoginForm.Services
                         if (!ser.IsCombinationLabel && (string.IsNullOrEmpty(ser.ColumnName) || !dt.Columns.Contains(ser.ColumnName)))
                             continue;
 
-                        foreach (var splitGroup in cleanSplitGroups)
+                         foreach (var splitGroup in cleanSplitGroups)
                         {
                             var rawValsInGroup = splitGroup.ToList();
                             string rawSerName = ser.ColumnName ?? "Series";
-                            string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {rawSerName}" : splitGroup.Key) : rawSerName;
+                            string displaySerName = !string.IsNullOrEmpty(ser.LegendLabel) ? ser.LegendLabel : rawSerName;
+                            string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {displaySerName}" : splitGroup.Key) : displaySerName;
 
                             var vals = new List<object>();
                             var pts = new List<DashboardDataPoint>();
@@ -500,7 +517,7 @@ namespace WPF_LoginForm.Services
                                     continue;
                                 }
 
-                                var evalResult = EvaluateSeriesForGroup(ser, filteredRows.Select(r => (DataRow)r.Row), numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, g.Key, null, true, config.Series.Count * (hasSplit ? splitCategories.Count : 1));
+                                var evalResult = EvaluateSeriesForGroup(ser, filteredRows.Select(r => (DataRow)r.Row), numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, g.Key, null, true, config.Series.Count * (hasSplit ? splitCategories.Count : 1), config);
 
                                 vals.Add(new DateTimePoint(g.Key, evalResult.YValue));
                                 pts.Add(new DashboardDataPoint
@@ -596,11 +613,12 @@ namespace WPF_LoginForm.Services
                         if (!ser.IsCombinationLabel && (string.IsNullOrEmpty(ser.ColumnName) || !dt.Columns.Contains(ser.ColumnName)))
                             continue;
 
-                        foreach (var splitGroup in cleanSplitGroups)
+                         foreach (var splitGroup in cleanSplitGroups)
                         {
                             var rawValsInGroup = splitGroup.ToList();
                             string rawSerName = ser.ColumnName ?? "Series";
-                            string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {rawSerName}" : splitGroup.Key) : rawSerName;
+                            string displaySerName = !string.IsNullOrEmpty(ser.LegendLabel) ? ser.LegendLabel : rawSerName;
+                            string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {displaySerName}" : splitGroup.Key) : displaySerName;
 
                             var vals = new List<object>();
                             var pts = new List<DashboardDataPoint>();
@@ -617,7 +635,7 @@ namespace WPF_LoginForm.Services
                                     continue;
                                 }
 
-                                var evalResult = EvaluateSeriesForGroup(ser, filteredRows.Select(r => (DataRow)r.Row), numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, null, res.XAxisLabels[idx], false, config.Series.Count * (hasSplit ? splitCategories.Count : 1));
+                                var evalResult = EvaluateSeriesForGroup(ser, filteredRows.Select(r => (DataRow)r.Row), numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, null, res.XAxisLabels[idx], false, config.Series.Count * (hasSplit ? splitCategories.Count : 1), config);
 
                                 vals.Add(evalResult.YValue);
                                 pts.Add(new DashboardDataPoint
@@ -662,8 +680,8 @@ namespace WPF_LoginForm.Services
                     Key = g.Key,
                     SortDate = ParseDateSafe(g.First().RawVal),
                     IsDate = ParseDateSafe(g.First().RawVal) != DateTime.MinValue,
-                    PrimarySum = config.Series.Any()
-                                 ? EvaluateSeriesForGroup(config.Series.First(), g.Select(x => x.Row), numberParser, isAvg, null, config.Series.First().ColumnName, null, g.Key, false, config.Series.Count).YValue
+                     PrimarySum = config.Series.Any()
+                                 ? EvaluateSeriesForGroup(config.Series.First(), g.Select(x => x.Row), numberParser, isAvg, null, config.Series.First().ColumnName, null, g.Key, false, config.Series.Count, config).YValue
                                  : 0,
                     Rows = g.Select(x => x.Row).ToList()
                 })
@@ -753,11 +771,12 @@ namespace WPF_LoginForm.Services
                     if (!ser.IsCombinationLabel && (string.IsNullOrEmpty(ser.ColumnName) || !dt.Columns.Contains(ser.ColumnName)))
                         continue;
 
-                    foreach (var splitGroup in cleanSplitGroups)
-                    {
-                        var rawValsInGroup = splitGroup.ToList();
-                        string rawSerName = ser.ColumnName ?? "Series";
-                        string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {rawSerName}" : splitGroup.Key) : rawSerName;
+                         foreach (var splitGroup in cleanSplitGroups)
+                        {
+                            var rawValsInGroup = splitGroup.ToList();
+                            string rawSerName = ser.ColumnName ?? "Series";
+                            string displaySerName = !string.IsNullOrEmpty(ser.LegendLabel) ? ser.LegendLabel : rawSerName;
+                            string cleanTitle = hasSplit ? (config.Series.Count > 1 ? $"{splitGroup.Key} - {displaySerName}" : splitGroup.Key) : displaySerName;
 
                         var vals = new List<object>();
                         var pts = new List<DashboardDataPoint>();
@@ -774,7 +793,7 @@ namespace WPF_LoginForm.Services
                                 continue;
                             }
 
-                                var evalResult = EvaluateSeriesForGroup(ser, rows, numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, null, res.XAxisLabels[idx], false, config.Series.Count * (hasSplit ? splitCategories.Count : 1));
+                                var evalResult = EvaluateSeriesForGroup(ser, rows, numberParser, isAvg, hasSplit ? splitGroup.Key : null, rawSerName, null, res.XAxisLabels[idx], false, config.Series.Count * (hasSplit ? splitCategories.Count : 1), config);
 
                                 vals.Add(evalResult.YValue);
                                 pts.Add(new DashboardDataPoint

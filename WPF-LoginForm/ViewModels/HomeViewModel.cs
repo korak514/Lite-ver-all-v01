@@ -63,6 +63,8 @@ namespace WPF_LoginForm.ViewModels
         private CancellationTokenSource _fileLoadCts;
         private ConcurrentDictionary<string, double> _kpiTotals;
         private ConcurrentDictionary<string, double> _kpiPrevTotals;
+        private ConcurrentDictionary<string, int> _kpiCounts;
+        private ConcurrentDictionary<string, int> _kpiPrevCounts;
         private ConcurrentDictionary<(int, string), string> _colorMap = new ConcurrentDictionary<(int, string), string>();
         public ConcurrentDictionary<(int, string), string> ColorMap => _colorMap;
 
@@ -348,7 +350,7 @@ namespace WPF_LoginForm.ViewModels
         {
             _dataRepository = dataRepository; _dialogService = dialogService; _logger = logger;
             _storageService = new DashboardStorageService(); _chartService = new DashboardChartService();
-            _dashboardConfigurations = new List<DashboardConfiguration>(); _kpiTotals = new ConcurrentDictionary<string, double>(); _kpiPrevTotals = new ConcurrentDictionary<string, double>();
+            _dashboardConfigurations = new List<DashboardConfiguration>(); _kpiTotals = new ConcurrentDictionary<string, double>(); _kpiPrevTotals = new ConcurrentDictionary<string, double>(); _kpiCounts = new ConcurrentDictionary<string, int>(); _kpiPrevCounts = new ConcurrentDictionary<string, int>();
 
             ConfigureCommand = new ViewModelCommand(p => ShowConfigurationWindow()); ImportCommand = new ViewModelCommand(p => ImportConfiguration()); ExportCommand = new ViewModelCommand(p => ExportConfiguration());
             RecolorChartsCommand = new ViewModelCommand(p => ExecuteRefreshCommand()); ToggleFilterModeCommand = new ViewModelCommand(p => IsFilterByDate = !IsFilterByDate); ChartClickCommand = new ViewModelCommand(ExecuteChartClick);
@@ -400,7 +402,11 @@ namespace WPF_LoginForm.ViewModels
             if (lastComma > lastDot) strVal = strVal.Replace(".", "").Replace(",", ".");
             else if (lastDot > lastComma && lastComma != -1) strVal = strVal.Replace(",", "");
             else if (lastComma != -1 && lastDot == -1) strVal = strVal.Replace(",", ".");
-            else if (lastDot != -1 && lastComma == -1) strVal = strVal.Replace(".", "");
+            else if (lastDot != -1 && lastComma == -1)
+            {
+                int dotCount = strVal.Count(c => c == '.');
+                if (dotCount > 1) strVal = strVal.Replace(".", "");
+            }
             double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double res);
             return res;
         }
@@ -419,14 +425,7 @@ namespace WPF_LoginForm.ViewModels
                 if (_dashboardConfigurations == null) return;
                 if (!_dashboardConfigurations.Any()) for (int i = 1; i <= 6; i++) _dashboardConfigurations.Add(new DashboardConfiguration { ChartPosition = i, IsEnabled = false });
 
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    if (token.IsCancellationRequested || !_isActive) return;
-
-                    Chart1Series = new SeriesCollection(); Chart2Series = new SeriesCollection(); Chart3Series = new SeriesCollection();
-                    Chart4Series = new SeriesCollection(); Chart5Series = new SeriesCollection(); Chart6Series = new SeriesCollection();
-                    ClearAndReinitializeAxes(); _kpiTotals.Clear(); _kpiPrevTotals.Clear(); _chartResultCache.Clear();
-                });
+                _kpiTotals.Clear(); _kpiPrevTotals.Clear(); _kpiCounts.Clear(); _kpiPrevCounts.Clear(); _chartResultCache.Clear();
 
                 var validConfigs = _dashboardConfigurations.Where(c => c.IsEnabled && !string.IsNullOrEmpty(c.TableName) && c.Series.Any(s => !string.IsNullOrEmpty(s.ColumnName) || s.IsCombinationLabel)).ToList();
                 var tasks = validConfigs.Select(config => ProcessChartConfigurationAsync(config, token)).ToList();
@@ -456,13 +455,13 @@ namespace WPF_LoginForm.ViewModels
                     foreach (var kvp in kpiSource.OrderByDescending(x => x.Value))
                     {
                         double prev = _kpiPrevTotals.TryGetValue(kvp.Key, out double p) ? p : 0;
-                        string icon = "↔ 0%"; string tColor = "Gray";
+                        string icon = ""; string tColor = "Transparent";
                         if (prev > 0)
                         {
                             double change = ((kvp.Value - prev) / prev) * 100;
                             bool isBadMetric = kvp.Key.IndexOf("error", StringComparison.OrdinalIgnoreCase) >= 0 || kvp.Key.IndexOf("scrap", StringComparison.OrdinalIgnoreCase) >= 0;
-                            if (change > 0.1) { icon = "↑ " + Math.Abs(change).ToString("N1") + "%"; tColor = isBadMetric ? "#E74C3C" : "#2ECC71"; }
-                            else if (change < -0.1) { icon = "↓ " + Math.Abs(change).ToString("N1") + "%"; tColor = isBadMetric ? "#2ECC71" : "#E74C3C"; }
+                            if (change > 0.1) { icon = "↑ " + Math.Abs(change).ToString("N1"); tColor = isBadMetric ? "#E74C3C" : "#2ECC71"; }
+                            else if (change < -0.1) { icon = "↓ " + Math.Abs(change).ToString("N1"); tColor = isBadMetric ? "#2ECC71" : "#E74C3C"; }
                         }
                         KpiCards.Add(new KpiModel { Title = kvp.Key, Value = DashboardChartService.FormatKiloMega(kvp.Value), ColorHex = colors[cIdx % colors.Length], TrendIcon = icon, TrendColor = tColor });
                         cIdx++;
@@ -539,7 +538,8 @@ namespace WPF_LoginForm.ViewModels
                             double aggVal = isAvg
                                 ? validRows.Average(r => ParseSafeDouble(r[seriesConfig.ColumnName], culture))
                                 : validRows.Sum(r => ParseSafeDouble(r[seriesConfig.ColumnName], culture));
-                            _kpiTotals.AddOrUpdate(seriesConfig.ColumnName, aggVal, (key, old) => isAvg ? (aggVal + old) / 2 : aggVal + old);
+                            _kpiTotals.AddOrUpdate(seriesConfig.ColumnName, aggVal, (key, old) => isAvg ? _kpiCounts.GetOrAdd(key, 1) * old / (_kpiCounts[key] + 1) + aggVal / (_kpiCounts[key] + 1) : aggVal + old);
+                            if (isAvg) _kpiCounts.AddOrUpdate(seriesConfig.ColumnName, 1, (key, old) => old + 1);
                         }
 
                         if (dtPrev != null && dtPrev.Columns.Contains(seriesConfig.ColumnName))
@@ -550,7 +550,8 @@ namespace WPF_LoginForm.ViewModels
                                 double prevAggVal = isAvg
                                     ? validPrevRows.Average(r => ParseSafeDouble(r[seriesConfig.ColumnName], culture))
                                     : validPrevRows.Sum(r => ParseSafeDouble(r[seriesConfig.ColumnName], culture));
-                                _kpiPrevTotals.AddOrUpdate(seriesConfig.ColumnName, prevAggVal, (key, old) => isAvg ? (prevAggVal + old) / 2 : prevAggVal + old);
+                                _kpiPrevTotals.AddOrUpdate(seriesConfig.ColumnName, prevAggVal, (key, old) => isAvg ? _kpiPrevCounts.GetOrAdd(key, 1) * old / (_kpiPrevCounts[key] + 1) + prevAggVal / (_kpiPrevCounts[key] + 1) : prevAggVal + old);
+                                if (isAvg) _kpiPrevCounts.AddOrUpdate(seriesConfig.ColumnName, 1, (key, old) => old + 1);
                             }
                         }
                     }
@@ -611,7 +612,9 @@ namespace WPF_LoginForm.ViewModels
             {
                 if (s == null) continue;
 
-                Brush colorBrush = (Brush)new BrushConverter().ConvertFrom(s.ColorHex);
+                Brush colorBrush;
+                try { colorBrush = (Brush)new BrushConverter().ConvertFrom(s.ColorHex); }
+                catch { colorBrush = Brushes.Gray; }
 
                 if (s.SeriesType == "Pie")
                 {
@@ -629,13 +632,19 @@ namespace WPF_LoginForm.ViewModels
                         }
                     };
 
+                    int chartPos = position;
                     newSeries.Add(new PieSeries
                     {
                         Title = s.Title,
                         Values = pieCv,
                         Configuration = pieMapper,
                         DataLabels = false,
-                        LabelPoint = p => $"{hoverName}\n{DashboardChartService.FormatKiloMega(p.Y)} ({p.Participation:P0})",
+                        LabelPoint = p =>
+                        {
+                            if (MaximizedChartIndex == chartPos)
+                                return DashboardChartService.FormatKiloMega(p.Y);
+                            return p.Participation.ToString("P2");
+                        },
                         Fill = colorBrush
                     });
                 }
@@ -1115,7 +1124,7 @@ namespace WPF_LoginForm.ViewModels
                     }
                 }
 
-                _dashboardConfigurations = s.Configurations; IsFilterByDate = s.IsFilterByDate; IgnoreNonDateData = s.IgnoreNonDateData; UseIdToDateConversion = s.UseIdToDateConversion; GlobalIgnoreAfterHyphen = s.GlobalIgnoreAfterHyphen;
+                _dashboardConfigurations = s.Configurations?.OrderBy(c => c.ChartPosition).ToList(); IsFilterByDate = s.IsFilterByDate; IgnoreNonDateData = s.IgnoreNonDateData; UseIdToDateConversion = s.UseIdToDateConversion; GlobalIgnoreAfterHyphen = s.GlobalIgnoreAfterHyphen;
                 if (s.InitialDateForConversion != default) InitialDateForConversion = s.InitialDateForConversion;
 
                 _isSyncing = true;
@@ -1132,6 +1141,33 @@ namespace WPF_LoginForm.ViewModels
                 if (wasActive) { _isActive = true; _ = InitializeDashboardAsync(); }
             }
             finally { if (wasActive && !_isActive) _isActive = true; }
+        }
+
+        private static string WrapText(string text, int maxChars)
+        {
+            if (string.IsNullOrEmpty(text) || text.Length <= maxChars) return text;
+            var words = text.Split(' ');
+            var result = new System.Text.StringBuilder();
+            var line = new System.Text.StringBuilder();
+            int lineCount = 0;
+            foreach (var word in words)
+            {
+                if (line.Length + word.Length + (line.Length > 0 ? 1 : 0) > maxChars)
+                {
+                    if (lineCount >= 2) { result.Append(line).Append("..."); return result.ToString(); }
+                    if (result.Length > 0) result.AppendLine();
+                    result.Append(line);
+                    line.Clear(); lineCount++;
+                }
+                if (line.Length > 0) line.Append(' ');
+                line.Append(word);
+            }
+            if (line.Length > 0)
+            {
+                if (result.Length > 0) result.AppendLine();
+                result.Append(line);
+            }
+            return result.ToString();
         }
 
         private void ExecuteRefreshCommand()

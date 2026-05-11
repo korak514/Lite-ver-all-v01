@@ -62,7 +62,7 @@
                     </Border.Style>
                     <TextBlock Text="{Binding SharedTooltipLeft}"
                                Foreground="WhiteSmoke" FontSize="12" FontWeight="SemiBold"
-                               VerticalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="150" />
+                               VerticalAlignment="Center" TextAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="250" />
                 </Border>
 
                 <!-- LIST OF SERIES -->

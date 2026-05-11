@@ -195,6 +195,7 @@ namespace WPF_LoginForm.ViewModels
             RemoveSeriesCommand = new ViewModelCommand(ExecuteRemoveSeries);
 
             OpenNodeEditorCommand = new ViewModelCommand(ExecuteOpenNodeEditor);
+            MergeSeriesNodeEditorCommand = new ViewModelCommand(ExecuteMergeSeriesNodeEditor);
 
             ClearSplitByCommand = new ViewModelCommand(p =>
             {
@@ -225,6 +226,7 @@ namespace WPF_LoginForm.ViewModels
         public ICommand RemoveSeriesCommand { get; }
         public ICommand ClearSplitByCommand { get; }
         public ICommand OpenNodeEditorCommand { get; }
+        public ICommand MergeSeriesNodeEditorCommand { get; }
 
         public List<string> ChartTypes { get; } = new List<string> { "Line", "Bar", "Price Trend (Line)" };
         public List<string> AggregationOptions { get; } = new List<string> { "Daily", "Weekly", "Monthly" };
@@ -454,6 +456,15 @@ namespace WPF_LoginForm.ViewModels
             if (obj is SeriesConfiguration series)
             {
                 _openNodeEditorAction?.Invoke(series);
+            }
+        }
+
+        private void ExecuteMergeSeriesNodeEditor(object obj)
+        {
+            var targetSeries = Series.FirstOrDefault();
+            if (targetSeries != null)
+            {
+                _openNodeEditorAction?.Invoke(targetSeries);
             }
         }
     }

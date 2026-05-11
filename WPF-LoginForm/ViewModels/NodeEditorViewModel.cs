@@ -61,7 +61,9 @@ namespace WPF_LoginForm.ViewModels
         { get => _selectedStateIndex; set { if (SetProperty(ref _selectedStateIndex, value)) LoadState(value); } }
 
         public string CustomChartTitle { get; set; }
+        public string LegendLabel { get; set; }
         public bool ShowOnlyHoverLabels { get; set; }
+        public bool IsSaved { get; private set; }
 
         public ICommand AddDataNodeCommand { get; }
         public ICommand AddTextNodeCommand { get; }
@@ -94,6 +96,7 @@ namespace WPF_LoginForm.ViewModels
             SetZoneCommand = new ViewModelCommand(p => { if (int.TryParse(p?.ToString(), out int z)) SelectedZone = z; });
 
             CustomChartTitle = _series.CustomDetailTitle;
+            LegendLabel = _series.LegendLabel;
             ShowOnlyHoverLabels = _series.ShowOnlyHoverLabels;
 
             SelectedStateIndex = _series.ActiveStateIndex;
@@ -102,19 +105,32 @@ namespace WPF_LoginForm.ViewModels
 
         private void LoadState(int index)
         {
-            // Unsubscribe existing nodes to prevent memory/JSON leaks
             foreach (var node in HeaderFlow.Concat(LeftFlow).Concat(RightFlow)) node.PropertyChanged -= OnNodePropertyChanged;
 
             HeaderFlow.Clear(); LeftFlow.Clear(); RightFlow.Clear();
             var state = _series.SavedStates[index];
-            foreach (var node in state.Nodes)
+            
+            if (state.Nodes.Count == 0 && _series.PendingPreloadColumns != null && _series.PendingPreloadColumns.Any())
             {
-                var copy = new FlowNode { NodeType = node.NodeType, Value = node.Value, Aggregation = node.Aggregation, Zone = node.Zone <= 0 ? 3 : node.Zone };
-                copy.PropertyChanged += OnNodePropertyChanged;
+                foreach (var col in _series.PendingPreloadColumns)
+                {
+                    var dataColNode = new FlowNode { NodeType = "DataColumn", Value = col, Aggregation = "Sum", Zone = 3 };
+                    dataColNode.PropertyChanged += OnNodePropertyChanged;
+                    RightFlow.Add(dataColNode);
+                }
+                _series.PendingPreloadColumns = null;
+            }
+            else
+            {
+                foreach (var node in state.Nodes)
+                {
+                    var copy = new FlowNode { NodeType = node.NodeType, Value = node.Value, Aggregation = node.Aggregation, Zone = node.Zone <= 0 ? 3 : node.Zone };
+                    copy.PropertyChanged += OnNodePropertyChanged;
 
-                if (copy.Zone == 1) HeaderFlow.Add(copy);
-                else if (copy.Zone == 2) LeftFlow.Add(copy);
-                else RightFlow.Add(copy);
+                    if (copy.Zone == 1) HeaderFlow.Add(copy);
+                    else if (copy.Zone == 2) LeftFlow.Add(copy);
+                    else RightFlow.Add(copy);
+                }
             }
             GeneratePreviews();
         }
@@ -218,10 +234,12 @@ namespace WPF_LoginForm.ViewModels
             _series.ActiveStateIndex = SelectedStateIndex;
             _series.IsCombinationLabel = state.Nodes.Any();
             _series.CustomDetailTitle = CustomChartTitle;
+            _series.LegendLabel = LegendLabel;
             _series.ShowOnlyHoverLabels = ShowOnlyHoverLabels;
 
             if (_series.IsCombinationLabel) _series.ColumnName = $"[Combined] State {SelectedStateIndex + 1}";
 
+            IsSaved = true;
             CloseAction?.Invoke();
         }
 

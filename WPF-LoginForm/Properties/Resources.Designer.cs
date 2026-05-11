@@ -1924,6 +1924,15 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Combine Labels.
+        /// </summary>
+        public static string Str_CombineLabels {
+            get {
+                return ResourceManager.GetString("Str_CombineLabels", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Collapse Filters.
         /// </summary>
         public static string Str_CollapseFilters {
@@ -2606,6 +2615,15 @@ namespace WPF_LoginForm.Properties {
         public static string Str_LabelSettings {
             get {
                 return ResourceManager.GetString("Str_LabelSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Legend Label.
+        /// </summary>
+        public static string Str_LegendLabel {
+            get {
+                return ResourceManager.GetString("Str_LegendLabel", resourceCulture);
             }
         }
         
