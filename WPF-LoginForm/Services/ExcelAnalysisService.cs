@@ -79,10 +79,14 @@ namespace WPF_LoginForm.Services
                             }
                             usedHeaders.Add(header);
 
+                            string destName = SanitizeSqlName(header);
+                            int suffix = 1;
+                            while (schemaList.Any(s => s.DestinationColumnName.Equals(destName, StringComparison.OrdinalIgnoreCase)))
+                                destName = SanitizeSqlName(header) + "_" + suffix++;
                             schemaList.Add(new ColumnSchemaViewModel
                             {
                                 SourceColumnName = header,
-                                DestinationColumnName = SanitizeSqlName(header)
+                                DestinationColumnName = destName
                             });
                         }
 
@@ -155,20 +159,10 @@ namespace WPF_LoginForm.Services
         {
             if (string.IsNullOrWhiteSpace(rawName)) return "Column_X";
 
-            // Replace non-alphanumeric characters with underscores
-            string sanitized = Regex.Replace(rawName, @"[^\w]", "_");
-
-            // SQL columns cannot start with a digit
-            if (char.IsDigit(sanitized[0]))
-            {
-                sanitized = "_" + sanitized;
-            }
-
-            // Remove consecutive underscores for cleanliness
-            sanitized = Regex.Replace(sanitized, @"_{2,}", "_");
-
-            // Trim underscores from ends
-            return sanitized.Trim('_');
+            string sanitized = Regex.Replace(rawName, @"[^a-zA-Z0-9_]", "_");
+            if (sanitized.Length > 0 && char.IsDigit(sanitized[0])) sanitized = "_" + sanitized;
+            sanitized = Regex.Replace(sanitized, @"_{2,}", "_").Trim('_');
+            return string.IsNullOrWhiteSpace(sanitized) ? "Column_X" : sanitized;
         }
     }
 }

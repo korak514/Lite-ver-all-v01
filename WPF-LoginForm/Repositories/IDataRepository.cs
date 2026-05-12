@@ -10,7 +10,7 @@ namespace WPF_LoginForm.Repositories
     public interface IDataRepository
     {
         // Schema & Metadata
-        Task<List<string>> GetTableNamesAsync();
+        Task<List<string>> GetTableNamesAsync(bool forceRefresh = false);
 
         Task<bool> TableExistsAsync(string tableName);
 

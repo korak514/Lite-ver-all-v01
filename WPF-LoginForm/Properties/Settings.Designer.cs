@@ -262,5 +262,17 @@ namespace WPF_LoginForm.Properties {
                 this["PureOfflineMode"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool SuppressOfflineReminder {
+            get {
+                return ((bool)(this["SuppressOfflineReminder"]));
+            }
+            set {
+                this["SuppressOfflineReminder"] = value;
+            }
+        }
     }
 }

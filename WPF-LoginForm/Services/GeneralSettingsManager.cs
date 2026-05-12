@@ -106,6 +106,7 @@ namespace WPF_LoginForm.Services
                 Settings.Default.DbPort = Current.DbPort;
                 Settings.Default.DbUser = Current.DbUser;
                 Settings.Default.PureOfflineMode = Current.PureOfflineMode;
+                Settings.Default.SuppressOfflineReminder = Current.SuppressOfflineReminder;
             }
             catch { }
 
@@ -147,6 +148,7 @@ namespace WPF_LoginForm.Services
 
                 // Pure Offline Mode flag
                 Current.PureOfflineMode = Settings.Default.PureOfflineMode;
+                Current.SuppressOfflineReminder = Settings.Default.SuppressOfflineReminder;
             }
             catch { }
             
@@ -226,6 +228,7 @@ namespace WPF_LoginForm.Services
                     Settings.Default.DbPort = Current.DbPort;
                     Settings.Default.DbUser = Current.DbUser;
                     Settings.Default.PureOfflineMode = Current.PureOfflineMode;
+                    Settings.Default.SuppressOfflineReminder = Current.SuppressOfflineReminder;
                     Settings.Default.Save();
                 }
                 catch { } // Ignore save failure for legacy settings if restricted

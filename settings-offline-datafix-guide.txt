@@ -1,0 +1,47 @@
+=== SETTINGS & OFFLINE DATA FIX GUIDE ===
+
+PROBLEM:
+The app uses old/stale dashboard file names and auto-generated table names.
+When new .json dashboard files are added to the import folder, the app fails to
+discover them on startup. The file list remains frozen at whatever was loaded
+the first time.
+
+Root cause 1: Activate() had a guard (if (_isActive) return;) that prevented
+RefreshDashboardFiles() from running more than once. The dashboard file list
+was never rescanned after the initial load.
+
+Root cause 2: TryLoadAutoSave() fell back to the internal auto-save snapshot
+when the configured default file wasn't found, instead of trying available
+files. Users saw old configuration even when new files existed.
+
+Root cause 3: SanitizeSqlName() in both CreateTableViewModel and
+ExcelAnalysisService used [^\w] regex which keeps non-ASCII chars, didn't
+trim underscores, and allowed consecutive underscores. Also no deduplication
+for duplicate column names.
+
+RELATED FILES & CHANGES:
+
+1. WPF-LoginForm/ViewModels/HomeViewModel.cs
+   - Activate(): removed early return guard, now always calls
+     RefreshDashboardFiles() and OnPropertyChanged. Full init runs
+     only once, subsequent activations reload chart data.
+   - TryLoadAutoSave(): when configured default file is missing but
+     other files exist, now loads the first available file instead of
+     falling back to the stale internal snapshot.
+
+2. WPF-LoginForm/ViewModels/CreateTableViewModel.cs
+   - SanitizeSqlName(): changed regex from [^\w] to [^a-zA-Z0-9_]
+     to exclude non-ASCII chars. Added consecutive underscore removal,
+     underscore trimming, and empty-result fallback.
+   - Added using System.Text.RegularExpressions.
+
+3. WPF-LoginForm/Services/ExcelAnalysisService.cs
+   - SanitizeSqlName(): same regex fix as above.
+   - Added duplicate column name deduplication: if two Excel headers
+     sanitize to the same name, _1, _2 suffixes are appended.
+
+TO FULLY SOLVE:
+- Verify AutoImportEnabled is true in Settings > Automation
+- Verify the import folder path points to where your .json files are
+- Add new .json dashboard files to that folder
+- Restart the app - it should now discover and load the first available file

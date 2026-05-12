@@ -151,7 +151,7 @@ namespace WPF_LoginForm.Repositories
             return result;
         }
 
-        public async Task<List<string>> GetTableNamesAsync()
+        public async Task<List<string>> GetTableNamesAsync(bool forceRefresh = false)
         {
             return await Task.Run(() =>
             {

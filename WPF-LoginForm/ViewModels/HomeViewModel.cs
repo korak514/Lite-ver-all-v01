@@ -353,7 +353,7 @@ namespace WPF_LoginForm.ViewModels
             _dashboardConfigurations = new List<DashboardConfiguration>(); _kpiTotals = new ConcurrentDictionary<string, double>(); _kpiPrevTotals = new ConcurrentDictionary<string, double>(); _kpiCounts = new ConcurrentDictionary<string, int>(); _kpiPrevCounts = new ConcurrentDictionary<string, int>();
 
             ConfigureCommand = new ViewModelCommand(p => ShowConfigurationWindow()); ImportCommand = new ViewModelCommand(p => ImportConfiguration()); ExportCommand = new ViewModelCommand(p => ExportConfiguration());
-            RecolorChartsCommand = new ViewModelCommand(p => ExecuteRefreshCommand()); ToggleFilterModeCommand = new ViewModelCommand(p => IsFilterByDate = !IsFilterByDate); ChartClickCommand = new ViewModelCommand(ExecuteChartClick);
+            RecolorChartsCommand = new ViewModelCommand(p => ExecuteRefreshCommand()); ToggleFilterModeCommand = new ViewModelCommand(p => IsFilterByDate = !IsFilterByDate); ChartClickCommand = new ViewModelCommand(p => { });
             TogglePageCommand = new ViewModelCommand(p => IsSecondPageActive = !IsSecondPageActive);
 
             TickOptions.Add(new TickOption { Label = "1 Month", Value = 1 });
@@ -962,7 +962,14 @@ namespace WPF_LoginForm.ViewModels
         }
 
         public async void Activate()
-        { if (_isActive) return; _isActive = true; OnPropertyChanged(nameof(IsDateFilterVisible)); if (GeneralSettingsManager.Instance.Current.AutoImportEnabled) RefreshDashboardFiles(); await InitializeDashboardAsync(); }
+        {
+            bool firstTime = !_isActive;
+            _isActive = true;
+            OnPropertyChanged(nameof(IsDateFilterVisible));
+            if (GeneralSettingsManager.Instance.Current.AutoImportEnabled) RefreshDashboardFiles();
+            if (firstTime) await InitializeDashboardAsync();
+            else LoadAllChartsData();
+        }
 
         public void Deactivate()
         {
@@ -1094,7 +1101,7 @@ namespace WPF_LoginForm.ViewModels
         { var snap = new DashboardSnapshot { StartDate = StartDate, EndDate = EndDate, Configurations = _dashboardConfigurations, IsFilterByDate = IsFilterByDate, IgnoreNonDateData = IgnoreNonDateData, UseIdToDateConversion = UseIdToDateConversion, InitialDateForConversion = InitialDateForConversion, GlobalIgnoreAfterHyphen = GlobalIgnoreAfterHyphen, SeriesData = new List<ChartSeriesSnapshot>() }; _storageService.SaveSnapshot(snap, _currentLoadedFilePath); }
 
         private void TryLoadAutoSave()
-        { var cfg = GeneralSettingsManager.Instance.Current; try { if (cfg.AutoImportEnabled) { RefreshDashboardFiles(); string def = cfg.ImportFileName; string path = cfg.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : cfg.ImportAbsolutePath; if (!string.IsNullOrEmpty(def) && File.Exists(Path.Combine(path, def))) { LoadSnapshotFromFile(Path.Combine(path, def)); if (DashboardFiles.Contains(def)) { _selectedDashboardFile = def; OnPropertyChanged(nameof(SelectedDashboardFile)); } return; } } var s = _storageService.LoadSnapshot(); if (s != null) LoadDashboardFromSnapshot(s); } catch { } }
+        { var cfg = GeneralSettingsManager.Instance.Current; try { if (cfg.AutoImportEnabled) { RefreshDashboardFiles(); string def = cfg.ImportFileName; string path = cfg.ImportIsRelative ? AppDomain.CurrentDomain.BaseDirectory : cfg.ImportAbsolutePath; string firstAvailable = DashboardFiles.FirstOrDefault(); if (!string.IsNullOrEmpty(def) && File.Exists(Path.Combine(path, def))) { LoadSnapshotFromFile(Path.Combine(path, def)); if (DashboardFiles.Contains(def)) { _selectedDashboardFile = def; OnPropertyChanged(nameof(SelectedDashboardFile)); } return; } else if (firstAvailable != null) { string fullPath = Path.Combine(path, firstAvailable); LoadSnapshotFromFile(fullPath); _selectedDashboardFile = firstAvailable; OnPropertyChanged(nameof(SelectedDashboardFile)); return; } } var s = _storageService.LoadSnapshot(); if (s != null) LoadDashboardFromSnapshot(s); } catch { } }
 
         private void ImportConfiguration()
         { var d = new OpenFileDialog { Filter = "JSON|*.json" }; if (d.ShowDialog() == true) LoadSnapshotFromFile(d.FileName); }

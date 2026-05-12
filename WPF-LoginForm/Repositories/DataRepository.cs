@@ -551,10 +551,13 @@ namespace WPF_LoginForm.Repositories
             return (min, max);
         }
 
-        public async Task<List<string>> GetTableNamesAsync()
+        public async Task<List<string>> GetTableNamesAsync(bool forceRefresh = false)
         {
-            var cached = _cache.Get<List<string>>("TableNames");
-            if (cached != null && cached.Any()) return cached;
+            if (!forceRefresh)
+            {
+                var cached = _cache.Get<List<string>>("TableNames");
+                if (cached != null && cached.Any()) return cached;
+            }
 
             var list = await DatabaseRetryPolicy.ExecuteAsync(async () =>
             {

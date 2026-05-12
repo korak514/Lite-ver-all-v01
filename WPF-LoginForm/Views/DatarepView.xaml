@@ -82,7 +82,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="Background" Value="#1A2980B9" />
+                    <Setter Property="Background" Value="#802980B9" />
                     <Setter Property="BorderBrush" Value="#2980B9" />
                     <Setter Property="Foreground" Value="#6BB8FF" />
                 </Trigger>

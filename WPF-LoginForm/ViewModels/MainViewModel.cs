@@ -68,7 +68,9 @@ namespace WPF_LoginForm.ViewModels
         { get => _isNavigationVisible; set { _isNavigationVisible = value; OnPropertyChanged(); } }
 
         public bool IsOfflineMode
-        { get => _isOfflineMode; set { _isOfflineMode = value; OnPropertyChanged(); } }
+        { get => _isOfflineMode; set { _isOfflineMode = value; OnPropertyChanged(); OnPropertyChanged(nameof(ShowOfflineBadge)); } }
+
+        public bool ShowOfflineBadge => _isOfflineMode && !GeneralSettingsManager.Instance.Current.SuppressOfflineReminder;
 
         // --- Commands ---
         public ICommand ShowHomeViewCommand { get; }
@@ -128,7 +130,7 @@ namespace WPF_LoginForm.ViewModels
                 _dataRepository = new OfflineDataRepository(_logger);
 
                 UserSessionService.SetSession("Offline Mode", "Admin");
-                CurrentUserAccount = new UserAccountModel { DisplayName = "Offline Mode (Read-Only)", Role = "Admin" };
+                CurrentUserAccount = new UserAccountModel { DisplayName = "Offline Mode", Role = "Admin" };
 
                 ExecuteShowHomeViewCommand(null);
                 _logger.LogInfo("Started in 'Offline Read-Only' Mode.");

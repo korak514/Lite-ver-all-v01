@@ -4525,5 +4525,14 @@ namespace WPF_LoginForm.Properties {
                 return ResourceManager.GetString("Msg_NegativeFiiliSure", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Remove offline reminder.
+        /// </summary>
+        public static string Str_RemoveOfflineReminder {
+            get {
+                return ResourceManager.GetString("Str_RemoveOfflineReminder", resourceCulture);
+            }
+        }
     }
 }

@@ -47,5 +47,8 @@ namespace WPF_LoginForm.Models
 
         // Pure Offline Mode - Suppresses first-run dialog permanently (stored in general_config.json)
         public bool PureOfflineMode { get; set; } = false;
+
+        // Suppress the offline mode reminder/badge in the main window header
+        public bool SuppressOfflineReminder { get; set; } = false;
     }
 }

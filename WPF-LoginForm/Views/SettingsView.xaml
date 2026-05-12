@@ -223,6 +223,8 @@
                                     <Button Grid.Column="2" Content="..." Command="{Binding BrowseOfflineFolderCommand}" Width="30" Height="26" Margin="5,0,0,0" ToolTip="{x:Static p:Resources.ToolTip_SelectOfflineFolder}" />
                                 </Grid>
 
+                                <CheckBox Content="{x:Static p:Resources.Str_RemoveOfflineReminder}" IsChecked="{Binding HideOfflineReminder, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,10" />
+
                                 <!-- Offline Image Creation UI -->
                                 <StackPanel Margin="0,0,0,15" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <TextBlock Text="{x:Static p:Resources.CreateOfflineDataImage}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,5" />
@@ -240,7 +242,7 @@
                                         </ItemsControl.Template>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" Foreground="WhiteSmoke" Margin="5,2" />
+                                                <CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsSelected}" Foreground="WhiteSmoke" Margin="5,2" />
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>

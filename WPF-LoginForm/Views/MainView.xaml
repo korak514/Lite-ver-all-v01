@@ -190,7 +190,7 @@
 
                             <!-- VISUAL OFFLINE BADGE -->
                             <Border Background="#D14545" CornerRadius="4" Padding="8,2" Margin="15,0,0,0"
-                                    Visibility="{Binding IsOfflineMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    Visibility="{Binding ShowOfflineBadge, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <TextBlock Text="{x:Static p:Resources.Str_OfflineMode}" Foreground="White" FontSize="11" FontWeight="Bold" />
                             </Border>
                         </StackPanel>

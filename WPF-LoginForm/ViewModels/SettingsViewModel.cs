@@ -159,6 +159,20 @@ namespace WPF_LoginForm.ViewModels
         public ObservableCollection<SelectableTable> BackupTables { get => _backupTables; set => SetProperty(ref _backupTables, value); }
         public bool IsOnlineMode => !(_dataRepository is OfflineDataRepository);
 
+        private bool _hideOfflineReminder;
+        public bool HideOfflineReminder
+        {
+            get => _hideOfflineReminder;
+            set
+            {
+                if (SetProperty(ref _hideOfflineReminder, value))
+                {
+                    GeneralSettingsManager.Instance.Current.SuppressOfflineReminder = value;
+                    GeneralSettingsManager.Instance.Save();
+                }
+            }
+        }
+
         public ObservableCollection<UserModel> Users { get => _users; set => SetProperty(ref _users, value); }
 
         public string NewUserUsername { get => _newUserUsername; set => SetProperty(ref _newUserUsername, value); }
@@ -229,6 +243,7 @@ namespace WPF_LoginForm.ViewModels
             LoadFromCurrentProvider();
 
             OfflineFolderPath = config.OfflineFolderPath;
+            _hideOfflineReminder = config.SuppressOfflineReminder;
 
             SaveCommand = new ViewModelCommand(ExecuteSaveCommand, (o) => !IsBusy);
             TestConnectionCommand = new ViewModelCommand(ExecuteTestConnection, (o) => !IsBusy);
@@ -295,11 +310,11 @@ namespace WPF_LoginForm.ViewModels
             StatusMessage = Resources.Status_FetchingTables;
             try
             {
-                var tables = await _dataRepository.GetTableNamesAsync();
+                var tables = await _dataRepository.GetTableNamesAsync(true);
                 BackupTables.Clear();
                 foreach (var t in tables)
                 {
-                    var st = new SelectableTable { Name = t, IsSelected = true };
+                    var st = new SelectableTable { Name = t, DisplayName = t.Replace("_", " "), IsSelected = true };
                     st.PropertyChanged += (s, e) => { (CreateOfflineBackupCommand as ViewModelCommand)?.RaiseCanExecuteChanged(); };
                     BackupTables.Add(st);
                 }
@@ -634,6 +649,7 @@ namespace WPF_LoginForm.ViewModels
     {
         private bool _isSelected;
         public string Name { get; set; }
+        public string DisplayName { get; set; }
 
         public bool IsSelected
         {

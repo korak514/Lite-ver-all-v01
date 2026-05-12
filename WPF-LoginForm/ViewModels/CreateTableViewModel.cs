@@ -5,6 +5,7 @@ using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -308,9 +309,10 @@ namespace WPF_LoginForm.ViewModels
         private string SanitizeSqlName(string rawName)
         {
             if (string.IsNullOrWhiteSpace(rawName)) return "New_Table";
-            string sanitized = System.Text.RegularExpressions.Regex.Replace(rawName, @"[^\w]", "_");
-            if (char.IsDigit(sanitized[0])) { sanitized = "_" + sanitized; }
-            return sanitized;
+            string sanitized = Regex.Replace(rawName, @"[^a-zA-Z0-9_]", "_");
+            if (sanitized.Length > 0 && char.IsDigit(sanitized[0])) sanitized = "_" + sanitized;
+            sanitized = Regex.Replace(sanitized, @"_{2,}", "_").Trim('_');
+            return string.IsNullOrWhiteSpace(sanitized) ? "New_Table" : sanitized;
         }
     }
 }

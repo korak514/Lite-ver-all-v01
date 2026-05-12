@@ -1613,4 +1613,7 @@
   <data name="Msg_NegativeFiiliSure" xml:space="preserve">
     <value>Ham FiiliSure değeri negatif ({0}). Bu, veritabanında bozuk veri olduğunu gösterir.</value>
   </data>
+  <data name="Str_RemoveOfflineReminder" xml:space="preserve">
+    <value>Çevrimdışı hatırlatıcıyı kaldır</value>
+  </data>
 </root>

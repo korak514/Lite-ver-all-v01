@@ -302,7 +302,7 @@
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart1Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
+                            <lvc:CartesianChart Series="{Binding Chart1Series}" LegendLocation="Bottom" AxisX="{Binding Chart1X}" AxisY="{Binding Chart1Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
                                                 Hoverable="{Binding DashboardConfigs[0].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
                                                 DataTooltip="{StaticResource CustomTooltip}" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="1" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
@@ -343,7 +343,7 @@
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart2Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
+                            <lvc:CartesianChart Series="{Binding Chart2Series}" LegendLocation="Bottom" AxisX="{Binding Chart2X}" AxisY="{Binding Chart2Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
                                                 Hoverable="{Binding DashboardConfigs[1].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
                                                 DataTooltip="{StaticResource CustomTooltip}" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="2" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
@@ -384,7 +384,7 @@
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart3Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
+                            <lvc:CartesianChart Series="{Binding Chart3Series}" LegendLocation="Bottom" AxisX="{Binding Chart3X}" AxisY="{Binding Chart3Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
                                                 Hoverable="{Binding DashboardConfigs[2].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
                                                 DataTooltip="{StaticResource CustomTooltip}" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="3" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
@@ -425,7 +425,7 @@
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
                         <Grid>
-                            <lvc:PieChart Series="{Binding Chart4Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" 
+                            <lvc:PieChart Series="{Binding Chart4Series}" LegendLocation="Right" Foreground="WhiteSmoke" 
                                           Hoverable="True" 
                                           Margin="0,10,0,0" AnimationsSpeed="0:0:0.4">
                                 <lvc:PieChart.DataTooltip>
@@ -471,7 +471,7 @@
                     </Grid.Style>
                     <Border Background="#181838" CornerRadius="10" Padding="15">
                         <Grid>
-                            <lvc:CartesianChart Series="{Binding Chart5Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
+                            <lvc:CartesianChart Series="{Binding Chart5Series}" LegendLocation="Bottom" AxisX="{Binding Chart5X}" AxisY="{Binding Chart5Y}" Foreground="WhiteSmoke" Margin="0,10,0,0" AnimationsSpeed="0:0:0.4" 
                                                 Hoverable="{Binding DashboardConfigs[4].ShowLabelsOnChart, Converter={StaticResource InverseBooleanConverter}}" 
                                                 DataTooltip="{StaticResource CustomTooltip}" />
                             <Button Command="{Binding MaximizeChartCommand}" CommandParameter="5" Style="{StaticResource ManualMaximizeButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" />
@@ -576,7 +576,7 @@
                                 </Button>
                             </Grid>
 
-                            <lvc:PieChart Grid.Row="1" Series="{Binding Chart6Series}" DataClickCommand="{Binding ChartClickCommand}" LegendLocation="Right" Foreground="WhiteSmoke" 
+                            <lvc:PieChart Grid.Row="1" Series="{Binding Chart6Series}" LegendLocation="Right" Foreground="WhiteSmoke" 
                                           Hoverable="True" 
                                           Margin="0,10,0,0" AnimationsSpeed="0:0:0.4">
                                 <lvc:PieChart.DataTooltip>
