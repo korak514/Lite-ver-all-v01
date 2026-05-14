@@ -13,43 +13,26 @@ namespace WPF_LoginForm.Services.Database
         private enum DbStatus
         { Unreachable, MissingAuthDb, MissingDataDb, MissingSchema, Ready }
 
-        private static string _sqlErrorDetails = "";
-        private static string _pgErrorDetails = "";
+
 
         public static bool Run()
         {
-            var sqlStatus = CheckStatus(DatabaseType.SqlServer, out _sqlErrorDetails);
-            var pgStatus = CheckStatus(DatabaseType.PostgreSql, out _pgErrorDetails);
+            var currentType = DbConnectionFactory.CurrentDatabaseType;
+            string providerName = currentType == DatabaseType.SqlServer ? "SQL Server" : "PostgreSQL";
 
-            if (sqlStatus == DbStatus.Ready && pgStatus == DbStatus.Ready)
+            var status = CheckStatus(currentType, out string errorDetails);
+
+            if (status == DbStatus.Ready)
             {
-                PerformMigrations(DbConnectionFactory.CurrentDatabaseType);
+                PerformMigrations(currentType);
                 return true;
             }
 
-            if (sqlStatus == DbStatus.MissingAuthDb || sqlStatus == DbStatus.MissingDataDb || sqlStatus == DbStatus.MissingSchema)
+            if (status == DbStatus.MissingAuthDb || status == DbStatus.MissingDataDb || status == DbStatus.MissingSchema)
             {
-                if (AskToInitialize("SQL Server", sqlStatus != DbStatus.MissingSchema))
-                    return InitializeAndSet(DatabaseType.SqlServer, true);
+                if (AskToInitialize(providerName, status != DbStatus.MissingSchema))
+                    return InitializeAndSet(currentType, true);
                 return false;
-            }
-
-            if (pgStatus == DbStatus.MissingAuthDb || pgStatus == DbStatus.MissingDataDb || pgStatus == DbStatus.MissingSchema)
-            {
-                if (AskToInitialize("PostgreSQL", pgStatus != DbStatus.MissingSchema))
-                    return InitializeAndSet(DatabaseType.PostgreSql, true);
-                return false;
-            }
-
-            if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.SqlServer && sqlStatus == DbStatus.Ready)
-            {
-                PerformMigrations(DatabaseType.SqlServer);
-                return true;
-            }
-            if (DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql && pgStatus == DbStatus.Ready)
-            {
-                PerformMigrations(DatabaseType.PostgreSql);
-                return true;
             }
 
             return false;

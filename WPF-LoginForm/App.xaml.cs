@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
+using WPF_LoginForm.Models;
 using WPF_LoginForm.Services;
 using WPF_LoginForm.Services.Database;
 using WPF_LoginForm.Views;
@@ -35,7 +36,18 @@ namespace WPF_LoginForm
             var dbType = DbConnectionFactory.CurrentDatabaseType;
             GlobalLogger.LogInfo($"App Starting... Lang: {Thread.CurrentThread.CurrentUICulture.Name} | Provider: {dbType}");
 
-            // 5. Manually launch the StartupView
+            // 5. Check if databases exist and offer to create if missing
+            try
+            {
+                if (!GeneralSettingsManager.Instance.Current.PureOfflineMode)
+                    DatabaseBootstrapper.Run();
+            }
+            catch (Exception ex)
+            {
+                GlobalLogger?.LogError("Database bootstrapper error", ex);
+            }
+
+            // 6. Manually launch the StartupView
             var startupWindow = new StartupView();
             startupWindow.Show();
         }

@@ -390,6 +390,7 @@ namespace WPF_LoginForm.ViewModels
                 DbConnectionFactory.CurrentDatabaseType = SelectedDatabaseType;
 
                 var config = GeneralSettingsManager.Instance.Current;
+                config.DbProvider = SelectedDatabaseType.ToString();
                 config.SqlAuthConnString = _sqlAuthString;
                 config.SqlDataConnString = _sqlDataString;
                 config.PostgresAuthConnString = _postgresAuthString;
