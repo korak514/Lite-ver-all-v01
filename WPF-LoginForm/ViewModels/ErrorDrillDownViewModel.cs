@@ -109,6 +109,27 @@ namespace WPF_LoginForm.ViewModels
         public int RecordCount => DisplayedItems?.Count ?? 0;
         public string TotalDurationText => GetTotalDuration();
 
+        private string _generalSearchText;
+        public string GeneralSearchText
+        {
+            get => _generalSearchText;
+            set
+            {
+                if (SetProperty(ref _generalSearchText, value))
+                {
+                    TriggerFilterUpdate();
+                }
+            }
+        }
+
+        private bool _isGeneralSearchVisible;
+        public bool IsGeneralSearchVisible
+        {
+            get => _isGeneralSearchVisible;
+            set => SetProperty(ref _isGeneralSearchVisible, value);
+        }
+
+        public ICommand ToggleGeneralSearchCommand { get; private set; }
         public ICommand RemoveFilterChipCommand { get; private set; }
         public ICommand NavigateToDataCommand { get; private set; }
         public Action<ErrorEventModel> OnNavigateRequested { get; set; }
@@ -154,6 +175,7 @@ namespace WPF_LoginForm.ViewModels
             ReasonFilterList = new ObservableCollection<CheckableItem>(uniqueReasons);
 
             RemoveFilterChipCommand = new ViewModelCommand(ExecuteRemoveFilterChip);
+            ToggleGeneralSearchCommand = new ViewModelCommand(p => IsGeneralSearchVisible = !IsGeneralSearchVisible);
 
             NavigateToDataCommand = new ViewModelCommand((obj) =>
             {
@@ -230,7 +252,13 @@ namespace WPF_LoginForm.ViewModels
                 else
                 {
                     var item = ReasonFilterList.FirstOrDefault(r => string.Equals(r.Name, filterText, StringComparison.OrdinalIgnoreCase));
-                    if (item != null) item.IsChecked = true;
+                    if (item != null)
+                        item.IsChecked = true;
+                    else
+                    {
+                        GeneralSearchText = filterText;
+                        IsGeneralSearchVisible = true;
+                    }
                 }
             }
 
@@ -277,6 +305,19 @@ namespace WPF_LoginForm.ViewModels
                 query = query.Where(x => reasonFilters.Any(r =>
                     !string.IsNullOrEmpty(x.ErrorDescription) &&
                     _mappingService.GetMappedCategory(x.ErrorDescription, _activeRules).Equals(r, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(GeneralSearchText))
+            {
+                string search = NormalizeForSearch(GeneralSearchText.Trim());
+                query = query.Where(x =>
+                    (!string.IsNullOrEmpty(x.ErrorDescription) && NormalizeForSearch(x.ErrorDescription).IndexOf(search, StringComparison.Ordinal) >= 0) ||
+                    (!string.IsNullOrEmpty(x.MachineCode) && NormalizeForSearch(x.MachineCode).IndexOf(search, StringComparison.Ordinal) >= 0) ||
+                    NormalizeForSearch(x.Date.ToString("dd.MM.yyyy")).IndexOf(search, StringComparison.Ordinal) >= 0 ||
+                    NormalizeForSearch(x.MachineDisplay ?? "").IndexOf(search, StringComparison.Ordinal) >= 0 ||
+                    NormalizeForSearch(x.TimeRange ?? "").IndexOf(search, StringComparison.Ordinal) >= 0 ||
+                    NormalizeForSearch(x.DisplayDuration ?? "").IndexOf(search, StringComparison.Ordinal) >= 0
+                );
             }
 
             DisplayedItems = new ObservableCollection<ErrorEventModel>(query.OrderByDescending(x => x.DurationMinutes));
@@ -331,21 +372,36 @@ namespace WPF_LoginForm.ViewModels
             // 4. Apply Search Texts on top of the shrunken lists
             if (!string.IsNullOrWhiteSpace(MachineSearchText))
             {
+                string search = NormalizeForSearch(MachineSearchText);
                 newMachineList = newMachineList
-                    .Where(m => m.Name.IndexOf(MachineSearchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                    .Where(m => NormalizeForSearch(m.Name).IndexOf(search, StringComparison.Ordinal) >= 0)
                     .ToList();
             }
 
             if (!string.IsNullOrWhiteSpace(ReasonSearchText))
             {
+                string search = NormalizeForSearch(ReasonSearchText);
                 newReasonList = newReasonList
-                    .Where(r => r.Name.IndexOf(ReasonSearchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                    .Where(r => NormalizeForSearch(r.Name).IndexOf(search, StringComparison.Ordinal) >= 0)
                     .ToList();
             }
 
             // 5. Update UI Collections
             FilteredMachineList = new ObservableCollection<CheckableItem>(newMachineList);
             FilteredReasonList = new ObservableCollection<CheckableItem>(newReasonList);
+        }
+
+        private static string NormalizeForSearch(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text ?? "";
+            return text
+                .Replace('İ', 'I').Replace('ı', 'I')
+                .Replace('Ö', 'O').Replace('ö', 'O')
+                .Replace('Ü', 'U').Replace('ü', 'U')
+                .Replace('Ç', 'C').Replace('ç', 'C')
+                .Replace('Ş', 'S').Replace('ş', 'S')
+                .Replace('Ğ', 'G').Replace('ğ', 'G')
+                .ToUpperInvariant();
         }
 
         private void ExecuteRemoveFilterChip(object obj)

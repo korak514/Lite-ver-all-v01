@@ -7,6 +7,7 @@
         xmlns:fa="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
         xmlns:p="clr-namespace:WPF_LoginForm.Properties"
         xmlns:local="clr-namespace:WPF_LoginForm.ViewModels"
+        xmlns:converters="clr-namespace:WPF_LoginForm.Converters"
         mc:Ignorable="d"
         Title="{Binding WindowTitle}"
         Height="780" Width="1100"
@@ -19,6 +20,8 @@
 
     <Window.Resources>
         <ResourceDictionary>
+            <converters:HyphenToSpaceConverter x:Key="HyphenToSpace" />
+            <converters:BooleanToVisibilityConverter x:Key="BoolToVis" />
             <Style x:Key="TitleBarButtonStyle" TargetType="Button">
                 <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
                 <Setter Property="Background" Value="Transparent" />
@@ -133,30 +136,59 @@
         <!-- ROW 1: HEADER & STATS -->
         <Border Grid.Row="1" Background="{DynamicResource Theme.Panel}" Padding="25,15">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-                <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding WindowTitle}" FontSize="24" FontWeight="ExtraBold" Foreground="{DynamicResource Theme.Text.Primary}" />
-                    <TextBlock Text="{x:Static p:Resources.Drill_Title}" FontSize="13" Foreground="{DynamicResource Theme.Text.Secondary}" Margin="0,5,0,0" />
-                </StackPanel>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Border Background="{DynamicResource Theme.Grid.Header}" CornerRadius="4" Padding="20,10" Margin="0,0,15,0">
-                        <StackPanel>
-                            <TextBlock Text="{x:Static p:Resources.Drill_Count}" Foreground="{DynamicResource Theme.Text.Secondary}" FontSize="11" FontWeight="Bold" />
-                            <TextBlock Text="{Binding RecordCount}" Foreground="{DynamicResource Theme.Text.Primary}" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Border>
-                    <Border Background="#C0392B" CornerRadius="4" Padding="20,10">
-                        <StackPanel>
-                            <TextBlock Text="{x:Static p:Resources.Drill_TotalDuration}" Foreground="#FADBD8" FontSize="11" FontWeight="Bold" />
-                            <TextBlock Text="{Binding TotalDurationText}" Foreground="White" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding WindowTitle}" FontSize="24" FontWeight="ExtraBold" Foreground="{DynamicResource Theme.Text.Primary}" />
+                        <TextBlock Text="{x:Static p:Resources.Drill_Title}" FontSize="13" Foreground="{DynamicResource Theme.Text.Secondary}" Margin="0,5,0,0" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Border Background="{DynamicResource Theme.Grid.Header}" CornerRadius="4" Padding="20,10" Margin="0,0,15,0">
+                            <StackPanel>
+                                <TextBlock Text="{x:Static p:Resources.Drill_Count}" Foreground="{DynamicResource Theme.Text.Secondary}" FontSize="11" FontWeight="Bold" />
+                                <TextBlock Text="{Binding RecordCount}" Foreground="{DynamicResource Theme.Text.Primary}" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#C0392B" CornerRadius="4" Padding="20,10" Margin="0,0,15,0">
+                            <StackPanel>
+                                <TextBlock Text="{x:Static p:Resources.Drill_TotalDuration}" Foreground="#FADBD8" FontSize="11" FontWeight="Bold" />
+                                <TextBlock Text="{Binding TotalDurationText}" Foreground="White" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        <Button Command="{Binding ToggleGeneralSearchCommand}" Width="36" Height="36" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Search all records">
+                            <fa:IconImage Icon="Search" Foreground="{DynamicResource Theme.Accent}" Width="16" Height="16" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <Border Grid.Row="1" Margin="0,12,0,0" Background="#1A1A4A" CornerRadius="6" Padding="12,8"
+                        Visibility="{Binding IsGeneralSearchVisible, Converter={StaticResource BoolToVis}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <fa:IconImage Grid.Column="0" Icon="Search" Foreground="{DynamicResource Theme.Accent}" Width="16" Height="16" Margin="0,0,10,0" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Text="{Binding GeneralSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="#0D0D35" Foreground="White" BorderBrush="#333" BorderThickness="1"
+                                 Padding="8,6" FontSize="13" VerticalContentAlignment="Center"
+                                 x:Name="GeneralSearchBox" />
+                        <Button Grid.Column="2" Command="{Binding ToggleGeneralSearchCommand}" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="8,0,0,0">
+                            <fa:IconImage Icon="Times" Foreground="Gray" Width="14" Height="14" />
+                        </Button>
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
 
@@ -352,7 +384,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding ErrorDescription}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,10,0" />
+                                <TextBlock Text="{Binding ErrorDescription, Converter={StaticResource HyphenToSpace}}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,10,0" />
                                 <Button Grid.Column="1" x:Name="NavButton"
                                         Command="{Binding DataContext.NavigateToDataCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"

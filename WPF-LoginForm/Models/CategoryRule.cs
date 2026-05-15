@@ -15,10 +15,6 @@ namespace WPF_LoginForm.Models
         /// </summary>
         public string MapTo { get; set; }
 
-        /// <summary>
-        /// Higher value = higher priority.
-        /// Use higher priority for specific spelling corrections.
-        /// </summary>
         public int Priority { get; set; } = 0;
 
         public CategoryRule()

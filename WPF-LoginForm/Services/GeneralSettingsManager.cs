@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Windows;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Properties;
@@ -245,8 +244,7 @@ namespace WPF_LoginForm.Services
                     string categoryRulesPath = "category_rules.json";
                     if (Current.CategoryRules != null)
                     {
-                        var orderedRules = Current.CategoryRules.OrderByDescending(r => r.Priority).ToList();
-                        string rulesJson = JsonConvert.SerializeObject(orderedRules, Formatting.Indented);
+                        string rulesJson = JsonConvert.SerializeObject(Current.CategoryRules, Formatting.Indented);
                         File.WriteAllText(categoryRulesPath, rulesJson);
                     }
                 }

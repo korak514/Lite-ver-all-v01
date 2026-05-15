@@ -56,7 +56,7 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteAdd(object obj)
         {
-            var newRule = new CategoryRule { StartsWith = "", MapTo = "", Priority = 0 };
+            var newRule = new CategoryRule { StartsWith = "", MapTo = "" };
             Rules.Add(newRule);
             SelectedRule = newRule;
         }
@@ -94,15 +94,13 @@ namespace WPF_LoginForm.ViewModels
                         
                         ws.Cells[1, 1].Value = Resources.Str_StartsWithRaw;
                         ws.Cells[1, 2].Value = Resources.Str_GroupAsCategory;
-                        ws.Cells[1, 3].Value = Resources.Str_Priority; 
-                        ws.Cells[1, 1, 1, 3].Style.Font.Bold = true;
+                        ws.Cells[1, 1, 1, 2].Style.Font.Bold = true;
 
                         int row = 2;
                         foreach (var rule in Rules)
                         {
                             ws.Cells[row, 1].Value = rule.StartsWith;
                             ws.Cells[row, 2].Value = rule.MapTo;
-                            ws.Cells[row, 3].Value = rule.Priority;
                             row++;
                         }
                         ws.Cells.AutoFitColumns();
@@ -137,15 +135,9 @@ namespace WPF_LoginForm.ViewModels
                             string startsWith = ws.Cells[row, 1].Text;
                             string mapTo = ws.Cells[row, 2].Text;
 
-                            int priority = 0;
-                            if (ws.Dimension.End.Column >= 3)
-                            {
-                                int.TryParse(ws.Cells[row, 3].Text, out priority);
-                            }
-
                             if (!string.IsNullOrWhiteSpace(startsWith) && !string.IsNullOrWhiteSpace(mapTo))
                             {
-                                newRules.Add(new CategoryRule { StartsWith = startsWith, MapTo = mapTo, Priority = priority });
+                                newRules.Add(new CategoryRule { StartsWith = startsWith, MapTo = mapTo });
                             }
                         }
 

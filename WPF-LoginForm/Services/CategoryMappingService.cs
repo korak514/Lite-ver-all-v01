@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Properties;
 
@@ -16,7 +15,7 @@ namespace WPF_LoginForm.Services
         public List<CategoryRule> LoadRules()
         {
             var rules = GeneralSettingsManager.Instance.Current.CategoryRules;
-            return (rules ?? new List<CategoryRule>()).OrderByDescending(r => r.Priority).ToList();
+            return rules ?? new List<CategoryRule>();
         }
 
         public void SaveRules(List<CategoryRule> rules)
@@ -24,8 +23,7 @@ namespace WPF_LoginForm.Services
             if (rules == null) return;
             try
             {
-                var orderedRules = rules.OrderByDescending(r => r.Priority).ToList();
-                GeneralSettingsManager.Instance.Current.CategoryRules = orderedRules;
+                GeneralSettingsManager.Instance.Current.CategoryRules = rules;
                 GeneralSettingsManager.Instance.Save();
             }
             catch (Exception ex)
@@ -39,7 +37,7 @@ namespace WPF_LoginForm.Services
             // Replaced hardcoded "Unknown" with localized resource string
             if (string.IsNullOrWhiteSpace(rawDescription)) return Resources.Str_Unknown;
 
-            // 1. Check against user-defined rules (Priority runs first because LoadRules sorted them)
+            // 1. Check against user-defined rules
             if (rules != null)
             {
                 foreach (var rule in rules)
