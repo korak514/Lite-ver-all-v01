@@ -1,4 +1,4 @@
-﻿// Repositories/DataRepository.cs
+// Repositories/DataRepository.cs
 
 using System;
 using System.Collections.Generic;
@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Globalization;
 using Npgsql;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Properties;
@@ -160,13 +161,15 @@ namespace WPF_LoginForm.Repositories
 
                     foreach (DataColumn c in dt.Columns)
                     {
-                        string n = c.ColumnName.ToLower().Trim();
+                        string n = c.ColumnName.ToLowerInvariant().Trim();
+                        bool hasKazanim = n.Contains("kazanım") || n.Contains("kazanim");
+                        
                         if (n.Contains("tarih") || n == "date") colDate = c;
                         else if (n.Contains("vardiya") || n == "shift") colShift = c;
                         else if (n.Contains("duraklama") || n.Contains("stop")) colStopDuration = c;
-                        else if (n.Contains("engelemeyen") || (n.Contains("zaman") && n.Contains("kazanımı") && !n.Contains("mola"))) colSavedBreak = c;
-                        else if ((n.Contains("mola") || n.Contains("bakım")) && n.Contains("kazanım")) colSavedMaint = c;
-                        else if (n.Contains("fiili") || n.Contains("çalışılan") || n.Contains("work")) colActualWork = c;
+                        else if (n.Contains("engelemeyen") || (n.Contains("zaman") && hasKazanim && !n.Contains("mola"))) colSavedBreak = c;
+                        else if ((n.Contains("mola") || n.Contains("bakım") || n.Contains("bakim") || n.Contains("mola/bakım") || n.Contains("mola / bakım")) && hasKazanim) colSavedMaint = c;
+                        else if (n.Contains("fiili") || n.Contains("çalışılan") || n.Contains("calisilan") || n.Contains("work")) colActualWork = c;
                         else if (n.StartsWith("hata_kodu") || n.StartsWith("error_code") || n.StartsWith("code")) errorCols.Add(c);
                     }
 
@@ -189,11 +192,8 @@ namespace WPF_LoginForm.Repositories
                             else if (DateTime.TryParse(val, out DateTime dVal)) rowStopMin = dVal.TimeOfDay.TotalMinutes;
                         }
 
-                        double savedBreak = 0;
-                        if (colSavedBreak != null && row[colSavedBreak] != DBNull.Value) double.TryParse(row[colSavedBreak].ToString(), out savedBreak);
-
-                        double savedMaint = 0;
-                        if (colSavedMaint != null && row[colSavedMaint] != DBNull.Value) double.TryParse(row[colSavedMaint].ToString(), out savedMaint);
+                        double savedBreak = ParseDoubleSafe(colSavedBreak != null && row[colSavedBreak] != DBNull.Value ? row[colSavedBreak].ToString() : "");
+                        double savedMaint = ParseDoubleSafe(colSavedMaint != null && row[colSavedMaint] != DBNull.Value ? row[colSavedMaint].ToString() : "");
 
                         double actualWork = 0;
                         if (colActualWork != null && row[colActualWork] != DBNull.Value)
@@ -201,6 +201,7 @@ namespace WPF_LoginForm.Repositories
                             string val = row[colActualWork].ToString();
                             if (TimeSpan.TryParse(val, out TimeSpan ts)) actualWork = ts.TotalMinutes;
                             else if (DateTime.TryParse(val, out DateTime dVal)) actualWork = dVal.TimeOfDay.TotalMinutes;
+                            else actualWork = ParseDoubleSafe(val);
                         }
 
                         foreach (var errCol in errorCols)
@@ -740,6 +741,25 @@ namespace WPF_LoginForm.Repositories
             if (uiType.Contains("decimal")) return IsPostgres ? "DECIMAL" : "DECIMAL(18,2)";
             if (uiType.Contains("date")) return IsPostgres ? "TIMESTAMP" : "DATETIME";
             return IsPostgres ? "TEXT" : "NVARCHAR(MAX)";
+        }
+
+        private double ParseDoubleSafe(string val)
+        {
+            if (string.IsNullOrWhiteSpace(val)) return 0;
+            string strVal = val.Trim();
+
+            int lastComma = strVal.LastIndexOf(',');
+            int lastDot = strVal.LastIndexOf('.');
+
+            if (lastComma > lastDot)
+                strVal = strVal.Replace(".", "").Replace(",", ".");
+            else if (lastDot > lastComma && lastComma != -1)
+                strVal = strVal.Replace(",", "");
+            else if (lastComma != -1 && lastDot == -1)
+                strVal = strVal.Replace(",", ".");
+
+            double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double res);
+            return res;
         }
     }
 }

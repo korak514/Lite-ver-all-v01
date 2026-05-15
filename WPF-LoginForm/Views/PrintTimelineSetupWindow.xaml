@@ -68,14 +68,14 @@
                             <DatePicker Grid.Column="2" SelectedDate="{Binding EndDate}" />
                         </Grid>
 
-                        <Expander Header="Visual &amp; Global Colors" IsExpanded="False" Background="#F8F9FA" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,5">
+                        <Expander Header="{x:Static p:Resources.Str_VisualGlobalColors}" IsExpanded="False" Background="#F8F9FA" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,5">
                             <StackPanel Margin="0,10,0,0">
                                 <Grid Margin="0,0,0,5">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="115" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Running:" VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Static p:Resources.Str_RunningColon}" VerticalAlignment="Center" />
                                     <xctk:ColorPicker Grid.Column="1" SelectedColor="{Binding RunningColor, Mode=TwoWay}" Height="24" />
                                 </Grid>
                                 <Grid Margin="0,0,0,5">
@@ -83,7 +83,7 @@
                                         <ColumnDefinition Width="115" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Errors (Primary):" VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Static p:Resources.Str_PrimaryErrorColon}" VerticalAlignment="Center" />
                                     <xctk:ColorPicker Grid.Column="1" SelectedColor="{Binding ErrorColor, Mode=TwoWay}" Height="24" />
                                 </Grid>
                                 <Grid Margin="0,0,0,5">
@@ -91,7 +91,7 @@
                                         <ColumnDefinition Width="115" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Errors (Overlap):" VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Static p:Resources.Str_OverlapErrorColon}" VerticalAlignment="Center" />
                                     <xctk:ColorPicker Grid.Column="1" SelectedColor="{Binding ErrorColor2, Mode=TwoWay}" Height="24" />
                                 </Grid>
                                 <Grid Margin="0,0,0,5">
@@ -99,7 +99,7 @@
                                         <ColumnDefinition Width="115" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Bypass (Çalışıyor):" VerticalAlignment="Center" FontWeight="Bold" Foreground="#666" />
+                                    <TextBlock Text="{x:Static p:Resources.Str_BypassLabel}" VerticalAlignment="Center" FontWeight="Bold" Foreground="#666" />
                                     <xctk:ColorPicker Grid.Column="1" SelectedColor="{Binding BypassColor, Mode=TwoWay}" Height="24" />
                                 </Grid>
                                 <Grid Margin="0,0,0,5">
@@ -107,7 +107,7 @@
                                         <ColumnDefinition Width="115" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Facility Stopped:" VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Static p:Resources.Str_FacilityStoppedColon}" VerticalAlignment="Center" />
                                     <xctk:ColorPicker Grid.Column="1" SelectedColor="{Binding FacilityStopColor, Mode=TwoWay}" Height="24" />
                                 </Grid>
                                 <Grid Margin="0,0,0,5">
@@ -115,10 +115,10 @@
                                         <ColumnDefinition Width="115" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Text inside Events:" VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Static p:Resources.Str_TextInsideEvents}" VerticalAlignment="Center" />
                                     <xctk:ColorPicker Grid.Column="1" SelectedColor="{Binding InnerLabelColor, Mode=TwoWay}" Height="24" />
                                 </Grid>
-                                <TextBlock Text="Default Text inside Events Size:" FontSize="11" Foreground="#555" Margin="0,10,0,2" />
+                                <TextBlock Text="{x:Static p:Resources.Str_DefaultTextSize}" FontSize="11" Foreground="#555" Margin="0,10,0,2" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <Slider Minimum="4" Maximum="14" Value="{Binding InnerLabelFontSize, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="0.5" />
                                     <TextBlock Text="{Binding InnerLabelFontSize, StringFormat={}{0:F1}}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
@@ -126,14 +126,14 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="MA-00 Specific Categories" IsExpanded="False" Background="#E8F4F8" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,10">
+                        <Expander Header="{x:Static p:Resources.Str_Ma00SpecificCategories}" IsExpanded="False" Background="#E8F4F8" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,10">
                             <StackPanel Margin="0,10,0,0">
                                 <Grid Margin="0,0,0,5">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="105" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="1. Genel Temizlik:" VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Static p:Resources.Str_MA00_1}" VerticalAlignment="Center" />
                                     <xctk:ColorPicker Grid.Column="1" SelectedColor="{Binding ColorMa00Genel, Mode=TwoWay}" Height="24" />
                                 </Grid>
                                 <Grid Margin="0,0,0,5">
@@ -141,7 +141,7 @@
                                         <ColumnDefinition Width="105" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="2. Çay Molası:" VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Static p:Resources.Str_MA00_2}" VerticalAlignment="Center" />
                                     <xctk:ColorPicker Grid.Column="1" SelectedColor="{Binding ColorMa00Cay, Mode=TwoWay}" Height="24" />
                                 </Grid>
                                 <Grid Margin="0,0,0,5">
@@ -149,7 +149,7 @@
                                         <ColumnDefinition Width="105" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="3. Yemek Molası:" VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Static p:Resources.Str_MA00_3}" VerticalAlignment="Center" />
                                     <xctk:ColorPicker Grid.Column="1" SelectedColor="{Binding ColorMa00Yemek, Mode=TwoWay}" Height="24" />
                                 </Grid>
                                 <Grid Margin="0,0,0,5">
@@ -157,56 +157,56 @@
                                         <ColumnDefinition Width="105" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="4. Diğer MA-00:" VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Static p:Resources.Str_MA00_4}" VerticalAlignment="Center" />
                                     <xctk:ColorPicker Grid.Column="1" SelectedColor="{Binding ColorMa00Other, Mode=TwoWay}" Height="24" />
                                 </Grid>
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Default Layers &amp; Text Rules" IsExpanded="False" Background="#FFF5E6" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,10">
+                        <Expander Header="{x:Static p:Resources.Str_DefaultLayersTextRules}" IsExpanded="False" Background="#FFF5E6" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,10">
                             <StackPanel Margin="0,5,0,0">
-                                <TextBlock Text="Higher layers draw on top of lower layers. Maximum limit is 100." TextWrapping="Wrap" FontSize="10" Foreground="#555" Margin="0,0,0,10" />
+                                <TextBlock Text="{x:Static p:Resources.Str_LayerExplanation}" TextWrapping="Wrap" FontSize="10" Foreground="#555" Margin="0,0,0,10" />
 
-                                <TextBlock Text="Running (Canvas) Layer:" FontSize="11" Foreground="#555" />
+                                <TextBlock Text="{x:Static p:Resources.Str_RunningCanvasLayer}" FontSize="11" Foreground="#555" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <Slider Minimum="1" Maximum="100" Value="{Binding LayerRunning, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
                                     <TextBlock Text="{Binding LayerRunning}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
                                 </StackPanel>
 
-                                <TextBlock Text="Bypass Layer:" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
+                                <TextBlock Text="{x:Static p:Resources.Str_BypassLayer}" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <Slider Minimum="1" Maximum="100" Value="{Binding LayerBypass, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
                                     <TextBlock Text="{Binding LayerBypass}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
                                 </StackPanel>
 
-                                <TextBlock Text="Breaks &amp; Cleaning Layer:" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
+                                <TextBlock Text="{x:Static p:Resources.Str_BreaksCleaningLayer}" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <Slider Minimum="1" Maximum="100" Value="{Binding LayerBreaks, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
                                     <TextBlock Text="{Binding LayerBreaks}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
                                 </StackPanel>
 
-                                <TextBlock Text="Errors Layer (Base):" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
+                                <TextBlock Text="{x:Static p:Resources.Str_ErrorsLayerBase}" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                     <Slider Minimum="1" Maximum="100" Value="{Binding LayerErrors, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
                                     <TextBlock Text="{Binding LayerErrors}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
                                 </StackPanel>
 
                                 <Border BorderBrush="#DDD" BorderThickness="0,1,0,0" Margin="0,5,0,5" />
-                                <TextBlock Text="Dynamic Height &amp; Text Rules:" FontWeight="Bold" Foreground="#333" Margin="0,0,0,5" />
+                                <TextBlock Text="{x:Static p:Resources.Str_DynamicHeightTextRules}" FontWeight="Bold" Foreground="#333" Margin="0,0,0,5" />
 
-                                <TextBlock Text="Overlap Cascade Step (% drop):" FontSize="11" Foreground="#555" ToolTip="How much smaller the next overlapping block gets." />
+                                <TextBlock Text="{x:Static p:Resources.Str_OverlapCascadeStep}" FontSize="11" Foreground="#555" ToolTip="{x:Static p:Resources.Tip_OverlapCascade}" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <Slider Minimum="0.05" Maximum="0.5" Value="{Binding OverlapCascadeStep, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="0.05" />
                                     <TextBlock Text="{Binding OverlapCascadeStep, StringFormat={}{0:P0}}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
                                 </StackPanel>
 
-                                <TextBlock Text="Min. Minutes for Label:" FontSize="11" Foreground="#555" />
+                                <TextBlock Text="{x:Static p:Resources.Str_MinMinutesLabel}" FontSize="11" Foreground="#555" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <Slider Minimum="30" Maximum="240" Value="{Binding MinLabelMinutes, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="10" />
                                     <TextBlock Text="{Binding MinLabelMinutes, StringFormat={}{0}m}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
                                 </StackPanel>
 
-                                <TextBlock Text="Min. Minutes for Footnote:" FontSize="11" Foreground="#555" />
+                                <TextBlock Text="{x:Static p:Resources.Str_MinMinutesFootnote}" FontSize="11" Foreground="#555" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <Slider Minimum="5" Maximum="90" Value="{Binding MinFootnoteMinutes, Mode=TwoWay}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="5" />
                                     <TextBlock Text="{Binding MinFootnoteMinutes, StringFormat={}{0}m}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
@@ -214,10 +214,10 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="Advanced Layout Toggles &amp; Excel Data" IsExpanded="False" Background="#FFFDF5" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,10">
+                        <Expander Header="{x:Static p:Resources.Str_AdvancedLayoutTogglesExcel}" IsExpanded="False" Background="#FFFDF5" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,10">
                             <StackPanel Margin="0,5,0,0">
 
-                                <TextBlock Text="Excel Overrides (Col 1 &amp; 2)" Style="{StaticResource HeaderStyle}" Margin="0,0,0,2" />
+                                <TextBlock Text="{x:Static p:Resources.Str_ExcelOverrides}" Style="{StaticResource HeaderStyle}" Margin="0,0,0,2" />
                                 <Grid Margin="0,0,0,5">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
@@ -231,7 +231,7 @@
                                 <ComboBox ItemsSource="{Binding AvailableExtraOptions}" SelectedItem="{Binding ExtraCol1Selection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="22" Margin="0,0,0,5" />
                                 <ComboBox ItemsSource="{Binding AvailableExtraOptions}" SelectedItem="{Binding ExtraCol2Selection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="22" Margin="0,0,0,15" />
 
-                                <TextBlock Text="Timeline Row Height" Style="{StaticResource HeaderStyle}" Margin="0,0,0,2" />
+                                <TextBlock Text="{x:Static p:Resources.Str_TimelineRowHeight}" Style="{StaticResource HeaderStyle}" Margin="0,0,0,2" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
                                     <Slider Minimum="8" Maximum="32" Value="{Binding RowHeight, Mode=TwoWay}" Width="160" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
                                     <TextBlock Text="{Binding RowHeight}" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold" />
@@ -272,7 +272,7 @@
                         <Button Content="{x:Static p:Resources.Str_BackToConfiguration}" Command="{Binding CancelBlockEditCommand}" Background="Transparent" Foreground="#0056B3" BorderThickness="0" HorizontalAlignment="Left" Margin="0,0,0,10" FontWeight="Bold" Cursor="Hand" />
 
                         <TextBlock Text="{x:Static p:Resources.Str_LiveVisualEditor}" FontSize="18" FontWeight="Bold" Foreground="#E67E22" Margin="0,0,0,5" />
-                        <TextBlock Text="Edit exactly what prints for this block. Changes are automatically saved as overrides when you click Apply." FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,0,0,15" />
+                        <TextBlock Text="{x:Static p:Resources.Str_EditWarning}" FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,0,0,15" />
 
                         <TextBlock Text="{x:Static p:Resources.Str_BlockTimeInfo}" Style="{StaticResource HeaderStyle}" Foreground="#E67E22" />
                         <TextBlock Text="{Binding EditBlockTimeData}" FontSize="13" FontWeight="SemiBold" Foreground="#34495E" Margin="0,0,0,15" />
@@ -284,24 +284,24 @@
                         <xctk:ColorPicker SelectedColor="{Binding EditBlockColor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="25" Margin="0,0,0,15" />
 
                         <!-- TEXT & LABEL SECTION -->
-                        <Expander Header="Text &amp; Label Configuration" IsExpanded="True" Background="#F0F8FF" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,15">
+                        <Expander Header="{x:Static p:Resources.Str_TextLabelConfig}" IsExpanded="True" Background="#F0F8FF" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,15">
                             <StackPanel Margin="0,5,0,0">
-                                <TextBlock Text="Inner Block Text (Label):" FontSize="11" Foreground="#555" />
+                                <TextBlock Text="{x:Static p:Resources.Str_InnerBlockText}" FontSize="11" Foreground="#555" />
                                 <TextBox Text="{Binding EditBlockLabel, UpdateSourceTrigger=PropertyChanged}" Height="25" Margin="0,0,0,15" VerticalContentAlignment="Center" />
 
-                                <TextBlock Text="Font Size Override:" FontSize="11" Foreground="#555" />
+                                <TextBlock Text="{x:Static p:Resources.Str_FontSizeOverride}" FontSize="11" Foreground="#555" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
                                     <Slider Minimum="3" Maximum="14" Value="{Binding EditBlockFontSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="0.5" />
                                     <TextBlock Text="{Binding EditBlockFontSize, StringFormat={}{0:F1}}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
                                 </StackPanel>
 
-                                <TextBlock Text="X Offset (Left/Right Shift):" FontSize="11" Foreground="#555" />
+                                <TextBlock Text="{x:Static p:Resources.Str_XOffset}" FontSize="11" Foreground="#555" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <Slider Minimum="-100" Maximum="100" Value="{Binding EditBlockLabelOffsetX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
                                     <TextBlock Text="{Binding EditBlockLabelOffsetX, StringFormat={}{0}px}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
                                 </StackPanel>
 
-                                <TextBlock Text="Y Offset (Up/Down Shift):" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
+                                <TextBlock Text="{x:Static p:Resources.Str_YOffset}" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <Slider Minimum="-30" Maximum="30" Value="{Binding EditBlockLabelOffsetY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
                                     <TextBlock Text="{Binding EditBlockLabelOffsetY, StringFormat={}{0}px}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
@@ -310,21 +310,21 @@
                         </Expander>
 
                         <!-- SHAPE LAYER SECTION -->
-                        <Expander Header="Advanced Layout &amp; Layering" IsExpanded="True" Background="#FAFAFA" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,15">
+                        <Expander Header="{x:Static p:Resources.Str_AdvancedLayoutLayering}" IsExpanded="True" Background="#FAFAFA" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,15">
                             <StackPanel Margin="0,5,0,0">
-                                <TextBlock Text="Layer Z-Index (1 to 100):" FontSize="11" Foreground="#555" />
+                                <TextBlock Text="{x:Static p:Resources.Str_LayerZIndex}" FontSize="11" Foreground="#555" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <Slider Minimum="1" Maximum="100" Value="{Binding EditBlockZIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
                                     <TextBlock Text="{Binding EditBlockZIndex}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
                                 </StackPanel>
 
-                                <TextBlock Text="Height Scale (1.0 = Full Row):" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
+                                <TextBlock Text="{x:Static p:Resources.Str_HeightScale}" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <Slider Minimum="0.1" Maximum="1.0" Value="{Binding EditBlockHeightMultiplier, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="0.05" />
                                     <TextBlock Text="{Binding EditBlockHeightMultiplier, StringFormat={}{0:F2}}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
                                 </StackPanel>
 
-                                <TextBlock Text="Push Down Offset (Pixels):" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
+                                <TextBlock Text="{x:Static p:Resources.Str_PushDownOffset}" FontSize="11" Foreground="#555" Margin="0,5,0,0" />
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                     <Slider Minimum="0" Maximum="32" Value="{Binding EditBlockTopOffset, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
                                     <TextBlock Text="{Binding EditBlockTopOffset}" Margin="10,0,0,0" FontWeight="Bold" VerticalAlignment="Center" />
@@ -479,23 +479,23 @@
 
                                                 <!-- Row 1 -->
                                                 <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,8">
-                                                    <TextBlock Text="Günlük ortalama çalışma:" FontSize="11" Foreground="#4B5563" />
+                                                    <TextBlock Text="{x:Static p:Resources.Str_SummaryAvgDailyWork}" FontSize="11" Foreground="#4B5563" />
                                                     <TextBlock Text="{Binding ReportConfig.MonthlySummary.AvgDailyWorkStr}" FontSize="11" FontWeight="Bold" Foreground="#1F2937" Margin="5,0,0,0" />
                                                 </StackPanel>
 
                                                 <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Margin="0,0,0,8">
-                                                    <TextBlock Text="Mesaisiz vardiya sayısı:" FontSize="11" Foreground="#4B5563" />
+                                                    <TextBlock Text="{x:Static p:Resources.Str_SummaryNoOvertime}" FontSize="11" Foreground="#4B5563" />
                                                     <TextBlock Text="{Binding ReportConfig.MonthlySummary.NoOvertimeShifts}" FontSize="11" FontWeight="Bold" Foreground="#1F2937" Margin="5,0,0,0" />
                                                 </StackPanel>
 
                                                 <!-- Row 2 -->
                                                 <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
-                                                    <TextBlock Text="Günlük ortalama duruş:" FontSize="11" Foreground="#4B5563" />
+                                                    <TextBlock Text="{x:Static p:Resources.Str_SummaryAvgDailyStop}" FontSize="11" Foreground="#4B5563" />
                                                     <TextBlock Text="{Binding ReportConfig.MonthlySummary.AvgDailyStopStr}" FontSize="11" FontWeight="Bold" Foreground="#1F2937" Margin="5,0,0,0" />
                                                 </StackPanel>
 
                                                 <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal">
-                                                    <TextBlock Text="Tesisin çalışmadığı vardiya sayısı:" FontSize="11" Foreground="#4B5563" />
+                                                    <TextBlock Text="{x:Static p:Resources.Str_SummaryNotWorkedShifts}" FontSize="11" Foreground="#4B5563" />
                                                     <TextBlock Text="{Binding ReportConfig.MonthlySummary.NotWorkedShifts}" FontSize="11" FontWeight="Bold" Foreground="#1F2937" Margin="5,0,0,0" />
                                                 </StackPanel>
                                             </Grid>
@@ -817,8 +817,8 @@
 
             <Border HorizontalAlignment="Right" VerticalAlignment="Top" Background="#AA000000" CornerRadius="5" Padding="10,5" Margin="20">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="🔍 Zoom:" Foreground="White" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,10,0" />
-                    <Slider Minimum="0.5" Maximum="3.0" Value="{Binding ZoomScale}" Width="120" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="0.1" ToolTip="Adjust Zoom Level" />
+                    <TextBlock Text="{x:Static p:Resources.Str_ZoomLabel}" Foreground="White" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,10,0" />
+                    <Slider Minimum="0.5" Maximum="3.0" Value="{Binding ZoomScale}" Width="120" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="0.1" ToolTip="{x:Static p:Resources.Tip_AdjustZoom}" />
                     <TextBlock Text="{Binding ZoomScale, StringFormat={}{0:P0}}" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" Width="40" TextAlignment="Right" />
                 </StackPanel>
             </Border>

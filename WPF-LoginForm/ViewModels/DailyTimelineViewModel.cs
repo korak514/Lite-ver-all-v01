@@ -1,4 +1,4 @@
-﻿// ViewModels/DailyTimelineViewModel.cs
+// ViewModels/DailyTimelineViewModel.cs
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -298,6 +298,7 @@ namespace WPF_LoginForm.ViewModels
         public ICommand SaveToDatabaseCommand { get; }
         public ICommand UndoCommand { get; }
         public ICommand RefreshCommand { get; }
+        public ICommand OpenMonthlyErrorsCommand { get; }
 
         public DailyTimelineViewModel(IDataRepository repository, string tableName, DateTime targetDate)
         {
@@ -326,6 +327,7 @@ namespace WPF_LoginForm.ViewModels
             SaveToDatabaseCommand = new ViewModelCommand(p => ExecuteSaveToDatabase(), p => IsDirty && IsOnlineMode);
             UndoCommand = new ViewModelCommand(p => ExecuteUndo(), p => IsDirty);
             RefreshCommand = new ViewModelCommand(p => { ReloadData(); });
+            OpenMonthlyErrorsCommand = new ViewModelCommand(p => ExecuteOpenMonthlyErrors());
 
             _ = InitializeTablesAsync();
             LoadConfigData();
@@ -401,6 +403,18 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
+        private void ExecuteOpenMonthlyErrors()
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var vm = new MonthlyErrorsViewModel(this);
+                var win = new Views.MonthlyErrorsWindow(vm);
+                if (Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
+                    win.Owner = Application.Current.MainWindow;
+                win.ShowDialog();
+            });
+        }
+
         private void ExecuteAddNewEvent()
         {
             HandleDropOrClickAdd(null, 40, 30);
@@ -427,6 +441,9 @@ namespace WPF_LoginForm.ViewModels
             DateTime eventStart = shiftStart.AddMinutes(startMin);
             int dur = fav?.DefaultDuration ?? 15;
             DateTime eventEnd = eventStart.AddMinutes(dur);
+            string mCode = fav?.MachineCode ?? "01";
+            string cleanMCode = mCode.Replace("MA-", "");
+            bool isBypassDef = cleanMCode == "33" || cleanMCode == "34" || cleanMCode == "35" || cleanMCode == "36" || cleanMCode == "37";
 
             SelectedBlock = new TimelineBlockModel
             {
@@ -436,15 +453,16 @@ namespace WPF_LoginForm.ViewModels
                     StartTime = eventStart.ToString("HH:mm"),
                     EndTime = eventEnd.ToString("HH:mm"),
                     DurationMinutes = dur,
-                    MachineCode = fav?.MachineCode ?? "00",
-                    ErrorDescription = fav?.Description ?? Resources.Str_NewEvent
+                    MachineCode = mCode,
+                    ErrorDescription = fav?.Description ?? "New Event"
                 },
                 LaneIndex = lane,
                 StartMinuteInShift = startMin,
                 DurationMinutes = dur,
                 CurrentZoomHours = this.TimeWindowHours,
                 IsNewUnsaved = true,
-                IsReferenceBlock = false
+                IsReferenceBlock = false,
+                IsBypass = isBypassDef
             };
 
             SyncEditFields();
@@ -503,6 +521,13 @@ namespace WPF_LoginForm.ViewModels
         {
             if (SelectedBlock == null || _currentData == null || SelectedBlock.IsReferenceBlock) return;
             CalculateTime();
+
+            string cleanMCode = SelectedBlock.OriginalEvent.MachineCode?.Replace("MA-", "") ?? "";
+            if (cleanMCode == "33" || cleanMCode == "34" || cleanMCode == "35" || cleanMCode == "36" || cleanMCode == "37")
+            {
+                SelectedBlock.IsBypass = true;
+            }
+
             SelectedBlock.RefreshUI();
 
             if (SelectedBlock.SourceRow == null || string.IsNullOrEmpty(SelectedBlock.SourceColumn))
@@ -674,26 +699,23 @@ namespace WPF_LoginForm.ViewModels
 
                 foreach (DataColumn c in dt.Columns)
                 {
-                    string n = c.ColumnName;
-                    if (n.IndexOf("engelemeyen", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                       (n.IndexOf("zaman", StringComparison.OrdinalIgnoreCase) >= 0 && n.IndexOf("kazanımı", StringComparison.OrdinalIgnoreCase) >= 0 && n.IndexOf("mola", StringComparison.OrdinalIgnoreCase) < 0))
-                        colSavedBreak = c;
-                    else if ((n.IndexOf("mola", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("bakım", StringComparison.OrdinalIgnoreCase) >= 0) && n.IndexOf("kazanım", StringComparison.OrdinalIgnoreCase) >= 0)
-                        colSavedMaint = c;
-                    else if (n.IndexOf("fiili", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("çalışılan", StringComparison.OrdinalIgnoreCase) >= 0 || n.IndexOf("calisilan", StringComparison.OrdinalIgnoreCase) >= 0)
-                        colFiili = c;
+                    string n = c.ColumnName.ToLowerInvariant().Trim();
+                    bool hasKazanim = n.Contains("kazanım") || n.Contains("kazanim");
+                    
+                    if (n.Contains("engelemeyen") || (n.Contains("zaman") && hasKazanim && !n.Contains("mola"))) colSavedBreak = c;
+                    else if ((n.Contains("mola") || n.Contains("bakım") || n.Contains("bakim") || n.Contains("mola/bakım") || n.Contains("mola / bakım")) && hasKazanim) colSavedMaint = c;
+                    else if (n.Contains("fiili") || n.Contains("çalışılan") || n.Contains("calisilan") || n.Contains("work")) colFiili = c;
                 }
 
-                RawMolaKazanimi = (colSavedMaint != null && dbRow[colSavedMaint] != DBNull.Value) ? Convert.ToDouble(dbRow[colSavedMaint]) : 0;
-                RawBypassKazanimi = (colSavedBreak != null && dbRow[colSavedBreak] != DBNull.Value) ? Convert.ToDouble(dbRow[colSavedBreak]) : 0;
+                RawMolaKazanimi = ParseDoubleSafe(colSavedMaint != null && dbRow[colSavedMaint] != DBNull.Value ? dbRow[colSavedMaint].ToString() : "");
+                RawBypassKazanimi = ParseDoubleSafe(colSavedBreak != null && dbRow[colSavedBreak] != DBNull.Value ? dbRow[colSavedBreak].ToString() : "");
 
                 if (colFiili != null && dbRow[colFiili] != DBNull.Value)
                 {
                     string fStr = dbRow[colFiili].ToString().Trim();
                     if (TimeSpan.TryParse(fStr, out TimeSpan fTs)) RawFiiliSure = fTs.TotalMinutes;
                     else if (DateTime.TryParse(fStr, out DateTime fDt)) RawFiiliSure = fDt.TimeOfDay.TotalMinutes;
-                    else if (double.TryParse(fStr, out double fDbl)) RawFiiliSure = fDbl;
-                    else RawFiiliSure = 0;
+                    else RawFiiliSure = ParseDoubleSafe(fStr);
 
                     if (RawFiiliSure < 0)
                     {
@@ -709,6 +731,25 @@ namespace WPF_LoginForm.ViewModels
                 RawBypassKazanimi = 0;
                 RawFiiliSure = 0;
             }
+        }
+
+        private double ParseDoubleSafe(string val)
+        {
+            if (string.IsNullOrWhiteSpace(val)) return 0;
+            string strVal = val.Trim();
+
+            int lastComma = strVal.LastIndexOf(',');
+            int lastDot = strVal.LastIndexOf('.');
+
+            if (lastComma > lastDot)
+                strVal = strVal.Replace(".", "").Replace(",", ".");
+            else if (lastDot > lastComma && lastComma != -1)
+                strVal = strVal.Replace(",", "");
+            else if (lastComma != -1 && lastDot == -1)
+                strVal = strVal.Replace(",", ".");
+
+            double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double res);
+            return res;
         }
 
         private void SetDirty()
@@ -964,6 +1005,9 @@ namespace WPF_LoginForm.ViewModels
                         DateTime eventStartFull = item.Date.Date.Add(ts);
                         if (IsNightShift && ts.Hours < 12) eventStartFull = eventStartFull.AddDays(1);
 
+                        string loadedMCode = item.MachineCode?.Replace("MA-", "") ?? "";
+                        bool isBypassDef = loadedMCode == "33" || loadedMCode == "34" || loadedMCode == "35" || loadedMCode == "36" || loadedMCode == "37";
+
                         if (eventStartFull >= shiftStart && eventStartFull < shiftEnd)
                         {
                             shiftBlocks.Add(new TimelineBlockModel
@@ -975,7 +1019,8 @@ namespace WPF_LoginForm.ViewModels
                                 SourceRow = row,
                                 SourceColumn = eCol,
                                 IsNewUnsaved = false,
-                                IsReferenceBlock = false
+                                IsReferenceBlock = false,
+                                IsBypass = isBypassDef
                             });
                         }
                         else

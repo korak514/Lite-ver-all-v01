@@ -198,10 +198,17 @@
                         </StackPanel>
                     </Button>
 
-                    <Button Command="{Binding ToggleEditPanelCommand}" Background="#3498DB" Margin="0,0,15,0" Style="{StaticResource ActionButtonStyle}">
+                    <Button Command="{Binding ToggleEditPanelCommand}" Background="#3498DB" Margin="0,0,8,0" Style="{StaticResource ActionButtonStyle}">
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="Pencil" Height="13" Foreground="White" Margin="0,0,8,0" VerticalAlignment="Center"/>
                             <TextBlock Text="{x:Static p:Resources.Str_Edit}" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding OpenMonthlyErrorsCommand}" Background="#E67E22" Margin="0,0,15,0" Style="{StaticResource ActionButtonStyle}" ToolTip="Monthly Data Validation">
+                        <StackPanel Orientation="Horizontal">
+                            <fa:ImageAwesome Icon="CheckCircle" Height="13" Foreground="White" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Monthly" FontSize="12" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                     

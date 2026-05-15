@@ -12,6 +12,7 @@ using System.Windows.Media;
 using Newtonsoft.Json;
 using OfficeOpenXml;
 using WPF_LoginForm.Models;
+using WPF_LoginForm.Properties;
 using WPF_LoginForm.Repositories;
 using WPF_LoginForm.Services;
 
@@ -65,7 +66,7 @@ namespace WPF_LoginForm.ViewModels
 
         private bool _isUpdatingDates = false;
 
-        private DateTime _startDate = DateTime.Today.AddDays(-12);
+        private DateTime _startDate = DateTime.Today.AddDays(-10);
 
         public DateTime StartDate
         {
@@ -74,7 +75,7 @@ namespace WPF_LoginForm.ViewModels
             {
                 if (SetProperty(ref _startDate, value) && !_isUpdatingDates)
                 {
-                    _isUpdatingDates = true; EndDate = _startDate.AddDays(12); _isUpdatingDates = false;
+                    _isUpdatingDates = true; EndDate = CalcEndDate(_startDate, 10); _isUpdatingDates = false;
                 }
             }
         }
@@ -89,11 +90,18 @@ namespace WPF_LoginForm.ViewModels
                 if (SetProperty(ref _endDate, value) && !_isUpdatingDates)
                 {
                     _isUpdatingDates = true;
-                    if ((_endDate - _startDate).TotalDays > 20) EndDate = _startDate.AddDays(20);
+                    if ((_endDate - _startDate).TotalDays > 20) EndDate = CalcEndDate(_startDate, 20);
                     else if (_endDate < _startDate) EndDate = _startDate;
                     _isUpdatingDates = false;
                 }
             }
+        }
+
+        private static DateTime CalcEndDate(DateTime start, int offsetDays)
+        {
+            var candidate = start.AddDays(offsetDays);
+            int lastDay = DateTime.DaysInMonth(start.Year, start.Month);
+            return candidate.Month == start.Month ? candidate : new DateTime(start.Year, start.Month, lastDay);
         }
 
         private double _zoomScale = 1.0;
@@ -331,19 +339,19 @@ namespace WPF_LoginForm.ViewModels
 
             if (isMa00)
             {
-                if (block.ColorHex == ColorMa00Genel.ToString()) currentCategory = "Genel Temizlik";
-                else if (block.ColorHex == ColorMa00Cay.ToString()) currentCategory = "Çay Molası";
-                else if (block.ColorHex == ColorMa00Yemek.ToString()) currentCategory = "Yemek Molası";
-                else currentCategory = "Diğer MA-00";
+                if (block.ColorHex == ColorMa00Genel.ToString()) currentCategory = Resources.Str_CatGeneralCleaning;
+                else if (block.ColorHex == ColorMa00Cay.ToString()) currentCategory = Resources.Str_CatTeaBreak;
+                else if (block.ColorHex == ColorMa00Yemek.ToString()) currentCategory = Resources.Str_CatLunchBreak;
+                else currentCategory = Resources.Str_CatOtherMa00;
             }
             else
             {
-                if (block.ColorHex == RunningColor.ToString()) currentCategory = "Running";
-                else if (block.ColorHex == ErrorColor.ToString()) currentCategory = "Primary Error";
-                else if (block.ColorHex == ErrorColor2.ToString()) currentCategory = "Overlap Error";
-                else if (block.ColorHex == BypassColor.ToString()) currentCategory = "Bypass";
-                else if (block.ColorHex == FacilityStopColor.ToString()) currentCategory = "Facility Stop";
-                else currentCategory = "Primary Error";
+                if (block.ColorHex == RunningColor.ToString()) currentCategory = Resources.Str_CatRunning;
+                else if (block.ColorHex == ErrorColor.ToString()) currentCategory = Resources.Str_CatPrimaryError;
+                else if (block.ColorHex == ErrorColor2.ToString()) currentCategory = Resources.Str_CatOverlapError;
+                else if (block.ColorHex == BypassColor.ToString()) currentCategory = Resources.Str_CatBypass;
+                else if (block.ColorHex == FacilityStopColor.ToString()) currentCategory = Resources.Str_CatFacilityStop;
+                else currentCategory = Resources.Str_CatPrimaryError;
             }
 
             _selectedBlockCategory = currentCategory; OnPropertyChanged(nameof(SelectedBlockCategory));
@@ -354,23 +362,23 @@ namespace WPF_LoginForm.ViewModels
         {
             string mCode = (EditBlockMachine ?? "").Replace("MA-", "").Trim();
             bool isMa00 = (mCode == "00" || mCode == "0");
-            bool isCurrentlyMa00List = AvailableBlockCategories.Contains("Genel Temizlik");
+            bool isCurrentlyMa00List = AvailableBlockCategories.Contains(Resources.Str_CatGeneralCleaning);
 
             if (initialLoad || (isMa00 && !isCurrentlyMa00List) || (!isMa00 && isCurrentlyMa00List) || AvailableBlockCategories.Count == 0)
             {
                 AvailableBlockCategories.Clear();
                 if (isMa00)
                 {
-                    AvailableBlockCategories.Add("Genel Temizlik"); AvailableBlockCategories.Add("Çay Molası");
-                    AvailableBlockCategories.Add("Yemek Molası"); AvailableBlockCategories.Add("Diğer MA-00");
-                    if (!initialLoad) SelectedBlockCategory = "Diğer MA-00";
+                    AvailableBlockCategories.Add(Resources.Str_CatGeneralCleaning); AvailableBlockCategories.Add(Resources.Str_CatTeaBreak);
+                    AvailableBlockCategories.Add(Resources.Str_CatLunchBreak); AvailableBlockCategories.Add(Resources.Str_CatOtherMa00);
+                    if (!initialLoad) SelectedBlockCategory = Resources.Str_CatOtherMa00;
                 }
                 else
                 {
-                    AvailableBlockCategories.Add("Running"); AvailableBlockCategories.Add("Primary Error");
-                    AvailableBlockCategories.Add("Overlap Error"); AvailableBlockCategories.Add("Bypass");
-                    AvailableBlockCategories.Add("Facility Stop");
-                    if (!initialLoad) SelectedBlockCategory = "Primary Error";
+                    AvailableBlockCategories.Add(Resources.Str_CatRunning); AvailableBlockCategories.Add(Resources.Str_CatPrimaryError);
+                    AvailableBlockCategories.Add(Resources.Str_CatOverlapError); AvailableBlockCategories.Add(Resources.Str_CatBypass);
+                    AvailableBlockCategories.Add(Resources.Str_CatFacilityStop);
+                    if (!initialLoad) SelectedBlockCategory = Resources.Str_CatPrimaryError;
                 }
             }
         }
@@ -378,15 +386,15 @@ namespace WPF_LoginForm.ViewModels
         private void UpdateColorFromCategory(string category)
         {
             if (string.IsNullOrEmpty(category)) return;
-            if (category == "Genel Temizlik") EditBlockColor = ColorMa00Genel;
-            else if (category == "Çay Molası") EditBlockColor = ColorMa00Cay;
-            else if (category == "Yemek Molası") EditBlockColor = ColorMa00Yemek;
-            else if (category == "Diğer MA-00") EditBlockColor = ColorMa00Other;
-            else if (category == "Running") EditBlockColor = RunningColor;
-            else if (category == "Primary Error") EditBlockColor = ErrorColor;
-            else if (category == "Overlap Error") EditBlockColor = ErrorColor2;
-            else if (category == "Bypass") EditBlockColor = BypassColor;
-            else if (category == "Facility Stop") EditBlockColor = FacilityStopColor;
+            if (category == Resources.Str_CatGeneralCleaning) EditBlockColor = ColorMa00Genel;
+            else if (category == Resources.Str_CatTeaBreak) EditBlockColor = ColorMa00Cay;
+            else if (category == Resources.Str_CatLunchBreak) EditBlockColor = ColorMa00Yemek;
+            else if (category == Resources.Str_CatOtherMa00) EditBlockColor = ColorMa00Other;
+            else if (category == Resources.Str_CatRunning) EditBlockColor = RunningColor;
+            else if (category == Resources.Str_CatPrimaryError) EditBlockColor = ErrorColor;
+            else if (category == Resources.Str_CatOverlapError) EditBlockColor = ErrorColor2;
+            else if (category == Resources.Str_CatBypass) EditBlockColor = BypassColor;
+            else if (category == Resources.Str_CatFacilityStop) EditBlockColor = FacilityStopColor;
         }
 
         private void ExecuteApplyBlockEdit(object obj)

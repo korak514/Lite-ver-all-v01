@@ -1,4 +1,4 @@
-﻿using OfficeOpenXml;
+using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -159,7 +159,7 @@ namespace WPF_LoginForm.Services
         {
             if (string.IsNullOrWhiteSpace(rawName)) return "Column_X";
 
-            string sanitized = Regex.Replace(rawName, @"[^a-zA-Z0-9_]", "_");
+            string sanitized = Regex.Replace(rawName, @"[^\p{L}0-9_]", "_");
             if (sanitized.Length > 0 && char.IsDigit(sanitized[0])) sanitized = "_" + sanitized;
             sanitized = Regex.Replace(sanitized, @"_{2,}", "_").Trim('_');
             return string.IsNullOrWhiteSpace(sanitized) ? "Column_X" : sanitized;

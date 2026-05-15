@@ -115,6 +115,7 @@
     <Compile Include="Models\ErrorLogItem.cs" />
     <Compile Include="Models\PortalConfiguration.cs" />
     <Compile Include="Models\PrintTimelineModels.cs" />
+    <Compile Include="Models\MonthlyValidationItem.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -153,6 +154,7 @@
     <Compile Include="ViewModels\HierarchyImportViewModel.cs" />
     <Compile Include="ViewModels\NodeEditorViewModel.cs" />
     <Compile Include="ViewModels\PrintTimelineSetupViewModel.cs" />
+    <Compile Include="ViewModels\MonthlyErrorsViewModel.cs" />
     <Compile Include="Views\CategoryConfigWindow.xaml.cs">
       <DependentUpon>CategoryConfigWindow.xaml</DependentUpon>
     </Compile>
@@ -200,6 +202,9 @@
     </Compile>
     <Compile Include="Views\StartupView.xaml.cs">
       <DependentUpon>StartupView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\MonthlyErrorsWindow.xaml.cs">
+      <DependentUpon>MonthlyErrorsWindow.xaml</DependentUpon>
     </Compile>
     <PackageReference Include="ClosedXML">
       <Version>0.105.0</Version>
@@ -446,6 +451,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\StartupView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\MonthlyErrorsWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

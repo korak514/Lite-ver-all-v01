@@ -4410,7 +4410,7 @@ namespace WPF_LoginForm.Properties {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Date Range (Auto 12-Days, Max 20).
+        ///   Looks up a localized string similar to Date Range (Auto 10-Days, Max 20).
         /// </summary>
         public static string Str_DateRangeAuto {
             get {
@@ -4532,6 +4532,357 @@ namespace WPF_LoginForm.Properties {
         public static string Str_RemoveOfflineReminder {
             get {
                 return ResourceManager.GetString("Str_RemoveOfflineReminder", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Visual &amp; Global Colors.
+        /// </summary>
+        public static string Str_VisualGlobalColors {
+            get {
+                return ResourceManager.GetString("Str_VisualGlobalColors", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Running:.
+        /// </summary>
+        public static string Str_RunningColon {
+            get {
+                return ResourceManager.GetString("Str_RunningColon", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Bypass (Running):.
+        /// </summary>
+        public static string Str_BypassLabel {
+            get {
+                return ResourceManager.GetString("Str_BypassLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Text inside Events:.
+        /// </summary>
+        public static string Str_TextInsideEvents {
+            get {
+                return ResourceManager.GetString("Str_TextInsideEvents", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Default Text inside Events Size:.
+        /// </summary>
+        public static string Str_DefaultTextSize {
+            get {
+                return ResourceManager.GetString("Str_DefaultTextSize", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MA-00 Specific Categories.
+        /// </summary>
+        public static string Str_Ma00SpecificCategories {
+            get {
+                return ResourceManager.GetString("Str_Ma00SpecificCategories", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Default Layers &amp; Text Rules.
+        /// </summary>
+        public static string Str_DefaultLayersTextRules {
+            get {
+                return ResourceManager.GetString("Str_DefaultLayersTextRules", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Running (Canvas) Layer:.
+        /// </summary>
+        public static string Str_RunningCanvasLayer {
+            get {
+                return ResourceManager.GetString("Str_RunningCanvasLayer", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Bypass Layer:.
+        /// </summary>
+        public static string Str_BypassLayer {
+            get {
+                return ResourceManager.GetString("Str_BypassLayer", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Breaks &amp; Cleaning Layer:.
+        /// </summary>
+        public static string Str_BreaksCleaningLayer {
+            get {
+                return ResourceManager.GetString("Str_BreaksCleaningLayer", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Errors Layer (Base):.
+        /// </summary>
+        public static string Str_ErrorsLayerBase {
+            get {
+                return ResourceManager.GetString("Str_ErrorsLayerBase", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Dynamic Height &amp; Text Rules:.
+        /// </summary>
+        public static string Str_DynamicHeightTextRules {
+            get {
+                return ResourceManager.GetString("Str_DynamicHeightTextRules", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Excel Overrides (Col 1 &amp; 2).
+        /// </summary>
+        public static string Str_ExcelOverrides {
+            get {
+                return ResourceManager.GetString("Str_ExcelOverrides", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Timeline Row Height.
+        /// </summary>
+        public static string Str_TimelineRowHeight {
+            get {
+                return ResourceManager.GetString("Str_TimelineRowHeight", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Advanced Layout Toggles &amp; Excel Data.
+        /// </summary>
+        public static string Str_AdvancedLayoutTogglesExcel {
+            get {
+                return ResourceManager.GetString("Str_AdvancedLayoutTogglesExcel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Text &amp; Label Configuration.
+        /// </summary>
+        public static string Str_TextLabelConfig {
+            get {
+                return ResourceManager.GetString("Str_TextLabelConfig", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Inner Block Text (Label):.
+        /// </summary>
+        public static string Str_InnerBlockText {
+            get {
+                return ResourceManager.GetString("Str_InnerBlockText", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Font Size Override:.
+        /// </summary>
+        public static string Str_FontSizeOverride {
+            get {
+                return ResourceManager.GetString("Str_FontSizeOverride", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to X Offset (Left/Right Shift):.
+        /// </summary>
+        public static string Str_XOffset {
+            get {
+                return ResourceManager.GetString("Str_XOffset", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Y Offset (Up/Down Shift):.
+        /// </summary>
+        public static string Str_YOffset {
+            get {
+                return ResourceManager.GetString("Str_YOffset", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Advanced Layout &amp; Layering.
+        /// </summary>
+        public static string Str_AdvancedLayoutLayering {
+            get {
+                return ResourceManager.GetString("Str_AdvancedLayoutLayering", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Layer Z-Index (1 to 100):.
+        /// </summary>
+        public static string Str_LayerZIndex {
+            get {
+                return ResourceManager.GetString("Str_LayerZIndex", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Height Scale (1.0 = Full Row):.
+        /// </summary>
+        public static string Str_HeightScale {
+            get {
+                return ResourceManager.GetString("Str_HeightScale", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Push Down Offset (Pixels):.
+        /// </summary>
+        public static string Str_PushDownOffset {
+            get {
+                return ResourceManager.GetString("Str_PushDownOffset", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Avg. Daily Work:.
+        /// </summary>
+        public static string Str_SummaryAvgDailyWork {
+            get {
+                return ResourceManager.GetString("Str_SummaryAvgDailyWork", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Shifts Without Overtime:.
+        /// </summary>
+        public static string Str_SummaryNoOvertime {
+            get {
+                return ResourceManager.GetString("Str_SummaryNoOvertime", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Avg. Daily Stop:.
+        /// </summary>
+        public static string Str_SummaryAvgDailyStop {
+            get {
+                return ResourceManager.GetString("Str_SummaryAvgDailyStop", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Shifts Facility Not Working:.
+        /// </summary>
+        public static string Str_SummaryNotWorkedShifts {
+            get {
+                return ResourceManager.GetString("Str_SummaryNotWorkedShifts", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to 🔍 Zoom:.
+        /// </summary>
+        public static string Str_ZoomLabel {
+            get {
+                return ResourceManager.GetString("Str_ZoomLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Adjust Zoom Level.
+        /// </summary>
+        public static string Tip_AdjustZoom {
+            get {
+                return ResourceManager.GetString("Tip_AdjustZoom", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to General Cleaning.
+        /// </summary>
+        public static string Str_CatGeneralCleaning {
+            get {
+                return ResourceManager.GetString("Str_CatGeneralCleaning", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Tea Break.
+        /// </summary>
+        public static string Str_CatTeaBreak {
+            get {
+                return ResourceManager.GetString("Str_CatTeaBreak", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Lunch Break.
+        /// </summary>
+        public static string Str_CatLunchBreak {
+            get {
+                return ResourceManager.GetString("Str_CatLunchBreak", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Other MA-00.
+        /// </summary>
+        public static string Str_CatOtherMa00 {
+            get {
+                return ResourceManager.GetString("Str_CatOtherMa00", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Running.
+        /// </summary>
+        public static string Str_CatRunning {
+            get {
+                return ResourceManager.GetString("Str_CatRunning", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Primary Error.
+        /// </summary>
+        public static string Str_CatPrimaryError {
+            get {
+                return ResourceManager.GetString("Str_CatPrimaryError", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Overlap Error.
+        /// </summary>
+        public static string Str_CatOverlapError {
+            get {
+                return ResourceManager.GetString("Str_CatOverlapError", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Bypass.
+        /// </summary>
+        public static string Str_CatBypass {
+            get {
+                return ResourceManager.GetString("Str_CatBypass", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Facility Stop.
+        /// </summary>
+        public static string Str_CatFacilityStop {
+            get {
+                return ResourceManager.GetString("Str_CatFacilityStop", resourceCulture);
             }
         }
     }

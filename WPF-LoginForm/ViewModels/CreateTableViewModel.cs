@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
@@ -309,7 +309,7 @@ namespace WPF_LoginForm.ViewModels
         private string SanitizeSqlName(string rawName)
         {
             if (string.IsNullOrWhiteSpace(rawName)) return "New_Table";
-            string sanitized = Regex.Replace(rawName, @"[^a-zA-Z0-9_]", "_");
+            string sanitized = Regex.Replace(rawName, @"[^\p{L}0-9_]", "_");
             if (sanitized.Length > 0 && char.IsDigit(sanitized[0])) sanitized = "_" + sanitized;
             sanitized = Regex.Replace(sanitized, @"_{2,}", "_").Trim('_');
             return string.IsNullOrWhiteSpace(sanitized) ? "New_Table" : sanitized;

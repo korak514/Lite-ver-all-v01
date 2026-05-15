@@ -1,4 +1,4 @@
-﻿// Repositories/OfflineDataRepository.cs
+// Repositories/OfflineDataRepository.cs
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -311,14 +311,16 @@ namespace WPF_LoginForm.Repositories
 
                 foreach (DataColumn c in dt.Columns)
                 {
-                    string n = c.ColumnName.ToLower().Trim();
+                    string n = c.ColumnName.ToLowerInvariant().Trim();
+                    bool hasKazanim = n.Contains("kazanım") || n.Contains("kazanim");
+                    
                     if (n.Contains("tarih") || n == "date") colDate = c;
                     else if (n.Contains("vardiya") || n == "shift") colShift = c;
                     else if (n.Contains("duraklama") || n.Contains("stop")) colStopDuration = c;
                     // FIX: Columns detection aligned exactly with Online Repository
-                    else if (n.Contains("engelemeyen") || (n.Contains("zaman") && n.Contains("kazanımı") && !n.Contains("mola"))) colSavedBreak = c;
-                    else if ((n.Contains("mola") || n.Contains("bakım")) && n.Contains("kazanım")) colSavedMaint = c;
-                    else if (n.Contains("fiili") || n.Contains("çalışılan") || n.Contains("work")) colActualWork = c;
+                    else if (n.Contains("engelemeyen") || (n.Contains("zaman") && hasKazanim && !n.Contains("mola"))) colSavedBreak = c;
+                    else if ((n.Contains("mola") || n.Contains("bakım") || n.Contains("bakim") || n.Contains("mola/bakım") || n.Contains("mola / bakım")) && hasKazanim) colSavedMaint = c;
+                    else if (n.Contains("fiili") || n.Contains("çalışılan") || n.Contains("calisilan") || n.Contains("work")) colActualWork = c;
                     else if (n.StartsWith("hata_kodu") || n.StartsWith("error_code") || n.StartsWith("code")) errorCols.Add(c);
                 }
 
@@ -351,6 +353,7 @@ namespace WPF_LoginForm.Repositories
                         string val = row[colActualWork]?.ToString();
                         if (TimeSpan.TryParse(val, out TimeSpan ts)) actualWork = ts.TotalMinutes;
                         else if (DateTime.TryParse(val, out DateTime dVal)) actualWork = dVal.TimeOfDay.TotalMinutes;
+                        else actualWork = ParseDoubleSafe(val);
                     }
 
                     bool hasAnyErrors = false;

@@ -1569,7 +1569,7 @@
     <value>Birincil Veritabanı Tablosu</value>
   </data>
   <data name="Str_DateRangeAuto" xml:space="preserve">
-    <value>Tarih Aralığı (Otomatik 12 Gün, Maks 20)</value>
+    <value>Tarih Aralığı (Otomatik 10 Gün, Maks 20)</value>
   </data>
   <data name="Str_BackToConfiguration" xml:space="preserve">
     <value>Yapılandırmaya Dön</value>
@@ -1615,5 +1615,122 @@
   </data>
   <data name="Str_RemoveOfflineReminder" xml:space="preserve">
     <value>Çevrimdışı hatırlatıcıyı kaldır</value>
+  </data>
+  <data name="Str_VisualGlobalColors" xml:space="preserve">
+    <value>Görsel &amp; Genel Renkler</value>
+  </data>
+  <data name="Str_RunningColon" xml:space="preserve">
+    <value>Çalışıyor:</value>
+  </data>
+  <data name="Str_BypassLabel" xml:space="preserve">
+    <value>Bypass (Çalışıyor):</value>
+  </data>
+  <data name="Str_TextInsideEvents" xml:space="preserve">
+    <value>Olay İçi Metin:</value>
+  </data>
+  <data name="Str_DefaultTextSize" xml:space="preserve">
+    <value>Varsayılan Olay İçi Metin Boyutu:</value>
+  </data>
+  <data name="Str_Ma00SpecificCategories" xml:space="preserve">
+    <value>MA-00 Özel Kategorileri</value>
+  </data>
+  <data name="Str_DefaultLayersTextRules" xml:space="preserve">
+    <value>Varsayılan Katman ve Metin Kuralları</value>
+  </data>
+  <data name="Str_RunningCanvasLayer" xml:space="preserve">
+    <value>Çalışıyor (Pano) Katmanı:</value>
+  </data>
+  <data name="Str_BypassLayer" xml:space="preserve">
+    <value>Bypass Katmanı:</value>
+  </data>
+  <data name="Str_BreaksCleaningLayer" xml:space="preserve">
+    <value>Mola ve Temizlik Katmanı:</value>
+  </data>
+  <data name="Str_ErrorsLayerBase" xml:space="preserve">
+    <value>Hata Katmanı (Temel):</value>
+  </data>
+  <data name="Str_DynamicHeightTextRules" xml:space="preserve">
+    <value>Dinamik Yükseklik ve Metin Kuralları:</value>
+  </data>
+  <data name="Str_ExcelOverrides" xml:space="preserve">
+    <value>Excel Geçersiz Kılmaları (Sütun 1 ve 2)</value>
+  </data>
+  <data name="Str_TimelineRowHeight" xml:space="preserve">
+    <value>Zaman Çizelgesi Satır Yüksekliği</value>
+  </data>
+  <data name="Str_AdvancedLayoutTogglesExcel" xml:space="preserve">
+    <value>Gelişmiş Düzen Seçenekleri &amp; Excel Verisi</value>
+  </data>
+  <data name="Str_TextLabelConfig" xml:space="preserve">
+    <value>Metin ve Etiket Yapılandırması</value>
+  </data>
+  <data name="Str_InnerBlockText" xml:space="preserve">
+    <value>Blok İçi Metin (Etiket):</value>
+  </data>
+  <data name="Str_FontSizeOverride" xml:space="preserve">
+    <value>Yazı Boyutu Geçersiz Kılma:</value>
+  </data>
+  <data name="Str_XOffset" xml:space="preserve">
+    <value>X Kaydırma (Sol/Sağ):</value>
+  </data>
+  <data name="Str_YOffset" xml:space="preserve">
+    <value>Y Kaydırma (Yukarı/Aşağı):</value>
+  </data>
+  <data name="Str_AdvancedLayoutLayering" xml:space="preserve">
+    <value>Gelişmiş Düzen ve Katmanlama</value>
+  </data>
+  <data name="Str_LayerZIndex" xml:space="preserve">
+    <value>Katman Z-Index (1-100):</value>
+  </data>
+  <data name="Str_HeightScale" xml:space="preserve">
+    <value>Yükseklik Ölçeği (1.0 = Tam Satır):</value>
+  </data>
+  <data name="Str_PushDownOffset" xml:space="preserve">
+    <value>Aşağı Kaydırma (Piksel):</value>
+  </data>
+  <data name="Str_SummaryAvgDailyWork" xml:space="preserve">
+    <value>Günlük ortalama çalışma:</value>
+  </data>
+  <data name="Str_SummaryNoOvertime" xml:space="preserve">
+    <value>Mesaisiz vardiya sayısı:</value>
+  </data>
+  <data name="Str_SummaryAvgDailyStop" xml:space="preserve">
+    <value>Günlük ortalama duruş:</value>
+  </data>
+  <data name="Str_SummaryNotWorkedShifts" xml:space="preserve">
+    <value>Tesisin çalışmadığı vardiya sayısı:</value>
+  </data>
+  <data name="Str_ZoomLabel" xml:space="preserve">
+    <value>🔍 Yakınlaştır:</value>
+  </data>
+  <data name="Tip_AdjustZoom" xml:space="preserve">
+    <value>Yakınlaştırma Seviyesini Ayarla</value>
+  </data>
+  <data name="Str_CatGeneralCleaning" xml:space="preserve">
+    <value>Genel Temizlik</value>
+  </data>
+  <data name="Str_CatTeaBreak" xml:space="preserve">
+    <value>Çay Molası</value>
+  </data>
+  <data name="Str_CatLunchBreak" xml:space="preserve">
+    <value>Yemek Molası</value>
+  </data>
+  <data name="Str_CatOtherMa00" xml:space="preserve">
+    <value>Diğer MA-00</value>
+  </data>
+  <data name="Str_CatRunning" xml:space="preserve">
+    <value>Çalışıyor</value>
+  </data>
+  <data name="Str_CatPrimaryError" xml:space="preserve">
+    <value>Birincil Hata</value>
+  </data>
+  <data name="Str_CatOverlapError" xml:space="preserve">
+    <value>Çakışan Hata</value>
+  </data>
+  <data name="Str_CatBypass" xml:space="preserve">
+    <value>Bypass</value>
+  </data>
+  <data name="Str_CatFacilityStop" xml:space="preserve">
+    <value>Tesis Duruşu</value>
   </data>
 </root>
