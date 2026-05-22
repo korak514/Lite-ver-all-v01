@@ -1,4 +1,4 @@
-﻿// ViewModels/PrintTimelineSetupViewModel.cs
+// ViewModels/PrintTimelineSetupViewModel.cs
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -66,7 +66,7 @@ namespace WPF_LoginForm.ViewModels
 
         private bool _isUpdatingDates = false;
 
-        private DateTime _startDate = DateTime.Today.AddDays(-10);
+        private DateTime _startDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
 
         public DateTime StartDate
         {
@@ -75,12 +75,14 @@ namespace WPF_LoginForm.ViewModels
             {
                 if (SetProperty(ref _startDate, value) && !_isUpdatingDates)
                 {
-                    _isUpdatingDates = true; EndDate = CalcEndDate(_startDate, 10); _isUpdatingDates = false;
+                    _isUpdatingDates = true; 
+                    EndDate = new DateTime(value.Year, value.Month, DateTime.DaysInMonth(value.Year, value.Month)); 
+                    _isUpdatingDates = false;
                 }
             }
         }
 
-        private DateTime _endDate = DateTime.Today;
+        private DateTime _endDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.DaysInMonth(DateTime.Today.Year, DateTime.Today.Month));
 
         public DateTime EndDate
         {
@@ -90,18 +92,10 @@ namespace WPF_LoginForm.ViewModels
                 if (SetProperty(ref _endDate, value) && !_isUpdatingDates)
                 {
                     _isUpdatingDates = true;
-                    if ((_endDate - _startDate).TotalDays > 20) EndDate = CalcEndDate(_startDate, 20);
-                    else if (_endDate < _startDate) EndDate = _startDate;
+                    if (_endDate < _startDate) EndDate = _startDate;
                     _isUpdatingDates = false;
                 }
             }
-        }
-
-        private static DateTime CalcEndDate(DateTime start, int offsetDays)
-        {
-            var candidate = start.AddDays(offsetDays);
-            int lastDay = DateTime.DaysInMonth(start.Year, start.Month);
-            return candidate.Month == start.Month ? candidate : new DateTime(start.Year, start.Month, lastDay);
         }
 
         private double _zoomScale = 1.0;

@@ -1,103 +1,93 @@
 [
   {
     "StartsWith": "MIL-KIRDI",
-    "MapTo": "MİL-KIRDI",
-    "Priority": 99
+    "MapTo": "MİL-İŞLEMİ",
+    "Priority": 0
   },
   {
     "StartsWith": "MIL-İŞLEMİ",
     "MapTo": "MİL-İŞLEMİ",
-    "Priority": 98
+    "Priority": 0
   },
   {
     "StartsWith": "PERÇIN-ATILDI",
     "MapTo": "PERÇİN-İŞLEMİ",
-    "Priority": 97
+    "Priority": 0
   },
   {
     "StartsWith": "PERÇIN-İŞLEMI",
     "MapTo": "PERÇİN-İŞLEMİ",
-    "Priority": 96
+    "Priority": 0
   },
   {
     "StartsWith": "PERÇIN-İŞLEMİ",
     "MapTo": "PERÇİN-İŞLEMİ",
-    "Priority": 95
+    "Priority": 0
   },
   {
-    "StartsWith": "POLIP-ARIZASI",
-    "MapTo": "POLİP-ARIZASI",
-    "Priority": 94
-  },
-  {
-    "StartsWith": "POLIP-YAĞ",
+    "StartsWith": "POLiP-ARIZASI",
     "MapTo": "YÜKLEME-MAKİNESİ",
-    "Priority": 93
+    "Priority": 0
   },
   {
-    "StartsWith": "POLIP-YAĞLAMA",
+    "StartsWith": "POLİP-YAĞ",
     "MapTo": "YÜKLEME-MAKİNESİ",
-    "Priority": 92
+    "Priority": 0
+  },
+  {
+    "StartsWith": "POLİP-YAĞLAMA",
+    "MapTo": "YÜKLEME-MAKİNESİ",
+    "Priority": 0
   },
   {
     "StartsWith": "RULMAN-DEĞIŞIMI",
-    "MapTo": "RULMAN-DEĞİŞİMİ",
-    "Priority": 91
+    "MapTo": "RULMAN-İŞLEMİ",
+    "Priority": 0
   },
   {
     "StartsWith": "SIYIRICI-İŞLEMI",
     "MapTo": "SIYIRICI-İŞLEMİ",
-    "Priority": 90
+    "Priority": 0
   },
   {
     "StartsWith": "TEKERLEK-DEĞIŞIMI",
-    "MapTo": "TEKERLEK-DEĞİŞİMİ",
-    "Priority": 89
-  },
-  {
-    "StartsWith": "TTIKANMA",
-    "MapTo": "TIKANMA",
-    "Priority": 88
+    "MapTo": "MİL-İŞLEMİ",
+    "Priority": 0
   },
   {
     "StartsWith": "YAĞLAMA-İŞLEMI",
     "MapTo": "YAĞLAMA-İŞLEMİ",
-    "Priority": 87
+    "Priority": 0
   },
   {
     "StartsWith": "BAND",
     "MapTo": "BANT-İŞLEMİ",
-    "Priority": 86
-  },
-  {
-    "StartsWith": "MAKARA-DEĞŞİMİ",
-    "MapTo": "MAKARA-DEĞİŞİMİ",
-    "Priority": 85
+    "Priority": 0
   },
   {
     "StartsWith": "POLİP-ARIZA",
     "MapTo": "YÜKLEME-MAKİNESİ",
-    "Priority": 84
+    "Priority": 0
   },
   {
     "StartsWith": "POLİP-DEĞİŞİMİ",
     "MapTo": "YÜKLEME-MAKİNESİ",
-    "Priority": 83
+    "Priority": 0
   },
   {
     "StartsWith": "POLİP-GÜÇ",
     "MapTo": "YÜKLEME-MAKİNESİ",
-    "Priority": 82
+    "Priority": 0
   },
   {
     "StartsWith": "318-PERVANE-ARIZASI",
     "MapTo": "YÜKLEME-MAKİNESİ",
-    "Priority": 81
+    "Priority": 0
   },
   {
     "StartsWith": "318-KOVA",
     "MapTo": "YÜKLEME-MAKİNESİ",
-    "Priority": 80
+    "Priority": 0
   },
   {
     "StartsWith": "318-PERVANE",
@@ -206,7 +196,7 @@
   },
   {
     "StartsWith": "FORKLİFT-ÇARPMASI",
-    "MapTo": "DIŞ-ETKENLER-VE-DİĞER",
+    "MapTo": "ACİL-STOP",
     "Priority": 0
   },
   {
@@ -266,7 +256,7 @@
   },
   {
     "StartsWith": "MAKARA-DEĞİŞİMİ",
-    "MapTo": "TEKER-MAKARA-İŞLEMİ",
+    "MapTo": "MİL-İŞLEMİ",
     "Priority": 0
   },
   {
@@ -381,37 +371,37 @@
   },
   {
     "StartsWith": "TEKER-DEĞİŞİMİ",
-    "MapTo": "TEKER-MAKARA-İŞLEMİ",
+    "MapTo": "MİL-İŞLEMİ",
     "Priority": 0
   },
   {
     "StartsWith": "TEKER-KAPLAMA",
-    "MapTo": "TEKER-MAKARA-İŞLEMİ",
+    "MapTo": "MİL-İŞLEMİ",
     "Priority": 0
   },
   {
     "StartsWith": "TEKER-KAPLAMASI",
-    "MapTo": "TEKER-MAKARA-İŞLEMİ",
+    "MapTo": "MİL-İŞLEMİ",
     "Priority": 0
   },
   {
     "StartsWith": "TEKER-KAYMASI",
-    "MapTo": "TEKER-MAKARA-İŞLEMİ",
+    "MapTo": "MİL-İŞLEMİ",
     "Priority": 0
   },
   {
     "StartsWith": "TEKERLEK-DEĞİŞİMİ",
-    "MapTo": "TEKER-MAKARA-İŞLEMİ",
+    "MapTo": "MİL-İŞLEMİ",
     "Priority": 0
   },
   {
     "StartsWith": "TEKERLEK-DÜZELTME",
-    "MapTo": "TEKER-MAKARA-İŞLEMİ",
+    "MapTo": "MİL-İŞLEMİ",
     "Priority": 0
   },
   {
     "StartsWith": "TEKERLEK-KAPLAMA",
-    "MapTo": "TEKER-MAKARA-İŞLEMİ",
+    "MapTo": "MİL-İŞLEMİ",
     "Priority": 0
   },
   {
@@ -431,7 +421,7 @@
   },
   {
     "StartsWith": "ÜZERİ-MANYETİK",
-    "MapTo": "MANYETİK-AYIRICI-İŞLEMİ",
+    "MapTo": "MANYETİK-SEPERATÖR-İŞLEMİ",
     "Priority": 0
   },
   {
@@ -446,7 +436,7 @@
   },
   {
     "StartsWith": "YÜKSEK-AMPER",
-    "MapTo": "ELEKTRİK-VE-OTOMASYON",
+    "MapTo": "ARIZA İLE DURMA",
     "Priority": 0
   },
   {
@@ -481,7 +471,7 @@
   },
   {
     "StartsWith": "BAKIM-İŞLEMİ",
-    "MapTo": "BAKIM-İŞLEMİ",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
     "Priority": 0
   },
   {
@@ -536,7 +526,7 @@
   },
   {
     "StartsWith": "HABERLEŞME-HATASI",
-    "MapTo": "HABERLEŞME-PROBLEMİ",
+    "MapTo": "ELEKTRİK-VE-OTOMASYON",
     "Priority": 0
   },
   {
@@ -571,7 +561,7 @@
   },
   {
     "StartsWith": "MKŞ-HATASI",
-    "MapTo": "MKŞ-HATASI",
+    "MapTo": "ELEKTRİK-VE-OTOMASYON",
     "Priority": 0
   },
   {
@@ -586,7 +576,7 @@
   },
   {
     "StartsWith": "ORING-DEĞİŞİMİ",
-    "MapTo": "ORING-İŞLEMİ",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
     "Priority": 0
   },
   {
@@ -616,12 +606,97 @@
   },
   {
     "StartsWith": "TEKER-KAYNAK",
-    "MapTo": "TEKER-MAKARA-İŞLEMİ",
+    "MapTo": "MİL-İŞLEMİ",
     "Priority": 0
   },
   {
     "StartsWith": "YAĞLAMA",
     "MapTo": "YAĞLAMA-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ACİL-STOP-ARIZASI",
+    "MapTo": "ACİL-STOP",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ACİL-STOP-HATASI",
+    "MapTo": "ACİL-STOP",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ACİL-STOP-DEĞİŞİMİ",
+    "MapTo": "ACİL-STOP",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ELEKTRİK-KESİNTİSİ",
+    "MapTo": "ELEKTRİK-VE-OTOMASYON",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "GENEL-BAKIM-GENEL-TEMİZLİK",
+    "MapTo": "TIKANMA-VE-TEMİZLİK",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "KAYNAK-YAN-SAÇ",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "KAYNAK-MİL-KORUMA-SAÇI",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "REDÜKTÖR-ARIZASI-CNB-03102",
+    "MapTo": "REDÜKTÖR-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "MANYETİK-SEPERATÖR-TAKILMASI-BANT-ÜZERİ",
+    "MapTo": "MANYETİK-SEPERATÖR-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "MANYETİK-TIKANMA",
+    "MapTo": "MANYETİK-SEPERATÖR-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "TAMBUR-HATAYA-DÜŞÜYOR",
+    "MapTo": "ARIZA İLE DURMA",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "TAMBUR-MOTOR-PABUÇ-DEĞİŞİMİ",
+    "MapTo": "ELEKTRİK-VE-OTOMASYON",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "SIYIRICI-DÜZELTME-İŞLEMİ",
+    "MapTo": "SIYIRICI-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "PERÇİN-İŞLEMİ",
+    "MapTo": "PERÇİN-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "SIYIRICI-İŞLEMİ",
+    "MapTo": "SIYIRICI-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ÇAY-MOALASI",
+    "MapTo": "Diğer",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ACİL-STOP-BAĞLANTISI",
+    "MapTo": "ACİL-STOP",
     "Priority": 0
   }
 ]

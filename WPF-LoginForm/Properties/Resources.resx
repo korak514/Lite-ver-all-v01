@@ -1734,4 +1734,16 @@ Would you like to configure a database connection now, or start using Offline mo
   <data name="Str_CatFacilityStop" xml:space="preserve">
     <value>Facility Stop</value>
   </data>
+  <data name="Str_AutoDetect" xml:space="preserve">
+    <value>Auto Detect</value>
+  </data>
+  <data name="Msg_NoDataToDetect" xml:space="preserve">
+    <value>No data loaded to detect uncovered descriptions.</value>
+  </data>
+  <data name="Msg_AutoDetectAdded" xml:space="preserve">
+    <value>Added {0} new rule(s) for uncovered descriptions.</value>
+  </data>
+  <data name="Msg_AllCovered" xml:space="preserve">
+    <value>All descriptions are already covered by existing rules.</value>
+  </data>
 </root>

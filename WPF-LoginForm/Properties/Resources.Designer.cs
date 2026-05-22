@@ -4885,5 +4885,41 @@ namespace WPF_LoginForm.Properties {
                 return ResourceManager.GetString("Str_CatFacilityStop", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Auto Detect.
+        /// </summary>
+        public static string Str_AutoDetect {
+            get {
+                return ResourceManager.GetString("Str_AutoDetect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No data loaded to detect uncovered descriptions..
+        /// </summary>
+        public static string Msg_NoDataToDetect {
+            get {
+                return ResourceManager.GetString("Msg_NoDataToDetect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Added {0} new rule(s) for uncovered descriptions..
+        /// </summary>
+        public static string Msg_AutoDetectAdded {
+            get {
+                return ResourceManager.GetString("Msg_AutoDetectAdded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to All descriptions are already covered by existing rules..
+        /// </summary>
+        public static string Msg_AllCovered {
+            get {
+                return ResourceManager.GetString("Msg_AllCovered", resourceCulture);
+            }
+        }
     }
 }

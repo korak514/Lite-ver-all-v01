@@ -143,6 +143,78 @@ namespace WPF_LoginForm.ViewModels
                 tracker[dateKey] = $"{dayStr}|{nightStr}";
                 SaveTracker(tracker);
             }
+
+            // Automatically validate the entire month silently in the background
+            _ = AutoValidateMonthAsync();
+        }
+
+        private async System.Threading.Tasks.Task AutoValidateMonthAsync()
+        {
+            var data = _dailyVm.CurrentData;
+            if (data == null) return;
+
+            DateTime targetDate = _dailyVm.TargetDate;
+            int daysInMonth = DateTime.DaysInMonth(targetDate.Year, targetDate.Month);
+            var tracker = LoadTracker();
+            bool trackerModified = false;
+
+            await System.Threading.Tasks.Task.Run(() =>
+            {
+                // Create a headless VM instance to do the validation checks safely without interfering with the active view.
+                var dummyVm = new DailyTimelineViewModel(_dailyVm.Repository, _dailyVm.TableName, targetDate);
+
+                for (int d = 1; d <= daysInMonth; d++)
+                {
+                    var dayDate = new DateTime(targetDate.Year, targetDate.Month, d);
+                    if (dayDate > DateTime.Today) continue;
+
+                    string dateKey = dayDate.ToString("yyyy-MM-dd");
+
+                    // Validate Day Shift
+                    dummyVm.TargetDate = dayDate;
+                    dummyVm.IsNightShift = false;
+                    dummyVm.InjectData(data);
+                    bool isDayBad = CheckDummyVm(dummyVm);
+
+                    // Validate Night Shift
+                    dummyVm.IsNightShift = true;
+                    dummyVm.InjectData(data);
+                    bool isNightBad = CheckDummyVm(dummyVm);
+
+                    string dayStr = isDayBad ? "Bad" : "Good";
+                    string nightStr = isNightBad ? "Bad" : "Good";
+
+                    if (!tracker.ContainsKey(dateKey) || tracker[dateKey] != $"{dayStr}|{nightStr}")
+                    {
+                        tracker[dateKey] = $"{dayStr}|{nightStr}";
+                        trackerModified = true;
+                    }
+
+                    // Update UI safely
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        var calendarDay = CalendarDays.FirstOrDefault(cd => cd.Day == d && cd.IsVisible);
+                        if (calendarDay != null)
+                        {
+                            calendarDay.DayStatus = isDayBad ? ShiftStatus.Bad : ShiftStatus.Good;
+                            calendarDay.NightStatus = isNightBad ? ShiftStatus.Bad : ShiftStatus.Good;
+                        }
+                    });
+                }
+            });
+
+            if (trackerModified) SaveTracker(tracker);
+        }
+
+        private bool CheckDummyVm(DailyTimelineViewModel vm)
+        {
+            if (Math.Abs(vm.AutoFiiliSure - vm.RawFiiliSure) >= 1) return true;
+            if (Math.Abs(vm.AutoCalculatedMolaKazanimi - vm.RawMolaKazanimi) >= 1) return true;
+            if (Math.Abs(vm.ManualBypassKazanimi - vm.RawBypassKazanimi) >= 1) return true;
+            if (vm.TimelineBlocks.Any(b => b.OriginalEvent?.ErrorDescription?.Contains("YEMEK-MOLASI") == true && b.DurationMinutes > 65)) return true;
+            if (vm.WrongTimeCount > 0) return true;
+            if (vm.CorruptedDataCount > 0) return true;
+            return false;
         }
 
         private void CheckWorkingTime()

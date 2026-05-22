@@ -1733,4 +1733,16 @@
   <data name="Str_CatFacilityStop" xml:space="preserve">
     <value>Tesis Duruşu</value>
   </data>
+  <data name="Str_AutoDetect" xml:space="preserve">
+    <value>Otomatik Tanı</value>
+  </data>
+  <data name="Msg_NoDataToDetect" xml:space="preserve">
+    <value>Kapsanmayan açıklamaları tespit etmek için veri yüklenmedi.</value>
+  </data>
+  <data name="Msg_AutoDetectAdded" xml:space="preserve">
+    <value>Kapsanmayan açıklamalar için {0} yeni kural eklendi.</value>
+  </data>
+  <data name="Msg_AllCovered" xml:space="preserve">
+    <value>Tüm açıklamalar zaten mevcut kurallar tarafından kapsanıyor.</value>
+  </data>
 </root>

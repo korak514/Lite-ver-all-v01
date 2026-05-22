@@ -18,6 +18,7 @@ namespace WPF_LoginForm.ViewModels
     {
         private readonly CategoryMappingService _service;
         private readonly IDialogService _dialogService;
+        private readonly List<string> _distinctDescriptions;
 
         public ObservableCollection<CategoryRule> Rules { get; set; }
 
@@ -35,13 +36,19 @@ namespace WPF_LoginForm.ViewModels
         public ICommand CloseCommand { get; }
         public ICommand ImportCommand { get; }
         public ICommand ExportCommand { get; }
+        public ICommand AutoDetectCommand { get; }
 
         public Action CloseAction { get; set; }
 
-        public CategoryConfigViewModel()
+        public CategoryConfigViewModel() : this(null)
+        {
+        }
+
+        public CategoryConfigViewModel(List<string> distinctDescriptions)
         {
             _service = new CategoryMappingService();
             _dialogService = new DialogService();
+            _distinctDescriptions = distinctDescriptions;
 
             var loaded = _service.LoadRules();
             Rules = new ObservableCollection<CategoryRule>(loaded);
@@ -52,11 +59,49 @@ namespace WPF_LoginForm.ViewModels
             CloseCommand = new ViewModelCommand(p => CloseAction?.Invoke());
             ImportCommand = new ViewModelCommand(ExecuteImport);
             ExportCommand = new ViewModelCommand(ExecuteExport);
+            AutoDetectCommand = new ViewModelCommand(ExecuteAutoDetect);
+        }
+
+        private void ExecuteAutoDetect(object obj)
+        {
+            if (_distinctDescriptions == null || !_distinctDescriptions.Any())
+            {
+                MessageBox.Show(Resources.Msg_NoDataToDetect, Resources.Title_Error, MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var existingRules = Rules.ToList();
+            int added = 0;
+
+            foreach (var desc in _distinctDescriptions)
+            {
+                if (string.IsNullOrWhiteSpace(desc) || desc == "NO_ERROR") continue;
+
+                bool isCovered = existingRules.Any(r =>
+                    !string.IsNullOrEmpty(r.StartsWith) &&
+                    desc.StartsWith(r.StartsWith, StringComparison.OrdinalIgnoreCase));
+
+                if (!isCovered)
+                {
+                    Rules.Add(new CategoryRule { StartsWith = desc, MapTo = Resources.P_Other });
+                    added++;
+                }
+            }
+
+            if (added > 0)
+            {
+                string msg = string.Format(Resources.Msg_AutoDetectAdded, added);
+                MessageBox.Show(msg, Resources.Title_Success, MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show(Resources.Msg_AllCovered, Resources.Title_Success, MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
 
         private void ExecuteAdd(object obj)
         {
-            var newRule = new CategoryRule { StartsWith = "", MapTo = "" };
+            var newRule = new CategoryRule { StartsWith = "", MapTo = Resources.P_Other };
             Rules.Add(newRule);
             SelectedRule = newRule;
         }
@@ -71,8 +116,14 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteSave(object obj)
         {
+            foreach (var rule in Rules)
+            {
+                if (string.IsNullOrWhiteSpace(rule.MapTo))
+                    rule.MapTo = Resources.P_Other;
+            }
+
             var validRules = Rules
-                .Where(r => !string.IsNullOrWhiteSpace(r.StartsWith) && !string.IsNullOrWhiteSpace(r.MapTo))
+                .Where(r => !string.IsNullOrWhiteSpace(r.StartsWith))
                 .ToList();
 
             _service.SaveRules(validRules);

@@ -144,7 +144,7 @@
 
                 <TextBlock Grid.Row="0" Text="{Binding ActiveZoneTitle}" FontWeight="Bold" FontSize="18" Foreground="#34495E" HorizontalAlignment="Center" Margin="0,0,0,15" />
 
-                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" CanContentScroll="False">
                     <ItemsControl ItemsSource="{Binding ActiveFlow}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -299,9 +299,9 @@
                                                     </StackPanel.Style>
                                                     <TextBlock Text="{Binding Value}" FontWeight="Bold" FontSize="13" Foreground="#2C3E50" TextTrimming="CharacterEllipsis" ToolTip="{Binding Value}" Margin="0,0,0,10" />
                                                     <TextBlock Text="{x:Static p:Resources.Str_DataAggregate}" FontSize="10" Foreground="Gray" />
-                                                    <ComboBox SelectedValue="{Binding Aggregation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Content" Margin="0,2,0,0" Padding="4">
-                                                        <ComboBoxItem Content="{x:Static p:Resources.Str_Sum}" />
-                                                        <ComboBoxItem Content="{x:Static p:Resources.Str_Average}" />
+                                                    <ComboBox Loaded="ComboBox_Loaded" GotFocus="ComboBox_GotFocus" SelectedValue="{Binding Aggregation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Tag" Margin="0,2,0,0" Padding="4">
+                                                        <ComboBoxItem Content="{x:Static p:Resources.Str_Sum}" Tag="Sum" />
+                                                        <ComboBoxItem Content="{x:Static p:Resources.Str_Average}" Tag="Average" />
                                                     </ComboBox>
                                                 </StackPanel>
 
@@ -332,7 +332,7 @@
                                                         </Style>
                                                     </StackPanel.Style>
                                                     <TextBlock Text="{x:Static p:Resources.Col_Date}" FontSize="10" Foreground="Gray" />
-                                                    <ComboBox ItemsSource="{Binding DataContext.DateFormats, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    <ComboBox Loaded="ComboBox_Loaded" GotFocus="ComboBox_GotFocus" ItemsSource="{Binding DataContext.DateFormats, RelativeSource={RelativeSource AncestorType=Window}}"
                                                               SelectedItem="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,0" Padding="4" />
                                                 </StackPanel>
                                             </StackPanel>

@@ -112,14 +112,21 @@ namespace WPF_LoginForm.ViewModels
     public class DailyTimelineViewModel : ViewModelBase
     {
         private readonly IDataRepository _repository;
+        public IDataRepository Repository => _repository;
+
         private readonly IDialogService _dialogService;
+        
         private readonly string _tableName;
+        public string TableName => _tableName;
         private double _lastViewportWidth = 800;
         private readonly string _configFilePath;
         private CancellationTokenSource _loadCts;
 
         private DataTable _currentData;
+        public DataTable CurrentData => _currentData;
+
         private List<string> _errorColumns = new List<string>();
+        public List<string> ErrorColumns => _errorColumns;
 
         private DateTime _targetDate;
 
@@ -135,6 +142,12 @@ namespace WPF_LoginForm.ViewModels
             _loadCts = new CancellationTokenSource();
             _ = LoadDataAsync(_loadCts.Token);
             _ = LoadRulerDataAsync(_loadCts.Token);
+        }
+
+        public void InjectData(DataTable data)
+        {
+            _currentData = data;
+            ParseDataToTimeline();
         }
 
         private bool _isNightShift;

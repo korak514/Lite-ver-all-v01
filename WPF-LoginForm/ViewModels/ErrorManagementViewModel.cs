@@ -486,7 +486,13 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteConfigureCategories(object obj)
         {
-            var win = new WPF_LoginForm.Views.CategoryConfigWindow();
+            var distinctDescriptions = _cachedRawData?
+                .Select(x => x.ErrorDescription)
+                .Where(d => !string.IsNullOrWhiteSpace(d) && d != "NO_ERROR")
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var win = new WPF_LoginForm.Views.CategoryConfigWindow(distinctDescriptions);
             if (Application.Current.MainWindow != null) win.Owner = Application.Current.MainWindow;
 
             if (win.ShowDialog() == true)
