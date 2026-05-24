@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -1172,6 +1172,15 @@
   </data>
   <data name="Str_LegendLabel" xml:space="preserve">
     <value>Lejant Etiketi</value>
+  </data>
+  <data name="Str_ZoneTop" xml:space="preserve">
+    <value>Üst</value>
+  </data>
+  <data name="Str_ZoneLeft" xml:space="preserve">
+    <value>Sol</value>
+  </data>
+  <data name="Str_ZoneRight" xml:space="preserve">
+    <value>Sağ</value>
   </data>
   <data name="Str_Machines" xml:space="preserve">
     <value>Makineler</value>

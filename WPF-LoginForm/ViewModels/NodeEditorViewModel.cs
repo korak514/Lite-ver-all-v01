@@ -34,6 +34,7 @@ namespace WPF_LoginForm.ViewModels
                 {
                     OnPropertyChanged(nameof(ActiveFlow));
                     OnPropertyChanged(nameof(ActiveZoneTitle));
+                    GeneratePreviews();
                 }
             }
         }
@@ -48,8 +49,19 @@ namespace WPF_LoginForm.ViewModels
             }
         }
 
-        // FIX: Replaced hardcoded text with localized text
-        public string ActiveZoneTitle => $"{WPF_LoginForm.Properties.Resources.Edit}: {SelectedZone}";
+        // FIX: Show descriptive zone name instead of just a number
+        public string ActiveZoneTitle
+        {
+            get
+            {
+                string zoneName;
+                if (SelectedZone == 1) zoneName = WPF_LoginForm.Properties.Resources.Str_ZoneTop;
+                else if (SelectedZone == 2) zoneName = WPF_LoginForm.Properties.Resources.Str_ZoneLeft;
+                else if (SelectedZone == 3) zoneName = WPF_LoginForm.Properties.Resources.Str_ZoneRight;
+                else zoneName = SelectedZone.ToString();
+                return $"{WPF_LoginForm.Properties.Resources.Edit}: {zoneName}";
+            }
+        }
 
         private string _previewHeader; public string PreviewHeader { get => _previewHeader; set => SetProperty(ref _previewHeader, value); }
         private string _previewLeft; public string PreviewLeft { get => _previewLeft; set => SetProperty(ref _previewLeft, value); }
@@ -60,9 +72,18 @@ namespace WPF_LoginForm.ViewModels
         public int SelectedStateIndex
         { get => _selectedStateIndex; set { if (SetProperty(ref _selectedStateIndex, value)) LoadState(value); } }
 
-        public string CustomChartTitle { get; set; }
-        public string LegendLabel { get; set; }
-        public bool ShowOnlyHoverLabels { get; set; }
+        // FIX (BUG-02): These were plain auto-properties; converted to SetProperty so TwoWay bindings refresh correctly.
+        private string _customChartTitle;
+        public string CustomChartTitle
+        { get => _customChartTitle; set => SetProperty(ref _customChartTitle, value); }
+
+        private string _legendLabel;
+        public string LegendLabel
+        { get => _legendLabel; set => SetProperty(ref _legendLabel, value); }
+
+        private bool _showOnlyHoverLabels;
+        public bool ShowOnlyHoverLabels
+        { get => _showOnlyHoverLabels; set => SetProperty(ref _showOnlyHoverLabels, value); }
         public bool IsSaved { get; private set; }
 
         public ICommand AddDataNodeCommand { get; }
@@ -114,9 +135,11 @@ namespace WPF_LoginForm.ViewModels
             {
                 foreach (var col in _series.PendingPreloadColumns)
                 {
-                    var dataColNode = new FlowNode { NodeType = "DataColumn", Value = col, Aggregation = "Sum", Zone = 3 };
+                    var dataColNode = new FlowNode { NodeType = "DataColumn", Value = col, Aggregation = "Sum", Zone = SelectedZone };
                     dataColNode.PropertyChanged += OnNodePropertyChanged;
-                    RightFlow.Add(dataColNode);
+                    if (SelectedZone == 1) HeaderFlow.Add(dataColNode);
+                    else if (SelectedZone == 2) LeftFlow.Add(dataColNode);
+                    else RightFlow.Add(dataColNode);
                 }
                 _series.PendingPreloadColumns = null;
             }
@@ -205,7 +228,8 @@ namespace WPF_LoginForm.ViewModels
                 case "XAxis":
                     var dummyDate = new DateTime(2025, 11, 15);
                     string fmt = string.IsNullOrWhiteSpace(node.Value) ? "MMM yyyy" : node.Value;
-                    try { return dummyDate.ToString(fmt, new CultureInfo("tr-TR")); }
+                    // FIX (BUG-03): Was hardcoded to tr-TR; now uses the application's current culture.
+                    try { return dummyDate.ToString(fmt, CultureInfo.CurrentCulture); }
                     catch { return dummyDate.ToString("MMM yyyy"); }
                 case "DataColumn": return "150K";
                 default: return "";

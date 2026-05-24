@@ -60,11 +60,6 @@
 
                 <!-- TOOLBOX BUTTONS -->
                 <Button Grid.Row="2" Command="{Binding AddDateNodeCommand}" Background="{StaticResource DateColor}" Foreground="White" BorderThickness="0" Padding="10" Margin="0,0,0,8" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4" />
-                        </Style>
-                    </Button.Resources>
                     <StackPanel Orientation="Horizontal">
                         <fa:ImageAwesome Icon="Calendar" Height="14" Foreground="White" Margin="0,0,8,0" />
                         <TextBlock Text="{x:Static p:Resources.Col_Date}" FontWeight="SemiBold" />
@@ -72,11 +67,6 @@
                 </Button>
 
                 <Button Grid.Row="3" Command="{Binding AddSeriesNameNodeCommand}" Background="{StaticResource SeriesColor}" Foreground="White" BorderThickness="0" Padding="10" Margin="0,0,0,8" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4" />
-                        </Style>
-                    </Button.Resources>
                     <StackPanel Orientation="Horizontal">
                         <fa:ImageAwesome Icon="Tag" Height="14" Foreground="White" Margin="0,0,8,0" />
                         <TextBlock Text="{x:Static p:Resources.Str_LabelSettings}" FontWeight="SemiBold" />
@@ -84,11 +74,6 @@
                 </Button>
 
                 <Button Grid.Row="4" Command="{Binding AddTextNodeCommand}" Background="{StaticResource TextColor}" Foreground="White" BorderThickness="0" Padding="10" Margin="0,0,0,8" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4" />
-                        </Style>
-                    </Button.Resources>
                     <StackPanel Orientation="Horizontal">
                         <fa:ImageAwesome Icon="Font" Height="14" Foreground="White" Margin="0,0,8,0" />
                         <TextBlock Text="{x:Static p:Resources.Str_Description}" FontWeight="SemiBold" />
@@ -96,15 +81,7 @@
                 </Button>
 
                 <Button Grid.Row="5" Command="{Binding AddNewLineNodeCommand}" Background="{StaticResource NewLineColor}" Foreground="White" BorderThickness="0" Padding="10" Margin="0,0,0,15" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="4" />
-                        </Style>
-                    </Button.Resources>
-                    <StackPanel Orientation="Horizontal">
-                        <fa:ImageAwesome Icon="LevelDown" Height="14" Foreground="White" Margin="0,0,8,0" />
-                        <TextBlock Text="+ ⏎ (Enter)" FontWeight="SemiBold" />
-                    </StackPanel>
+                    <fa:ImageAwesome Icon="LevelDown" Height="14" Foreground="White" />
                 </Button>
 
                 <ScrollViewer Grid.Row="6" VerticalScrollBarVisibility="Auto">
@@ -116,11 +93,6 @@
                                     <Button Command="{Binding DataContext.AddDataNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                             CommandParameter="{Binding}"
                                             Background="{StaticResource DataColor}" Foreground="White" BorderThickness="0" Padding="8" Margin="0,0,0,6" Cursor="Hand">
-                                        <Button.Resources>
-                                            <Style TargetType="Border">
-                                                <Setter Property="CornerRadius" Value="4" />
-                                            </Style>
-                                        </Button.Resources>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                             <fa:ImageAwesome Icon="Database" Height="12" Foreground="White" Margin="0,0,8,0" />
                                             <TextBlock Text="{Binding}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="180" ToolTip="{Binding}" />
@@ -213,7 +185,14 @@
                                                     </Style>
                                                 </Border.Style>
                                                 <Grid>
-                                                    <StackPanel Orientation="Horizontal">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- Left: Icon + Type Name -->
+                                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                                                         <fa:ImageAwesome Height="12" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center">
                                                             <fa:ImageAwesome.Style>
                                                                 <Style TargetType="fa:ImageAwesome">
@@ -265,13 +244,14 @@
                                                         </TextBlock>
                                                     </StackPanel>
 
-                                                    <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                                                    <!-- Right: Action Buttons -->
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                                         <Button Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="0,0,5,0"
                                                                 Command="{Binding DataContext.MoveNodeLeftCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                 CommandParameter="{Binding}">
                                                             <fa:ImageAwesome Icon="ChevronLeft" Height="12" Foreground="White" ToolTip="Move Left" />
                                                         </Button>
-                                                        <Button Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="0,0,10,0"
+                                                        <Button Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="0,0,5,0"
                                                                 Command="{Binding DataContext.MoveNodeRightCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                 CommandParameter="{Binding}">
                                                             <fa:ImageAwesome Icon="ChevronRight" Height="12" Foreground="White" ToolTip="Move Right" />
@@ -427,22 +407,12 @@
                 <!-- Actions -->
                 <StackPanel Grid.Row="3" Margin="0,10,0,0">
                     <Button Command="{Binding SaveCommand}" Background="#0078D7" Foreground="White" FontWeight="Bold" BorderThickness="0" Padding="12" Margin="0,0,0,10" Cursor="Hand">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="4" />
-                            </Style>
-                        </Button.Resources>
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="Save" Height="14" Foreground="White" Margin="0,0,8,0" />
                             <TextBlock Text="{x:Static p:Resources.Str_SaveClose}" />
                         </StackPanel>
                     </Button>
                     <Button Command="{Binding CancelCommand}" Background="#E74C3C" Foreground="White" FontWeight="Bold" BorderThickness="0" Padding="12" Cursor="Hand">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="4" />
-                            </Style>
-                        </Button.Resources>
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="Times" Height="14" Foreground="White" Margin="0,0,8,0" />
                             <TextBlock Text="{x:Static p:Resources.Cancel}" />

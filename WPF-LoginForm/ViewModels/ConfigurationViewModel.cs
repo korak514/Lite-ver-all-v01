@@ -195,7 +195,7 @@ namespace WPF_LoginForm.ViewModels
             RemoveSeriesCommand = new ViewModelCommand(ExecuteRemoveSeries);
 
             OpenNodeEditorCommand = new ViewModelCommand(ExecuteOpenNodeEditor);
-            MergeSeriesNodeEditorCommand = new ViewModelCommand(ExecuteMergeSeriesNodeEditor);
+            MergeSeriesNodeEditorCommand = new ViewModelCommand(ExecuteMergeSeriesNodeEditor, p => Series.Count > 0);
 
             ClearSplitByCommand = new ViewModelCommand(p =>
             {
@@ -439,6 +439,7 @@ namespace WPF_LoginForm.ViewModels
             {
                 Series.Add(new SeriesConfiguration());
                 (AddSeriesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+                (MergeSeriesNodeEditorCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             }
         }
 
@@ -448,6 +449,7 @@ namespace WPF_LoginForm.ViewModels
             {
                 Series.Remove(seriesToRemove);
                 (AddSeriesCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
+                (MergeSeriesNodeEditorCommand as ViewModelCommand)?.RaiseCanExecuteChanged();
             }
         }
 

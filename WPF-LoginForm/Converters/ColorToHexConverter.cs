@@ -17,10 +17,10 @@ namespace WPF_LoginForm.Converters
                 }
                 catch
                 {
-                    return null;
+                    return Colors.Gray;
                 }
             }
-            return null;
+            return Colors.Gray;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
@@ -29,7 +29,7 @@ namespace WPF_LoginForm.Converters
             {
                 return color.ToString();
             }
-            return null;
+            return "#808080";
         }
     }
 }

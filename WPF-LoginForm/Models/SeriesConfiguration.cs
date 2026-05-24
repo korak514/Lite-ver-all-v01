@@ -27,8 +27,6 @@ namespace WPF_LoginForm.Models
         [JsonIgnore]
         public List<string> PendingPreloadColumns { get; set; }
         public bool ShowOnlyHoverLabels { get; set; }
-        public string TooltipDateFormat { get; set; } = "MMM yyyy";
-        public bool IncludeSeriesName { get; set; } = true;
         public string SeriesColorHex { get; set; }
 
         // BUG FIX: Forces JSON to replace the default items instead of infinitely appending to them.
@@ -87,8 +85,7 @@ namespace WPF_LoginForm.Models
             set { if (_zone != value) { _zone = value; OnPropertyChanged(); } }
         }
 
-        public double X { get; set; }
-        public double Y { get; set; }
+        // Note: X and Y positioning properties were removed — FlowNodes use a sequential flow layout, not free canvas positioning.
 
         public event PropertyChangedEventHandler PropertyChanged;
 

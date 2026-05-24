@@ -78,8 +78,13 @@ namespace WPF_LoginForm.Services
                 int count = points.Count;
                 if (count <= 6)
                 {
-                    foreach (var p in points) { if (p != null) p.ShowLabel = false; }
-                    return;
+                    foreach (var p in points)
+                    {
+                        if (p == null) continue;
+                        p.ShowLabel = !string.IsNullOrEmpty(p.Label);
+                    }
+                    bool anyCustomLabels = points.Any(p => p != null && !string.IsNullOrEmpty(p.Label));
+                    if (!anyCustomLabels) return;
                 }
 
                 int maxIdx = 0; int minIdx = 0;

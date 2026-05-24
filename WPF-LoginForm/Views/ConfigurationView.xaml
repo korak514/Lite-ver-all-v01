@@ -225,11 +225,6 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
-                                                <Button.Resources>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="CornerRadius" Value="3" />
-                                                    </Style>
-                                                </Button.Resources>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="⚡" FontSize="12" Margin="0,0,3,0" VerticalAlignment="Center" />
                                                     <TextBlock FontSize="11" VerticalAlignment="Center">
@@ -258,13 +253,8 @@
                                             <!-- Remove Series Button -->
                                             <Button Grid.Column="3" Content=" ✕ " Foreground="White" Background="#D14545" FontWeight="Bold" Margin="5,0,0,0" Padding="6,0" BorderThickness="0"
                                                     Command="{Binding DataContext.CurrentConfiguration.RemoveSeriesCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}" Cursor="Hand">
-                                                <Button.Resources>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="CornerRadius" Value="3" />
-                                                    </Style>
-                                                </Button.Resources>
-                                            </Button>
+                                                    CommandParameter="{Binding}" Cursor="Hand" />
+
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -273,13 +263,7 @@
                                     Command="{Binding AddSeriesCommand}" Background="#E5F1FB" Foreground="#0078D7" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand" />
 
                             <Button Content="{x:Static prop:Resources.Str_CombineLabels}" Margin="0,8,0,0" Padding="6,4" HorizontalAlignment="Left" FontSize="11"
-                                    Command="{Binding MergeSeriesNodeEditorCommand}" Background="#F39C12" Foreground="White" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand">
-                                <Button.Resources>
-                                    <Style TargetType="Border">
-                                        <Setter Property="CornerRadius" Value="3" />
-                                    </Style>
-                                </Button.Resources>
-                            </Button>
+                                    Command="{Binding MergeSeriesNodeEditorCommand}" Background="#F39C12" Foreground="White" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand" />
 
                             <StackPanel Margin="0,10,0,0">
                                 <TextBlock Text="{x:Static prop:Resources.Str_ValueAggregation}" Style="{StaticResource HeaderTextStyle}" />
@@ -369,7 +353,7 @@
                                                         <Setter Property="Background" Value="#95A5A6" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsCombinationLabel}" Value="True">
-                                                                <Setter Property="Background" Value="#27AE60" />
+                                                                 <Setter Property="Background" Value="#27AE60" />
                                                             </DataTrigger>
                                                             <Trigger Property="IsMouseOver" Value="True">
                                                                 <Setter Property="Background" Value="#F39C12" />
@@ -377,11 +361,6 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
-                                                <Button.Resources>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="CornerRadius" Value="3" />
-                                                    </Style>
-                                                </Button.Resources>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="⚡" FontSize="12" Margin="0,0,3,0" VerticalAlignment="Center" />
                                                     <TextBlock FontSize="11" VerticalAlignment="Center">
@@ -401,13 +380,7 @@
 
                                             <Button Grid.Column="2" Content=" ✕ " Foreground="White" Background="#D14545" FontWeight="Bold" Margin="5,0,0,0" Padding="6,0" BorderThickness="0"
                                                     Command="{Binding DataContext.CurrentConfiguration.RemoveSeriesCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}" Cursor="Hand">
-                                                <Button.Resources>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="CornerRadius" Value="3" />
-                                                    </Style>
-                                                </Button.Resources>
-                                            </Button>
+                                                    CommandParameter="{Binding}" Cursor="Hand" />
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -417,13 +390,7 @@
                                     Command="{Binding AddSeriesCommand}" Background="#E5F1FB" Foreground="#0078D7" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand" />
 
                             <Button Content="{x:Static prop:Resources.Str_CombineLabels}" Margin="0,8,0,0" Padding="6,4" HorizontalAlignment="Left" FontSize="11"
-                                    Command="{Binding MergeSeriesNodeEditorCommand}" Background="#F39C12" Foreground="White" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand">
-                                <Button.Resources>
-                                    <Style TargetType="Border">
-                                        <Setter Property="CornerRadius" Value="3" />
-                                    </Style>
-                                </Button.Resources>
-                            </Button>
+                                    Command="{Binding MergeSeriesNodeEditorCommand}" Background="#F39C12" Foreground="White" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand" />
 
                             <StackPanel Margin="0,10,0,0">
                                 <TextBlock Text="{x:Static prop:Resources.Str_ValueAggregation}" Style="{StaticResource HeaderTextStyle}" />
@@ -441,13 +408,7 @@
                     Command="{Binding ApplyCommand}"
                     Padding="0,10"
                     Background="#0078D7" Foreground="White"
-                    FontWeight="Bold" FontSize="13" Cursor="Hand" BorderThickness="0">
-                <Button.Resources>
-                    <Style TargetType="Border">
-                        <Setter Property="CornerRadius" Value="4" />
-                    </Style>
-                </Button.Resources>
-            </Button>
+                    FontWeight="Bold" FontSize="13" Cursor="Hand" BorderThickness="0" />
         </Border>
     </Grid>
 </UserControl>

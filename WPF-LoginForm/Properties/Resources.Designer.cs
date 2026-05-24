@@ -2682,6 +2682,33 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Top.
+        /// </summary>
+        public static string Str_ZoneTop {
+            get {
+                return ResourceManager.GetString("Str_ZoneTop", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Left.
+        /// </summary>
+        public static string Str_ZoneLeft {
+            get {
+                return ResourceManager.GetString("Str_ZoneLeft", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Right.
+        /// </summary>
+        public static string Str_ZoneRight {
+            get {
+                return ResourceManager.GetString("Str_ZoneRight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Higher layers draw on top of lower layers. If multiple errors happen, their layer automatically increments (e.g., 10, 11, 12)..
         /// </summary>
         public static string Str_LayerExplanation {
