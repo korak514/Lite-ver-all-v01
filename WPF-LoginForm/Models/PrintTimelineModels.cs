@@ -287,5 +287,8 @@ namespace WPF_LoginForm.Models
         public bool EnableSoftCorners { get; set; }
         public bool EnableBlockBorders { get; set; }
         public bool DisableSoftCornersUnder5Min { get; set; }
+
+        public int MaxFootnoteLength { get; set; }
+        public bool ReplaceHyphens { get; set; }
     }
 }

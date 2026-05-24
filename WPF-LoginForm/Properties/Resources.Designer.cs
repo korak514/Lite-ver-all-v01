@@ -4948,5 +4948,23 @@ namespace WPF_LoginForm.Properties {
                 return ResourceManager.GetString("Msg_AllCovered", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Max Footnote Length.
+        /// </summary>
+        public static string Str_FootnoteMaxLength {
+            get {
+                return ResourceManager.GetString("Str_FootnoteMaxLength", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Replace - with Space.
+        /// </summary>
+        public static string Str_ReplaceHyphens {
+            get {
+                return ResourceManager.GetString("Str_ReplaceHyphens", resourceCulture);
+            }
+        }
     }
 }

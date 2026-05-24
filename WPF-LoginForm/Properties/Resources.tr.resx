@@ -1754,4 +1754,10 @@
   <data name="Msg_AllCovered" xml:space="preserve">
     <value>Tüm açıklamalar zaten mevcut kurallar tarafından kapsanıyor.</value>
   </data>
+  <data name="Str_FootnoteMaxLength" xml:space="preserve">
+    <value>Maksimum Dipnot Uzunluğu</value>
+  </data>
+  <data name="Str_ReplaceHyphens" xml:space="preserve">
+    <value>Kısa Çizgiyi Boşlukla Değiştir</value>
+  </data>
 </root>

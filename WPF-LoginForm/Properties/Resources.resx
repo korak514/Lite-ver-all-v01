@@ -1755,4 +1755,10 @@ Would you like to configure a database connection now, or start using Offline mo
   <data name="Msg_AllCovered" xml:space="preserve">
     <value>All descriptions are already covered by existing rules.</value>
   </data>
+  <data name="Str_FootnoteMaxLength" xml:space="preserve">
+    <value>Max Footnote Length</value>
+  </data>
+  <data name="Str_ReplaceHyphens" xml:space="preserve">
+    <value>Replace - with Space</value>
+  </data>
 </root>

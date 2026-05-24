@@ -249,6 +249,14 @@
                                 <CheckBox Content="{x:Static p:Resources.Str_HideGenelTemizlik}" IsChecked="{Binding HideGenelTemizlik, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
                                 <CheckBox Content="{x:Static p:Resources.Str_ShowMachineLegend}" IsChecked="{Binding ShowMachineLegend, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
                                 <CheckBox Content="{x:Static p:Resources.Str_ShowMonthSummary}" IsChecked="{Binding ShowMonthSummary, Mode=TwoWay}" Margin="0,0,0,15" Foreground="#1265B5" FontWeight="Bold" />
+
+                                <Border BorderBrush="#DDD" BorderThickness="0,1,0,0" Margin="0,5,0,10" />
+                                <TextBlock Text="{x:Static p:Resources.Str_FootnoteMaxLength}" Style="{StaticResource HeaderStyle}" Margin="0,0,0,2" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <Slider Minimum="5" Maximum="100" Value="{Binding MaxFootnoteLength, Mode=TwoWay}" Width="160" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                    <TextBlock Text="{Binding MaxFootnoteLength}" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold" />
+                                </StackPanel>
+                                <CheckBox Content="{x:Static p:Resources.Str_ReplaceHyphens}" IsChecked="{Binding ReplaceHyphens, Mode=TwoWay}" Margin="0,0,0,5" Foreground="#555" />
                             </StackPanel>
                         </Expander>
 

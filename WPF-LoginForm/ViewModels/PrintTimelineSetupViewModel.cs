@@ -150,6 +150,12 @@ namespace WPF_LoginForm.ViewModels
         private double _minFootnoteMinutes = 20.0;
         public double MinFootnoteMinutes { get => _minFootnoteMinutes; set => SetProperty(ref _minFootnoteMinutes, value); }
 
+        private int _maxFootnoteLength = 20;
+        public int MaxFootnoteLength { get => _maxFootnoteLength; set => SetProperty(ref _maxFootnoteLength, value); }
+
+        private bool _replaceHyphens = false;
+        public bool ReplaceHyphens { get => _replaceHyphens; set => SetProperty(ref _replaceHyphens, value); }
+
         private bool _showValuesInHours = false;
         public bool ShowValuesInHours { get => _showValuesInHours; set => SetProperty(ref _showValuesInHours, value); }
         private bool _showMajorErrorLabels = true;
@@ -462,7 +468,8 @@ namespace WPF_LoginForm.ViewModels
                     {
                         markers.Add(counter); string markerStr = $"[{counter}]";
                         string desc = string.IsNullOrEmpty(b.OriginalDescription) ? "Arıza/Bakım" : b.OriginalDescription;
-                        if (desc.Length > 20) desc = desc.Substring(0, 20).TrimEnd() + "...";
+                        if (desc.Length > MaxFootnoteLength) desc = desc.Substring(0, MaxFootnoteLength).TrimEnd() + "...";
+                        if (ReplaceHyphens) desc = desc.Replace("-", " ");
                         string mCode = string.IsNullOrEmpty(b.MachineCode) ? "" : $"{b.MachineCode} - ";
                         newFootnotes.Add($"{markerStr} {mCode}{desc} ({b.DurationMinutes:F0}dk)");
                         counter++;
@@ -526,7 +533,9 @@ namespace WPF_LoginForm.ViewModels
                     MinFootnoteMinutes = this.MinFootnoteMinutes,
                     EnableSoftCorners = this.EnableSoftCorners,
                     EnableBlockBorders = this.EnableBlockBorders,
-                    DisableSoftCornersUnder5Min = this.DisableSoftCornersUnder5Min
+                    DisableSoftCornersUnder5Min = this.DisableSoftCornersUnder5Min,
+                    MaxFootnoteLength = this.MaxFootnoteLength,
+                    ReplaceHyphens = this.ReplaceHyphens
                 };
                 string dir = Path.GetDirectoryName(_settingsFilePath);
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
@@ -575,6 +584,9 @@ namespace WPF_LoginForm.ViewModels
                         if (state.OverlapCascadeStep >= 0.05 && state.OverlapCascadeStep <= 0.50) OverlapCascadeStep = state.OverlapCascadeStep; else OverlapCascadeStep = 0.20;
                         if (state.MinLabelMinutes >= 0) MinLabelMinutes = state.MinLabelMinutes; else MinLabelMinutes = 90.0;
                         if (state.MinFootnoteMinutes >= 0) MinFootnoteMinutes = state.MinFootnoteMinutes; else MinFootnoteMinutes = 20.0;
+
+                        if (state.MaxFootnoteLength >= 5) MaxFootnoteLength = state.MaxFootnoteLength; else MaxFootnoteLength = 20;
+                        ReplaceHyphens = state.ReplaceHyphens;
 
                         if (!string.IsNullOrEmpty(state.ExtraCol1Selection))
                         {
