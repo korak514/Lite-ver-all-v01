@@ -120,9 +120,6 @@
             <Grid>
                 <TextBlock Text="{Binding WindowTitle}" Foreground="White" VerticalAlignment="Center" Margin="15,0" FontSize="11" FontWeight="SemiBold" Opacity="0.8" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Click="ThemeToggle_Click" Background="Transparent" BorderThickness="0" Width="40" WindowChrome.IsHitTestVisibleInChrome="True">
-                        <fa:IconImage Icon="Adjust" Foreground="White" Width="14" Height="14" />
-                    </Button>
                     <Button Style="{StaticResource TitleBarButtonStyle}" Click="MinimizeButton_Click">
                         <TextBlock Text="—" VerticalAlignment="Center" />
                     </Button>
