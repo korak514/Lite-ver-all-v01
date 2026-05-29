@@ -4959,11 +4959,254 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Max Footnote Length:.
+        /// </summary>
+        public static string Str_FootnoteMaxLengthLabel {
+            get {
+                return ResourceManager.GetString("Str_FootnoteMaxLengthLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Master Password:.
+        /// </summary>
+        public static string Str_MasterPassword {
+            get {
+                return ResourceManager.GetString("Str_MasterPassword", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Encrypt Backup.
+        /// </summary>
+        public static string Str_EncryptBackup {
+            get {
+                return ResourceManager.GetString("Str_EncryptBackup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Decrypt Offline Data.
+        /// </summary>
+        public static string Str_DecryptOffline {
+            get {
+                return ResourceManager.GetString("Str_DecryptOffline", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Encrypting {0}....
+        /// </summary>
+        public static string Status_EncryptingTable {
+            get {
+                return ResourceManager.GetString("Status_EncryptingTable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Decrypting {0}....
+        /// </summary>
+        public static string Status_DecryptingTable {
+            get {
+                return ResourceManager.GetString("Status_DecryptingTable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Encryption complete. {0} tables encrypted..
+        /// </summary>
+        public static string Status_EncryptionComplete {
+            get {
+                return ResourceManager.GetString("Status_EncryptionComplete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Decrypted {0} tables successfully..
+        /// </summary>
+        public static string Msg_DecryptSuccess {
+            get {
+                return ResourceManager.GetString("Msg_DecryptSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Password is required for encryption..
+        /// </summary>
+        public static string Msg_PasswordRequired {
+            get {
+                return ResourceManager.GetString("Msg_PasswordRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Password must be at least 8 characters..
+        /// </summary>
+        public static string Msg_PasswordMinLength {
+            get {
+                return ResourceManager.GetString("Msg_PasswordMinLength", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Decrypting offline data....
+        /// </summary>
+        public static string Status_Decrypting {
+            get {
+                return ResourceManager.GetString("Status_Decrypting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No encrypted (.enc) files found in offline folder..
+        /// </summary>
+        public static string Msg_NoEncFilesFound {
+            get {
+                return ResourceManager.GetString("Msg_NoEncFilesFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Replace - with Space.
         /// </summary>
         public static string Str_ReplaceHyphens {
             get {
                 return ResourceManager.GetString("Str_ReplaceHyphens", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No offline data found....
+        /// </summary>
+        public static string Str_NoOfflineDataFound {
+            get {
+                return ResourceManager.GetString("Str_NoOfflineDataFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Change.
+        /// </summary>
+        public static string Str_Change {
+            get {
+                return ResourceManager.GetString("Str_Change", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Old Password.
+        /// </summary>
+        public static string Str_OldPassword {
+            get {
+                return ResourceManager.GetString("Str_OldPassword", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to New Password.
+        /// </summary>
+        public static string Str_NewPassword {
+            get {
+                return ResourceManager.GetString("Str_NewPassword", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Confirm New Password.
+        /// </summary>
+        public static string Str_ConfirmNewPassword {
+            get {
+                return ResourceManager.GetString("Str_ConfirmNewPassword", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Password changed successfully..
+        /// </summary>
+        public static string Str_PasswordChanged {
+            get {
+                return ResourceManager.GetString("Str_PasswordChanged", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Password must be at least 6 characters and cannot be a simple pattern like 123456, qwerty, password, etc..
+        /// </summary>
+        public static string Str_InvalidPasswordFormat {
+            get {
+                return ResourceManager.GetString("Str_InvalidPasswordFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to New passwords do not match..
+        /// </summary>
+        public static string Str_PasswordMismatch {
+            get {
+                return ResourceManager.GetString("Str_PasswordMismatch", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Old password is incorrect..
+        /// </summary>
+        public static string Str_OldPasswordWrong {
+            get {
+                return ResourceManager.GetString("Str_OldPasswordWrong", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Connected.
+        /// </summary>
+        public static string Str_Connected {
+            get {
+                return ResourceManager.GetString("Str_Connected", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to min 6 characters, no simple patterns (123456, qwerty, etc.).
+        /// </summary>
+        public static string Str_PasswordRules {
+            get {
+                return ResourceManager.GetString("Str_PasswordRules", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Offline Users.
+        /// </summary>
+        public static string Str_OfflineUsers {
+            get {
+                return ResourceManager.GetString("Str_OfflineUsers", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Add User.
+        /// </summary>
+        public static string Str_AddUser {
+            get {
+                return ResourceManager.GetString("Str_AddUser", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Remove.
+        /// </summary>
+        public static string Str_Remove {
+            get {
+                return ResourceManager.GetString("Str_Remove", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Change Admin Password.
+        /// </summary>
+        public static string Str_ChangeAdminPassword {
+            get {
+                return ResourceManager.GetString("Str_ChangeAdminPassword", resourceCulture);
             }
         }
     }

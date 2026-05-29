@@ -3,7 +3,11 @@ using FontAwesome.Sharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Data;
+using System.IO;
 using System.Linq;
+using System.Text;
+using System.Net;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -110,6 +114,8 @@ namespace WPF_LoginForm.ViewModels
             {
                 IsNavigationVisible = false;
                 IsOfflineMode = true;
+                _dataRepository = new OfflineDataRepository(_logger);
+                AutoDecryptOfflineData();
                 ExecuteShowSettingsViewCommand(null);
                 _logger.LogInfo("Started in 'Settings Only' Mode.");
                 CurrentUserAccount = new UserAccountModel { DisplayName = "Offline Config" };
@@ -127,10 +133,35 @@ namespace WPF_LoginForm.ViewModels
                 IsNavigationVisible = true;
                 IsOfflineMode = true;
 
+                // Auto-decrypt .enc files synchronously BEFORE creating the repository
+                AutoDecryptOfflineData();
+
                 _dataRepository = new OfflineDataRepository(_logger);
 
-                UserSessionService.SetSession("Offline Mode", "Admin");
-                CurrentUserAccount = new UserAccountModel { DisplayName = "Offline Mode", Role = "Admin" };
+                // Preserve the session set during offline login (if any)
+                if (string.IsNullOrEmpty(UserSessionService.CurrentUsername) || UserSessionService.CurrentRole == "Guest")
+                {
+                    UserSessionService.SetSession("Offline Mode", "Admin");
+                }
+                CurrentUserAccount = new UserAccountModel
+                {
+                    DisplayName = UserSessionService.CurrentUsername,
+                    Role = UserSessionService.CurrentRole
+                };
+
+                // Warn if no offline data exists at all
+                string dataFolder = GeneralSettingsManager.Instance.Current.OfflineFolderPath;
+                if (string.IsNullOrEmpty(dataFolder) || !Directory.Exists(dataFolder))
+                    dataFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "OfflineData");
+
+                bool hasCsv = Directory.Exists(dataFolder) && Directory.GetFiles(dataFolder, "*.csv").Length > 0;
+                bool hasEnc = Directory.Exists(dataFolder) && Directory.GetFiles(dataFolder, "*.enc").Length > 0;
+
+                if (!hasCsv && !hasEnc)
+                {
+                    MessageBox.Show(Resources.Str_NoOfflineDataFound, Resources.Str_OfflineMode,
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
 
                 ExecuteShowHomeViewCommand(null);
                 _logger.LogInfo("Started in 'Offline Read-Only' Mode.");
@@ -142,6 +173,51 @@ namespace WPF_LoginForm.ViewModels
                 ExecuteShowHomeViewCommand(null);
                 _logger.LogInfo("Started in Normal Mode.");
                 Task.Run(() => LoadCurrentUserDataAsync());
+            }
+        }
+
+        private void AutoDecryptOfflineData()
+        {
+            try
+            {
+                string encPw = GeneralSettingsManager.Instance.Current.EncryptedMasterPassword;
+                if (string.IsNullOrEmpty(encPw)) return;
+
+                string password = OfflineDataEncryption.UnprotectPassword(encPw);
+                if (string.IsNullOrEmpty(password)) return;
+
+                string folder = GeneralSettingsManager.Instance.Current.OfflineFolderPath;
+                if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
+                {
+                    folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "OfflineData");
+                    if (!Directory.Exists(folder)) return;
+                }
+
+                var encFiles = Directory.GetFiles(folder, "*.enc");
+                if (encFiles.Length == 0) return;
+
+                OfflineDataCache.Clear();
+                int count = 0;
+
+                foreach (var encPath in encFiles)
+                {
+                    string tableName = Path.GetFileNameWithoutExtension(encPath);
+                    byte[] encryptedBytes = File.ReadAllBytes(encPath);
+                    byte[] plainBytes = OfflineDataEncryption.Decrypt(encryptedBytes, password);
+                    string csvContent = Encoding.UTF8.GetString(plainBytes);
+
+                    DataTable dt = CsvParser.ParseToDataTable(csvContent, tableName);
+                    if (dt.Columns.Count == 0) continue;
+
+                    OfflineDataCache.DecryptedTables[tableName] = dt;
+                    count++;
+                }
+
+                _logger.LogInfo($"Auto-decrypted {count} offline tables from .enc files.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Auto-decrypt failed: {ex.Message}");
             }
         }
 

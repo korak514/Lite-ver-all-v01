@@ -72,6 +72,25 @@ These conventions help the AI assistant work effectively with this codebase.
 
 ### 9. Commit Discipline
 - AI does NOT commit changes unless explicitly instructed by the user. All changes remain in the working tree until the user says to commit.
+- When the user says **"update my repo"** (e.g. "update my repo v14.5"), this means: **commit all changes and push to GitHub**, with a commit message of the format `"version {X.Y}"` (e.g. `"version 14.5"`).
+
+### 10. UI Element Name → XAML Trace
+- When the user reports a UI bug with a specific control name (in any language), immediately search for that name in `*.xaml` files and resource (`.resx`) files. The resource key reveals the binding property. Ignore Turkish/English differences — both `Resources.tr.resx` and `Resources.resx` may be active.
+
+### 11. Dual UI Elements May Share Similar Names
+- This app has **both** a "Kullanıcı Yönetimi" / "User Management" **tab** (`Tab_UserManagement`, visibility = `CanManageUsers`) **and** a "Çevrimdışı Kullanıcılar" / "Offline Users" **section** inside the Configuration tab (`Str_OfflineUsers`, visibility = `CanManageOfflineUsers`). They have **different** visibility conditions. When the user reports one is missing, confirm which exact element they mean — do not assume.
+
+### 12. Always Pin Down the Exact User Flow First
+- Before investigating a bug, ask or verify the exact steps: "Login first, then navigate" vs "Click Settings button on login screen." These trigger different `AppMode` branches (`OfflineReadOnly` vs `SettingsOnly`) with different `_dataRepository` assignments and different session states.
+
+### 13. Start With the Simplest Hypothesis
+- When a UI element is hidden, check its XAML `Visibility` binding first. Search for the bound property name in the ViewModel. If the property is a computed expression (e.g., `bool CanX => A && B`), check each operand individually. This is faster than tracing constructor order, caching, or mode-selection logic.
+
+### 14. Resource String Tracing
+- User-facing Turkish text (`"Kullanıcı Yönetimi"`) can be found in `Resources.tr.resx`. The corresponding `name` attribute in the `.resx` file is the programmatic key (e.g., `Tab_UserManagement`). Search the codebase for that key to find where it's used in XAML (`{x:Static p:Resources.Tab_UserManagement}`). The linked binding property is the fix target.
+
+### 15. Verify Fixes Against the Reported Flow
+- After making a change, re-read the user's flow description and mentally trace through the code paths to confirm the fix actually applies. If there are multiple possible flows, ask the user to confirm after the first attempt.
 
 ## 🏗 Project Structure
 

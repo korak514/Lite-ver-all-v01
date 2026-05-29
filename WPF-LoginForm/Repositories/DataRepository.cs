@@ -605,7 +605,7 @@ namespace WPF_LoginForm.Repositories
 
         public async Task<bool> ClearSystemLogsAsync()
         {
-            try { using (var c = GetAuthConnection()) { c.Open(); using (var cmd = c.CreateCommand()) { cmd.CommandText = $"DELETE FROM {Quote("Logs")}"; cmd.ExecuteNonQuery(); } } return true; } catch { return false; }
+            try { using (var c = GetAuthConnection()) { c.Open(); using (var cmd = c.CreateCommand()) { cmd.CommandText = $"DELETE FROM {Quote("Logs")} WHERE {Quote("Message")} NOT LIKE '[ENCRYPTION_BACKUP]%'"; cmd.ExecuteNonQuery(); } } return true; } catch { return false; }
         }
 
         public async Task<List<string>> GetDistinctPart1ValuesAsync(string tableName) => await GetMapValuesAsync("Part1Value", tableName, null);

@@ -24,7 +24,7 @@
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>12.5.0.%2a</ApplicationVersion>
+    <ApplicationVersion>14.5.0.%2a</ApplicationVersion>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -252,6 +252,9 @@
     <Compile Include="Services\FileLogger.cs" />
     <Compile Include="Services\IDialogService.cs" />
     <Compile Include="Services\ILogger.cs" />
+    <Compile Include="Services\OfflineDataEncryption.cs" />
+    <Compile Include="Services\OfflineUserStore.cs" />
+    <Compile Include="Models\OfflineUserModel.cs" />
     <Compile Include="ViewModels\AddRowLongEntryViewModel.cs" />
     <Compile Include="ViewModels\AddRowLongViewModel.cs" />
     <Compile Include="ViewModels\AddRowViewModel.cs" />
@@ -264,6 +267,7 @@
     <Compile Include="ViewModels\InventoryViewModel.cs" />
     <Compile Include="ViewModels\LoginViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
+    <Compile Include="ViewModels\PasswordChangeViewModel.cs" />
     <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\ViewModelBase.cs" />
     <Compile Include="ViewModels\ViewModelCommand.cs" />
@@ -296,6 +300,9 @@
     </Compile>
     <Compile Include="Views\LoginView.xaml.cs">
       <DependentUpon>LoginView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\PasswordChangeView.xaml.cs">
+      <DependentUpon>PasswordChangeView.xaml</DependentUpon>
     </Compile>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
@@ -427,6 +434,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\LoginView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\PasswordChangeView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

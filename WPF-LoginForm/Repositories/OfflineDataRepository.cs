@@ -51,6 +51,13 @@ namespace WPF_LoginForm.Repositories
                 return cachedTable;
             }
 
+            // Check if decrypted data is available from OfflineDataCache
+            if (OfflineDataCache.DecryptedTables.TryGetValue(tableName, out DataTable decryptedTable))
+            {
+                _tableCache.TryAdd(tableName, decryptedTable);
+                return decryptedTable;
+            }
+
             string filePath = Path.Combine(_folderPath, $"{tableName}.csv");
             DataTable newTable = ReadCsv(filePath);
             newTable.TableName = tableName;
@@ -155,10 +162,22 @@ namespace WPF_LoginForm.Repositories
         {
             return await Task.Run(() =>
             {
-                if (!Directory.Exists(_folderPath)) return new List<string>();
-                return Directory.GetFiles(_folderPath, "*.csv")
-                                .Select(Path.GetFileNameWithoutExtension)
-                                .ToList();
+                var names = new List<string>();
+
+                if (Directory.Exists(_folderPath))
+                {
+                    names.AddRange(Directory.GetFiles(_folderPath, "*.csv")
+                                            .Select(Path.GetFileNameWithoutExtension));
+                }
+
+                // Also include tables that were decrypted from .enc files
+                foreach (string key in OfflineDataCache.DecryptedTables.Keys)
+                {
+                    if (!names.Contains(key, StringComparer.OrdinalIgnoreCase))
+                        names.Add(key);
+                }
+
+                return names;
             });
         }
 

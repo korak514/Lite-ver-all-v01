@@ -166,7 +166,7 @@
     <value>Tarihe Göre Filtrele:</value>
   </data>
   <data name="ForgotPassword" xml:space="preserve">
-    <value>Şifremi Unuttum?</value>
+    <value>Şifre Değiştir</value>
   </data>
   <data name="GeneralSettings" xml:space="preserve">
     <value>Genel Ayarlar</value>
@@ -1755,9 +1755,89 @@
     <value>Tüm açıklamalar zaten mevcut kurallar tarafından kapsanıyor.</value>
   </data>
   <data name="Str_FootnoteMaxLength" xml:space="preserve">
-    <value>Maksimum Dipnot Uzunluğu</value>
+    <value>Maks. Dipnot Uzunluğu:</value>
+  </data>
+  <data name="Str_MasterPassword" xml:space="preserve">
+    <value>Ana Şifre:</value>
+  </data>
+  <data name="Str_EncryptBackup" xml:space="preserve">
+    <value>Şifreli Yedekle</value>
+  </data>
+  <data name="Str_DecryptOffline" xml:space="preserve">
+    <value>Çevrimdışı Veriyi Çöz</value>
+  </data>
+  <data name="Status_EncryptingTable" xml:space="preserve">
+    <value>{0} şifreleniyor...</value>
+  </data>
+  <data name="Status_DecryptingTable" xml:space="preserve">
+    <value>{0} çözülüyor...</value>
+  </data>
+  <data name="Status_EncryptionComplete" xml:space="preserve">
+    <value>Şifreleme tamam. {0} tablo şifrelendi.</value>
+  </data>
+  <data name="Msg_DecryptSuccess" xml:space="preserve">
+    <value>{0} tablo başarıyla çözüldü.</value>
+  </data>
+  <data name="Msg_PasswordRequired" xml:space="preserve">
+    <value>Şifreleme için şifre gerekli.</value>
+  </data>
+  <data name="Msg_PasswordMinLength" xml:space="preserve">
+    <value>Şifre en az 8 karakter olmalıdır.</value>
+  </data>
+  <data name="Status_Decrypting" xml:space="preserve">
+    <value>Çevrimdışı veri çözülüyor...</value>
+  </data>
+  <data name="Msg_NoEncFilesFound" xml:space="preserve">
+    <value>Çevrimdışı klasörde şifrelenmiş (.enc) dosya bulunamadı.</value>
   </data>
   <data name="Str_ReplaceHyphens" xml:space="preserve">
     <value>Kısa Çizgiyi Boşlukla Değiştir</value>
+  </data>
+  <data name="Str_NoOfflineDataFound" xml:space="preserve">
+    <value>Çevrimdışı veri bulunamadı.
+Lütfen Ayarlar'a gidin, bir Ana Şifre belirleyin, çevrimiçi moddan şifrelenmiş bir yedek oluşturun, ardından tekrar çevrimdışı başlatın.
+Veya çevrimdışı klasöre .csv dosyaları yerleştirin.</value>
+  </data>
+  <data name="Str_Change" xml:space="preserve">
+    <value>Değiştir</value>
+  </data>
+  <data name="Str_OldPassword" xml:space="preserve">
+    <value>Eski Şifre</value>
+  </data>
+  <data name="Str_NewPassword" xml:space="preserve">
+    <value>Yeni Şifre</value>
+  </data>
+  <data name="Str_ConfirmNewPassword" xml:space="preserve">
+    <value>Yeni Şifreyi Onayla</value>
+  </data>
+  <data name="Str_PasswordChanged" xml:space="preserve">
+    <value>Şifre başarıyla değiştirildi.</value>
+  </data>
+  <data name="Str_InvalidPasswordFormat" xml:space="preserve">
+    <value>Şifre en az 6 karakter olmalı ve 123456, qwerty, password gibi basit bir kalıp olamaz.</value>
+  </data>
+  <data name="Str_PasswordMismatch" xml:space="preserve">
+    <value>Yeni şifreler eşleşmiyor.</value>
+  </data>
+  <data name="Str_OldPasswordWrong" xml:space="preserve">
+    <value>Eski şifre yanlış.</value>
+  </data>
+  <data name="Str_Connected" xml:space="preserve">
+    <value>Bağlı</value>
+  </data>
+  <data name="Str_PasswordRules" xml:space="preserve">
+    <value>en az 6 karakter, basit kalıplar kullanmayın (123456, qwerty vb.)</value>
+  </data>
+  <data name="Str_OfflineUsers" xml:space="preserve">
+    <value>Çevrimdışı Kullanıcılar</value>
+  </data>
+  <data name="Str_AddUser" xml:space="preserve">
+    <value>Kullanıcı Ekle</value>
+  </data>
+  <data name="Str_Remove" xml:space="preserve">
+    <value>Kaldır</value>
+  </data>
+  <data name="Str_ChangeAdminPassword" xml:space="preserve">
+    <value>Admin Şifresini Değiştir</value>
   </data>
 </root>

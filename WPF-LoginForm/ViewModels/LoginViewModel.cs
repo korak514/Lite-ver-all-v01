@@ -1,9 +1,11 @@
 ﻿// ViewModels/LoginViewModel.cs
 using System;
+using System.Linq;
 using System.Net;
 using System.Security;
 using System.Security.Principal;
 using System.Threading;
+using System.Windows;
 using System.Windows.Input;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
@@ -108,21 +110,22 @@ namespace WPF_LoginForm.ViewModels
 
         public ICommand LoginCommand { get; }
         public ICommand OpenSettingsCommand { get; }
-        public ICommand RecoverPasswordCommand { get; }
+        public ICommand ChangePasswordCommand { get; }
 
         public LoginViewModel()
         {
             _logger = App.GlobalLogger ?? new FileLogger("Login_Log");
             userRepository = new UserRepository();
             LoginCommand = new ViewModelCommand(ExecuteLoginCommand, CanExecuteLoginCommand);
-            OpenSettingsCommand = new ViewModelCommand(ExecuteOpenSettings);
-            RecoverPasswordCommand = new ViewModelCommand(p => { });
+            OpenSettingsCommand = new ViewModelCommand(ExecuteOpenSettings, (o) => !IsBusy);
+            ChangePasswordCommand = new ViewModelCommand(ExecuteChangePassword);
         }
 
         private bool CanExecuteLoginCommand(object obj)
         {
-            // If we are NOT in Online Mode (Offline), allow login without credentials
-            if (!IsOnlineMode) return !IsBusy;
+            // If we are NOT in Online Mode (Offline), require Username and Password
+            if (!IsOnlineMode)
+                return !IsBusy && !string.IsNullOrWhiteSpace(Username) && Username.Length >= 1 && Password != null && Password.Length >= 1;
 
             // If we ARE in Online Mode, require Username and Password
             return !IsBusy && !string.IsNullOrWhiteSpace(Username) && Username.Length >= 3 && Password != null && Password.Length >= 3;
@@ -137,11 +140,21 @@ namespace WPF_LoginForm.ViewModels
             try
             {
                 // 1. Offline Mode Logic
-                // Bypass database check entirely if we are NOT in Online Mode
+                // Validate against encrypted offline user store
                 if (!IsOnlineMode)
                 {
-                    _logger.LogInfo("User launching in Default Offline Mode.");
-                    IsViewVisible = false; // Close window to trigger MainView launch
+                    UserSessionService.Logout();
+                    string pw = new NetworkCredential("", Password).Password;
+                    if (OfflineUserStore.Authenticate(Username, pw))
+                    {
+                        UserSessionService.SetSession(Username, OfflineUserStore.IsAdminUser(Username) ? "Admin" : "User");
+                        _logger.LogInfo($"User '{Username}' logged in (Offline Mode).");
+                        IsViewVisible = false;
+                    }
+                    else
+                    {
+                        ErrorMessage = Resources.Msg_InvalidCredentials;
+                    }
                     return;
                 }
 
@@ -189,6 +202,13 @@ namespace WPF_LoginForm.ViewModels
         {
             IsSettingsModeOnly = true;
             IsViewVisible = false;
+        }
+
+        private void ExecuteChangePassword(object obj)
+        {
+            var changePwWindow = new Views.PasswordChangeView(IsOnlineMode, Username);
+            changePwWindow.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
+            changePwWindow.ShowDialog();
         }
     }
 }

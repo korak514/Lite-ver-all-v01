@@ -166,7 +166,7 @@
     <value>Filter by Date:</value>
   </data>
   <data name="ForgotPassword" xml:space="preserve">
-    <value>Forgot Password?</value>
+    <value>Change Password</value>
   </data>
   <data name="GeneralSettings" xml:space="preserve">
     <value>General Settings</value>
@@ -1756,9 +1756,89 @@ Would you like to configure a database connection now, or start using Offline mo
     <value>All descriptions are already covered by existing rules.</value>
   </data>
   <data name="Str_FootnoteMaxLength" xml:space="preserve">
-    <value>Max Footnote Length</value>
+    <value>Max Footnote Length:</value>
+  </data>
+  <data name="Str_MasterPassword" xml:space="preserve">
+    <value>Master Password:</value>
+  </data>
+  <data name="Str_EncryptBackup" xml:space="preserve">
+    <value>Encrypt Backup</value>
+  </data>
+  <data name="Str_DecryptOffline" xml:space="preserve">
+    <value>Decrypt Offline Data</value>
+  </data>
+  <data name="Status_EncryptingTable" xml:space="preserve">
+    <value>Encrypting {0}...</value>
+  </data>
+  <data name="Status_DecryptingTable" xml:space="preserve">
+    <value>Decrypting {0}...</value>
+  </data>
+  <data name="Status_EncryptionComplete" xml:space="preserve">
+    <value>Encryption complete. {0} tables encrypted.</value>
+  </data>
+  <data name="Msg_DecryptSuccess" xml:space="preserve">
+    <value>Decrypted {0} tables successfully.</value>
+  </data>
+  <data name="Msg_PasswordRequired" xml:space="preserve">
+    <value>Password is required for encryption.</value>
+  </data>
+  <data name="Msg_PasswordMinLength" xml:space="preserve">
+    <value>Password must be at least 8 characters.</value>
+  </data>
+  <data name="Status_Decrypting" xml:space="preserve">
+    <value>Decrypting offline data...</value>
+  </data>
+  <data name="Msg_NoEncFilesFound" xml:space="preserve">
+    <value>No encrypted (.enc) files found in offline folder.</value>
   </data>
   <data name="Str_ReplaceHyphens" xml:space="preserve">
     <value>Replace - with Space</value>
+  </data>
+  <data name="Str_NoOfflineDataFound" xml:space="preserve">
+    <value>No offline data found.
+Please go to Settings, enter a Master Password, create an encrypted backup from online mode, then start offline again.
+Or place .csv files in the offline folder.</value>
+  </data>
+  <data name="Str_Change" xml:space="preserve">
+    <value>Change</value>
+  </data>
+  <data name="Str_OldPassword" xml:space="preserve">
+    <value>Old Password</value>
+  </data>
+  <data name="Str_NewPassword" xml:space="preserve">
+    <value>New Password</value>
+  </data>
+  <data name="Str_ConfirmNewPassword" xml:space="preserve">
+    <value>Confirm New Password</value>
+  </data>
+  <data name="Str_PasswordChanged" xml:space="preserve">
+    <value>Password changed successfully.</value>
+  </data>
+  <data name="Str_InvalidPasswordFormat" xml:space="preserve">
+    <value>Password must be at least 6 characters and cannot be a simple pattern like 123456, qwerty, password, etc.</value>
+  </data>
+  <data name="Str_PasswordMismatch" xml:space="preserve">
+    <value>New passwords do not match.</value>
+  </data>
+  <data name="Str_OldPasswordWrong" xml:space="preserve">
+    <value>Old password is incorrect.</value>
+  </data>
+  <data name="Str_Connected" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="Str_PasswordRules" xml:space="preserve">
+    <value>min 6 characters, no simple patterns (123456, qwerty, etc.)</value>
+  </data>
+  <data name="Str_OfflineUsers" xml:space="preserve">
+    <value>Offline Users</value>
+  </data>
+  <data name="Str_AddUser" xml:space="preserve">
+    <value>Add User</value>
+  </data>
+  <data name="Str_Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Str_ChangeAdminPassword" xml:space="preserve">
+    <value>Change Admin Password</value>
   </data>
 </root>

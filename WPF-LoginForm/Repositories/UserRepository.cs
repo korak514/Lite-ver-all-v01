@@ -157,6 +157,55 @@ namespace WPF_LoginForm.Repositories
             catch { }
         }
 
+        public async Task<bool> ChangePasswordAsync(string username, string oldPassword, string newPassword)
+        {
+            try
+            {
+                // First verify the old password
+                using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
+                {
+                    if (connection is SqlConnection sqlConn) await sqlConn.OpenAsync();
+                    else if (connection is NpgsqlConnection pgConn) await pgConn.OpenAsync();
+                    else connection.Open();
+
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText = $"SELECT {ColPass} FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username)";
+                        AddParameter(command, "@username", username);
+
+                        object result;
+                        if (command is SqlCommand sqlCmd) result = await sqlCmd.ExecuteScalarAsync();
+                        else if (command is NpgsqlCommand pgCmd) result = await pgCmd.ExecuteScalarAsync();
+                        else result = command.ExecuteScalar();
+
+                        if (result == null || result == DBNull.Value) return false;
+
+                        string storedHash = result.ToString();
+                        if (!PasswordHelper.VerifyPassword(oldPassword, storedHash) && storedHash != oldPassword)
+                            return false;
+                    }
+
+                    // Update to new password hash
+                    using (var command = connection.CreateCommand())
+                    {
+                        string newHash = PasswordHelper.HashPassword(newPassword);
+                        command.CommandText = $"UPDATE {TableName} SET {ColPass} = @hash WHERE LOWER({ColUser}) = LOWER(@username)";
+                        AddParameter(command, "@hash", newHash);
+                        AddParameter(command, "@username", username);
+
+                        if (command is SqlCommand sqlCmd) await sqlCmd.ExecuteNonQueryAsync();
+                        else if (command is NpgsqlCommand pgCmd) await pgCmd.ExecuteNonQueryAsync();
+                        else command.ExecuteNonQuery();
+                    }
+                }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public void Add(UserModel userModel)
         {
             using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))

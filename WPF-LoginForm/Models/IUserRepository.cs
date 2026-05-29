@@ -23,5 +23,7 @@ namespace WPF_LoginForm.Models
         UserModel GetByUsername(string username);
 
         IEnumerable<UserModel> GetByAll();
+
+        Task<bool> ChangePasswordAsync(string username, string oldPassword, string newPassword);
     }
 }

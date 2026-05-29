@@ -1,0 +1,21 @@
+{
+  "DbProvider": "PostgreSql",
+  "SqlAuthConnString": "Server=(local); Database=LoginDb; Integrated Security=true",
+  "SqlDataConnString": "Server=(local); Database=MainDataDb; Integrated Security=true",
+  "PostgresDataConnString": "Host=localhost;Port=5432;Username=postgres;Password=korak;Trust Server Certificate=True;Timeout=15;Persist Security Info=True;Database=MainDataDb",
+  "PostgresAuthConnString": "Host=localhost;Port=5432;Username=postgres;Password=korak;Trust Server Certificate=True;Timeout=15;Persist Security Info=True;Database=LoginDb",
+  "AppLanguage": "tr-TR",
+  "OfflineFolderPath": "C:\\New Repo Google Antigravity\\Lite-ver-all-v01\\WPF-LoginForm\\bin\\Debug\\OfflineData",
+  "AutoImportEnabled": true,
+  "ImportIsRelative": false,
+  "ImportFileName": "Data13-IDx1.json",
+  "ImportAbsolutePath": "C:\\Users\\Lenovo\\Desktop\\json files",
+  "ConnectionTimeout": 15,
+  "TrustServerCertificate": true,
+  "DbServerName": "",
+  "DbHost": "localhost",
+  "DbPort": "5432",
+  "DbUser": "postgres",
+  "PureOfflineMode": false,
+  "SuppressOfflineReminder": true
+}

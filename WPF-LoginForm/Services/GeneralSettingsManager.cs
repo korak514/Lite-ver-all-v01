@@ -67,6 +67,12 @@ namespace WPF_LoginForm.Services
                     
                     SyncJsonToSystemSettings();
                     LoadDashboardPart();
+
+                    // Seed offline admin credentials if not yet set
+                    if (string.IsNullOrEmpty(Current.EncryptedOfflineAdminPassword))
+                    {
+                        OfflineUserStore.SeedDefaultAdmin();
+                    }
                 }
                 catch (Exception ex)
                 {

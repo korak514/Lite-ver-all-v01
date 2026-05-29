@@ -225,6 +225,21 @@
 
                                 <CheckBox Content="{x:Static p:Resources.Str_RemoveOfflineReminder}" IsChecked="{Binding HideOfflineReminder, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,10" />
 
+                                <!-- Encryption / Decryption Controls (visible in both online and offline) -->
+                                <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,10" />
+                                <TextBlock Text="{x:Static p:Resources.Str_MasterPassword}" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,0,5" />
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <customcontrols:BindablePasswordBox Grid.Column="0" Password="{Binding MasterPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="28" />
+                                    <CheckBox Grid.Column="1" Content="{x:Static p:Resources.Str_EncryptBackup}" IsChecked="{Binding EncryptBackup, Mode=TwoWay}" Foreground="WhiteSmoke" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                </Grid>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                    <Button Content="{x:Static p:Resources.Str_DecryptOffline}" Command="{Binding DecryptOfflineDataCommand}" Style="{StaticResource StandardButtonStyle}" Width="160" HorizontalAlignment="Left" />
+                                </StackPanel>
+
                                 <!-- Offline Image Creation UI -->
                                 <StackPanel Margin="0,0,0,15" Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <TextBlock Text="{x:Static p:Resources.CreateOfflineDataImage}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,5" />
@@ -248,6 +263,64 @@
                                     </ItemsControl>
 
                                     <Button Content="{x:Static p:Resources.CreateOfflineBackup}" Command="{Binding CreateOfflineBackupCommand}" Style="{StaticResource StandardButtonStyle}" Background="#FFD14545" Width="180" HorizontalAlignment="Left" />
+                                </StackPanel>
+
+                                <!-- Offline Users Management (only offline admin) -->
+                                <StackPanel Visibility="{Binding CanManageOfflineUsers, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,15" />
+                                    <TextBlock Text="{x:Static p:Resources.Str_OfflineUsers}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
+
+                                    <ItemsControl ItemsSource="{Binding OfflineUsers}" MaxHeight="120" Margin="0,0,0,10">
+                                        <ItemsControl.Template>
+                                            <ControlTemplate>
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                    <ItemsPresenter />
+                                                </ScrollViewer>
+                                            </ControlTemplate>
+                                        </ItemsControl.Template>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{Binding Username}" Foreground="White" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Role}" Foreground="Gray" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                    <Button Grid.Column="3" Content="{x:Static p:Resources.Str_Remove}"
+                                                            Command="{Binding DataContext.RemoveOfflineUserCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Background="#C0392B" Foreground="White" FontSize="11" Padding="8,2" BorderThickness="0" Cursor="Hand" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Add User Section -->
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{x:Static p:Resources.Username}" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                        <TextBox Grid.Column="1" Text="{Binding NewOfflineUsername, UpdateSourceTrigger=PropertyChanged}" Height="26" Padding="2" Margin="0,0,6,0" />
+
+                                        <PasswordBox Grid.Column="2" x:Name="pwNewOffline" Height="26" Width="100" Margin="0,0,6,0" />
+
+                                        <Button Grid.Column="3" Content="{x:Static p:Resources.Str_AddUser}"
+                                                Command="{Binding AddOfflineUserCommand}"
+                                                Height="26" Padding="10,0" Background="#2E7D32" Foreground="White" BorderThickness="0" Cursor="Hand" />
+                                    </Grid>
+
+                                    <!-- Change Admin Password Button -->
+                                    <Button Content="{x:Static p:Resources.Str_ChangeAdminPassword}"
+                                            Command="{Binding ChangeAdminPasswordCommand}"
+                                            Height="30" Padding="10,0" Background="#444444" Foreground="White" BorderThickness="0" Cursor="Hand"
+                                            HorizontalAlignment="Left" Margin="0,0,0,10" />
                                 </StackPanel>
 
                                 <!-- Global Data Limit Settings -->
