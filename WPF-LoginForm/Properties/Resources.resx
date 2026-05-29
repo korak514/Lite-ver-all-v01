@@ -595,6 +595,9 @@
   <data name="Str_FavsWithIcon" xml:space="preserve">
     <value>Favorites</value>
   </data>
+  <data name="Str_CopyAllTimeline" xml:space="preserve">
+    <value>Copy All</value>
+  </data>
   <data name="Str_AddNewWithIcon" xml:space="preserve">
     <value>Add New</value>
   </data>
@@ -609,6 +612,9 @@
   </data>
   <data name="Tip_UndoChanges" xml:space="preserve">
     <value>Undo Changes</value>
+  </data>
+  <data name="Tip_CopyTimeline" xml:space="preserve">
+    <value>Copy Timeline Data</value>
   </data>
   <data name="Tip_RefreshDB" xml:space="preserve">
     <value>Refresh Database</value>

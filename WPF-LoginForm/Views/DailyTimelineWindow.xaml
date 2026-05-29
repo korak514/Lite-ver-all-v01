@@ -205,6 +205,13 @@
                         </StackPanel>
                     </Button>
 
+                    <Button Command="{Binding CopyAllTimelineCommand}" Background="#1ABC9C" Margin="0,0,8,0" Style="{StaticResource ActionButtonStyle}" ToolTip="{x:Static p:Resources.Tip_CopyTimeline}">
+                        <StackPanel Orientation="Horizontal">
+                            <fa:ImageAwesome Icon="Copy" Height="13" Foreground="White" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{x:Static p:Resources.Str_CopyAllTimeline}" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
                     <Button Command="{Binding OpenMonthlyErrorsCommand}" Background="#E67E22" Margin="0,0,15,0" Style="{StaticResource ActionButtonStyle}" ToolTip="Monthly Data Validation">
                         <StackPanel Orientation="Horizontal">
                             <fa:ImageAwesome Icon="CheckCircle" Height="13" Foreground="White" Margin="0,0,8,0" VerticalAlignment="Center"/>

@@ -312,6 +312,7 @@ namespace WPF_LoginForm.ViewModels
         public ICommand UndoCommand { get; }
         public ICommand RefreshCommand { get; }
         public ICommand OpenMonthlyErrorsCommand { get; }
+        public ICommand CopyAllTimelineCommand { get; }
 
         public DailyTimelineViewModel(IDataRepository repository, string tableName, DateTime targetDate)
         {
@@ -341,6 +342,7 @@ namespace WPF_LoginForm.ViewModels
             UndoCommand = new ViewModelCommand(p => ExecuteUndo(), p => IsDirty);
             RefreshCommand = new ViewModelCommand(p => { ReloadData(); });
             OpenMonthlyErrorsCommand = new ViewModelCommand(p => ExecuteOpenMonthlyErrors());
+            CopyAllTimelineCommand = new ViewModelCommand(p => ExecuteCopyAllTimeline());
 
             _ = InitializeTablesAsync();
             LoadConfigData();
@@ -605,6 +607,30 @@ namespace WPF_LoginForm.ViewModels
                 TimelineBlocks.Remove(SelectedBlock);
                 SelectedBlock = null;
                 RecalculateSavings();
+            }
+        }
+
+        private void ExecuteCopyAllTimeline()
+        {
+            var nonRefBlocks = TimelineBlocks.Where(b => !b.IsReferenceBlock).ToList();
+            if (!nonRefBlocks.Any())
+            {
+                MessageBox.Show("No data to copy.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var sorted = nonRefBlocks.OrderBy(b => b.StartMinuteInShift).ToList();
+            var parts = sorted.Select(b => GenerateDbString(b));
+            string result = string.Join("\t", parts);
+
+            try
+            {
+                Clipboard.SetDataObject(result, true);
+                MessageBox.Show(Resources.Msg_CopySuccess, Resources.Title_Success, MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Copy failed: {ex.Message}", Resources.Str_Error, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

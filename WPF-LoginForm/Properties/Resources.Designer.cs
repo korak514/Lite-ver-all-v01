@@ -1933,6 +1933,15 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Copy All.
+        /// </summary>
+        public static string Str_CopyAllTimeline {
+            get {
+                return ResourceManager.GetString("Str_CopyAllTimeline", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Configure Categories.
         /// </summary>
         public static string Str_CategoryConfig {
@@ -3461,6 +3470,15 @@ namespace WPF_LoginForm.Properties {
         public static string Tip_CopyCategories {
             get {
                 return ResourceManager.GetString("Tip_CopyCategories", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Copy Timeline Data.
+        /// </summary>
+        public static string Tip_CopyTimeline {
+            get {
+                return ResourceManager.GetString("Tip_CopyTimeline", resourceCulture);
             }
         }
         

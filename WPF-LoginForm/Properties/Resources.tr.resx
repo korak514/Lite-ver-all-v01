@@ -594,6 +594,9 @@
   <data name="Str_FavsWithIcon" xml:space="preserve">
     <value>Favoriler</value>
   </data>
+  <data name="Str_CopyAllTimeline" xml:space="preserve">
+    <value>Tümünü Kopyala</value>
+  </data>
   <data name="Str_AddNewWithIcon" xml:space="preserve">
     <value>Yeni Ekle</value>
   </data>
@@ -608,6 +611,9 @@
   </data>
   <data name="Tip_UndoChanges" xml:space="preserve">
     <value>Değişiklikleri Geri Al</value>
+  </data>
+  <data name="Tip_CopyTimeline" xml:space="preserve">
+    <value>Zaman Verilerini Kopyala</value>
   </data>
   <data name="Tip_RefreshDB" xml:space="preserve">
     <value>Veritabanını Yenile</value>
