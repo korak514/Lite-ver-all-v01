@@ -69,7 +69,7 @@ namespace WPF_LoginForm.Services
                     LoadDashboardPart();
 
                     // Seed offline admin credentials if not yet set
-                    if (string.IsNullOrEmpty(Current.EncryptedOfflineAdminPassword))
+                    if (string.IsNullOrEmpty(Current.OfflineAdminPasswordHash))
                     {
                         OfflineUserStore.SeedDefaultAdmin();
                     }
@@ -206,9 +206,46 @@ namespace WPF_LoginForm.Services
                 string dir = Path.GetDirectoryName(configPath);
                 if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
-                string json = JsonConvert.SerializeObject(Current, Formatting.Indented);
-                File.WriteAllText(configPath, json);
+                // Backup existing config before overwriting
+                string backupPath = configPath + ".bak";
+                bool hadBackup = false;
+                if (File.Exists(configPath))
+                {
+                    try
+                    {
+                        File.Copy(configPath, backupPath, true);
+                        hadBackup = true;
+                    }
+                    catch { }
+                }
 
+                try
+                {
+                    string json = JsonConvert.SerializeObject(Current, Formatting.Indented);
+
+                    // Acquire cross-process lock before writing
+                    using (FileLock.Acquire(configPath + ".lock"))
+                    {
+                        File.WriteAllText(configPath, json);
+                    }
+
+                    // Write succeeded — remove backup
+                    if (hadBackup)
+                    {
+                        try { File.Delete(backupPath); } catch { }
+                    }
+                }
+                catch
+                {
+                    // Write failed — restore from backup
+                    if (hadBackup && File.Exists(backupPath))
+                    {
+                        try { File.Copy(backupPath, configPath, true); File.Delete(backupPath); } catch { }
+                    }
+                    throw; // Let caller know save failed
+                }
+
+                // Remaining settings sync — failures here don't affect the file write
                 try
                 {
                     Settings.Default.DbProvider = Current.DbProvider;
@@ -259,6 +296,7 @@ namespace WPF_LoginForm.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error saving general config: {ex.Message}");
+                throw;
             }
         }
 

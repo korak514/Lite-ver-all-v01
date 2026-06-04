@@ -116,6 +116,7 @@
     <Compile Include="Models\PortalConfiguration.cs" />
     <Compile Include="Models\PrintTimelineModels.cs" />
     <Compile Include="Models\MonthlyValidationItem.cs" />
+    <Compile Include="Models\ToolDefinition.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -129,6 +130,12 @@
     <Compile Include="Repositories\OfflineDataRepository.cs" />
     <Compile Include="Services\CategoryMappingService.cs" />
     <Compile Include="Services\GeneralSettingsManager.cs" />
+    <Compile Include="Services\ToolRegistry.cs" />
+    <Compile Include="Services\IAiService.cs" />
+    <Compile Include="Services\GeminiApiService.cs" />
+    <Compile Include="Services\XaiApiService.cs" />
+    <Compile Include="Services\OpenRouterApiService.cs" />
+    <Compile Include="Services\AiServiceFactory.cs" />
     <Compile Include="Services\DashboardChartService.cs" />
     <Compile Include="Services\DashboardStorageService.cs" />
     <Compile Include="Services\Database\CacheService.cs" />
@@ -142,6 +149,7 @@
     <Compile Include="Services\TimeFormatHelper.cs" />
     <Compile Include="Services\TimelineReportGenerator.cs" />
     <Compile Include="Services\UserSessionService.cs" />
+    <Compile Include="ViewModels\AiAssistantViewModel.cs" />
     <Compile Include="ViewModels\CategoryConfigViewModel.cs" />
     <Compile Include="ViewModels\ChartDetailViewModel.cs" />
     <Compile Include="ViewModels\DailyTimelineViewModel.cs" />
@@ -155,6 +163,9 @@
     <Compile Include="ViewModels\NodeEditorViewModel.cs" />
     <Compile Include="ViewModels\PrintTimelineSetupViewModel.cs" />
     <Compile Include="ViewModels\MonthlyErrorsViewModel.cs" />
+    <Compile Include="Views\AiAssistantWindow.xaml.cs">
+      <DependentUpon>AiAssistantWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\CategoryConfigWindow.xaml.cs">
       <DependentUpon>CategoryConfigWindow.xaml</DependentUpon>
     </Compile>
@@ -253,6 +264,7 @@
     <Compile Include="Services\IDialogService.cs" />
     <Compile Include="Services\ILogger.cs" />
     <Compile Include="Services\OfflineDataEncryption.cs" />
+    <Compile Include="Services\FileLock.cs" />
     <Compile Include="Services\OfflineUserStore.cs" />
     <Compile Include="Models\OfflineUserModel.cs" />
     <Compile Include="ViewModels\AddRowLongEntryViewModel.cs" />
@@ -334,6 +346,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Styles\Themes\LightTheme.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\AiAssistantWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -532,6 +548,8 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+    <EmbeddedResource Include="Resources\Docs\AI_DOCS_LITE.md" />
+    <EmbeddedResource Include="Resources\Docs\AI_DOCS_FULL.md" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

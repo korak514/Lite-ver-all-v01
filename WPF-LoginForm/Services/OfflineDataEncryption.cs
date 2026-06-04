@@ -10,9 +10,13 @@ namespace WPF_LoginForm.Services
 {
     public static class OfflineDataEncryption
     {
+        // Portable master password for offline data encryption — same on every PC
+        public const string MasterPassword = "Biosun@4Jp2!";
+
         private const int SaltLength = 16;
         private const int IvLength = 16;
         private const int KeyLength = 16;
+        private const int HmacLength = 32;
         private const int Iterations = 10000;
 
         public static byte[] GenerateSalt()
@@ -62,24 +66,77 @@ namespace WPF_LoginForm.Services
                         cs.FlushFinalBlock();
                     }
 
-                    return ms.ToArray();
+                    byte[] ciphertext = ms.ToArray();
+
+                    // Append HMAC-SHA256 for integrity verification
+                    byte[] hmac = ComputeHmac(ciphertext, key);
+                    using (var result = new MemoryStream())
+                    {
+                        result.Write(ciphertext, 0, ciphertext.Length);
+                        result.Write(hmac, 0, hmac.Length);
+                        return result.ToArray();
+                    }
                 }
             }
         }
 
-        public static byte[] Decrypt(byte[] ciphertext, string password)
+        public static byte[] Decrypt(byte[] ciphertextWithHmac, string password)
         {
-            if (ciphertext == null || ciphertext.Length < SaltLength + IvLength)
+            if (ciphertextWithHmac == null || ciphertextWithHmac.Length < SaltLength + IvLength)
                 throw new ArgumentException("Invalid ciphertext");
 
+            // Try new format (with HMAC footer) first
+            if (ciphertextWithHmac.Length >= SaltLength + IvLength + HmacLength)
+            {
+                try
+                {
+                    return DecryptWithHmac(ciphertextWithHmac, password);
+                }
+                catch (InvalidOperationException)
+                {
+                    // HMAC mismatch — fall through to legacy format
+                }
+            }
+
+            // Legacy format (no HMAC)
+            return DecryptLegacy(ciphertextWithHmac, password);
+        }
+
+        private static byte[] DecryptWithHmac(byte[] ciphertextWithHmac, string password)
+        {
+            byte[] ciphertext = new byte[ciphertextWithHmac.Length - HmacLength];
+            byte[] storedHmac = new byte[HmacLength];
+            Buffer.BlockCopy(ciphertextWithHmac, 0, ciphertext, 0, ciphertext.Length);
+            Buffer.BlockCopy(ciphertextWithHmac, ciphertext.Length, storedHmac, 0, HmacLength);
+
+            byte[] salt = new byte[SaltLength];
+            Buffer.BlockCopy(ciphertext, 0, salt, 0, SaltLength);
+            byte[] key = DeriveKey(password, salt);
+
+            byte[] computedHmac = ComputeHmac(ciphertext, key);
+            if (!ConstantTimeEquals(storedHmac, computedHmac))
+                throw new InvalidOperationException("File integrity check failed");
+
+            return DecryptCore(ciphertext, key);
+        }
+
+        private static byte[] DecryptLegacy(byte[] ciphertext, string password)
+        {
             byte[] salt = new byte[SaltLength];
             byte[] iv = new byte[IvLength];
             Buffer.BlockCopy(ciphertext, 0, salt, 0, SaltLength);
             Buffer.BlockCopy(ciphertext, SaltLength, iv, 0, IvLength);
 
             byte[] key = DeriveKey(password, salt);
-            byte[] encryptedData = new byte[ciphertext.Length - SaltLength - IvLength];
-            Buffer.BlockCopy(ciphertext, SaltLength + IvLength, encryptedData, 0, encryptedData.Length);
+            return DecryptCore(ciphertext, key);
+        }
+
+        private static byte[] DecryptCore(byte[] ciphertextWithSalt, byte[] key)
+        {
+            byte[] iv = new byte[IvLength];
+            Buffer.BlockCopy(ciphertextWithSalt, SaltLength, iv, 0, IvLength);
+            byte[] encryptedData = new byte[ciphertextWithSalt.Length - SaltLength - IvLength];
+            Buffer.BlockCopy(ciphertextWithSalt, SaltLength + IvLength, encryptedData, 0, encryptedData.Length);
 
             using (var aes = Aes.Create())
             {
@@ -99,6 +156,21 @@ namespace WPF_LoginForm.Services
             }
         }
 
+        private static byte[] ComputeHmac(byte[] data, byte[] key)
+        {
+            using (var hmac = new HMACSHA256(key))
+                return hmac.ComputeHash(data);
+        }
+
+        private static bool ConstantTimeEquals(byte[] a, byte[] b)
+        {
+            if (a.Length != b.Length) return false;
+            int diff = 0;
+            for (int i = 0; i < a.Length; i++)
+                diff |= a[i] ^ b[i];
+            return diff == 0;
+        }
+
         public static string ObfuscatePassword(string password)
         {
             if (string.IsNullOrEmpty(password) || password.Length < 4)
@@ -113,20 +185,28 @@ namespace WPF_LoginForm.Services
             return base64.Substring(0, 6) + "***" + base64.Substring(base64.Length - 4);
         }
 
-        public static string ProtectPassword(string plaintext)
+    }
+
+    public static class OfflineDataEncryptionFile
+    {
+        private static string LockPath(string filePath) => filePath + ".lock";
+
+        public static void EncryptFile(string filePath, byte[] plaintext, string password)
         {
-            if (string.IsNullOrEmpty(plaintext)) return string.Empty;
-            byte[] plainBytes = Encoding.UTF8.GetBytes(plaintext);
-            byte[] protectedBytes = ProtectedData.Protect(plainBytes, null, DataProtectionScope.CurrentUser);
-            return Convert.ToBase64String(protectedBytes);
+            using (FileLock.Acquire(LockPath(filePath)))
+            {
+                byte[] encrypted = OfflineDataEncryption.Encrypt(plaintext, password);
+                File.WriteAllBytes(filePath, encrypted);
+            }
         }
 
-        public static string UnprotectPassword(string protectedBase64)
+        public static byte[] DecryptFile(string filePath, string password)
         {
-            if (string.IsNullOrEmpty(protectedBase64)) return string.Empty;
-            byte[] protectedBytes = Convert.FromBase64String(protectedBase64);
-            byte[] plainBytes = ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser);
-            return Encoding.UTF8.GetString(plainBytes);
+            using (FileLock.Acquire(LockPath(filePath)))
+            {
+                byte[] encryptedBytes = File.ReadAllBytes(filePath);
+                return OfflineDataEncryption.Decrypt(encryptedBytes, password);
+            }
         }
     }
 
@@ -135,9 +215,42 @@ namespace WPF_LoginForm.Services
         public static ConcurrentDictionary<string, DataTable> DecryptedTables { get; }
             = new ConcurrentDictionary<string, DataTable>(StringComparer.OrdinalIgnoreCase);
 
+        private static ConcurrentDictionary<string, DateTime> _fileTimestamps
+            = new ConcurrentDictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+
+        public static bool IsStale(string tableName, string filePath)
+        {
+            if (!_fileTimestamps.TryGetValue(tableName, out DateTime cachedTime))
+                return true;
+
+            try
+            {
+                DateTime lastWrite = File.GetLastWriteTimeUtc(filePath);
+                return lastWrite > cachedTime;
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
+        public static void UpdateTimestamp(string tableName, string filePath)
+        {
+            try
+            {
+                DateTime lastWrite = File.GetLastWriteTimeUtc(filePath);
+                _fileTimestamps[tableName] = lastWrite;
+            }
+            catch
+            {
+                _fileTimestamps.TryRemove(tableName, out _);
+            }
+        }
+
         public static void Clear()
         {
             DecryptedTables.Clear();
+            _fileTimestamps.Clear();
         }
     }
 

@@ -616,6 +616,42 @@
   <data name="Tip_CopyTimeline" xml:space="preserve">
     <value>Copy Timeline Data</value>
   </data>
+  <data name="Str_AiAssistant" xml:space="preserve">
+    <value>AI Assistant</value>
+  </data>
+  <data name="Str_AiEnable" xml:space="preserve">
+    <value>Enable AI Assistant</value>
+  </data>
+  <data name="Str_AiApiProvider" xml:space="preserve">
+    <value>API Provider:</value>
+  </data>
+  <data name="Str_AiApiKey" xml:space="preserve">
+    <value>API Key:</value>
+  </data>
+  <data name="Str_AiModel" xml:space="preserve">
+    <value>Model:</value>
+  </data>
+  <data name="Str_AiApiEndpoint" xml:space="preserve">
+    <value>Custom API Endpoint:</value>
+  </data>
+  <data name="Str_AiMaxTokens" xml:space="preserve">
+    <value>Max Tokens:</value>
+  </data>
+  <data name="Str_AiTemperature" xml:space="preserve">
+    <value>Temperature:</value>
+  </data>
+  <data name="Str_AiAllowedTables" xml:space="preserve">
+    <value>Allowed Tables (AI can only access these):</value>
+  </data>
+  <data name="Str_AiAllowedTablesHint" xml:space="preserve">
+    <value>Select the tables the AI is permitted to query. Empty = no database access.</value>
+  </data>
+  <data name="Tip_AiSettings" xml:space="preserve">
+    <value>Configure AI Assistant connection and permissions</value>
+  </data>
+  <data name="Str_AiKeyWarning" xml:space="preserve">
+    <value>WARNING: API key is stored in plain text in general_config.json</value>
+  </data>
   <data name="Tip_RefreshDB" xml:space="preserve">
     <value>Refresh Database</value>
   </data>

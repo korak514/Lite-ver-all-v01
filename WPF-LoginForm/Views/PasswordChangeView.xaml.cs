@@ -1,6 +1,5 @@
 // Views/PasswordChangeView.xaml.cs
 using System.Windows;
-using System.Windows.Input;
 using WPF_LoginForm.ViewModels;
 
 namespace WPF_LoginForm.Views
@@ -17,12 +16,6 @@ namespace WPF_LoginForm.Views
         {
             InitializeComponent();
             DataContext = new PasswordChangeViewModel(isOnline, currentUsername);
-        }
-
-        private void Window_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.LeftButton == MouseButtonState.Pressed)
-                DragMove();
         }
     }
 }

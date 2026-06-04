@@ -8,7 +8,9 @@ namespace WPF_LoginForm.Services
 {
     public class CacheService
     {
-        private static readonly string CacheFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "app_cache.json");
+        private static readonly string CacheFilePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "WPF-LoginForm", "app_cache.json");
         private ConcurrentDictionary<string, CacheItem> _memoryCache;
 
         public CacheService()

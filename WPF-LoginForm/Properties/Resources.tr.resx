@@ -615,6 +615,42 @@
   <data name="Tip_CopyTimeline" xml:space="preserve">
     <value>Zaman Verilerini Kopyala</value>
   </data>
+  <data name="Str_AiAssistant" xml:space="preserve">
+    <value>Yapay Zeka Asistanı</value>
+  </data>
+  <data name="Str_AiEnable" xml:space="preserve">
+    <value>Yapay Zeka Asistanını Etkinleştir</value>
+  </data>
+  <data name="Str_AiApiProvider" xml:space="preserve">
+    <value>API Sağlayıcı:</value>
+  </data>
+  <data name="Str_AiApiKey" xml:space="preserve">
+    <value>API Anahtarı:</value>
+  </data>
+  <data name="Str_AiModel" xml:space="preserve">
+    <value>Model:</value>
+  </data>
+  <data name="Str_AiApiEndpoint" xml:space="preserve">
+    <value>Özel API Uç Noktası:</value>
+  </data>
+  <data name="Str_AiMaxTokens" xml:space="preserve">
+    <value>Maksimum Token:</value>
+  </data>
+  <data name="Str_AiTemperature" xml:space="preserve">
+    <value>Sıcaklık:</value>
+  </data>
+  <data name="Str_AiAllowedTables" xml:space="preserve">
+    <value>İzin Verilen Tablolar (YZ yalnızca bu tablolara erişebilir):</value>
+  </data>
+  <data name="Str_AiAllowedTablesHint" xml:space="preserve">
+    <value>YZ'nin sorgulamasına izin verilen tabloları seçin. Boş = veritabanı erişimi yok.</value>
+  </data>
+  <data name="Tip_AiSettings" xml:space="preserve">
+    <value>YZ Asistanı bağlantı ve izin ayarlarını yapılandırın</value>
+  </data>
+  <data name="Str_AiKeyWarning" xml:space="preserve">
+    <value>UYARI: API anahtarı general_config.json dosyasında düz metin olarak saklanır</value>
+  </data>
   <data name="Tip_RefreshDB" xml:space="preserve">
     <value>Veritabanını Yenile</value>
   </data>

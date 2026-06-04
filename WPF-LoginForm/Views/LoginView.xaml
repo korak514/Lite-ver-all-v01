@@ -133,6 +133,7 @@
                     <!-- Login Button Area -->
                     <Grid Margin="0,30,0,0">
                         <Button x:Name="btnLogin"
+                                IsDefault="True"
                                 Command="{Binding LoginCommand}"
                                 Content="{x:Static p:Resources.LoginButton}"
                                 Foreground="White"

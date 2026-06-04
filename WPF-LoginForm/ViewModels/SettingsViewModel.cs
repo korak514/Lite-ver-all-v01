@@ -61,6 +61,12 @@ namespace WPF_LoginForm.ViewModels
         private bool _showDashboardDateFilter;
 
         private int _dashboardDateTickSize;
+
+        // AI Settings
+        private bool _aiAssistantEnabled;
+        private string _aiApiKey;
+        private string _aiProvider;
+        public List<string> AvailableAiProviders { get; } = new List<string> { "gemini", "xai", "openrouter" };
         private int _defaultRowLimit;
 
         // Offline Settings
@@ -83,6 +89,7 @@ namespace WPF_LoginForm.ViewModels
         // Offline Encryption
         private SecureString _masterPassword;
         private bool _encryptBackup;
+        private bool _useCustomMasterPassword;
 
         // --- Properties ---
         public IEnumerable<DatabaseType> DatabaseTypes => Enum.GetValues(typeof(DatabaseType)).Cast<DatabaseType>();
@@ -167,6 +174,8 @@ namespace WPF_LoginForm.ViewModels
         public bool IsOfflineMode => _dataRepository is OfflineDataRepository;
         public SecureString MasterPassword { get => _masterPassword; set => SetProperty(ref _masterPassword, value); }
         public bool EncryptBackup { get => _encryptBackup; set => SetProperty(ref _encryptBackup, value); }
+        public bool UseCustomMasterPassword { get => _useCustomMasterPassword; set { SetProperty(ref _useCustomMasterPassword, value); OnPropertyChanged(nameof(IsMasterPasswordEnabled)); } }
+        public bool IsMasterPasswordEnabled => _useCustomMasterPassword;
 
         private ObservableCollection<OfflineUser> _offlineUsers;
         public ObservableCollection<OfflineUser> OfflineUsers
@@ -225,6 +234,13 @@ namespace WPF_LoginForm.ViewModels
         public List<string> AvailableRoles { get; } = new List<string> { "User", "Admin" };
 
         public bool CanManageUsers => UserSessionService.IsAdmin && !IsBusy;
+
+        // AI Settings Properties
+        public bool AiAssistantEnabled { get => _aiAssistantEnabled; set => SetProperty(ref _aiAssistantEnabled, value); }
+        public string AiApiKey { get => _aiApiKey; set => SetProperty(ref _aiApiKey, value); }
+        public string AiProvider { get => _aiProvider; set => SetProperty(ref _aiProvider, value); }
+
+        public ICommand OpenAiAssistantCommand { get; }
 
         // Commands
         public ICommand SaveCommand { get; }
@@ -290,20 +306,17 @@ namespace WPF_LoginForm.ViewModels
             OfflineFolderPath = config.OfflineFolderPath;
             _hideOfflineReminder = config.SuppressOfflineReminder;
 
-            // Load DPAPI-protected master password from settings
-            if (!string.IsNullOrEmpty(config.EncryptedMasterPassword))
-            {
-                try
-                {
-                    string plainPw = OfflineDataEncryption.UnprotectPassword(config.EncryptedMasterPassword);
-                    MasterPassword = new NetworkCredential("", plainPw).SecurePassword;
-                }
-                catch { /* corrupted or wrong user — ignore */ }
-            }
+            // Load AI Settings
+            AiAssistantEnabled = config.AiAssistantEnabled;
+            AiApiKey = config.AiApiKey;
+            AiProvider = config.AiProvider;
 
             // Load offline users
             OfflineUsers = new ObservableCollection<OfflineUser>(OfflineUserStore.GetUserList());
             OnPropertyChanged(nameof(CanManageOfflineUsers));
+
+            // Default master password
+            _masterPassword = ToSecureString(OfflineDataEncryption.MasterPassword);
 
             SaveCommand = new ViewModelCommand(ExecuteSaveCommand, (o) => !IsBusy);
             TestConnectionCommand = new ViewModelCommand(ExecuteTestConnection, (o) => !IsBusy);
@@ -322,6 +335,24 @@ namespace WPF_LoginForm.ViewModels
             AddOfflineUserCommand = new ViewModelCommand(ExecuteAddOfflineUser, (o) => CanManageOfflineUsers);
             RemoveOfflineUserCommand = new ViewModelCommand(ExecuteRemoveOfflineUser, (o) => CanManageOfflineUsers);
             ChangeAdminPasswordCommand = new ViewModelCommand(ExecuteChangeAdminPassword, (o) => CanManageOfflineUsers);
+            OpenAiAssistantCommand = new ViewModelCommand(p => ExecuteOpenAiAssistant());
+        }
+
+        private void ExecuteOpenAiAssistant()
+        {
+            // Save API key + provider before opening assistant so it reads the latest values
+            var config = GeneralSettingsManager.Instance.Current;
+            config.AiApiKey = AiApiKey;
+            config.AiProvider = AiProvider;
+            GeneralSettingsManager.Instance.Save();
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var win = new Views.AiAssistantWindow(_dataRepository);
+                if (Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
+                    win.Owner = Application.Current.MainWindow;
+                win.ShowDialog();
+            });
         }
 
         private void ExecuteExportConfig(object obj)
@@ -410,16 +441,23 @@ namespace WPF_LoginForm.ViewModels
             string password = null;
             if (doEncrypt)
             {
-                if (MasterPassword == null || MasterPassword.Length == 0)
+                if (UseCustomMasterPassword)
                 {
-                    MessageBox.Show(Resources.Msg_PasswordRequired, Resources.Title_ValidationError, MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
+                    if (MasterPassword == null || MasterPassword.Length == 0)
+                    {
+                        MessageBox.Show(Resources.Msg_PasswordRequired, Resources.Title_ValidationError, MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                    password = new NetworkCredential("", MasterPassword).Password;
+                    if (password.Length < 8)
+                    {
+                        MessageBox.Show(Resources.Msg_PasswordMinLength, Resources.Title_ValidationError, MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
                 }
-                password = new NetworkCredential("", MasterPassword).Password;
-                if (password.Length < 8)
+                else
                 {
-                    MessageBox.Show(Resources.Msg_PasswordMinLength, Resources.Title_ValidationError, MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
+                    password = OfflineDataEncryption.MasterPassword;
                 }
             }
 
@@ -448,8 +486,7 @@ namespace WPF_LoginForm.ViewModels
                             string encPath = Path.Combine(OfflineFolderPath, $"{tbl.Name}.enc");
                             string csvContent = File.ReadAllText(csvPath);
                             byte[] plainBytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
-                            byte[] encrypted = OfflineDataEncryption.Encrypt(plainBytes, password);
-                            await Task.Run(() => File.WriteAllBytes(encPath, encrypted));
+                            await Task.Run(() => OfflineDataEncryptionFile.EncryptFile(encPath, plainBytes, password));
                         }
 
                         count++;
@@ -487,16 +524,23 @@ namespace WPF_LoginForm.ViewModels
             }
 
             string password = null;
-            if (MasterPassword == null || MasterPassword.Length == 0)
+            if (UseCustomMasterPassword)
             {
-                MessageBox.Show(Resources.Msg_PasswordRequired, Resources.Title_ValidationError, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                if (MasterPassword == null || MasterPassword.Length == 0)
+                {
+                    MessageBox.Show(Resources.Msg_PasswordRequired, Resources.Title_ValidationError, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                password = new NetworkCredential("", MasterPassword).Password;
+                if (password.Length < 8)
+                {
+                    MessageBox.Show(Resources.Msg_PasswordMinLength, Resources.Title_ValidationError, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
             }
-            password = new NetworkCredential("", MasterPassword).Password;
-            if (password.Length < 8)
+            else
             {
-                MessageBox.Show(Resources.Msg_PasswordMinLength, Resources.Title_ValidationError, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                password = OfflineDataEncryption.MasterPassword;
             }
 
             IsBusy = true;
@@ -518,8 +562,7 @@ namespace WPF_LoginForm.ViewModels
                     string tableName = Path.GetFileNameWithoutExtension(encPath);
                     StatusMessage = string.Format(Resources.Status_DecryptingTable, tableName);
 
-                    byte[] encryptedBytes = await Task.Run(() => File.ReadAllBytes(encPath));
-                    byte[] plainBytes = await Task.Run(() => OfflineDataEncryption.Decrypt(encryptedBytes, password));
+                    byte[] plainBytes = await Task.Run(() => OfflineDataEncryptionFile.DecryptFile(encPath, password));
                     string csvContent = System.Text.Encoding.UTF8.GetString(plainBytes);
 
                     DataTable dt = CsvParser.ParseToDataTable(csvContent, tableName);
@@ -584,16 +627,10 @@ namespace WPF_LoginForm.ViewModels
                 
                 config.OfflineFolderPath = OfflineFolderPath;
 
-                // Save master password DPAPI-protected (never plaintext in settings)
-                if (MasterPassword != null && MasterPassword.Length > 0)
-                {
-                    string plainPw = new NetworkCredential("", MasterPassword).Password;
-                    config.EncryptedMasterPassword = OfflineDataEncryption.ProtectPassword(plainPw);
-                }
-                else
-                {
-                    config.EncryptedMasterPassword = string.Empty;
-                }
+                // Save AI Settings
+                config.AiAssistantEnabled = AiAssistantEnabled;
+                config.AiApiKey = AiApiKey;
+                config.AiProvider = AiProvider;
 
                 GeneralSettingsManager.Instance.Save();
 
@@ -944,6 +981,14 @@ namespace WPF_LoginForm.ViewModels
             var changePwWindow = new Views.PasswordChangeView(false, "admin");
             changePwWindow.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
             changePwWindow.ShowDialog();
+        }
+
+        private static SecureString ToSecureString(string str)
+        {
+            var ss = new SecureString();
+            foreach (char c in str) ss.AppendChar(c);
+            ss.MakeReadOnly();
+            return ss;
         }
     }
 

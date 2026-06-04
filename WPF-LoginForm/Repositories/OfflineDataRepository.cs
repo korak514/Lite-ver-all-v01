@@ -42,23 +42,42 @@ namespace WPF_LoginForm.Repositories
         }
 
         // --- CORE LOGIC: Get from Cache or Load from Disk ---
+        private static readonly ConcurrentDictionary<string, DateTime> _csvFileTimestamps
+            = new ConcurrentDictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+
         private DataTable GetOrLoadTable(string tableName)
         {
             if (string.IsNullOrWhiteSpace(tableName)) return new DataTable();
 
+            string filePath = Path.Combine(_folderPath, $"{tableName}.csv");
+
+            // Check if cached data is stale (file was updated by another PC)
             if (_tableCache.TryGetValue(tableName, out DataTable cachedTable))
             {
+                if (File.Exists(filePath) && _csvFileTimestamps.TryGetValue(tableName, out DateTime cachedTime))
+                {
+                    try
+                    {
+                        DateTime lastWrite = File.GetLastWriteTimeUtc(filePath);
+                        if (lastWrite <= cachedTime)
+                            return cachedTable;
+                    }
+                    catch { }
+                }
                 return cachedTable;
             }
 
             // Check if decrypted data is available from OfflineDataCache
             if (OfflineDataCache.DecryptedTables.TryGetValue(tableName, out DataTable decryptedTable))
             {
-                _tableCache.TryAdd(tableName, decryptedTable);
-                return decryptedTable;
+                string encPath = Path.Combine(_folderPath, $"{tableName}.enc");
+                if (!OfflineDataCache.IsStale(tableName, encPath))
+                {
+                    _tableCache.TryAdd(tableName, decryptedTable);
+                    return decryptedTable;
+                }
             }
 
-            string filePath = Path.Combine(_folderPath, $"{tableName}.csv");
             DataTable newTable = ReadCsv(filePath);
             newTable.TableName = tableName;
 
@@ -126,6 +145,12 @@ namespace WPF_LoginForm.Repositories
             catch (Exception ex)
             {
                 _logger.LogError($"Error reading CSV {filePath}", ex);
+            }
+
+            if (dt.Columns.Count > 0)
+            {
+                string tableName = Path.GetFileNameWithoutExtension(filePath);
+                _csvFileTimestamps[tableName] = DateTime.UtcNow;
             }
 
             return dt;

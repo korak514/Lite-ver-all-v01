@@ -656,17 +656,17 @@
   },
   {
     "StartsWith": "MANYETİK-SEPERATÖR-TAKILMASI-BANT-ÜZERİ",
-    "MapTo": "MANYETİK-SEPERATÖR-İŞLEMİ",
+    "MapTo": "MANYETİK-AYIRICI-İŞLEMİ",
     "Priority": 0
   },
   {
     "StartsWith": "MANYETİK-TIKANMA",
-    "MapTo": "MANYETİK-SEPERATÖR-İŞLEMİ",
+    "MapTo": "MANYETİK-AYIRICI-İŞLEMİ",
     "Priority": 0
   },
   {
     "StartsWith": "TAMBUR-HATAYA-DÜŞÜYOR",
-    "MapTo": "ARIZA İLE DURMA",
+    "MapTo": "ARIZA-İLE-DURMA",
     "Priority": 0
   },
   {
@@ -690,13 +690,48 @@
     "Priority": 0
   },
   {
-    "StartsWith": "ÇAY-MOALASI",
+    "StartsWith": "ACİL-STOP-BAĞLANTISI",
+    "MapTo": "ACİL-STOP",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "KAYNAK",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "KAPLAMA-DEĞİŞİMİ",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ACİL-STOP-HALATI-KOPTU",
+    "MapTo": "ACİL-STOP",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "OMEGA-ARIZASI",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "ALT-SIRA-ORTA-ELEK-DEĞİŞİMİ",
+    "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "YÜSKEK-AMPER",
+    "MapTo": "YÜSKEK-AMPER",
+    "Priority": 0
+  },
+  {
+    "StartsWith": "GENEL-BAKIM",
     "MapTo": "Diğer",
     "Priority": 0
   },
   {
-    "StartsWith": "ACİL-STOP-BAĞLANTISI",
-    "MapTo": "ACİL-STOP",
+    "StartsWith": "RESMİ TATİL",
+    "MapTo": "Diğer",
     "Priority": 0
   }
 ]

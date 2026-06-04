@@ -1,6 +1,7 @@
 ﻿// App.xaml.cs
 using System;
 using System.Globalization;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -111,6 +112,19 @@ namespace WPF_LoginForm
 
         private void ShowCrashMessage(Exception ex)
         {
+            // Always log to local temp as a safety net
+            try
+            {
+                string crashLog = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "WPF-LoginForm", "crash.log");
+                string dir = Path.GetDirectoryName(crashLog);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                File.AppendAllText(crashLog,
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}\n---\n");
+            }
+            catch { }
+
             string msg = $"An unexpected error occurred.\n\nDetails: {ex.Message}\n\nThe error has been logged.";
             MessageBox.Show(msg, "Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }

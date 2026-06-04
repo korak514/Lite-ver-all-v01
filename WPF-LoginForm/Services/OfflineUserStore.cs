@@ -12,15 +12,14 @@ namespace WPF_LoginForm.Services
     public static class OfflineUserStore
     {
         private const string DefaultAdminUser = "admin";
-        private const string DefaultAdminPassword = "WPF-Biosun2026";
+        public const string DefaultAdminPassword = "WPF-Biosun2026";
 
         public static void SeedDefaultAdmin()
         {
             var config = GeneralSettingsManager.Instance.Current;
-            if (!string.IsNullOrEmpty(config.EncryptedOfflineAdminPassword)) return;
+            if (!string.IsNullOrEmpty(config.OfflineAdminPasswordHash)) return;
 
-            string protectedPw = OfflineDataEncryption.ProtectPassword(DefaultAdminPassword);
-            config.EncryptedOfflineAdminPassword = protectedPw;
+            config.OfflineAdminPasswordHash = HashPassword(DefaultAdminPassword);
 
             var users = new List<OfflineUser>
             {
@@ -29,9 +28,27 @@ namespace WPF_LoginForm.Services
                     Username = DefaultAdminUser,
                     PasswordHash = HashPassword(DefaultAdminPassword),
                     Role = "Admin"
+                },
+                new OfflineUser
+                {
+                    Username = "İsmet AKÇAY",
+                    PasswordHash = HashPassword("1234"),
+                    Role = "User"
+                },
+                new OfflineUser
+                {
+                    Username = "Hüseyin Kara",
+                    PasswordHash = HashPassword("1234"),
+                    Role = "User"
+                },
+                new OfflineUser
+                {
+                    Username = "Misafir",
+                    PasswordHash = HashPassword("1234"),
+                    Role = "User"
                 }
             };
-            config.EncryptedOfflineUsers = EncryptUserList(users);
+            config.OfflineUsers = JsonConvert.SerializeObject(users, Formatting.Indented);
             GeneralSettingsManager.Instance.Save();
         }
 
@@ -63,14 +80,13 @@ namespace WPF_LoginForm.Services
                 return false;
 
             user.PasswordHash = HashPassword(newPassword);
-            SaveUserList(users);
+            if (!SaveUserList(users)) return false;
 
-            // If this is the admin user, also update the DPAPI-protected admin password field
             if (string.Equals(username, DefaultAdminUser, StringComparison.OrdinalIgnoreCase))
             {
                 var config = GeneralSettingsManager.Instance.Current;
-                config.EncryptedOfflineAdminPassword = OfflineDataEncryption.ProtectPassword(newPassword);
-                GeneralSettingsManager.Instance.Save();
+                config.OfflineAdminPasswordHash = HashPassword(newPassword);
+                try { GeneralSettingsManager.Instance.Save(); } catch { }
             }
 
             return true;
@@ -79,13 +95,13 @@ namespace WPF_LoginForm.Services
         public static List<OfflineUser> GetUserList()
         {
             var config = GeneralSettingsManager.Instance.Current;
-            if (string.IsNullOrEmpty(config.EncryptedOfflineUsers))
+            if (string.IsNullOrEmpty(config.OfflineUsers))
                 return new List<OfflineUser>();
 
             try
             {
-                string json = OfflineDataEncryption.UnprotectPassword(config.EncryptedOfflineUsers);
-                return JsonConvert.DeserializeObject<List<OfflineUser>>(json) ?? new List<OfflineUser>();
+                return JsonConvert.DeserializeObject<List<OfflineUser>>(config.OfflineUsers)
+                    ?? new List<OfflineUser>();
             }
             catch
             {
@@ -93,44 +109,37 @@ namespace WPF_LoginForm.Services
             }
         }
 
-        public static void SaveUserList(List<OfflineUser> users)
+        public static bool SaveUserList(List<OfflineUser> users)
         {
-            string json = JsonConvert.SerializeObject(users, Formatting.Indented);
-            string protectedJson = OfflineDataEncryption.ProtectPassword(json);
-            GeneralSettingsManager.Instance.Current.EncryptedOfflineUsers = protectedJson;
-            GeneralSettingsManager.Instance.Save();
+            try
+            {
+                GeneralSettingsManager.Instance.Current.OfflineUsers =
+                    JsonConvert.SerializeObject(users, Formatting.Indented);
+                GeneralSettingsManager.Instance.Save();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SaveUserList failed: {ex.Message}");
+                return false;
+            }
         }
 
         public static bool IsDefaultAdminPassword()
         {
             var config = GeneralSettingsManager.Instance.Current;
-            if (string.IsNullOrEmpty(config.EncryptedOfflineAdminPassword)) return true;
-
-            try
-            {
-                string currentPw = OfflineDataEncryption.UnprotectPassword(config.EncryptedOfflineAdminPassword);
-                return currentPw == DefaultAdminPassword;
-            }
-            catch
-            {
-                return true;
-            }
+            if (string.IsNullOrEmpty(config.OfflineAdminPasswordHash)) return true;
+            return string.Equals(config.OfflineAdminPasswordHash,
+                HashPassword(DefaultAdminPassword), StringComparison.OrdinalIgnoreCase);
         }
 
         public static bool VerifyAdminPassword(string password)
         {
             var config = GeneralSettingsManager.Instance.Current;
-            if (string.IsNullOrEmpty(config.EncryptedOfflineAdminPassword)) return password == DefaultAdminPassword;
-
-            try
-            {
-                string storedPw = OfflineDataEncryption.UnprotectPassword(config.EncryptedOfflineAdminPassword);
-                return storedPw == password;
-            }
-            catch
-            {
+            if (string.IsNullOrEmpty(config.OfflineAdminPasswordHash))
                 return password == DefaultAdminPassword;
-            }
+            return string.Equals(config.OfflineAdminPasswordHash,
+                HashPassword(password), StringComparison.OrdinalIgnoreCase);
         }
 
         public static void ChangeAdminPassword(string oldPassword, string newPassword)
@@ -139,10 +148,9 @@ namespace WPF_LoginForm.Services
                 throw new UnauthorizedAccessException("Old password is incorrect.");
 
             var config = GeneralSettingsManager.Instance.Current;
-            config.EncryptedOfflineAdminPassword = OfflineDataEncryption.ProtectPassword(newPassword);
+            config.OfflineAdminPasswordHash = HashPassword(newPassword);
             GeneralSettingsManager.Instance.Save();
 
-            // Also update the admin user's password hash in the user list
             var users = GetUserList();
             var adminUser = users.FirstOrDefault(u =>
                 string.Equals(u.Username, DefaultAdminUser, StringComparison.OrdinalIgnoreCase));
@@ -151,12 +159,6 @@ namespace WPF_LoginForm.Services
                 adminUser.PasswordHash = HashPassword(newPassword);
                 SaveUserList(users);
             }
-        }
-
-        private static string EncryptUserList(List<OfflineUser> users)
-        {
-            string json = JsonConvert.SerializeObject(users, Formatting.Indented);
-            return OfflineDataEncryption.ProtectPassword(json);
         }
 
         public static string HashPassword(string password)

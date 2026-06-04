@@ -51,13 +51,20 @@ namespace WPF_LoginForm.Models
         // Suppress the offline mode reminder/badge in the main window header
         public bool SuppressOfflineReminder { get; set; } = false;
 
-        // DPAPI-protected master password for offline data encryption (base64)
-        public string EncryptedMasterPassword { get; set; } = string.Empty;
+        // SHA256 hash of the offline admin password (default: WPF-Biosun2026)
+        public string OfflineAdminPasswordHash { get; set; } = string.Empty;
 
-        // DPAPI-protected offline admin password (base64) — default admin/WPF-Biosun2026
-        public string EncryptedOfflineAdminPassword { get; set; } = string.Empty;
+        // JSON-serialized list of offline users (portable across PCs)
+        public string OfflineUsers { get; set; } = string.Empty;
 
-        // DPAPI-protected JSON list of offline users (base64)
-        public string EncryptedOfflineUsers { get; set; } = string.Empty;
+        // AI Assistant Settings
+        public bool AiAssistantEnabled { get; set; } = false;
+        public string AiApiKey { get; set; } = string.Empty;
+        public string AiProvider { get; set; } = "gemini";
+
+        // Error Alert Rules
+        public string ErrorAlertSection { get; set; } = "";
+        public int ErrorAlertThreshold { get; set; } = 0;
+        public string ErrorAlertEmail { get; set; } = "";
     }
 }

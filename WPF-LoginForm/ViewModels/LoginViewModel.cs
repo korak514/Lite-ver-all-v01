@@ -143,6 +143,9 @@ namespace WPF_LoginForm.ViewModels
                 // Validate against encrypted offline user store
                 if (!IsOnlineMode)
                 {
+                    // Reload config from shared file so user changes from other PCs are visible
+                    GeneralSettingsManager.Instance.Load();
+
                     UserSessionService.Logout();
                     string pw = new NetworkCredential("", Password).Password;
                     if (OfflineUserStore.Authenticate(Username, pw))
@@ -206,9 +209,26 @@ namespace WPF_LoginForm.ViewModels
 
         private void ExecuteChangePassword(object obj)
         {
-            var changePwWindow = new Views.PasswordChangeView(IsOnlineMode, Username);
-            changePwWindow.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
-            changePwWindow.ShowDialog();
+            try
+            {
+                var changePwWindow = new Views.PasswordChangeView(IsOnlineMode, Username);
+                changePwWindow.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
+                changePwWindow.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                string msg = $"PasswordChangeView açılırken hata:\n\n{ex.GetType().Name}: {ex.Message}\n\n";
+                Exception inner = ex.InnerException;
+                int depth = 0;
+                while (inner != null && depth < 5)
+                {
+                    msg += $"--- Inner {depth}: {inner.GetType().Name}: {inner.Message}\n";
+                    inner = inner.InnerException;
+                    depth++;
+                }
+                msg += $"\nStack:\n{ex.StackTrace}";
+                MessageBox.Show(msg, "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }

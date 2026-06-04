@@ -228,12 +228,13 @@
                                 <!-- Encryption / Decryption Controls (visible in both online and offline) -->
                                 <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,10" />
                                 <TextBlock Text="{x:Static p:Resources.Str_MasterPassword}" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,0,5" />
+                                <CheckBox Content="Custom Master Password" IsChecked="{Binding UseCustomMasterPassword, Mode=TwoWay}" Foreground="WhiteSmoke" Margin="0,0,0,5" />
                                 <Grid Margin="0,0,0,10">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <customcontrols:BindablePasswordBox Grid.Column="0" Password="{Binding MasterPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="28" />
+                                    <customcontrols:BindablePasswordBox Grid.Column="0" Password="{Binding MasterPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="28" IsEnabled="{Binding IsMasterPasswordEnabled}" />
                                     <CheckBox Grid.Column="1" Content="{x:Static p:Resources.Str_EncryptBackup}" IsChecked="{Binding EncryptBackup, Mode=TwoWay}" Foreground="WhiteSmoke" VerticalAlignment="Center" Margin="10,0,0,0" />
                                 </Grid>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
@@ -336,6 +337,42 @@
                                     <TextBlock Text="{x:Static p:Resources.DateSliderTickSize}" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,10,0" />
                                     <TextBox Text="{Binding DashboardDateTickSize, UpdateSourceTrigger=PropertyChanged}" Width="50" Height="26" Padding="2" HorizontalContentAlignment="Center" />
                                 </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 4. AI Assistant -->
+                        <Border CornerRadius="10" Padding="20" Margin="0,0,0,20" BorderBrush="{StaticResource panelActiveColor}" BorderThickness="1">
+                            <Border.Background>
+                                <SolidColorBrush Color="{StaticResource primaryBackColor2}" />
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="{x:Static p:Resources.Str_AiAssistant}" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
+                                <TextBlock Text="AI Assistant uses Google Gemini API. Enter your API key below (get one at ai.google.dev)." Foreground="Gray" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,15" />
+
+                                <CheckBox Content="Enable AI Assistant" IsChecked="{Binding AiAssistantEnabled, Mode=TwoWay}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
+
+                                <TextBlock Text="AI Provider" Foreground="#CCCCCC" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <ComboBox ItemsSource="{Binding AvailableAiProviders}" SelectedItem="{Binding AiProvider, Mode=TwoWay}" Background="#1AFFFFFF" Foreground="WhiteSmoke" BorderThickness="1" BorderBrush="#88FFFFFF" Padding="8,6" FontSize="13" Margin="0,0,0,10" MinWidth="200" HorizontalAlignment="Left" />
+
+                                <TextBlock Text="API Key" Foreground="#CCCCCC" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBox Text="{Binding AiApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Background="#1AFFFFFF" Foreground="WhiteSmoke" BorderThickness="1" BorderBrush="#88FFFFFF" Padding="10,8" FontSize="14" Margin="0,0,0,6" MinWidth="300" />
+                                <TextBlock Foreground="#888888" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,15">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="Get your key at ai.google.dev and enter it above." />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding AiProvider}" Value="xai">
+                                                    <Setter Property="Text" Value="Paste your xAI API key (starts with xai-...). You can include XAI_API_KEY= prefix, it will be stripped automatically." />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding AiProvider}" Value="openrouter">
+                                                    <Setter Property="Text" Value="Get your key at openrouter.ai/keys and paste it above." />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <Button Content="Open AI Assistant" Command="{Binding OpenAiAssistantCommand}" Background="#1ABC9C" Width="180" Height="36" Style="{StaticResource StandardButtonStyle}" IsEnabled="{Binding AiAssistantEnabled}" />
                             </StackPanel>
                         </Border>
 

@@ -1834,6 +1834,105 @@ namespace WPF_LoginForm.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to AI Assistant.
+        /// </summary>
+        public static string Str_AiAssistant {
+            get {
+                return ResourceManager.GetString("Str_AiAssistant", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enable AI Assistant.
+        /// </summary>
+        public static string Str_AiEnable {
+            get {
+                return ResourceManager.GetString("Str_AiEnable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to API Provider:.
+        /// </summary>
+        public static string Str_AiApiProvider {
+            get {
+                return ResourceManager.GetString("Str_AiApiProvider", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to API Key:.
+        /// </summary>
+        public static string Str_AiApiKey {
+            get {
+                return ResourceManager.GetString("Str_AiApiKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Model:.
+        /// </summary>
+        public static string Str_AiModel {
+            get {
+                return ResourceManager.GetString("Str_AiModel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Custom API Endpoint:.
+        /// </summary>
+        public static string Str_AiApiEndpoint {
+            get {
+                return ResourceManager.GetString("Str_AiApiEndpoint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Max Tokens:.
+        /// </summary>
+        public static string Str_AiMaxTokens {
+            get {
+                return ResourceManager.GetString("Str_AiMaxTokens", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Temperature:.
+        /// </summary>
+        public static string Str_AiTemperature {
+            get {
+                return ResourceManager.GetString("Str_AiTemperature", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Allowed Tables (AI can only access these):.
+        /// </summary>
+        public static string Str_AiAllowedTables {
+            get {
+                return ResourceManager.GetString("Str_AiAllowedTables", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select the tables the AI is permitted to query..
+        /// </summary>
+        public static string Str_AiAllowedTablesHint {
+            get {
+                return ResourceManager.GetString("Str_AiAllowedTablesHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to WARNING: API key is stored in plain text in general_config.json.
+        /// </summary>
+        public static string Str_AiKeyWarning {
+            get {
+                return ResourceManager.GetString("Str_AiKeyWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Advanced Import.
         /// </summary>
         public static string Str_AdvancedImport {
@@ -4841,6 +4940,15 @@ namespace WPF_LoginForm.Properties {
             }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to Configure AI Assistant connection and permissions.
+        /// </summary>
+        public static string Tip_AiSettings {
+            get {
+                return ResourceManager.GetString("Tip_AiSettings", resourceCulture);
+            }
+        }
+        
         /// <summary>
         ///   Looks up a localized string similar to Adjust Zoom Level.
         /// </summary>

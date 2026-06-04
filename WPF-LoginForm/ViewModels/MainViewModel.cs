@@ -180,11 +180,7 @@ namespace WPF_LoginForm.ViewModels
         {
             try
             {
-                string encPw = GeneralSettingsManager.Instance.Current.EncryptedMasterPassword;
-                if (string.IsNullOrEmpty(encPw)) return;
-
-                string password = OfflineDataEncryption.UnprotectPassword(encPw);
-                if (string.IsNullOrEmpty(password)) return;
+                string password = OfflineDataEncryption.MasterPassword;
 
                 string folder = GeneralSettingsManager.Instance.Current.OfflineFolderPath;
                 if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
@@ -202,14 +198,20 @@ namespace WPF_LoginForm.ViewModels
                 foreach (var encPath in encFiles)
                 {
                     string tableName = Path.GetFileNameWithoutExtension(encPath);
-                    byte[] encryptedBytes = File.ReadAllBytes(encPath);
-                    byte[] plainBytes = OfflineDataEncryption.Decrypt(encryptedBytes, password);
+                    if (!OfflineDataCache.IsStale(tableName, encPath))
+                    {
+                        if (OfflineDataCache.DecryptedTables.TryGetValue(tableName, out _))
+                            continue;
+                    }
+
+                    byte[] plainBytes = OfflineDataEncryptionFile.DecryptFile(encPath, password);
                     string csvContent = Encoding.UTF8.GetString(plainBytes);
 
                     DataTable dt = CsvParser.ParseToDataTable(csvContent, tableName);
                     if (dt.Columns.Count == 0) continue;
 
                     OfflineDataCache.DecryptedTables[tableName] = dt;
+                    OfflineDataCache.UpdateTimestamp(tableName, encPath);
                     count++;
                 }
 
