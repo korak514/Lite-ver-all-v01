@@ -85,21 +85,12 @@ namespace WPF_LoginForm.Services
             if (ciphertextWithHmac == null || ciphertextWithHmac.Length < SaltLength + IvLength)
                 throw new ArgumentException("Invalid ciphertext");
 
-            // Try new format (with HMAC footer) first
-            if (ciphertextWithHmac.Length >= SaltLength + IvLength + HmacLength)
-            {
-                try
-                {
-                    return DecryptWithHmac(ciphertextWithHmac, password);
-                }
-                catch (InvalidOperationException)
-                {
-                    // HMAC mismatch — fall through to legacy format
-                }
-            }
+            // Legacy format (short payload, no HMAC footer) — no integrity check available
+            if (ciphertextWithHmac.Length < SaltLength + IvLength + HmacLength)
+                return DecryptLegacy(ciphertextWithHmac, password);
 
-            // Legacy format (no HMAC)
-            return DecryptLegacy(ciphertextWithHmac, password);
+            // New format with HMAC footer — integrity check required
+            return DecryptWithHmac(ciphertextWithHmac, password);
         }
 
         private static byte[] DecryptWithHmac(byte[] ciphertextWithHmac, string password)

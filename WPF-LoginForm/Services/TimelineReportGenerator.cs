@@ -52,6 +52,7 @@ namespace WPF_LoginForm.Services
         public bool EnableBlockBorders { get; set; }
 
         public bool ShowMonthSummary { get; set; }
+        public bool UseRawWorkingTime { get; set; }
         public PrintMonthlySummary MonthlySummaryData { get; set; }
     }
 
@@ -80,7 +81,17 @@ namespace WPF_LoginForm.Services
                 var endCol = dbData.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("bitiş", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("bitis", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("end", StringComparison.OrdinalIgnoreCase) >= 0);
                 var errorCols = dbData.Columns.Cast<DataColumn>().Where(c => c.ColumnName.StartsWith("hata_kodu", StringComparison.OrdinalIgnoreCase) || c.ColumnName.StartsWith("error_code", StringComparison.OrdinalIgnoreCase)).ToList();
 
-                if (dateCol == null || shiftCol == null) return new List<PrintShiftRow>();
+                bool useRaw = context.UseRawWorkingTime;
+                DataColumn actualWorkCol = null;
+                if (useRaw)
+                {
+                    foreach (DataColumn c in dbData.Columns)
+                    {
+                        string n = c.ColumnName.ToLowerInvariant().Trim();
+                        if (n.Contains("fiili") || n.Contains("çalışılan") || n.Contains("calisilan") || n.Contains("work"))
+                        { actualWorkCol = c; break; }
+                    }
+                }
 
                 if (context.ShowMonthSummary)
                 {
@@ -566,6 +577,29 @@ namespace WPF_LoginForm.Services
                         if (end > start) totalStopMins += (end - start);
                     }
 
+                    if (useRaw && actualWorkCol != null)
+                    {
+                        var firstRow = group.FirstOrDefault(x => x.Row[actualWorkCol] != DBNull.Value);
+                        if (firstRow != null)
+                        {
+                            string val = firstRow.Row[actualWorkCol].ToString().Trim();
+                            double rawWork = 0;
+                            if (TimeSpan.TryParse(val, out TimeSpan ts)) rawWork = ts.TotalMinutes;
+                            else if (DateTime.TryParse(val, out DateTime dt)) rawWork = dt.TimeOfDay.TotalMinutes;
+                            else
+                            {
+                                double.TryParse(val, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double d);
+                                if (d > 0 && d < 1) d *= 1440;
+                                rawWork = d;
+                            }
+                            if (rawWork > 0)
+                            {
+                                double rawStop = Math.Max(0, activeShiftMinutes - rawWork);
+                                totalStopMins = rawStop;
+                            }
+                        }
+                    }
+
                     shiftRow.ExtraValue1 = CalculateExtraValue(context.ExtraCol1Selection, totalStopMins, activeShiftMinutes, group.Key.Date, group.Key.Shift, excelLookup, context.ShowValuesInHours);
                     shiftRow.ExtraValue2 = CalculateExtraValue(context.ExtraCol2Selection, totalStopMins, activeShiftMinutes, group.Key.Date, group.Key.Shift, excelLookup, context.ShowValuesInHours);
 
@@ -579,6 +613,21 @@ namespace WPF_LoginForm.Services
         // Updated Monthly Stats with 20 min rule and corrected Turkish strings
         private PrintMonthlySummary CalculateMonthlyStats(DataTable dbData, TimelineGenerationContext context, DataColumn dateCol, DataColumn shiftCol, DataColumn endCol, List<DataColumn> errorCols)
         {
+            bool useRaw = context.UseRawWorkingTime;
+
+            DataColumn actualWorkCol = null;
+            if (useRaw)
+            {
+                foreach (DataColumn c in dbData.Columns)
+                {
+                    string n = c.ColumnName.ToLowerInvariant().Trim();
+                    if (n.Contains("fiili") || n.Contains("çalışılan") || n.Contains("calisilan") || n.Contains("work"))
+                    {
+                        actualWorkCol = c;
+                        break;
+                    }
+                }
+            }
             var targetMonth = context.StartDate.Month;
             var targetYear = context.StartDate.Year;
 
@@ -676,7 +725,25 @@ namespace WPF_LoginForm.Services
                     if (e > s) overtimeWork += (e - s);
                 }
 
-                shiftEvaluations.Add(new ShiftEval { Date = group.Key.Date, Shift = group.Key.Shift, Work = shiftWork, Stop = shiftStop, OvertimeWork = overtimeWork });
+                double rawActualWork = 0;
+                if (useRaw && actualWorkCol != null)
+                {
+                    var firstRow = group.FirstOrDefault(x => x.Row[actualWorkCol] != DBNull.Value);
+                    if (firstRow != null)
+                    {
+                        string val = firstRow.Row[actualWorkCol].ToString().Trim();
+                        if (TimeSpan.TryParse(val, out TimeSpan ts)) rawActualWork = ts.TotalMinutes;
+                        else if (DateTime.TryParse(val, out DateTime dt)) rawActualWork = dt.TimeOfDay.TotalMinutes;
+                        else
+                        {
+                            double.TryParse(val, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double d);
+                            if (d > 0 && d < 1) d *= 1440;
+                            rawActualWork = d;
+                        }
+                    }
+                }
+
+                shiftEvaluations.Add(new ShiftEval { Date = group.Key.Date, Shift = group.Key.Shift, Work = useRaw && rawActualWork > 0 ? rawActualWork : shiftWork, Stop = shiftStop, OvertimeWork = overtimeWork });
             }
 
             // FIXED: Using 20 minutes for Overtime check

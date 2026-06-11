@@ -10,6 +10,8 @@ namespace WPF_LoginForm.Views
 {
     public partial class StartupView : Window
     {
+        private LoginView _preCreatedLoginView;
+
         public StartupView()
         {
             InitializeComponent();
@@ -24,11 +26,14 @@ namespace WPF_LoginForm.Views
         {
             try
             {
-                UpdateStatus("Initializing Application...", 20);
+                UpdateStatus("Initializing Application...", 10);
                 await Task.Delay(400);
+                UpdateStatus("Initializing Application...", 20);
+                await Task.Delay(100);
 
                 UpdateStatus("Loading Resources...", 60);
-                await Task.Delay(400);
+                _preCreatedLoginView = new LoginView();
+                await Task.Delay(100);
 
                 var current = GeneralSettingsManager.Instance.Current;
                 bool isFirstRun = IsFirstRunWithoutDatabase();
@@ -56,7 +61,7 @@ namespace WPF_LoginForm.Views
                         GeneralSettingsManager.Instance.Save();
 
                         UpdateStatus("Starting in Offline Mode...", 100);
-                        await Task.Delay(200);
+                        await Task.Delay(50);
                         OpenLoginAndListen();
                         return;
                     }
@@ -64,7 +69,7 @@ namespace WPF_LoginForm.Views
                 }
 
                 UpdateStatus("Starting...", 100);
-                await Task.Delay(200);
+                await Task.Delay(50);
 
                 OpenLoginAndListen();
             }
@@ -91,7 +96,8 @@ namespace WPF_LoginForm.Views
 
         private void OpenLoginWithSettings()
         {
-            var loginView = new LoginView();
+            var loginView = _preCreatedLoginView ?? new LoginView();
+            _preCreatedLoginView = null;
             var loginVM = loginView.DataContext as LoginViewModel;
             if (loginVM != null)
             {
@@ -124,7 +130,8 @@ namespace WPF_LoginForm.Views
 
         private void OpenLoginAndListen()
         {
-            var loginView = new LoginView();
+            var loginView = _preCreatedLoginView ?? new LoginView();
+            _preCreatedLoginView = null;
 
             loginView.IsVisibleChanged += (s, ev) =>
             {

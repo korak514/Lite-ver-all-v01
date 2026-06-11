@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Globalization;
 using System.Net;
 using System.Threading.Tasks;
 using Npgsql;
@@ -13,6 +14,13 @@ namespace WPF_LoginForm.Repositories
 {
     public class UserRepository : IUserRepository
     {
+        private static readonly CultureInfo TurkishCulture = new CultureInfo("tr-TR");
+        private static string NormalizeForComparison(string s) =>
+            s.ToLower(TurkishCulture).Replace('ı', 'i');
+
+        private static bool TurkishIgnoreCaseEquals(string a, string b) =>
+            NormalizeForComparison(a ?? "") == NormalizeForComparison(b ?? "");
+
         private string TableName => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"User\"" : "[User]";
         private string ColId => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Id\"" : "[Id]";
         private string ColUser => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Username\"" : "[Username]";
@@ -21,51 +29,40 @@ namespace WPF_LoginForm.Repositories
         private string ColLast => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"LastName\"" : "[LastName]";
         private string ColEmail => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Email\"" : "[Email]";
         private string ColRole => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "\"Role\"" : "[Role]";
+        private string ColUserRaw => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "Username" : "Username";
+        private string ColPassRaw => DbConnectionFactory.CurrentDatabaseType == DatabaseType.PostgreSql ? "Password" : "Password";
 
         public bool AuthenticateUser(NetworkCredential credential)
         {
-            // FIX Bug 6: Use synchronous DB call to avoid UI Deadlocks caused by .Result
-            bool validUser = false;
             try
             {
                 using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
                 {
                     connection.Open();
-                    using (var command = connection.CreateCommand())
+                    string dbUsername = credential.UserName;
+                    string storedPass = LookupPasswordHash(connection, credential.UserName, out dbUsername);
+                    if (storedPass == null) return false;
+
+                    if (PasswordHelper.VerifyPassword(credential.Password, storedPass))
                     {
-                        string query = $"SELECT {ColPass} FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username)";
-                        command.CommandText = query;
-                        AddParameter(command, "@username", credential.UserName);
-
-                        object result = command.ExecuteScalar();
-
-                        if (result != null && result != DBNull.Value)
-                        {
-                            string storedPass = result.ToString();
-                            if (PasswordHelper.VerifyPassword(credential.Password, storedPass))
-                            {
-                                validUser = true;
-                            }
-                            else if (storedPass == credential.Password)
-                            {
-                                validUser = true;
-                                UpgradeUserPassword(credential.UserName, credential.Password);
-                            }
-                        }
+                        return true;
+                    }
+                    if (storedPass == credential.Password)
+                    {
+                        UpgradeUserPassword(dbUsername, credential.Password);
+                        return true;
                     }
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Auth Sync Failed: {ex.Message}");
-                validUser = false;
             }
-            return validUser;
+            return false;
         }
 
         public async Task<bool> AuthenticateUserAsync(NetworkCredential credential)
         {
-            bool validUser = false;
             try
             {
                 using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
@@ -74,43 +71,77 @@ namespace WPF_LoginForm.Repositories
                     else if (connection is NpgsqlConnection pgConn) await pgConn.OpenAsync();
                     else connection.Open();
 
-                    using (var command = connection.CreateCommand())
+                    string dbUsername = credential.UserName;
+                    string storedPass = LookupPasswordHash(connection, credential.UserName, out dbUsername);
+                    if (storedPass == null) return false;
+
+                    if (PasswordHelper.VerifyPassword(credential.Password, storedPass))
                     {
-                        string query = $"SELECT {ColPass} FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username)";
-                        command.CommandText = query;
-                        AddParameter(command, "@username", credential.UserName);
-
-                        object result;
-                        if (command is SqlCommand sqlCmd) result = await sqlCmd.ExecuteScalarAsync();
-                        else if (command is NpgsqlCommand pgCmd) result = await pgCmd.ExecuteScalarAsync();
-                        else result = command.ExecuteScalar();
-
-                        if (result != null && result != DBNull.Value)
-                        {
-                            string storedPass = result.ToString();
-
-                            if (PasswordHelper.VerifyPassword(credential.Password, storedPass))
-                            {
-                                validUser = true;
-                            }
-                            else if (storedPass == credential.Password)
-                            {
-                                validUser = true;
-                                await UpgradeUserPasswordAsync(credential.UserName, credential.Password);
-                            }
-                        }
+                        return true;
+                    }
+                    if (storedPass == credential.Password)
+                    {
+                        await UpgradeUserPasswordAsync(dbUsername, credential.Password);
+                        return true;
                     }
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Auth Async Failed: {ex.Message}");
-                validUser = false;
             }
-            return validUser;
+            return false;
         }
 
-        // Synchronous upgrade for sync auth
+        /// <summary>
+        /// Finds the user by username (Turkish-aware for SQL Server) and returns the stored password hash.
+        /// </summary>
+        private string LookupPasswordHash(IDbConnection connection, string inputUsername, out string matchedUsername)
+        {
+            matchedUsername = inputUsername;
+
+            // Step 1: try LOWER() for standard case-insensitive (handles most cases)
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = $"SELECT {ColUser}, {ColPass} FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username)";
+                AddParameter(command, "@username", inputUsername);
+                using (var reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        matchedUsername = reader[ColUserRaw].ToString();
+                        return reader[ColPassRaw].ToString();
+                    }
+                }
+            }
+
+            // Step 2: LOWER() doesn't handle Turkish İ→i.
+            // Fetch all users and compare in C# using Turkish culture.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = $"SELECT {ColUser}, {ColPass} FROM {TableName}";
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        string dbUser = reader[ColUserRaw].ToString();
+                        if (TurkishIgnoreCaseEquals(dbUser, inputUsername))
+                        {
+                            matchedUsername = dbUser;
+                            return reader[ColPassRaw].ToString();
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private string LookupPasswordHashAsync(IDbConnection connection, string inputUsername, out string matchedUsername)
+        {
+            return LookupPasswordHash(connection, inputUsername, out matchedUsername);
+        }
+
         private void UpgradeUserPassword(string username, string plainPassword)
         {
             try
@@ -118,12 +149,16 @@ namespace WPF_LoginForm.Repositories
                 using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
                 {
                     connection.Open();
+                    string matchedUser;
+                    string hash = LookupPasswordHash(connection, username, out matchedUser);
+                    if (hash == null) return;
+
+                    string newHash = PasswordHelper.HashPassword(plainPassword);
                     using (var command = connection.CreateCommand())
                     {
-                        string newHash = PasswordHelper.HashPassword(plainPassword);
                         command.CommandText = $"UPDATE {TableName} SET {ColPass} = @hash WHERE LOWER({ColUser}) = LOWER(@username)";
                         AddParameter(command, "@hash", newHash);
-                        AddParameter(command, "@username", username);
+                        AddParameter(command, "@username", matchedUser);
                         command.ExecuteNonQuery();
                     }
                 }
@@ -141,13 +176,16 @@ namespace WPF_LoginForm.Repositories
                     else if (connection is NpgsqlConnection pgConn) await pgConn.OpenAsync();
                     else connection.Open();
 
+                    string matchedUser;
+                    string hash = LookupPasswordHash(connection, username, out matchedUser);
+                    if (hash == null) return;
+
+                    string newHash = PasswordHelper.HashPassword(plainPassword);
                     using (var command = connection.CreateCommand())
                     {
-                        string newHash = PasswordHelper.HashPassword(plainPassword);
                         command.CommandText = $"UPDATE {TableName} SET {ColPass} = @hash WHERE LOWER({ColUser}) = LOWER(@username)";
                         AddParameter(command, "@hash", newHash);
-                        AddParameter(command, "@username", username);
-
+                        AddParameter(command, "@username", matchedUser);
                         if (command is SqlCommand sqlCmd) await sqlCmd.ExecuteNonQueryAsync();
                         else if (command is NpgsqlCommand pgCmd) await pgCmd.ExecuteNonQueryAsync();
                         else command.ExecuteNonQuery();
@@ -161,38 +199,25 @@ namespace WPF_LoginForm.Repositories
         {
             try
             {
-                // First verify the old password
                 using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
                 {
                     if (connection is SqlConnection sqlConn) await sqlConn.OpenAsync();
                     else if (connection is NpgsqlConnection pgConn) await pgConn.OpenAsync();
                     else connection.Open();
 
+                    string matchedUser;
+                    string storedHash = LookupPasswordHash(connection, username, out matchedUser);
+                    if (storedHash == null) return false;
+
+                    if (!PasswordHelper.VerifyPassword(oldPassword, storedHash) && storedHash != oldPassword)
+                        return false;
+
+                    string newHash = PasswordHelper.HashPassword(newPassword);
                     using (var command = connection.CreateCommand())
                     {
-                        command.CommandText = $"SELECT {ColPass} FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username)";
-                        AddParameter(command, "@username", username);
-
-                        object result;
-                        if (command is SqlCommand sqlCmd) result = await sqlCmd.ExecuteScalarAsync();
-                        else if (command is NpgsqlCommand pgCmd) result = await pgCmd.ExecuteScalarAsync();
-                        else result = command.ExecuteScalar();
-
-                        if (result == null || result == DBNull.Value) return false;
-
-                        string storedHash = result.ToString();
-                        if (!PasswordHelper.VerifyPassword(oldPassword, storedHash) && storedHash != oldPassword)
-                            return false;
-                    }
-
-                    // Update to new password hash
-                    using (var command = connection.CreateCommand())
-                    {
-                        string newHash = PasswordHelper.HashPassword(newPassword);
                         command.CommandText = $"UPDATE {TableName} SET {ColPass} = @hash WHERE LOWER({ColUser}) = LOWER(@username)";
                         AddParameter(command, "@hash", newHash);
-                        AddParameter(command, "@username", username);
-
+                        AddParameter(command, "@username", matchedUser);
                         if (command is SqlCommand sqlCmd) await sqlCmd.ExecuteNonQueryAsync();
                         else if (command is NpgsqlCommand pgCmd) await pgCmd.ExecuteNonQueryAsync();
                         else command.ExecuteNonQuery();
@@ -313,13 +338,39 @@ namespace WPF_LoginForm.Repositories
             using (var connection = DbConnectionFactory.GetConnection(ConnectionTarget.Auth))
             {
                 connection.Open();
+
+                // Step 1: try LOWER()
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = $"SELECT * FROM {TableName} WHERE LOWER({ColUser}) = LOWER(@username)";
                     AddParameter(command, "@username", username);
                     using (var reader = command.ExecuteReader())
                     {
-                        if (reader.Read()) user = MapReaderToUser(reader);
+                        if (reader.Read())
+                        {
+                            user = MapReaderToUser(reader);
+                        }
+                    }
+                }
+
+                // Step 2: Turkish fallback - full scan with C# comparison
+                if (user == null)
+                {
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText = $"SELECT * FROM {TableName}";
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var candidate = MapReaderToUser(reader);
+                                if (TurkishIgnoreCaseEquals(candidate.Username, username))
+                                {
+                                    user = candidate;
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
             }

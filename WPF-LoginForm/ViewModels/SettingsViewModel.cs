@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.SqlClient;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -18,11 +19,16 @@ using WPF_LoginForm.Services.Database;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Repositories;
 using System.IO;
+using System.Text;
+using Newtonsoft.Json;
 
 namespace WPF_LoginForm.ViewModels
 {
     public class SettingsViewModel : ViewModelBase
     {
+        private static readonly CultureInfo TurkishCulture = new CultureInfo("tr-TR");
+        private static bool TurkishIgnoreCaseEquals(string a, string b) =>
+            string.Compare(a, b, ignoreCase: true, culture: TurkishCulture) == 0;
         private readonly IDataRepository _dataRepository;
 
         // --- Fields ---
@@ -184,6 +190,13 @@ namespace WPF_LoginForm.ViewModels
             set => SetProperty(ref _offlineUsers, value);
         }
 
+        private ObservableCollection<OfflineUserDisplayModel> _offlineUserDisplayList;
+        public ObservableCollection<OfflineUserDisplayModel> OfflineUserDisplayList
+        {
+            get => _offlineUserDisplayList;
+            set => SetProperty(ref _offlineUserDisplayList, value);
+        }
+
         private string _newOfflineUsername;
         public string NewOfflineUsername
         {
@@ -259,6 +272,8 @@ namespace WPF_LoginForm.ViewModels
         public ICommand AddOfflineUserCommand { get; }
         public ICommand RemoveOfflineUserCommand { get; }
         public ICommand ChangeAdminPasswordCommand { get; }
+        public ICommand BackupPasswordsCommand { get; }
+        public ICommand RestorePasswordsCommand { get; }
 
         public string GeneralConfigPath => GeneralSettingsManager.Instance.GetResolvedConfigPath();
 
@@ -314,6 +329,7 @@ namespace WPF_LoginForm.ViewModels
             // Load offline users
             OfflineUsers = new ObservableCollection<OfflineUser>(OfflineUserStore.GetUserList());
             OnPropertyChanged(nameof(CanManageOfflineUsers));
+            RefreshOfflineUserDisplay();
 
             // Default master password
             _masterPassword = ToSecureString(OfflineDataEncryption.MasterPassword);
@@ -335,6 +351,8 @@ namespace WPF_LoginForm.ViewModels
             AddOfflineUserCommand = new ViewModelCommand(ExecuteAddOfflineUser, (o) => CanManageOfflineUsers);
             RemoveOfflineUserCommand = new ViewModelCommand(ExecuteRemoveOfflineUser, (o) => CanManageOfflineUsers);
             ChangeAdminPasswordCommand = new ViewModelCommand(ExecuteChangeAdminPassword, (o) => CanManageOfflineUsers);
+            BackupPasswordsCommand = new ViewModelCommand(ExecuteBackupPasswords, (o) => CanManageOfflineUsers);
+            RestorePasswordsCommand = new ViewModelCommand(ExecuteRestorePasswords, (o) => CanManageOfflineUsers);
             OpenAiAssistantCommand = new ViewModelCommand(p => ExecuteOpenAiAssistant());
         }
 
@@ -756,7 +774,7 @@ namespace WPF_LoginForm.ViewModels
                 if (IsOfflineMode)
                 {
                     var users = OfflineUserStore.GetUserList();
-                    if (users.Any(u => string.Equals(u.Username, NewUserUsername, StringComparison.OrdinalIgnoreCase)))
+                    if (users.Any(u => TurkishIgnoreCaseEquals(u.Username, NewUserUsername)))
                     {
                         StatusMessage = "Username already exists.";
                         return;
@@ -770,6 +788,7 @@ namespace WPF_LoginForm.ViewModels
                     OfflineUserStore.SaveUserList(users);
                     OfflineUsers = new ObservableCollection<OfflineUser>(users);
                     OnPropertyChanged(nameof(OfflineUsers));
+                    RefreshOfflineUserDisplay();
                     NewUserUsername = ""; NewUserName = ""; NewUserLastName = ""; NewUserEmail = ""; NewUserPassword = null; NewUserRole = "User";
                     OnPropertyChanged(nameof(NewUserPassword));
                     StatusMessage = Resources.Msg_UserAdded;
@@ -793,7 +812,7 @@ namespace WPF_LoginForm.ViewModels
         {
             if (obj is UserModel user)
             {
-                if (user.Username.Equals("admin", StringComparison.OrdinalIgnoreCase))
+                if (TurkishIgnoreCaseEquals(user.Username, "admin"))
                 {
                     MessageBox.Show(Resources.Msg_CannotDeleteAdmin, Resources.Title_Stop, MessageBoxButton.OK, MessageBoxImage.Stop);
                     return;
@@ -806,10 +825,11 @@ namespace WPF_LoginForm.ViewModels
                         if (IsOfflineMode)
                         {
                             var users = OfflineUserStore.GetUserList();
-                            users.RemoveAll(u => string.Equals(u.Username, user.Username, StringComparison.OrdinalIgnoreCase));
+                            users.RemoveAll(u => TurkishIgnoreCaseEquals(u.Username, user.Username));
                             OfflineUserStore.SaveUserList(users);
                             OfflineUsers = new ObservableCollection<OfflineUser>(users);
                             OnPropertyChanged(nameof(OfflineUsers));
+                            RefreshOfflineUserDisplay();
                             StatusMessage = Resources.Msg_UserDeleted;
                             ExecuteLoadUsers(null);
                         }
@@ -929,7 +949,7 @@ namespace WPF_LoginForm.ViewModels
             }
 
             var users = OfflineUserStore.GetUserList();
-            if (users.Any(u => string.Equals(u.Username, username, StringComparison.OrdinalIgnoreCase)))
+            if (users.Any(u => TurkishIgnoreCaseEquals(u.Username, username)))
             {
                 MessageBox.Show("Username already exists.", Resources.Title_ValidationError, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
@@ -944,13 +964,14 @@ namespace WPF_LoginForm.ViewModels
 
             OfflineUserStore.SaveUserList(users);
             OfflineUsers = new ObservableCollection<OfflineUser>(users);
+            RefreshOfflineUserDisplay();
             NewOfflineUsername = "";
             NewOfflinePassword = null;
             OnPropertyChanged(nameof(NewOfflineUsername));
             OnPropertyChanged(nameof(NewOfflinePassword));
 
             // Also authenticate the user against the store to create a session entry
-            if (IsOfflineMode && UserSessionService.IsAdmin && !string.Equals(username, "admin", StringComparison.OrdinalIgnoreCase))
+            if (IsOfflineMode && UserSessionService.IsAdmin && !TurkishIgnoreCaseEquals(username, "admin"))
             {
                 StatusMessage = $"User '{username}' added successfully.";
             }
@@ -960,7 +981,7 @@ namespace WPF_LoginForm.ViewModels
         {
             if (!(obj is OfflineUser user)) return;
 
-            if (string.Equals(user.Username, "admin", StringComparison.OrdinalIgnoreCase))
+            if (TurkishIgnoreCaseEquals(user.Username, "admin"))
             {
                 MessageBox.Show("Cannot remove the admin user.", Resources.Title_ValidationError, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
@@ -971,9 +992,10 @@ namespace WPF_LoginForm.ViewModels
             if (result != MessageBoxResult.Yes) return;
 
             var users = OfflineUserStore.GetUserList();
-            users.RemoveAll(u => string.Equals(u.Username, user.Username, StringComparison.OrdinalIgnoreCase));
+            users.RemoveAll(u => TurkishIgnoreCaseEquals(u.Username, user.Username));
             OfflineUserStore.SaveUserList(users);
             OfflineUsers = new ObservableCollection<OfflineUser>(users);
+            RefreshOfflineUserDisplay();
         }
 
         private void ExecuteChangeAdminPassword(object obj)
@@ -981,6 +1003,122 @@ namespace WPF_LoginForm.ViewModels
             var changePwWindow = new Views.PasswordChangeView(false, "admin");
             changePwWindow.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
             changePwWindow.ShowDialog();
+        }
+
+        private void ExecuteBackupPasswords(object obj)
+        {
+            var users = OfflineUserStore.GetUserList();
+            if (users.Count == 0)
+            {
+                MessageBox.Show(Resources.Msg_NoOfflineUsers, Resources.Title_PasswordBackup,
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            string defaultHash = OfflineUserStore.HashPassword("1234");
+            string adminDefaultHash = OfflineUserStore.HashPassword(OfflineUserStore.DefaultAdminPassword);
+
+            int changedCount = users.Count(u =>
+                !string.Equals(u.PasswordHash,
+                    TurkishIgnoreCaseEquals(u.Username, "admin") ? adminDefaultHash : defaultHash,
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (changedCount == 0)
+            {
+                MessageBox.Show(Resources.Msg_BackupPasswordsNone, Resources.Title_PasswordBackup,
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var result = MessageBox.Show(
+                string.Format(Resources.Msg_BackupPasswordsCount, changedCount),
+                Resources.Title_PasswordBackup,
+                MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes) return;
+
+            string folder = OfflineFolderPath;
+            if (string.IsNullOrWhiteSpace(folder))
+            {
+                MessageBox.Show("Offline folder path is not set.", Resources.Str_Error,
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
+            string encPath = Path.Combine(folder, "offline_users.enc");
+            string json = JsonConvert.SerializeObject(users, Formatting.Indented);
+            byte[] plainBytes = Encoding.UTF8.GetBytes(json);
+
+            try
+            {
+                OfflineDataEncryptionFile.EncryptFile(encPath, plainBytes, OfflineDataEncryption.MasterPassword);
+                MessageBox.Show(string.Format(Resources.Msg_PasswordBackupSuccess, changedCount, encPath),
+                    Resources.Title_PasswordBackup, MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Resources.Msg_PasswordBackupFailed, ex.Message),
+                    Resources.Str_Error, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ExecuteRestorePasswords(object obj)
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = Resources.Title_PasswordRestore,
+                Filter = Resources.Filter_EncFiles,
+                CheckFileExists = true
+            };
+
+            if (dialog.ShowDialog() != true) return;
+
+            try
+            {
+                byte[] plainBytes = OfflineDataEncryptionFile.DecryptFile(dialog.FileName, OfflineDataEncryption.MasterPassword);
+                string json = Encoding.UTF8.GetString(plainBytes);
+                var users = JsonConvert.DeserializeObject<List<OfflineUser>>(json);
+                if (users == null || users.Count == 0)
+                {
+                    MessageBox.Show("Backup file contains no users.", Resources.Title_PasswordRestore,
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var adminUser = users.FirstOrDefault(u => TurkishIgnoreCaseEquals(u.Username, "admin"));
+                if (adminUser != null)
+                {
+                    GeneralSettingsManager.Instance.Current.OfflineAdminPasswordHash = adminUser.PasswordHash;
+                }
+
+                OfflineUserStore.SaveUserList(users);
+                OfflineUsers = new ObservableCollection<OfflineUser>(users);
+                OnPropertyChanged(nameof(OfflineUsers));
+                RefreshOfflineUserDisplay();
+
+                MessageBox.Show(Resources.Msg_RestorePasswordsSuccess, Resources.Title_PasswordRestore,
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format(Resources.Msg_PasswordRestoreFailed, ex.Message), Resources.Str_Error,
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void RefreshOfflineUserDisplay()
+        {
+            var users = OfflineUserStore.GetUserList();
+            OfflineUserDisplayList = new ObservableCollection<OfflineUserDisplayModel>(
+                users.Select(u => new OfflineUserDisplayModel
+                {
+                    Username = u.Username,
+                    Role = u.Role,
+                    PasswordStatus = OfflineUserStore.IsDefaultPassword(u) ? "✓" : "❌",
+                    Source = u
+                }));
         }
 
         private static SecureString ToSecureString(string str)
@@ -1003,5 +1141,13 @@ namespace WPF_LoginForm.ViewModels
             get => _isSelected;
             set => SetProperty(ref _isSelected, value);
         }
+    }
+
+    public class OfflineUserDisplayModel
+    {
+        public string Username { get; set; }
+        public string Role { get; set; }
+        public string PasswordStatus { get; set; }
+        public OfflineUser Source { get; set; }
     }
 }

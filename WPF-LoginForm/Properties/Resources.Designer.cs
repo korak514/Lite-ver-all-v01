@@ -5335,5 +5335,122 @@ namespace WPF_LoginForm.Properties {
                 return ResourceManager.GetString("Str_ChangeAdminPassword", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Update Working Hours.
+        /// </summary>
+        public static string Str_UpdateWorkingHours {
+            get {
+                return ResourceManager.GetString("Str_UpdateWorkingHours", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Backup Passwords.
+        /// </summary>
+        public static string Str_BackupPasswords {
+            get {
+                return ResourceManager.GetString("Str_BackupPasswords", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Restore Passwords.
+        /// </summary>
+        public static string Str_RestorePasswords {
+            get {
+                return ResourceManager.GetString("Str_RestorePasswords", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to All passwords are same as defaults. No backup created..
+        /// </summary>
+        public static string Msg_BackupPasswordsNone {
+            get {
+                return ResourceManager.GetString("Msg_BackupPasswordsNone", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to There are {0} password(s) that differ from defaults. Create backup?.
+        /// </summary>
+        public static string Msg_BackupPasswordsCount {
+            get {
+                return ResourceManager.GetString("Msg_BackupPasswordsCount", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Passwords restored successfully from backup..
+        /// </summary>
+        public static string Msg_RestorePasswordsSuccess {
+            get {
+                return ResourceManager.GetString("Msg_RestorePasswordsSuccess", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Password Backup.
+        /// </summary>
+        public static string Title_PasswordBackup {
+            get {
+                return ResourceManager.GetString("Title_PasswordBackup", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Password Restore.
+        /// </summary>
+        public static string Title_PasswordRestore {
+            get {
+                return ResourceManager.GetString("Title_PasswordRestore", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Encrypted Files|*.enc|All Files|*.*.
+        /// </summary>
+        public static string Filter_EncFiles {
+            get {
+                return ResourceManager.GetString("Filter_EncFiles", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Passwords backed up successfully ({0} changed) to:\n{1}.
+        /// </summary>
+        public static string Msg_PasswordBackupSuccess {
+            get {
+                return ResourceManager.GetString("Msg_PasswordBackupSuccess", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to backup passwords:\n{0}.
+        /// </summary>
+        public static string Msg_PasswordBackupFailed {
+            get {
+                return ResourceManager.GetString("Msg_PasswordBackupFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No offline users found. Nothing to backup..
+        /// </summary>
+        public static string Msg_NoOfflineUsers {
+            get {
+                return ResourceManager.GetString("Msg_NoOfflineUsers", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to restore passwords:\n{0}.
+        /// </summary>
+        public static string Msg_PasswordRestoreFailed {
+            get {
+                return ResourceManager.GetString("Msg_PasswordRestoreFailed", resourceCulture);
+            }
+        }
     }
 }

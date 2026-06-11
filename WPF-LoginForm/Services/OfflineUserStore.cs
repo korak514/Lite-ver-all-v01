@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -14,10 +15,14 @@ namespace WPF_LoginForm.Services
         private const string DefaultAdminUser = "admin";
         public const string DefaultAdminPassword = "WPF-Biosun2026";
 
+        private static readonly CultureInfo TurkishCulture = new CultureInfo("tr-TR");
+
         public static void SeedDefaultAdmin()
         {
             var config = GeneralSettingsManager.Instance.Current;
-            if (!string.IsNullOrEmpty(config.OfflineAdminPasswordHash)) return;
+            bool hasAdminHash = !string.IsNullOrEmpty(config.OfflineAdminPasswordHash);
+            bool hasUsers = !string.IsNullOrEmpty(config.OfflineUsers) && GetUserList().Count > 0;
+            if (hasAdminHash && hasUsers) return;
 
             config.OfflineAdminPasswordHash = HashPassword(DefaultAdminPassword);
 
@@ -52,21 +57,27 @@ namespace WPF_LoginForm.Services
             GeneralSettingsManager.Instance.Save();
         }
 
+        private static string NormalizeForComparison(string s) =>
+            s.ToLower(TurkishCulture).Replace('ı', 'i');
+
+        private static bool TurkishIgnoreCaseEquals(string a, string b) =>
+            NormalizeForComparison(a ?? "") == NormalizeForComparison(b ?? "");
+
         public static bool Authenticate(string username, string password)
         {
             var users = GetUserList();
             var user = users.FirstOrDefault(u =>
-                string.Equals(u.Username, username, StringComparison.OrdinalIgnoreCase));
+                TurkishIgnoreCaseEquals(u.Username, username));
             if (user == null) return false;
 
-            return string.Equals(user.PasswordHash, HashPassword(password), StringComparison.OrdinalIgnoreCase);
+            return string.Equals(user.PasswordHash, HashPassword(password), StringComparison.Ordinal);
         }
 
         public static bool IsAdminUser(string username)
         {
             var users = GetUserList();
             var user = users.FirstOrDefault(u =>
-                string.Equals(u.Username, username, StringComparison.OrdinalIgnoreCase));
+                TurkishIgnoreCaseEquals(u.Username, username));
             return user?.Role == "Admin";
         }
 
@@ -74,15 +85,15 @@ namespace WPF_LoginForm.Services
         {
             var users = GetUserList();
             var user = users.FirstOrDefault(u =>
-                string.Equals(u.Username, username, StringComparison.OrdinalIgnoreCase));
+                TurkishIgnoreCaseEquals(u.Username, username));
             if (user == null) return false;
-            if (!string.Equals(user.PasswordHash, HashPassword(oldPassword), StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(user.PasswordHash, HashPassword(oldPassword), StringComparison.Ordinal))
                 return false;
 
             user.PasswordHash = HashPassword(newPassword);
             if (!SaveUserList(users)) return false;
 
-            if (string.Equals(username, DefaultAdminUser, StringComparison.OrdinalIgnoreCase))
+            if (TurkishIgnoreCaseEquals(username, DefaultAdminUser) && user.Role == "Admin")
             {
                 var config = GeneralSettingsManager.Instance.Current;
                 config.OfflineAdminPasswordHash = HashPassword(newPassword);
@@ -130,7 +141,7 @@ namespace WPF_LoginForm.Services
             var config = GeneralSettingsManager.Instance.Current;
             if (string.IsNullOrEmpty(config.OfflineAdminPasswordHash)) return true;
             return string.Equals(config.OfflineAdminPasswordHash,
-                HashPassword(DefaultAdminPassword), StringComparison.OrdinalIgnoreCase);
+                HashPassword(DefaultAdminPassword), StringComparison.Ordinal);
         }
 
         public static bool VerifyAdminPassword(string password)
@@ -139,7 +150,7 @@ namespace WPF_LoginForm.Services
             if (string.IsNullOrEmpty(config.OfflineAdminPasswordHash))
                 return password == DefaultAdminPassword;
             return string.Equals(config.OfflineAdminPasswordHash,
-                HashPassword(password), StringComparison.OrdinalIgnoreCase);
+                HashPassword(password), StringComparison.Ordinal);
         }
 
         public static void ChangeAdminPassword(string oldPassword, string newPassword)
@@ -153,7 +164,7 @@ namespace WPF_LoginForm.Services
 
             var users = GetUserList();
             var adminUser = users.FirstOrDefault(u =>
-                string.Equals(u.Username, DefaultAdminUser, StringComparison.OrdinalIgnoreCase));
+                TurkishIgnoreCaseEquals(u.Username, DefaultAdminUser));
             if (adminUser != null)
             {
                 adminUser.PasswordHash = HashPassword(newPassword);
@@ -161,8 +172,17 @@ namespace WPF_LoginForm.Services
             }
         }
 
+        public static bool IsDefaultPassword(OfflineUser user)
+        {
+            string defaultHash = HashPassword("1234");
+            if (TurkishIgnoreCaseEquals(user.Username, DefaultAdminUser) && user.Role == "Admin")
+                defaultHash = HashPassword(DefaultAdminPassword);
+            return string.Equals(user.PasswordHash, defaultHash, StringComparison.Ordinal);
+        }
+
         public static string HashPassword(string password)
         {
+            if (string.IsNullOrEmpty(password)) return string.Empty;
             using (var sha256 = SHA256.Create())
             {
                 byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));

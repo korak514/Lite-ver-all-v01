@@ -1,0 +1,304 @@
+{
+  "StartDate": "2024-09-01T00:00:00",
+  "EndDate": "2025-12-01T00:00:00",
+  "IsFilterByDate": true,
+  "IgnoreNonDateData": true,
+  "UseIdToDateConversion": false,
+  "InitialDateForConversion": "2026-02-26T00:00:00+03:00",
+  "GlobalIgnoreAfterHyphen": true,
+  "Configurations": [
+    {
+      "ChartPosition": 1,
+      "IsEnabled": true,
+      "TableName": "Ambalaj_Satış_Detay_Tablosu",
+      "ChartType": "Line",
+      "DataStructureType": "Daily Date",
+      "RowsToIgnore": 1,
+      "UseInvariantCultureForNumbers": false,
+      "DateColumn": "FATURA_TARİHİ",
+      "SplitByColumn": null,
+      "Series": [
+        {
+          "Id": "9c47e4c6-8564-4547-a232-04bed855bcf0",
+          "ColumnName": "Toplam_Fatura_Tutarı",
+          "IsCombinationLabel": false,
+          "CustomDetailTitle": null,
+          "LegendLabel": null,
+          "ShowOnlyHoverLabels": false,
+          "SeriesColorHex": null,
+          "SavedStates": [
+            {
+              "StateName": "State 1",
+              "Nodes": []
+            },
+            {
+              "StateName": "State 2",
+              "Nodes": []
+            },
+            {
+              "StateName": "State 3",
+              "Nodes": []
+            }
+          ],
+          "ActiveStateIndex": 0
+        }
+      ],
+      "AggregationType": "Monthly",
+      "ValueAggregation": "Sum",
+      "HideNumbersInLabels": false,
+      "SimplifyLabels": false,
+      "ShowLabelsOnChart": false,
+      "ShowAsKpiCards": false,
+      "SelectedSplitCategories": []
+    },
+    {
+      "ChartPosition": 2,
+      "IsEnabled": true,
+      "TableName": "Ambalaj_Satış_Detay_Tablosu",
+      "ChartType": "Price Trend (Line)",
+      "DataStructureType": "Monthly Date",
+      "RowsToIgnore": 3,
+      "UseInvariantCultureForNumbers": false,
+      "DateColumn": "İRSALİYE_TARİHİ",
+      "SplitByColumn": null,
+      "Series": [
+        {
+          "Id": "c300002f-58f6-4d7e-800c-eaf4989f74e7",
+          "ColumnName": "BİOSUN_TARTIM_KG",
+          "IsCombinationLabel": false,
+          "CustomDetailTitle": null,
+          "LegendLabel": null,
+          "ShowOnlyHoverLabels": false,
+          "SeriesColorHex": null,
+          "SavedStates": [
+            {
+              "StateName": "State 1",
+              "Nodes": []
+            },
+            {
+              "StateName": "State 2",
+              "Nodes": []
+            },
+            {
+              "StateName": "State 3",
+              "Nodes": []
+            }
+          ],
+          "ActiveStateIndex": 0
+        },
+        {
+          "Id": "e2aa7e67-864f-4646-bc15-e2a348de7704",
+          "ColumnName": "Toplam_Fatura_Tutarı",
+          "IsCombinationLabel": false,
+          "CustomDetailTitle": null,
+          "LegendLabel": null,
+          "ShowOnlyHoverLabels": false,
+          "SeriesColorHex": null,
+          "SavedStates": [
+            {
+              "StateName": "State 1",
+              "Nodes": []
+            },
+            {
+              "StateName": "State 2",
+              "Nodes": []
+            },
+            {
+              "StateName": "State 3",
+              "Nodes": []
+            }
+          ],
+          "ActiveStateIndex": 0
+        }
+      ],
+      "AggregationType": "Monthly",
+      "ValueAggregation": "Sum",
+      "HideNumbersInLabels": false,
+      "SimplifyLabels": false,
+      "ShowLabelsOnChart": false,
+      "ShowAsKpiCards": false,
+      "SelectedSplitCategories": []
+    },
+    {
+      "ChartPosition": 3,
+      "IsEnabled": true,
+      "TableName": "Ambalaj_Satış_Detay_Tablosu",
+      "ChartType": "Bar",
+      "DataStructureType": "General",
+      "RowsToIgnore": 0,
+      "UseInvariantCultureForNumbers": false,
+      "DateColumn": "FİRMA_ADI",
+      "SplitByColumn": null,
+      "Series": [
+        {
+          "Id": "c6456344-921f-4fda-a73e-5566c8721e60",
+          "ColumnName": "Toplam_Fatura_Tutarı",
+          "IsCombinationLabel": false,
+          "CustomDetailTitle": null,
+          "LegendLabel": null,
+          "ShowOnlyHoverLabels": false,
+          "SeriesColorHex": null,
+          "SavedStates": [
+            {
+              "StateName": "State 1",
+              "Nodes": []
+            },
+            {
+              "StateName": "State 2",
+              "Nodes": []
+            },
+            {
+              "StateName": "State 3",
+              "Nodes": []
+            }
+          ],
+          "ActiveStateIndex": 0
+        }
+      ],
+      "AggregationType": "Monthly",
+      "ValueAggregation": "Sum",
+      "HideNumbersInLabels": false,
+      "SimplifyLabels": false,
+      "ShowLabelsOnChart": true,
+      "ShowAsKpiCards": false,
+      "SelectedSplitCategories": []
+    },
+    {
+      "ChartPosition": 4,
+      "IsEnabled": true,
+      "TableName": "Ambalaj_Satış_Detay_Tablosu",
+      "ChartType": "Pie",
+      "DataStructureType": "General",
+      "RowsToIgnore": 0,
+      "UseInvariantCultureForNumbers": false,
+      "DateColumn": "FATURA_TARİHİ",
+      "SplitByColumn": "TÜR",
+      "Series": [
+        {
+          "Id": "146b1816-3fa3-48a8-b1c1-d54b2670d368",
+          "ColumnName": "BİOSUN_TARTIM_KG",
+          "IsCombinationLabel": false,
+          "CustomDetailTitle": null,
+          "LegendLabel": null,
+          "ShowOnlyHoverLabels": false,
+          "SeriesColorHex": null,
+          "SavedStates": [
+            {
+              "StateName": "State 1",
+              "Nodes": []
+            },
+            {
+              "StateName": "State 2",
+              "Nodes": []
+            },
+            {
+              "StateName": "State 3",
+              "Nodes": []
+            }
+          ],
+          "ActiveStateIndex": 0
+        }
+      ],
+      "AggregationType": "Daily",
+      "ValueAggregation": "Sum",
+      "HideNumbersInLabels": false,
+      "SimplifyLabels": false,
+      "ShowLabelsOnChart": false,
+      "ShowAsKpiCards": false,
+      "SelectedSplitCategories": [
+        "__NONE__"
+      ]
+    },
+    {
+      "ChartPosition": 5,
+      "IsEnabled": true,
+      "TableName": "Ambalaj_Satış_Detay_Tablosu",
+      "ChartType": "Line",
+      "DataStructureType": "General",
+      "RowsToIgnore": 0,
+      "UseInvariantCultureForNumbers": false,
+      "DateColumn": "FATURA_TARİHİ",
+      "SplitByColumn": null,
+      "Series": [
+        {
+          "Id": "8669581a-4ec8-4591-bf7f-69ff3b92389f",
+          "ColumnName": "FİRE_MİKTARI_KG",
+          "IsCombinationLabel": false,
+          "CustomDetailTitle": null,
+          "LegendLabel": null,
+          "ShowOnlyHoverLabels": false,
+          "SeriesColorHex": null,
+          "SavedStates": [
+            {
+              "StateName": "State 1",
+              "Nodes": []
+            },
+            {
+              "StateName": "State 2",
+              "Nodes": []
+            },
+            {
+              "StateName": "State 3",
+              "Nodes": []
+            }
+          ],
+          "ActiveStateIndex": 0
+        }
+      ],
+      "AggregationType": "Monthly",
+      "ValueAggregation": "Sum",
+      "HideNumbersInLabels": false,
+      "SimplifyLabels": false,
+      "ShowLabelsOnChart": false,
+      "ShowAsKpiCards": false,
+      "SelectedSplitCategories": []
+    },
+    {
+      "ChartPosition": 6,
+      "IsEnabled": true,
+      "TableName": "Ambalaj_Satış_Detay_Tablosu",
+      "ChartType": "Pie",
+      "DataStructureType": "General",
+      "RowsToIgnore": 0,
+      "UseInvariantCultureForNumbers": false,
+      "DateColumn": "İRSALİYE_TARİHİ",
+      "SplitByColumn": "FİRMA_ADI",
+      "Series": [
+        {
+          "Id": "66abc70c-42b2-46f4-b00f-04ad5c908fb2",
+          "ColumnName": "Toplam_Fatura_Tutarı",
+          "IsCombinationLabel": false,
+          "CustomDetailTitle": null,
+          "LegendLabel": null,
+          "ShowOnlyHoverLabels": false,
+          "SeriesColorHex": null,
+          "SavedStates": [
+            {
+              "StateName": "State 1",
+              "Nodes": []
+            },
+            {
+              "StateName": "State 2",
+              "Nodes": []
+            },
+            {
+              "StateName": "State 3",
+              "Nodes": []
+            }
+          ],
+          "ActiveStateIndex": 0
+        }
+      ],
+      "AggregationType": "Daily",
+      "ValueAggregation": "Sum",
+      "HideNumbersInLabels": true,
+      "SimplifyLabels": true,
+      "ShowLabelsOnChart": true,
+      "ShowAsKpiCards": false,
+      "SelectedSplitCategories": [
+        "__NONE__"
+      ]
+    }
+  ],
+  "SeriesData": []
+}

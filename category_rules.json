@@ -436,7 +436,7 @@
   },
   {
     "StartsWith": "YÜKSEK-AMPER",
-    "MapTo": "ARIZA İLE DURMA",
+    "MapTo": "ARIZA-İLE-DURMA",
     "Priority": 0
   },
   {
@@ -717,11 +717,6 @@
   {
     "StartsWith": "ALT-SIRA-ORTA-ELEK-DEĞİŞİMİ",
     "MapTo": "MEKANİK-VE-ŞASİ-İŞLEMİ",
-    "Priority": 0
-  },
-  {
-    "StartsWith": "YÜSKEK-AMPER",
-    "MapTo": "YÜSKEK-AMPER",
     "Priority": 0
   },
   {

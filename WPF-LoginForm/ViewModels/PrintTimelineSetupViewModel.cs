@@ -165,6 +165,9 @@ namespace WPF_LoginForm.ViewModels
         private bool _showMonthSummary = true; // NEW
         public bool ShowMonthSummary { get => _showMonthSummary; set => SetProperty(ref _showMonthSummary, value); }
 
+        private bool _isCalculateTimeEnabled = true;
+        public bool IsCalculateTimeEnabled { get => _isCalculateTimeEnabled; set => SetProperty(ref _isCalculateTimeEnabled, value); }
+
         private bool _detailedOverlapView = true;
         public bool DetailedOverlapView { get => _detailedOverlapView; set => SetProperty(ref _detailedOverlapView, value); }
         private bool _hideGenelTemizlik = true;
@@ -722,7 +725,8 @@ namespace WPF_LoginForm.ViewModels
                     EnableSoftCorners = this.EnableSoftCorners,
                     DisableSoftCornersUnder5Min = this.DisableSoftCornersUnder5Min,
                     InnerLabelFontSize = this.InnerLabelFontSize,
-                    ShowMonthSummary = this.ShowMonthSummary // NEW
+                    ShowMonthSummary = this.ShowMonthSummary, // NEW
+                    UseRawWorkingTime = !this.IsCalculateTimeEnabled
                 };
 
                 var newRows = await _reportGenerator.GenerateReportAsync(_cachedData, context);

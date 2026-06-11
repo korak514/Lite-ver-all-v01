@@ -189,10 +189,10 @@ namespace WPF_LoginForm.ViewModels
                     if (!Directory.Exists(folder)) return;
                 }
 
+                OfflineDataCache.Clear();
+
                 var encFiles = Directory.GetFiles(folder, "*.enc");
                 if (encFiles.Length == 0) return;
-
-                OfflineDataCache.Clear();
                 int count = 0;
 
                 foreach (var encPath in encFiles)

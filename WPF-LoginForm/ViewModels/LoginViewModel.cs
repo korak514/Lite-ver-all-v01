@@ -123,12 +123,8 @@ namespace WPF_LoginForm.ViewModels
 
         private bool CanExecuteLoginCommand(object obj)
         {
-            // If we are NOT in Online Mode (Offline), require Username and Password
-            if (!IsOnlineMode)
-                return !IsBusy && !string.IsNullOrWhiteSpace(Username) && Username.Length >= 1 && Password != null && Password.Length >= 1;
-
-            // If we ARE in Online Mode, require Username and Password
-            return !IsBusy && !string.IsNullOrWhiteSpace(Username) && Username.Length >= 3 && Password != null && Password.Length >= 3;
+            return !IsBusy && !string.IsNullOrWhiteSpace(Username) && Username.Length >= 3
+                   && Password != null && Password.Length >= 3;
         }
 
         private async void ExecuteLoginCommand(object obj)

@@ -155,7 +155,7 @@ namespace WPF_LoginForm.ViewModels
         public bool IsNightShift
         {
             get => _isNightShift;
-            set { if (SetProperty(ref _isNightShift, value)) { UpdateHeaderStrings(); ParseDataToTimeline(); _ = LoadRulerDataAsync(); } }
+            set { if (SetProperty(ref _isNightShift, value)) { UpdateHeaderStrings(); ParseDataToTimeline(); SyncShiftFields(); _ = LoadRulerDataAsync(); } }
         }
 
         private bool _isDirty;
@@ -277,6 +277,70 @@ namespace WPF_LoginForm.ViewModels
             set { if (SetProperty(ref _editDuration, value)) { if (!UseEndTimeMode) CalculateTime(); } }
         }
 
+        // --- Shift-level cached column references ---
+        private DataColumn _colVardiya;
+        private DataColumn _colBaslangic;
+        private DataColumn _colBitis;
+        private DataColumn _colDuraklama;
+        private DataColumn _colFiili;
+        private bool _columnsCached;
+
+        // --- Shift-level editing properties ---
+        private string _editBaslangicSaati;
+        public string EditBaslangicSaati
+        {
+            get => _editBaslangicSaati;
+            set
+            {
+                if (SetProperty(ref _editBaslangicSaati, value))
+                    SaveShiftField(_colBaslangic, value);
+            }
+        }
+
+        private string _editBitisSaati;
+        public string EditBitisSaati
+        {
+            get => _editBitisSaati;
+            set
+            {
+                if (SetProperty(ref _editBitisSaati, value))
+                    SaveShiftField(_colBitis, value);
+            }
+        }
+
+        public ICommand SetDefaultShiftTimesCommand { get; }
+        public ICommand ShowShiftTimeDialogCommand { get; }
+        public ICommand CloseShiftTimeDialogCommand { get; }
+        public ICommand ApplyShiftTimeCommand { get; }
+
+        private bool _isShiftTimeDialogVisible;
+        public bool IsShiftTimeDialogVisible
+        {
+            get => _isShiftTimeDialogVisible;
+            set => SetProperty(ref _isShiftTimeDialogVisible, value);
+        }
+
+        private string _popupBaslangicSaati;
+        public string PopupBaslangicSaati
+        {
+            get => _popupBaslangicSaati;
+            set => SetProperty(ref _popupBaslangicSaati, value);
+        }
+
+        private string _popupBitisSaati;
+        public string PopupBitisSaati
+        {
+            get => _popupBitisSaati;
+            set => SetProperty(ref _popupBitisSaati, value);
+        }
+
+        private string _popupDuraklamaSure;
+        public string PopupDuraklamaSure
+        {
+            get => _popupDuraklamaSure;
+            set => SetProperty(ref _popupDuraklamaSure, value);
+        }
+
         // --- NEW: RULER SELECTION ---
         public ObservableCollection<string> RulerTables { get; } = new ObservableCollection<string>();
 
@@ -343,6 +407,10 @@ namespace WPF_LoginForm.ViewModels
             RefreshCommand = new ViewModelCommand(p => { ReloadData(); });
             OpenMonthlyErrorsCommand = new ViewModelCommand(p => ExecuteOpenMonthlyErrors());
             CopyAllTimelineCommand = new ViewModelCommand(p => ExecuteCopyAllTimeline());
+            SetDefaultShiftTimesCommand = new ViewModelCommand(p => ExecuteSetDefaultShiftTimes());
+            ShowShiftTimeDialogCommand = new ViewModelCommand(p => ExecuteShowShiftTimeDialog());
+            CloseShiftTimeDialogCommand = new ViewModelCommand(p => IsShiftTimeDialogVisible = false);
+            ApplyShiftTimeCommand = new ViewModelCommand(p => ExecuteApplyShiftTime());
 
             _ = InitializeTablesAsync();
             LoadConfigData();
@@ -481,8 +549,6 @@ namespace WPF_LoginForm.ViewModels
             };
 
             SyncEditFields();
-            IsEditPanelVisible = true;
-
             ExecuteApplyToTimeline();
         }
 
@@ -547,23 +613,8 @@ namespace WPF_LoginForm.ViewModels
 
             if (SelectedBlock.SourceRow == null || string.IsNullOrEmpty(SelectedBlock.SourceColumn))
             {
-                var dateCol = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c => c.ColumnName.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0 || c.ColumnName.IndexOf("tarih", StringComparison.OrdinalIgnoreCase) >= 0);
-                DataRow targetRow = null;
-
-                if (dateCol != null)
-                {
-                    targetRow = _currentData.AsEnumerable().FirstOrDefault(r =>
-                        r.RowState != DataRowState.Deleted &&
-                        r[dateCol] != DBNull.Value &&
-                        Convert.ToDateTime(r[dateCol]).Date == TargetDate.Date);
-                }
-
-                if (targetRow == null)
-                {
-                    targetRow = _currentData.NewRow();
-                    if (dateCol != null) targetRow[dateCol] = TargetDate.Date;
-                    _currentData.Rows.Add(targetRow);
-                }
+                if (!_columnsCached) CacheShiftColumns();
+                DataRow targetRow = GetOrCreateCurrentShiftRow();
 
                 SelectedBlock.SourceRow = targetRow;
 
@@ -593,6 +644,8 @@ namespace WPF_LoginForm.ViewModels
             AssignLanes(TimelineBlocks.ToList());
             RefreshDimensions();
             RecalculateSavings();
+            IsEditPanelVisible = false;
+            SelectedBlock = null;
         }
 
         private void ExecuteDeleteEvent()
@@ -664,8 +717,7 @@ namespace WPF_LoginForm.ViewModels
             if (TimelineBlocks == null) return;
 
             double shiftTotalMinutes = 720;
-            var firstValidBlock = TimelineBlocks.FirstOrDefault(b => b.SourceRow != null && b.SourceRow.Table != null);
-            DataRow dbRow = firstValidBlock?.SourceRow;
+            DataRow dbRow = FindCurrentShiftRow();
 
             if (dbRow != null)
             {
@@ -729,12 +781,12 @@ namespace WPF_LoginForm.ViewModels
 
             AutoCalculatedMolaKazanimi = Math.Max(0, sumOfDurations - totalStoppedWithinShift);
             ManualBypassKazanimi = manualBypass;
-            AutoFiiliSure = Math.Max(0, shiftTotalMinutes - totalStoppedWithinShift);
+            AutoFiiliSure = Math.Max(0, shiftTotalMinutes - totalStoppedWithinShift + manualBypass);
 
             if (dbRow != null)
             {
                 var dt = dbRow.Table;
-                DataColumn colSavedBreak = null, colSavedMaint = null, colFiili = null;
+                DataColumn colSavedBreak = null, colSavedMaint = null, colFiili = null, colDuraklama = null;
 
                 foreach (DataColumn c in dt.Columns)
                 {
@@ -744,6 +796,7 @@ namespace WPF_LoginForm.ViewModels
                     if (n.Contains("engelemeyen") || (n.Contains("zaman") && hasKazanim && !n.Contains("mola"))) colSavedBreak = c;
                     else if ((n.Contains("mola") || n.Contains("bakım") || n.Contains("bakim") || n.Contains("mola/bakım") || n.Contains("mola / bakım")) && hasKazanim) colSavedMaint = c;
                     else if (n.Contains("fiili") || n.Contains("çalışılan") || n.Contains("calisilan") || n.Contains("work")) colFiili = c;
+                    else if (n.Contains("duraklama")) colDuraklama = c;
                 }
 
                 RawMolaKazanimi = ParseDoubleSafe(colSavedMaint != null && dbRow[colSavedMaint] != DBNull.Value ? dbRow[colSavedMaint].ToString() : "");
@@ -754,7 +807,12 @@ namespace WPF_LoginForm.ViewModels
                     string fStr = dbRow[colFiili].ToString().Trim();
                     if (TimeSpan.TryParse(fStr, out TimeSpan fTs)) RawFiiliSure = fTs.TotalMinutes;
                     else if (DateTime.TryParse(fStr, out DateTime fDt)) RawFiiliSure = fDt.TimeOfDay.TotalMinutes;
-                    else RawFiiliSure = ParseDoubleSafe(fStr);
+                    else
+                    {
+                        double parsed = ParseDoubleSafe(fStr);
+                        if (parsed > 0 && parsed < 1) parsed *= 1440;
+                        RawFiiliSure = parsed;
+                    }
 
                     if (RawFiiliSure < 0)
                     {
@@ -763,6 +821,7 @@ namespace WPF_LoginForm.ViewModels
                     }
                 }
                 else RawFiiliSure = 0;
+
             }
             else
             {
@@ -789,6 +848,185 @@ namespace WPF_LoginForm.ViewModels
 
             double.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double res);
             return res;
+        }
+
+        private void ExecuteSetDefaultShiftTimes()
+        {
+            string defaultStart = IsNightShift ? "20:00" : "08:00";
+            string defaultEnd = IsNightShift ? "08:00" : "20:00";
+            PopupBaslangicSaati = defaultStart;
+            PopupBitisSaati = defaultEnd;
+        }
+
+        private void ExecuteShowShiftTimeDialog()
+        {
+            SyncShiftFields();
+            PopupBaslangicSaati = !string.IsNullOrEmpty(EditBaslangicSaati) ? EditBaslangicSaati : (IsNightShift ? "20:00" : "08:00");
+            PopupBitisSaati = !string.IsNullOrEmpty(EditBitisSaati) ? EditBitisSaati : (IsNightShift ? "08:00" : "20:00");
+
+            DataRow row = FindCurrentShiftRow();
+            if (row != null && _colDuraklama != null && row[_colDuraklama] != DBNull.Value)
+                PopupDuraklamaSure = FromExcelTimeFormat(row[_colDuraklama].ToString());
+            else
+                PopupDuraklamaSure = "00:00";
+
+            IsShiftTimeDialogVisible = true;
+        }
+
+        private void ExecuteApplyShiftTime()
+        {
+            EditBaslangicSaati = PopupBaslangicSaati;
+            EditBitisSaati = PopupBitisSaati;
+            RecalculateSavings();
+
+            DataRow row = FindCurrentShiftRow();
+            if (row != null)
+            {
+                double shiftTotal = 720;
+                DataColumn startCol = row.Table.Columns.Cast<DataColumn>().FirstOrDefault(c =>
+                    c.ColumnName.IndexOf("başlangıç", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    c.ColumnName.IndexOf("baslangic", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    c.ColumnName.IndexOf("start", StringComparison.OrdinalIgnoreCase) >= 0);
+                DataColumn endCol = row.Table.Columns.Cast<DataColumn>().FirstOrDefault(c =>
+                    c.ColumnName.IndexOf("bitiş", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    c.ColumnName.IndexOf("bitis", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    c.ColumnName.IndexOf("end", StringComparison.OrdinalIgnoreCase) >= 0);
+                if (startCol != null && endCol != null && row[startCol] != DBNull.Value && row[endCol] != DBNull.Value)
+                {
+                    string sTime = row[startCol].ToString();
+                    string eTime = row[endCol].ToString();
+                    if (TimeSpan.TryParse(sTime, out TimeSpan tsS) || (DateTime.TryParse(sTime, out DateTime dS) && (tsS = dS.TimeOfDay) is TimeSpan))
+                    {
+                        if (!TimeSpan.TryParse(eTime, out TimeSpan tsE) && DateTime.TryParse(eTime, out DateTime dE)) tsE = dE.TimeOfDay;
+                        if (tsE <= tsS) tsE = tsE.Add(TimeSpan.FromHours(24));
+                        shiftTotal = (tsE - tsS).TotalMinutes;
+                    }
+                }
+                double totalStopped = shiftTotal - AutoFiiliSure;
+                string durStr = $"{(int)(totalStopped / 60):D2}:{(int)(totalStopped % 60):D2}";
+                if (_colDuraklama != null) row[_colDuraklama] = ToExcelTimeFormat(durStr);
+                if (_colFiili != null) row[_colFiili] = ToExcelTimeFormat(AutoFiiliSureFormatted);
+                SetDirty();
+            }
+
+            IsShiftTimeDialogVisible = false;
+        }
+
+        private void CacheShiftColumns()
+        {
+            if (_currentData == null) { _columnsCached = false; return; }
+            _colVardiya = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c =>
+                c.ColumnName.IndexOf("vardiya", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                c.ColumnName.IndexOf("shift", StringComparison.OrdinalIgnoreCase) >= 0);
+            _colBaslangic = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c =>
+                c.ColumnName.IndexOf("başlangıç", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                c.ColumnName.IndexOf("baslangic", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                c.ColumnName.IndexOf("start", StringComparison.OrdinalIgnoreCase) >= 0);
+            _colBitis = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c =>
+                c.ColumnName.IndexOf("bitiş", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                c.ColumnName.IndexOf("bitis", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                c.ColumnName.IndexOf("end", StringComparison.OrdinalIgnoreCase) >= 0);
+            _colDuraklama = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c =>
+                c.ColumnName.IndexOf("duraklama", StringComparison.OrdinalIgnoreCase) >= 0);
+            _colFiili = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c =>
+                c.ColumnName.IndexOf("fiili", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                c.ColumnName.IndexOf("çalışılan", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                c.ColumnName.IndexOf("calisilan", StringComparison.OrdinalIgnoreCase) >= 0);
+            _columnsCached = true;
+        }
+
+        private void SyncShiftFields()
+        {
+            if (_currentData == null) return;
+            if (!_columnsCached) CacheShiftColumns();
+
+            DataRow row = FindCurrentShiftRow();
+            if (row == null)
+            {
+                _editBaslangicSaati = null; _editBitisSaati = null;
+                OnPropertyChanged(nameof(EditBaslangicSaati));
+                OnPropertyChanged(nameof(EditBitisSaati));
+                return;
+            }
+
+            _editBaslangicSaati = (_colBaslangic != null && row[_colBaslangic] != DBNull.Value) ? FromExcelTimeFormat(row[_colBaslangic].ToString()) : "";
+            _editBitisSaati = (_colBitis != null && row[_colBitis] != DBNull.Value) ? FromExcelTimeFormat(row[_colBitis].ToString()) : "";
+            OnPropertyChanged(nameof(EditBaslangicSaati));
+            OnPropertyChanged(nameof(EditBitisSaati));
+        }
+
+        private bool IsRowMatchingShift(string shiftValue)
+        {
+            if (string.IsNullOrWhiteSpace(shiftValue)) return true;
+            bool isNight = shiftValue.IndexOf("gece", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                           shiftValue.IndexOf("night", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool isDay = shiftValue.IndexOf("gündüz", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                         shiftValue.IndexOf("gunduz", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                         shiftValue.IndexOf("day", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!isNight && !isDay) return true;
+            return IsNightShift ? isNight : isDay;
+        }
+
+        private DataRow FindCurrentShiftRow()
+        {
+            if (_currentData == null) return null;
+
+            var dateCol = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c =>
+                c.ColumnName.IndexOf("tarih", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                c.ColumnName.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0);
+
+            return _currentData.AsEnumerable().FirstOrDefault(r =>
+                r.RowState != DataRowState.Deleted &&
+                dateCol != null && r[dateCol] != DBNull.Value &&
+                Convert.ToDateTime(r[dateCol]).Date == TargetDate.Date &&
+                (_colVardiya == null || r[_colVardiya] == DBNull.Value ||
+                 IsRowMatchingShift(r[_colVardiya].ToString())));
+        }
+
+        private DataRow GetOrCreateCurrentShiftRow()
+        {
+            DataRow existing = FindCurrentShiftRow();
+            if (existing != null) return existing;
+
+            var dateCol = _currentData.Columns.Cast<DataColumn>().FirstOrDefault(c =>
+                c.ColumnName.IndexOf("tarih", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                c.ColumnName.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0);
+
+            existing = _currentData.NewRow();
+            if (dateCol != null) existing[dateCol] = TargetDate.Date;
+            if (_colVardiya != null) existing[_colVardiya] = IsNightShift ? "Gece" : "Gündüz";
+            if (_colBaslangic != null) existing[_colBaslangic] = ToExcelTimeFormat(IsNightShift ? "20:00" : "08:00");
+            if (_colBitis != null) existing[_colBitis] = ToExcelTimeFormat(IsNightShift ? "08:00" : "20:00");
+            _currentData.Rows.Add(existing);
+            SetDirty();
+            return existing;
+        }
+
+        private static string ToExcelTimeFormat(string timeStr)
+        {
+            if (TimeSpan.TryParse(timeStr, out TimeSpan ts))
+                return new DateTime(1899, 12, 30).Add(ts).ToString("dd.MM.yyyy HH:mm");
+            if (DateTime.TryParse(timeStr, out DateTime dt))
+                return dt.ToString("dd.MM.yyyy HH:mm");
+            return timeStr;
+        }
+
+        private static string FromExcelTimeFormat(string excelStr)
+        {
+            if (DateTime.TryParse(excelStr, out DateTime dt))
+                return dt.ToString("HH:mm");
+            return excelStr;
+        }
+
+        private void SaveShiftField(DataColumn col, string value)
+        {
+            if (col == null) return;
+            DataRow row = GetOrCreateCurrentShiftRow();
+            if (row != null)
+            {
+                row[col] = string.IsNullOrEmpty(value) ? DBNull.Value : (object)ToExcelTimeFormat(value);
+                SetDirty();
+            }
         }
 
         private void SetDirty()
@@ -873,6 +1111,7 @@ namespace WPF_LoginForm.ViewModels
             if (ct.IsCancellationRequested || result.Data == null) return;
 
             _currentData = result.Data;
+            _columnsCached = false;
 
             _errorColumns.Clear();
             foreach (DataColumn c in _currentData.Columns)
@@ -882,8 +1121,14 @@ namespace WPF_LoginForm.ViewModels
                     _errorColumns.Add(c.ColumnName);
             }
 
+            CacheShiftColumns();
+
             IsDirty = false;
-            if (!ct.IsCancellationRequested) ParseDataToTimeline();
+            if (!ct.IsCancellationRequested)
+            {
+                ParseDataToTimeline();
+                SyncShiftFields();
+            }
         }
 
         private async Task LoadRulerDataAsync(CancellationToken ct = default)

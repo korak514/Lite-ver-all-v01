@@ -26,19 +26,7 @@ namespace WPF_LoginForm.Repositories
         public OfflineDataRepository(ILogger logger)
         {
             _logger = logger;
-
-            string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "offline_path.txt");
-            if (File.Exists(configPath))
-            {
-                string savedPath = File.ReadAllText(configPath).Trim();
-                if (Directory.Exists(savedPath)) _folderPath = savedPath;
-            }
-
-            if (string.IsNullOrEmpty(_folderPath))
-            {
-                _folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "OfflineData");
-                if (!Directory.Exists(_folderPath)) Directory.CreateDirectory(_folderPath);
-            }
+            _folderPath = GeneralSettingsManager.ResolveOfflineFolderPath();
         }
 
         // --- CORE LOGIC: Get from Cache or Load from Disk ---
@@ -64,18 +52,34 @@ namespace WPF_LoginForm.Repositories
                     }
                     catch { }
                 }
-                return cachedTable;
             }
 
             // Check if decrypted data is available from OfflineDataCache
+            string encPath = Path.Combine(_folderPath, $"{tableName}.enc");
             if (OfflineDataCache.DecryptedTables.TryGetValue(tableName, out DataTable decryptedTable))
             {
-                string encPath = Path.Combine(_folderPath, $"{tableName}.enc");
                 if (!OfflineDataCache.IsStale(tableName, encPath))
                 {
                     _tableCache.TryAdd(tableName, decryptedTable);
                     return decryptedTable;
                 }
+            }
+
+            // Stale .enc file — re-decrypt instead of relying on cached data
+            if (File.Exists(encPath))
+            {
+                try
+                {
+                    byte[] plainBytes = OfflineDataEncryptionFile.DecryptFile(encPath, OfflineDataEncryption.MasterPassword);
+                    string csvContent = Encoding.UTF8.GetString(plainBytes);
+                    DataTable reDecrypted = ParseCsvContent(csvContent, tableName);
+                    if (reDecrypted.Columns.Count > 0)
+                    {
+                        _tableCache.TryAdd(tableName, reDecrypted);
+                        return reDecrypted;
+                    }
+                }
+                catch { }
             }
 
             DataTable newTable = ReadCsv(filePath);
@@ -92,7 +96,7 @@ namespace WPF_LoginForm.Repositories
 
             try
             {
-                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 using (var sr = new StreamReader(fs, Encoding.UTF8))
                 {
                     string headerLine = sr.ReadLine();
@@ -183,6 +187,55 @@ namespace WPF_LoginForm.Repositories
             return result;
         }
 
+        private DataTable ParseCsvContent(string csvContent, string tableName)
+        {
+            var dt = new DataTable();
+            using (var sr = new StringReader(csvContent))
+            {
+                string headerLine = sr.ReadLine();
+                if (string.IsNullOrWhiteSpace(headerLine)) return dt;
+
+                char delimiter = ',';
+                int commaCount = headerLine.Count(c => c == ',');
+                int semiCount = headerLine.Count(c => c == ';');
+                int tabCount = headerLine.Count(c => c == '\t');
+
+                if (semiCount > commaCount && semiCount > tabCount) delimiter = ';';
+                else if (tabCount > commaCount && tabCount > semiCount) delimiter = '\t';
+
+                var headers = ParseCsvLine(headerLine, delimiter);
+                foreach (var h in headers)
+                {
+                    string colName = h.Trim();
+                    if (string.IsNullOrWhiteSpace(colName)) colName = "Column";
+                    int dupCount = 1;
+                    string originalColName = colName;
+                    while (dt.Columns.Contains(colName))
+                    {
+                        colName = $"{originalColName}_{dupCount++}";
+                    }
+                    dt.Columns.Add(colName);
+                }
+
+                while (sr.Peek() >= 0)
+                {
+                    string line = sr.ReadLine();
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    var rowValues = ParseCsvLine(line, delimiter);
+                    if (rowValues.Count > 0)
+                    {
+                        var row = dt.NewRow();
+                        for (int i = 0; i < Math.Min(rowValues.Count, dt.Columns.Count); i++)
+                        {
+                            row[i] = rowValues[i];
+                        }
+                        dt.Rows.Add(row);
+                    }
+                }
+            }
+            return dt;
+        }
+
         public async Task<List<string>> GetTableNamesAsync(bool forceRefresh = false)
         {
             return await Task.Run(() =>
@@ -193,6 +246,8 @@ namespace WPF_LoginForm.Repositories
                 {
                     names.AddRange(Directory.GetFiles(_folderPath, "*.csv")
                                             .Select(Path.GetFileNameWithoutExtension));
+                    names.AddRange(Directory.GetFiles(_folderPath, "*.enc")
+                                            .Select(Path.GetFileNameWithoutExtension));
                 }
 
                 // Also include tables that were decrypted from .enc files
@@ -201,6 +256,9 @@ namespace WPF_LoginForm.Repositories
                     if (!names.Contains(key, StringComparer.OrdinalIgnoreCase))
                         names.Add(key);
                 }
+
+                // Remove internal files that should not appear as data tables
+                names.RemoveAll(n => "offline_users".Equals(n, StringComparison.OrdinalIgnoreCase));
 
                 return names;
             });

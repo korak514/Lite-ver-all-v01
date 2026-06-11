@@ -266,64 +266,6 @@
                                     <Button Content="{x:Static p:Resources.CreateOfflineBackup}" Command="{Binding CreateOfflineBackupCommand}" Style="{StaticResource StandardButtonStyle}" Background="#FFD14545" Width="180" HorizontalAlignment="Left" />
                                 </StackPanel>
 
-                                <!-- Offline Users Management (only offline admin) -->
-                                <StackPanel Visibility="{Binding CanManageOfflineUsers, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,15" />
-                                    <TextBlock Text="{x:Static p:Resources.Str_OfflineUsers}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
-
-                                    <ItemsControl ItemsSource="{Binding OfflineUsers}" MaxHeight="120" Margin="0,0,0,10">
-                                        <ItemsControl.Template>
-                                            <ControlTemplate>
-                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                                    <ItemsPresenter />
-                                                </ScrollViewer>
-                                            </ControlTemplate>
-                                        </ItemsControl.Template>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid Margin="0,2">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="{Binding Username}" Foreground="White" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                                    <TextBlock Grid.Column="1" Text="{Binding Role}" Foreground="Gray" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                                    <Button Grid.Column="3" Content="{x:Static p:Resources.Str_Remove}"
-                                                            Command="{Binding DataContext.RemoveOfflineUserCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                            CommandParameter="{Binding}"
-                                                            Background="#C0392B" Foreground="White" FontSize="11" Padding="8,2" BorderThickness="0" Cursor="Hand" />
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-
-                                    <!-- Add User Section -->
-                                    <Grid Margin="0,0,0,10">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="{x:Static p:Resources.Username}" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                                        <TextBox Grid.Column="1" Text="{Binding NewOfflineUsername, UpdateSourceTrigger=PropertyChanged}" Height="26" Padding="2" Margin="0,0,6,0" />
-
-                                        <PasswordBox Grid.Column="2" x:Name="pwNewOffline" Height="26" Width="100" Margin="0,0,6,0" />
-
-                                        <Button Grid.Column="3" Content="{x:Static p:Resources.Str_AddUser}"
-                                                Command="{Binding AddOfflineUserCommand}"
-                                                Height="26" Padding="10,0" Background="#2E7D32" Foreground="White" BorderThickness="0" Cursor="Hand" />
-                                    </Grid>
-
-                                    <!-- Change Admin Password Button -->
-                                    <Button Content="{x:Static p:Resources.Str_ChangeAdminPassword}"
-                                            Command="{Binding ChangeAdminPasswordCommand}"
-                                            Height="30" Padding="10,0" Background="#444444" Foreground="White" BorderThickness="0" Cursor="Hand"
-                                            HorizontalAlignment="Left" Margin="0,0,0,10" />
-                                </StackPanel>
-
                                 <!-- Global Data Limit Settings -->
                                 <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,15" />
                                 <TextBlock Text="{x:Static p:Resources.PerformanceOptimization}" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,10" />
@@ -389,89 +331,159 @@
 
             <!-- TAB 2: USER MANAGEMENT -->
             <TabItem Header="{x:Static p:Resources.Tab_UserManagement}" Visibility="{Binding CanManageUsers, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <Grid Margin="0,10,0,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,10,10,0">
+                    <StackPanel>
 
-                    <Button Content="{x:Static p:Resources.Btn_RefreshList}" Command="{Binding LoadUsersCommand}" HorizontalAlignment="Right" Width="100" Margin="0,0,5,10" Style="{StaticResource StandardButtonStyle}" />
+                        <!-- ONLINE MODE -->
+                        <StackPanel Visibility="{Binding IsOnlineMode, Converter={StaticResource BooleanToVisibilityConverter}}">
 
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding Users}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                              Background="Transparent" BorderThickness="1" BorderBrush="{StaticResource panelActiveColor}" HeadersVisibility="Column">
-                        <DataGrid.ColumnHeaderStyle>
-                            <Style TargetType="DataGridColumnHeader">
-                                <Setter Property="Background" Value="#202020" />
-                                <Setter Property="Foreground" Value="#BCBEE0" />
-                                <Setter Property="Padding" Value="10,5" />
-                            </Style>
-                        </DataGrid.ColumnHeaderStyle>
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="{x:Static p:Resources.Grid_ID}" Binding="{Binding Id}" Width="50" />
-                            <DataGridTextColumn Header="{x:Static p:Resources.Grid_Username}" Binding="{Binding Username}" Width="120" />
-                            <DataGridTextColumn Header="{x:Static p:Resources.Grid_Role}" Binding="{Binding Role}" Width="80" FontWeight="Bold" />
-                            <DataGridTextColumn Header="{x:Static p:Resources.Grid_FirstName}" Binding="{Binding Name}" Width="*" />
-                            <DataGridTextColumn Header="{x:Static p:Resources.Grid_LastName}" Binding="{Binding LastName}" Width="*" />
-                            <DataGridTextColumn Header="{x:Static p:Resources.Grid_Email}" Binding="{Binding Email}" Width="150" />
-                            <DataGridTemplateColumn Width="80">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Button Content="{x:Static p:Resources.Btn_Delete}" Command="{Binding DataContext.DeleteUserCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}" Background="#D14545" Foreground="White" Padding="5,2" BorderThickness="0" Cursor="Hand" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                            <Button Content="{x:Static p:Resources.Btn_RefreshList}" Command="{Binding LoadUsersCommand}" HorizontalAlignment="Right" Width="100" Margin="0,0,5,10" Style="{StaticResource StandardButtonStyle}" />
 
-                    <!-- Add User Form -->
-                    <Border Grid.Row="2" CornerRadius="5" Background="#10FFFFFF" Padding="15" Margin="0,15,0,0">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
+                            <DataGrid ItemsSource="{Binding Users}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                      Background="Transparent" BorderThickness="1" BorderBrush="{StaticResource panelActiveColor}" HeadersVisibility="Column" MaxHeight="300">
+                                <DataGrid.ColumnHeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="Background" Value="#202020" />
+                                        <Setter Property="Foreground" Value="#BCBEE0" />
+                                        <Setter Property="Padding" Value="10,5" />
+                                    </Style>
+                                </DataGrid.ColumnHeaderStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="{x:Static p:Resources.Grid_ID}" Binding="{Binding Id}" Width="50" />
+                                    <DataGridTextColumn Header="{x:Static p:Resources.Grid_Username}" Binding="{Binding Username}" Width="120" />
+                                    <DataGridTextColumn Header="{x:Static p:Resources.Grid_Role}" Binding="{Binding Role}" Width="80" FontWeight="Bold" />
+                                    <DataGridTextColumn Header="{x:Static p:Resources.Grid_FirstName}" Binding="{Binding Name}" Width="*" />
+                                    <DataGridTextColumn Header="{x:Static p:Resources.Grid_LastName}" Binding="{Binding LastName}" Width="*" />
+                                    <DataGridTextColumn Header="{x:Static p:Resources.Grid_Email}" Binding="{Binding Email}" Width="150" />
+                                    <DataGridTemplateColumn Width="80">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="{x:Static p:Resources.Btn_Delete}" Command="{Binding DataContext.DeleteUserCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}" Background="#D14545" Foreground="White" Padding="5,2" BorderThickness="0" Cursor="Hand" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
 
-                            <TextBlock Grid.Row="0" Grid.ColumnSpan="4" Text="{x:Static p:Resources.AddNewUser}" Foreground="White" FontWeight="Bold" Margin="0,0,0,10" />
+                            <!-- Add User Form (Online) -->
+                            <Border CornerRadius="5" Background="#10FFFFFF" Padding="15" Margin="0,15,0,0">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
 
-                            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Text="{x:Static p:Resources.Lbl_UsernameReq}" Foreground="Gray" FontSize="10" />
-                                <TextBox Text="{Binding NewUserUsername, UpdateSourceTrigger=PropertyChanged}" Height="25" />
+                                    <TextBlock Grid.Row="0" Grid.ColumnSpan="4" Text="{x:Static p:Resources.AddNewUser}" Foreground="White" FontWeight="Bold" Margin="0,0,0,10" />
+
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Text="{x:Static p:Resources.Lbl_UsernameReq}" Foreground="Gray" FontSize="10" />
+                                        <TextBox Text="{Binding NewUserUsername, UpdateSourceTrigger=PropertyChanged}" Height="25" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,10,0">
+                                        <TextBlock Text="{x:Static p:Resources.Lbl_PasswordReq}" Foreground="Gray" FontSize="10" />
+                                        <customcontrols:BindablePasswordBox Password="{Binding NewUserPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="25" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,10,0">
+                                        <TextBlock Text="{x:Static p:Resources.Lbl_Role}" Foreground="Gray" FontSize="10" />
+                                        <ComboBox ItemsSource="{Binding AvailableRoles}" SelectedItem="{Binding NewUserRole, Mode=TwoWay}" Height="25" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1" Grid.Column="3">
+                                        <TextBlock Text="{x:Static p:Resources.Lbl_Email}" Foreground="Gray" FontSize="10" />
+                                        <TextBox Text="{Binding NewUserEmail, UpdateSourceTrigger=PropertyChanged}" Height="25" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,10,10,0">
+                                        <TextBlock Text="{x:Static p:Resources.Lbl_FirstName}" Foreground="Gray" FontSize="10" />
+                                        <TextBox Text="{Binding NewUserName, UpdateSourceTrigger=PropertyChanged}" Height="25" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,10,10,0">
+                                        <TextBlock Text="{x:Static p:Resources.Lbl_LastName}" Foreground="Gray" FontSize="10" />
+                                        <TextBox Text="{Binding NewUserLastName, UpdateSourceTrigger=PropertyChanged}" Height="25" />
+                                    </StackPanel>
+
+                                    <Button Grid.Row="2" Grid.Column="3" Content="{x:Static p:Resources.Btn_AddUser}" Command="{Binding AddUserCommand}" Margin="0,23,0,0" Height="25" Style="{StaticResource StandardButtonStyle}" />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- OFFLINE MODE -->
+                        <StackPanel Visibility="{Binding IsOfflineMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+
+                            <TextBlock Text="{x:Static p:Resources.Str_OfflineUsers}" Foreground="White" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,10" />
+
+                            <DataGrid ItemsSource="{Binding OfflineUserDisplayList}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                      Background="Transparent" BorderThickness="1" BorderBrush="{StaticResource panelActiveColor}" HeadersVisibility="Column" MaxHeight="300">
+                                <DataGrid.ColumnHeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="Background" Value="#202020" />
+                                        <Setter Property="Foreground" Value="#BCBEE0" />
+                                        <Setter Property="Padding" Value="10,5" />
+                                    </Style>
+                                </DataGrid.ColumnHeaderStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Kullanıcı Adı" Binding="{Binding Username}" Width="*" />
+                                    <DataGridTextColumn Header="Rol" Binding="{Binding Role}" Width="80" FontWeight="Bold" />
+                                    <DataGridTextColumn Header="Varsayılan Şifre" Binding="{Binding PasswordStatus}" Width="100" />
+                                    <DataGridTemplateColumn Width="80">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="{x:Static p:Resources.Str_Remove}"
+                                                        Command="{Binding DataContext.RemoveOfflineUserCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding Source}"
+                                                        Background="#C0392B" Foreground="White" Padding="5,2" BorderThickness="0" Cursor="Hand" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <!-- Add Offline User Form -->
+                            <Border CornerRadius="5" Background="#10FFFFFF" Padding="15" Margin="0,15,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{x:Static p:Resources.Username}" Foreground="{StaticResource titleColor3}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                    <TextBox Grid.Column="1" Text="{Binding NewOfflineUsername, UpdateSourceTrigger=PropertyChanged}" Height="26" Padding="2" Margin="0,0,6,0" />
+                                    <PasswordBox Grid.Column="2" x:Name="pwNewOffline" Height="26" Width="100" Margin="0,0,6,0" PasswordChanged="pwNewOffline_PasswordChanged" />
+                                    <Button Grid.Column="3" Content="{x:Static p:Resources.Str_AddUser}"
+                                            Command="{Binding AddOfflineUserCommand}"
+                                            Height="26" Padding="10,0" Background="#2E7D32" Foreground="White" BorderThickness="0" Cursor="Hand" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Change Admin Password -->
+                            <Button Content="{x:Static p:Resources.Str_ChangeAdminPassword}"
+                                    Command="{Binding ChangeAdminPasswordCommand}"
+                                    Height="30" Padding="10,0" Background="#444444" Foreground="White" BorderThickness="0" Cursor="Hand"
+                                    HorizontalAlignment="Left" Margin="0,15,0,10" />
+
+                            <!-- Backup / Restore -->
+                            <Separator Background="{StaticResource panelActiveColor}" Margin="0,0,0,10" />
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Button Content="{x:Static p:Resources.Str_BackupPasswords}"
+                                        Command="{Binding BackupPasswordsCommand}"
+                                        Height="30" Padding="10,0" Background="#2E7D32" Foreground="White" BorderThickness="0" Cursor="Hand"
+                                        Margin="0,0,10,0" />
+                                <Button Content="{x:Static p:Resources.Str_RestorePasswords}"
+                                        Command="{Binding RestorePasswordsCommand}"
+                                        Height="30" Padding="10,0" Background="#8E44AD" Foreground="White" BorderThickness="0" Cursor="Hand" />
                             </StackPanel>
-                            <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,10,0">
-                                <TextBlock Text="{x:Static p:Resources.Lbl_PasswordReq}" Foreground="Gray" FontSize="10" />
-                                <customcontrols:BindablePasswordBox Password="{Binding NewUserPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="25" />
-                            </StackPanel>
-                            <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,10,0">
-                                <TextBlock Text="{x:Static p:Resources.Lbl_Role}" Foreground="Gray" FontSize="10" />
-                                <ComboBox ItemsSource="{Binding AvailableRoles}" SelectedItem="{Binding NewUserRole, Mode=TwoWay}" Height="25" />
-                            </StackPanel>
-                            <StackPanel Grid.Row="1" Grid.Column="3">
-                                <TextBlock Text="{x:Static p:Resources.Lbl_Email}" Foreground="Gray" FontSize="10" />
-                                <TextBox Text="{Binding NewUserEmail, UpdateSourceTrigger=PropertyChanged}" Height="25" />
-                            </StackPanel>
+                        </StackPanel>
 
-                            <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,10,10,0">
-                                <TextBlock Text="{x:Static p:Resources.Lbl_FirstName}" Foreground="Gray" FontSize="10" />
-                                <TextBox Text="{Binding NewUserName, UpdateSourceTrigger=PropertyChanged}" Height="25" />
-                            </StackPanel>
-                            <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,10,10,0">
-                                <TextBlock Text="{x:Static p:Resources.Lbl_LastName}" Foreground="Gray" FontSize="10" />
-                                <TextBox Text="{Binding NewUserLastName, UpdateSourceTrigger=PropertyChanged}" Height="25" />
-                            </StackPanel>
-
-                            <Button Grid.Row="2" Grid.Column="3" Content="{x:Static p:Resources.Btn_AddUser}" Command="{Binding AddUserCommand}" Margin="0,23,0,0" Height="25" Style="{StaticResource StandardButtonStyle}" />
-                        </Grid>
-                    </Border>
-                </Grid>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
         </TabControl>
     </Grid>

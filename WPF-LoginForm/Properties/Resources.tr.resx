@@ -1882,4 +1882,43 @@ Veya çevrimdışı klasöre .csv dosyaları yerleştirin.</value>
   <data name="Str_ChangeAdminPassword" xml:space="preserve">
     <value>Admin Şifresini Değiştir</value>
   </data>
+  <data name="Str_UpdateWorkingHours" xml:space="preserve">
+    <value>Çalışma Saatlerini Güncelle</value>
+  </data>
+  <data name="Str_BackupPasswords" xml:space="preserve">
+    <value>Şifreleri Yedekle</value>
+  </data>
+  <data name="Str_RestorePasswords" xml:space="preserve">
+    <value>Şifreleri Geri Yükle</value>
+  </data>
+  <data name="Msg_BackupPasswordsNone" xml:space="preserve">
+    <value>Tüm şifreler varsayılan değerlerle aynı. Yedek oluşturulmadı.</value>
+  </data>
+  <data name="Msg_BackupPasswordsCount" xml:space="preserve">
+    <value>Varsayılandan farklı {0} şifre bulunuyor. Yedek oluşturulsun mu?</value>
+  </data>
+  <data name="Msg_RestorePasswordsSuccess" xml:space="preserve">
+    <value>Şifreler yedekten başarıyla geri yüklendi.</value>
+  </data>
+  <data name="Title_PasswordBackup" xml:space="preserve">
+    <value>Şifre Yedekleme</value>
+  </data>
+  <data name="Title_PasswordRestore" xml:space="preserve">
+    <value>Şifre Geri Yükleme</value>
+  </data>
+  <data name="Filter_EncFiles" xml:space="preserve">
+    <value>Şifrelenmiş Dosyalar|*.enc|Tüm Dosyalar|*.*</value>
+  </data>
+  <data name="Msg_PasswordBackupSuccess" xml:space="preserve">
+    <value>Şifreler başarıyla yedeklendi ({0} değişiklik) ->:\n{1}</value>
+  </data>
+  <data name="Msg_PasswordBackupFailed" xml:space="preserve">
+    <value>Şifreler yedeklenirken hata oluştu:\n{0}</value>
+  </data>
+  <data name="Msg_NoOfflineUsers" xml:space="preserve">
+    <value>Hiçbir çevrimdışı kullanıcı bulunamadı. Yedeklenecek bir şey yok.</value>
+  </data>
+  <data name="Msg_PasswordRestoreFailed" xml:space="preserve">
+    <value>Şifreler geri yüklenirken hata oluştu:\n{0}</value>
+  </data>
 </root>

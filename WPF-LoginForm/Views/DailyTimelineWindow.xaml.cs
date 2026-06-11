@@ -161,5 +161,13 @@ namespace WPF_LoginForm.Views
             }
             e.Handled = true;
         }
+
+        private void ModalBackground_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource == sender && sender is Border border && border.DataContext is DailyTimelineViewModel vm)
+            {
+                vm.CloseShiftTimeDialogCommand.Execute(null);
+            }
+        }
     }
 }

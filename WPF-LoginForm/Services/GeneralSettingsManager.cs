@@ -1,8 +1,8 @@
-// Services/GeneralSettingsManager.cs
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Windows;
 using WPF_LoginForm.Models;
 using WPF_LoginForm.Properties;
@@ -15,13 +15,91 @@ namespace WPF_LoginForm.Services
         public static GeneralSettingsManager Instance => _instance ?? (_instance = new GeneralSettingsManager());
 
         private readonly string _configLocationPointerFile;
-        public GeneralSettings Current { get; private set; }
+        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+        private volatile GeneralSettings _current;
+        public GeneralSettings Current
+        {
+            get => _current;
+            private set => _current = value;
+        }
 
         private GeneralSettingsManager()
         {
             _configLocationPointerFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config_location.txt");
-            Current = new GeneralSettings();
-            // REMOVED: Load() call here. Prevents double loading.
+            _current = new GeneralSettings();
+        }
+
+        public static string ResolveOfflineFolderPath()
+        {
+            // 1. Check offline_path.txt FIRST (legacy pointer file, original behavior)
+            string pointerFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "offline_path.txt");
+            if (File.Exists(pointerFile))
+            {
+                try
+                {
+                    string savedPath = File.ReadAllText(pointerFile).Trim();
+                    if (!string.IsNullOrEmpty(savedPath) && Directory.Exists(savedPath))
+                        return savedPath;
+                }
+                catch { }
+            }
+
+            // 2. Check config.OfflineFolderPath as fallback
+            var config = Instance.Current;
+            if (config != null && !string.IsNullOrEmpty(config.OfflineFolderPath) && Directory.Exists(config.OfflineFolderPath))
+                return config.OfflineFolderPath;
+
+            // 3. Default to OfflineData\ in app directory
+            string defaultPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "OfflineData");
+            if (!Directory.Exists(defaultPath)) Directory.CreateDirectory(defaultPath);
+            return defaultPath;
+        }
+
+        private string GetOfflineBackupPath()
+        {
+            string folder = ResolveOfflineFolderPath();
+            return Path.Combine(folder, "offline_users.enc");
+        }
+
+        private void SaveOfflineBackup()
+        {
+            try
+            {
+                var backup = new
+                {
+                    Users = Current.OfflineUsers,
+                    AdminHash = Current.OfflineAdminPasswordHash
+                };
+                string json = JsonConvert.SerializeObject(backup);
+                byte[] plainBytes = System.Text.Encoding.UTF8.GetBytes(json);
+                byte[] encrypted = OfflineDataEncryption.Encrypt(plainBytes, OfflineDataEncryption.MasterPassword);
+                string path = GetOfflineBackupPath();
+                string dir = Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                File.WriteAllBytes(path, encrypted);
+            }
+            catch { }
+        }
+
+        private bool TryRestoreOfflineBackup()
+        {
+            try
+            {
+                string path = GetOfflineBackupPath();
+                if (!File.Exists(path)) return false;
+                byte[] encrypted = File.ReadAllBytes(path);
+                byte[] plainBytes = OfflineDataEncryption.Decrypt(encrypted, OfflineDataEncryption.MasterPassword);
+                string json = System.Text.Encoding.UTF8.GetString(plainBytes);
+                var backup = JsonConvert.DeserializeAnonymousType(json, new { Users = "", AdminHash = "" });
+                if (backup != null)
+                {
+                    if (!string.IsNullOrEmpty(backup.Users)) Current.OfflineUsers = backup.Users;
+                    if (!string.IsNullOrEmpty(backup.AdminHash)) Current.OfflineAdminPasswordHash = backup.AdminHash;
+                    return true;
+                }
+            }
+            catch { }
+            return false;
         }
 
         public string GetResolvedConfigPath()
@@ -56,33 +134,64 @@ namespace WPF_LoginForm.Services
 
         public void Load()
         {
-            string configPath = GetResolvedConfigPath();
-
-            if (File.Exists(configPath))
+            _lock.EnterWriteLock();
+            try
             {
-                try
-                {
-                    string json = File.ReadAllText(configPath);
-                    Current = JsonConvert.DeserializeObject<GeneralSettings>(json) ?? new GeneralSettings();
-                    
-                    SyncJsonToSystemSettings();
-                    LoadDashboardPart();
+                string configPath = GetResolvedConfigPath();
 
-                    // Seed offline admin credentials if not yet set
-                    if (string.IsNullOrEmpty(Current.OfflineAdminPasswordHash))
+                if (File.Exists(configPath))
+                {
+                    try
                     {
-                        OfflineUserStore.SeedDefaultAdmin();
+                        string json = File.ReadAllText(configPath);
+                        _current = JsonConvert.DeserializeObject<GeneralSettings>(json) ?? new GeneralSettings();
+
+                        SyncJsonToSystemSettings();
+                        LoadDashboardPart();
+
+                        if (string.IsNullOrEmpty(Current.OfflineAdminPasswordHash))
+                        {
+                            OfflineUserStore.SeedDefaultAdmin();
+                        }
+
+                        EnsureOfflineFolderPath();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error loading general config: {ex.Message}");
+                        string oldUsers = _current?.OfflineUsers;
+                        string oldAdminHash = _current?.OfflineAdminPasswordHash;
+                        _current = new GeneralSettings();
+                        if (oldUsers != null) _current.OfflineUsers = oldUsers;
+                        if (oldAdminHash != null) _current.OfflineAdminPasswordHash = oldAdminHash;
+                        if (!TryRestoreOfflineBackup())
+                        {
+                            LoadGeneralPartFromLegacy();
+                            LoadDashboardPart();
+                        }
+                        EnsureOfflineFolderPath();
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error loading general config: {ex.Message}");
-                    LoadFromLegacyBackup();
+                    _current = new GeneralSettings();
+                    TryRestoreOfflineBackup();
+                    LoadGeneralPartFromLegacy();
+                    LoadDashboardPart();
+                    EnsureOfflineFolderPath();
                 }
             }
-            else
+            finally
             {
-                LoadFromLegacyBackup();
+                _lock.ExitWriteLock();
+            }
+        }
+
+        private void EnsureOfflineFolderPath()
+        {
+            if (string.IsNullOrEmpty(_current.OfflineFolderPath) || !Directory.Exists(_current.OfflineFolderPath))
+            {
+                _current.OfflineFolderPath = ResolveOfflineFolderPath();
             }
         }
 
@@ -92,8 +201,6 @@ namespace WPF_LoginForm.Services
 
             try
             {
-                // Inject JSON settings into the memory state of Properties.Settings
-                // REMOVED: Settings.Default.Save() to prevent crash on read-only environments
                 Settings.Default.DbProvider = Current.DbProvider ?? "SqlServer";
                 Settings.Default.SqlAuthConnString = Current.SqlAuthConnString;
                 Settings.Default.SqlDataConnString = Current.SqlDataConnString;
@@ -114,20 +221,6 @@ namespace WPF_LoginForm.Services
                 Settings.Default.SuppressOfflineReminder = Current.SuppressOfflineReminder;
             }
             catch { }
-
-            try
-            {
-                string offlineConfig = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "offline_path.txt");
-                File.WriteAllText(offlineConfig, Current.OfflineFolderPath ?? "");
-            }
-            catch { }
-        }
-
-        private void LoadFromLegacyBackup()
-        {
-            Current = new GeneralSettings();
-            LoadGeneralPartFromLegacy();
-            LoadDashboardPart();
         }
 
         private void LoadGeneralPartFromLegacy()
@@ -151,24 +244,20 @@ namespace WPF_LoginForm.Services
                 Current.DbPort = Settings.Default.DbPort;
                 Current.DbUser = Settings.Default.DbUser;
 
-                // Pure Offline Mode flag
                 Current.PureOfflineMode = Settings.Default.PureOfflineMode;
                 Current.SuppressOfflineReminder = Settings.Default.SuppressOfflineReminder;
             }
             catch { }
-            
-            try
+
+            if (string.IsNullOrEmpty(Current.OfflineFolderPath))
             {
-                string offlineConfig = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "offline_path.txt");
-                if (File.Exists(offlineConfig)) Current.OfflineFolderPath = File.ReadAllText(offlineConfig).Trim();
-                else Current.OfflineFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "OfflineData");
+                Current.OfflineFolderPath = ResolveOfflineFolderPath();
             }
-            catch { }
         }
 
         private void LoadDashboardPart()
         {
-            if (Current == null) Current = new GeneralSettings();
+            if (Current == null) _current = new GeneralSettings();
 
             try
             {
@@ -178,7 +267,6 @@ namespace WPF_LoginForm.Services
             }
             catch
             {
-                // Fallbacks if Settings properties don't exist
                 Current.ShowDashboardDateFilter = true;
                 Current.DashboardDateTickSize = 1;
                 Current.DefaultRowLimit = 500;
@@ -199,14 +287,16 @@ namespace WPF_LoginForm.Services
         public void Save()
         {
             if (Current == null) return;
-            string configPath = GetResolvedConfigPath();
 
+            _lock.EnterWriteLock();
             try
             {
+                SaveOfflineBackup();
+
+                string configPath = GetResolvedConfigPath();
                 string dir = Path.GetDirectoryName(configPath);
                 if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
-                // Backup existing config before overwriting
                 string backupPath = configPath + ".bak";
                 bool hadBackup = false;
                 if (File.Exists(configPath))
@@ -223,13 +313,11 @@ namespace WPF_LoginForm.Services
                 {
                     string json = JsonConvert.SerializeObject(Current, Formatting.Indented);
 
-                    // Acquire cross-process lock before writing
                     using (FileLock.Acquire(configPath + ".lock"))
                     {
                         File.WriteAllText(configPath, json);
                     }
 
-                    // Write succeeded — remove backup
                     if (hadBackup)
                     {
                         try { File.Delete(backupPath); } catch { }
@@ -237,15 +325,13 @@ namespace WPF_LoginForm.Services
                 }
                 catch
                 {
-                    // Write failed — restore from backup
                     if (hadBackup && File.Exists(backupPath))
                     {
                         try { File.Copy(backupPath, configPath, true); File.Delete(backupPath); } catch { }
                     }
-                    throw; // Let caller know save failed
+                    throw;
                 }
 
-                // Remaining settings sync — failures here don't affect the file write
                 try
                 {
                     Settings.Default.DbProvider = Current.DbProvider;
@@ -258,11 +344,11 @@ namespace WPF_LoginForm.Services
                     Settings.Default.ImportIsRelative = Current.ImportIsRelative;
                     Settings.Default.ImportFileName = Current.ImportFileName;
                     Settings.Default.ImportAbsolutePath = Current.ImportAbsolutePath;
-                    
+
                     Settings.Default.ShowDashboardDateFilter = Current.ShowDashboardDateFilter;
                     Settings.Default.DashboardDateTickSize = Current.DashboardDateTickSize;
                     Settings.Default.DefaultRowLimit = Current.DefaultRowLimit;
-                    
+
                     Settings.Default.ConnectionTimeout = Current.ConnectionTimeout;
                     Settings.Default.TrustServerCertificate = Current.TrustServerCertificate;
                     Settings.Default.DbServerName = Current.DbServerName;
@@ -273,7 +359,7 @@ namespace WPF_LoginForm.Services
                     Settings.Default.SuppressOfflineReminder = Current.SuppressOfflineReminder;
                     Settings.Default.Save();
                 }
-                catch { } // Ignore save failure for legacy settings if restricted
+                catch { }
 
                 try
                 {
@@ -297,6 +383,10 @@ namespace WPF_LoginForm.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Error saving general config: {ex.Message}");
                 throw;
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
             }
         }
 

@@ -68,6 +68,11 @@
                             <DatePicker Grid.Column="2" SelectedDate="{Binding EndDate}" />
                         </Grid>
 
+                        <CheckBox Content="Calculate working and stop time"
+                                  IsChecked="{Binding IsCalculateTimeEnabled}"
+                                  Foreground="#555" FontSize="11" Margin="0,0,0,10"
+                                  ToolTip="İşaretli: zaman çizelgesinden hesapla / İşaretsiz: DB sütunundan al" />
+
                         <Expander Header="{x:Static p:Resources.Str_VisualGlobalColors}" IsExpanded="False" Background="#F8F9FA" BorderBrush="#CCC" BorderThickness="1" Padding="5" Margin="0,0,0,5">
                             <StackPanel Margin="0,10,0,0">
                                 <Grid Margin="0,0,0,5">

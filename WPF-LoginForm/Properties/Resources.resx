@@ -1883,4 +1883,43 @@ Or place .csv files in the offline folder.</value>
   <data name="Str_ChangeAdminPassword" xml:space="preserve">
     <value>Change Admin Password</value>
   </data>
+  <data name="Str_UpdateWorkingHours" xml:space="preserve">
+    <value>Update Working Hours</value>
+  </data>
+  <data name="Str_BackupPasswords" xml:space="preserve">
+    <value>Backup Passwords</value>
+  </data>
+  <data name="Str_RestorePasswords" xml:space="preserve">
+    <value>Restore Passwords</value>
+  </data>
+  <data name="Msg_BackupPasswordsNone" xml:space="preserve">
+    <value>All passwords are same as defaults. No backup created.</value>
+  </data>
+  <data name="Msg_BackupPasswordsCount" xml:space="preserve">
+    <value>There are {0} password(s) that differ from defaults. Create backup?</value>
+  </data>
+  <data name="Msg_RestorePasswordsSuccess" xml:space="preserve">
+    <value>Passwords restored successfully from backup.</value>
+  </data>
+  <data name="Title_PasswordBackup" xml:space="preserve">
+    <value>Password Backup</value>
+  </data>
+  <data name="Title_PasswordRestore" xml:space="preserve">
+    <value>Password Restore</value>
+  </data>
+  <data name="Filter_EncFiles" xml:space="preserve">
+    <value>Encrypted Files|*.enc|All Files|*.*</value>
+  </data>
+  <data name="Msg_PasswordBackupSuccess" xml:space="preserve">
+    <value>Passwords backed up successfully ({0} changed) to:\n{1}</value>
+  </data>
+  <data name="Msg_PasswordBackupFailed" xml:space="preserve">
+    <value>Failed to backup passwords:\n{0}</value>
+  </data>
+  <data name="Msg_NoOfflineUsers" xml:space="preserve">
+    <value>No offline users found. Nothing to backup.</value>
+  </data>
+  <data name="Msg_PasswordRestoreFailed" xml:space="preserve">
+    <value>Failed to restore passwords:\n{0}</value>
+  </data>
 </root>
